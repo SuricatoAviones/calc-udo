@@ -8,8 +8,8 @@
  */
 import { z } from 'zod';
 import { differentiate, parseFunction } from '@/lib/math/expression';
-import { absoluteError, relativeErrorPercent } from '@/lib/math/error-metrics';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { absoluteError } from '@/lib/math/error-metrics';
+import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -18,29 +18,23 @@ import {
   type Step,
   type Trace,
 } from '../types';
+import {
+  approximateError,
+  convergenceSeries,
+  expressionField,
+  finiteNumber,
+  maxIterationsField,
+  rootSummary,
+  toleranceField,
+} from './root-finding';
 
 // ─── Entrada ────────────────────────────────────────────────────────────────
 
-const finiteNumber = (label: string) =>
-  z
-    .number({ error: `Ingresa un número para ${label}.` })
-    .refine(Number.isFinite, `${label} debe ser un número finito.`);
-
 export const newtonRaphsonInputSchema = z.object({
-  expression: z
-    .string()
-    .trim()
-    .min(1, 'Escribe la función f(x).')
-    .max(200, 'La expresión es demasiado larga.'),
+  expression: expressionField,
   x0: finiteNumber('x₀'),
-  tolerance: finiteNumber('la tolerancia')
-    .refine((v) => v > 0, 'La tolerancia debe ser mayor que 0.')
-    .refine((v) => v <= 100, 'La tolerancia es un porcentaje: no puede superar 100 %.'),
-  maxIterations: z
-    .number({ error: 'Ingresa el número máximo de iteraciones.' })
-    .int('El máximo de iteraciones debe ser un número entero.')
-    .min(1, 'Debe haber al menos 1 iteración.')
-    .max(100, 'El máximo permitido es 100 iteraciones.'),
+  tolerance: toleranceField,
+  maxIterations: maxIterationsField,
 });
 
 export type NewtonRaphsonInput = z.infer<typeof newtonRaphsonInputSchema>;
@@ -76,11 +70,8 @@ interface IterationRow {
 // ─── LaTeX ──────────────────────────────────────────────────────────────────
 
 const NEWTON_FORMULA = "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}";
-const ERROR_FORMULA =
-  '\\varepsilon_a = \\left| \\frac{x_{n+1} - x_n}{x_{n+1}} \\right| \\times 100\\%';
 
 const n = toLatexNumber;
-const op = toLatexOperand;
 
 function iterationTable(rows: IterationRow[]): ResultTable {
   return {
@@ -106,23 +97,10 @@ function buildTrace(steps: Step[], rows: IterationRow[], notices: Trace['notices
   if (rows.length > 0) {
     trace.tables.push(iterationTable(rows));
     trace.series.push(
-      {
-        id: 'aproximacion',
-        title: 'Aproximación a la raíz por iteración',
-        xLabel: 'Iteración n',
-        yLabel: 'x_{n+1}',
-        points: rows.map((r) => ({ x: r.n + 1, y: r.xNext })),
-      },
-      {
-        id: 'error',
-        title: 'Error relativo aproximado por iteración',
-        xLabel: 'Iteración n',
-        yLabel: 'εa (%)',
-        yScale: 'log',
-        points: rows.flatMap((r) =>
-          r.relativeError === null ? [] : [{ x: r.n + 1, y: r.relativeError }],
-        ),
-      },
+      ...convergenceSeries(
+        rows.map((r) => ({ iteration: r.n + 1, approximation: r.xNext, ea: r.relativeError })),
+        'x_{n+1}',
+      ),
     );
   }
   return trace;
@@ -171,24 +149,12 @@ export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
   });
 
   const succeed = (root: number, converged: boolean): Result => {
-    const last = rows.at(-1);
-    const approximateError = last?.relativeError ?? null;
+    const ea = rows.at(-1)?.relativeError ?? null;
     const residual = f.evaluate(root);
     return {
       ok: true,
-      value: { root, iterations: rows.length, converged, approximateError, residual },
-      summary: [
-        { label: 'Raíz aproximada', value: `x_r \\approx ${n(root)}`, emphasis: true },
-        { label: 'Iteraciones', value: String(rows.length) },
-        {
-          label: 'Error relativo aproximado',
-          value:
-            approximateError === null
-              ? '\\text{—}'
-              : `\\varepsilon_a = ${n(approximateError, 4)}\\,\\%`,
-        },
-        { label: 'Comprobación', value: `f(x_r) = ${n(residual, 4)}` },
-      ],
+      value: { root, iterations: rows.length, converged, approximateError: ea, residual },
+      summary: rootSummary(root, rows.length, ea, residual),
       ...buildTrace(steps, rows, notices),
     };
   };
@@ -244,26 +210,9 @@ export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
     const xNext = x - fx / dfx;
     const xn1 = `x_{${i + 1}}`;
     const Ea = absoluteError(xNext, x);
-    const ea = relativeErrorPercent(xNext, x);
-    const converged = ea !== null && ea < tolerance;
+    const { ea, converged, step: errorStep } = approximateError(xNext, x, tolerance, xn1, xi);
 
     rows.push({ n: i, xn: x, fxn: fx, dfxn: dfx, xNext, absoluteError: Ea, relativeError: ea });
-
-    const errorStep: Step =
-      ea === null
-        ? {
-            title: 'Error relativo aproximado',
-            explanation: `No está definido porque ${xn1} = 0. Se continúa iterando.`,
-          }
-        : {
-            title: 'Error relativo aproximado',
-            explanation: converged
-              ? `εₐ = ${formatNumber(ea, 4)} % es menor que la tolerancia εₛ = ${String(tolerance)} %: el método convergió.`
-              : `εₐ = ${formatNumber(ea, 4)} % no es menor que la tolerancia εₛ = ${String(tolerance)} %: se sigue iterando.`,
-            formula: ERROR_FORMULA,
-            substitution: `\\varepsilon_a = \\left| \\frac{${n(xNext)} - ${op(x)}}{${n(xNext)}} \\right| \\times 100\\%`,
-            result: `\\varepsilon_a = ${n(ea, 6)}\\,\\%`,
-          };
 
     steps.push({
       title: `Iteración ${i + 1}`,
@@ -327,7 +276,7 @@ export const newtonRaphson: Calculator<
     citations: [
       {
         sourceId: 'chapra-canale-2000',
-        locator: 'Cap. 6 (Métodos abiertos), sección 6.2, Ejemplos 6.3 y 6.5',
+        locator: 'Cap. 6, sección 6.2, Ejemplos 6.3 y 6.5 (pp. 149–152 de la 5.ª ed. en español)',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'ledanois-2000' },

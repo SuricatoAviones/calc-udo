@@ -46,6 +46,19 @@ function decadeTicks(values: number[]): number[] {
 }
 
 /**
+ * Cifras significativas para las marcas del eje: suficientes para distinguir valores cercanos
+ * (p. ej. 14.75 y 14.875), sin llenar el eje de decimales.
+ */
+function tickDigits(values: number[]): number {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const magnitude = Math.max(Math.abs(min), Math.abs(max));
+  const span = max - min;
+  if (span === 0 || magnitude === 0) return 3;
+  return Math.min(8, Math.max(2, Math.ceil(Math.log10(magnitude / span)) + 2));
+}
+
+/**
  * Gráfica de línea de una serie (p. ej. error vs. iteración). Una sola serie → sin leyenda: el
  * título la nombra. La tabla de resultados es la vista alternativa accesible.
  */
@@ -58,6 +71,7 @@ export function SeriesChart({ series }: { series: Series }) {
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
   const logTicks = isLog ? decadeTicks(points.map((p) => p.y)) : undefined;
+  const digits = isLog ? 2 : tickDigits(points.map((p) => p.y));
 
   return (
     <figure className="flex flex-col gap-2">
@@ -94,7 +108,7 @@ export function SeriesChart({ series }: { series: Series }) {
               scale={isLog ? 'log' : 'linear'}
               domain={logTicks ? [logTicks[0]!, logTicks.at(-1)!] : ['auto', 'auto']}
               ticks={logTicks}
-              tickFormatter={(v: number) => formatNumber(v, 2)}
+              tickFormatter={(v: number) => formatNumber(v, digits)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
               stroke="var(--border)"
               width={64}

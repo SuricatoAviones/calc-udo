@@ -22,7 +22,7 @@ describe('Newton-Raphson', () => {
   //   3  0.567143165  0.0000220
   //   4  0.567143290  < 10^-8
   // Raíz verdadera citada en el libro: 0.56714329.
-  // ⚠ Verificar la numeración del ejemplo contra la 3ra Ed. (2000) del pensum.
+  // Verificado contra la 5.ª ed. en español (McGraw-Hill, 2007), p. 149. El pensum cita la 3.ª ed.
   describe('Chapra, Ejemplo 6.3: f(x) = e^{-x} − x, x0 = 0', () => {
     const result = solve({ expression: 'e^(-x) - x', x0: 0 });
 
@@ -78,7 +78,7 @@ describe('Newton-Raphson', () => {
   // lentamente con el método de Newton-Raphson"): f(x) = x^10 − 1, x0 = 0.5.
   // Tabla del libro: x1 = 51.65, x2 = 46.485, x3 = 41.8365, x4 = 37.65285,
   // x5 = 33.887565, … (la raíz es 1).
-  // ⚠ Verificar la numeración del ejemplo contra la 3ra Ed. (2000) del pensum.
+  // Verificado contra la 5.ª ed. en español (McGraw-Hill, 2007), pp. 151-152.
   describe('Chapra, Ejemplo 6.5: f(x) = x^10 − 1, x0 = 0.5 (convergencia lenta)', () => {
     const result = solve({ expression: 'x^10 - 1', x0: 0.5, maxIterations: 5 });
 

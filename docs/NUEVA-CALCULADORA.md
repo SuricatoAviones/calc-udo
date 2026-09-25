@@ -50,9 +50,9 @@ calculadora (p. ej. `newton-raphson`), tal como aparecen en `data/curriculum.ts`
 ### 3. UI: `components/calculators/<materia>/<Nombre>.tsx`
 
 - [ ] `'use client'`.
-- [ ] **Solo** el formulario específico: los campos de entrada con React Hook Form y
-      `zodResolver(calc.inputSchema)`, precargados con `calc.example`.
-- [ ] Al enviar, llama a `calc.solve(input)` y pasa el resultado a `<CalculatorLayout>`. **No**
+- [ ] Envuelve los campos en `<CalculatorForm calculator={calc}>`: valida con
+      `calc.inputSchema`, precarga `calc.example`, llama a `calc.solve` y dibuja el resultado.
+- [ ] **Solo** declara los campos (`NumberField`, `ExpressionField`, `SelectField`…). **No**
       reimplementes la tabla de pasos, el resumen, la gráfica ni las referencias: el layout
       genérico ya lo hace.
 - [ ] Revisa la página en un ancho de ~375 px (móvil).
@@ -220,40 +220,46 @@ se resuelva con pasos.
 
 ### 3. UI: [`NewtonRaphson.tsx`](../components/calculators/metodos-numericos/NewtonRaphson.tsx)
 
-Solo el formulario. Todo lo demás lo dibuja `CalculatorLayout` a partir del resultado:
+Solo los campos. `CalculatorForm` se encarga del estado, de validar con `inputSchema`, de
+precargar `example`, de llamar a `solve()` y de dibujar el resultado con `CalculatorLayout`:
 
 ```tsx
 'use client';
+
 export default function NewtonRaphson() {
-  const [result, setResult] = useState<Result | null>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<NewtonRaphsonInput>({
-    resolver: zodResolver(newtonRaphson.inputSchema),
-    defaultValues: newtonRaphson.example,
-  });
   return (
-    <CalculatorLayout meta={newtonRaphson.meta} result={result}>
-      <form onSubmit={handleSubmit((values) => setResult(newtonRaphson.solve(values)))}>
-        <Field id="x0" label="Valor inicial" error={errors.x0?.message}>
-          {/* setValueAs: parseDecimal acepta "0,5" (coma decimal) */}
-          <Input
-            {...register('x0', { setValueAs: (v) => parseDecimal(String(v)) })}
-            inputMode="decimal"
-          />
-        </Field>
-        {/* … f(x) con vista previa en LaTeX, tolerancia, máx. iteraciones … */}
-        <Button type="submit">Calcular</Button>
-      </form>
-    </CalculatorLayout>
+    <CalculatorForm calculator={newtonRaphson}>
+      <ExpressionField
+        name="expression"
+        label={<Formula tex="f(x)" />}
+        previewPrefix="f(x) ="
+        hint={FUNCTION_HINT}
+      />
+      <NumberField
+        name="x0"
+        label={
+          <>
+            Valor inicial <Formula tex="x_0" />
+          </>
+        }
+      />
+      <IterationFields /> {/* tolerancia + máx. iteraciones */}
+    </CalculatorForm>
   );
 }
 ```
 
-Los campos numéricos usan `type="text"` con `inputMode="decimal"` y `parseDecimal`, no
-`type="number"`: en teclados configurados en español, `type="number"` puede rechazar la coma.
+Los campos disponibles están en
+[`components/calculators/form/fields.tsx`](../components/calculators/form/fields.tsx):
+`NumberField`, `ExpressionField` (con vista previa en LaTeX), `SelectField` e
+`IterationFields`. Leen el formulario con `useFormContext`, así que solo necesitan el `name`
+del campo del schema. `NumberField` usa `type="text"` con `inputMode="decimal"` y
+`parseDecimal`, no `type="number"`: en teclados configurados en español, `type="number"`
+puede rechazar la coma.
+
+Si varias calculadoras comparten campos, agrúpalos en un componente. Por ejemplo,
+[`BracketingFields.tsx`](../components/calculators/metodos-numericos/BracketingFields.tsx) lo
+usan bisección y falsa posición.
 
 ### 4. Registro: [`registry.ts`](../components/calculators/registry.ts)
 

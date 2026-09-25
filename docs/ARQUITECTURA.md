@@ -34,9 +34,12 @@ calc-udo/
 ├── lib/                               ← TypeScript puro: sin React, sin efectos.
 │   ├── calculators/
 │   │   ├── types.ts                   el contrato común (ver abajo)
+│   │   ├── contract.test.ts           valida el contrato de TODAS las calculadoras
 │   │   └── <materia>/
 │   │       ├── <calculadora>.ts       lógica: implementa Calculator<I, V, E>
-│   │       └── <calculadora>.test.ts  tests con casos de la bibliografía
+│   │       ├── <calculadora>.test.ts  tests con casos de la bibliografía
+│   │       └── <familia>.ts           núcleo compartido por métodos parecidos
+│   │                                  (p. ej. root-finding.ts, bracketing.ts)
 │   ├── math/                          helpers compartidos entre calculadoras
 │   │   ├── expression.ts              parsear/compilar/derivar con mathjs
 │   │   ├── format.ts                  redondeo y número → LaTeX
@@ -54,7 +57,8 @@ calc-udo/
 │       ├── StepByStep.tsx             renderiza Step[]
 │       ├── ResultTable.tsx            renderiza ResultTable[]
 │       ├── Formula.tsx                KaTeX
-│       └── <materia>/<Calculadora>.tsx  solo el formulario específico
+│       ├── form/                      CalculatorForm + campos reutilizables
+│       └── <materia>/<Calculadora>.tsx  solo declara sus campos
 │
 ├── data/
 │   ├── curriculum.ts                  materias → temas → calculadoras previstas
@@ -65,6 +69,12 @@ calc-udo/
 ```
 
 ### Por qué así
+
+- **Núcleos por familia de métodos.** Cuando varios métodos solo difieren en una fórmula
+  (bisección y falsa posición difieren en cómo calculan xᵣ), el procedimiento común vive en un
+  archivo de la familia (`bracketing.ts`) y cada método aporta su regla. Así un arreglo en el
+  procedimiento llega a todos, y cada calculadora sigue siendo un objeto `Calculator` con su
+  propio id, citas y tests.
 
 - **`app/` solo tiene rutas.** Las páginas leen `lib/curriculum.ts` y componen componentes. Si
   una página crece con lógica, esa lógica va a `lib/` o a un componente.

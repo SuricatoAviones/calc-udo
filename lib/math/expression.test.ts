@@ -54,6 +54,24 @@ describe('parseFunction', () => {
   });
 });
 
+describe('funciones de varias variables', () => {
+  // Chapra, Ej. 25.5: f(x, y) = 4e^{0.8x} − 0.5y; en (0, 2) la pendiente es 4 − 1 = 3 y en
+  // (1, 5) es 6.402164 (valores impresos en el libro).
+  it('evalúa f(x, y) de una EDO', () => {
+    const result = parseFunction('4 e^(0.8x) - 0.5y', ['x', 'y']);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.expr.evaluateAt({ x: 0, y: 2 })).toBeCloseTo(3, 12);
+    expect(result.expr.evaluateAt({ x: 1, y: 5 })).toBeCloseTo(6.402164, 6);
+  });
+
+  it('nombra todas las variables permitidas en el error', () => {
+    const result = parseFunction('x + z', ['x', 'y']);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toContain('x e y');
+  });
+});
+
 describe('differentiate', () => {
   it('d/dx (e^{-x} − x) = −e^{-x} − 1', () => {
     const df = derivativeOk('e^(-x) - x');

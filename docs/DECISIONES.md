@@ -147,3 +147,32 @@ Plantilla:
 - **Alternativas descartadas:** _Valores calculados con el propio código o sin contraste_: no
   detectan errores conceptuales. _Solo comparar contra otro software_: útil como apoyo, pero el
   estudiante estudia con el libro.
+
+## ADR-011 — Ediciones contra las que se verifican los tests
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Los casos de prueba se verifican contra las ediciones que se pudieron consultar,
+  y cada test indica la edición y la página: Chapra & Canale, 5.ª ed. en español (2007); Taha,
+  7.ª ed. en español (2004); Walpole, Myers y Myers, 8.ª ed. en español (2007). Las citas de las
+  calculadoras (`meta.citations`) usan el id de la obra del pensum y el `locator` aclara la
+  edición.
+- **Contexto:** El pensum cita otras ediciones (Chapra 3.ª ed., Walpole 6.ª ed.), que no están
+  disponibles en línea. La numeración de los ejemplos de Chapra en la 5.ª ed. coincide con la
+  que se usaba antes de verificar (ejemplos 5.3–5.5, 6.3, 6.5–6.7).
+- **Alternativas descartadas:** _No citar la página_: el estudiante no encuentra el ejemplo.
+  _Calcular los valores esperados sin fuente_: lo prohíbe ADR-010.
+
+## ADR-012 — Formularios declarativos con `CalculatorForm`
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Cada calculadora declara sus campos dentro de `<CalculatorForm calculator={…}>`.
+  El componente maneja el estado, la validación con `inputSchema`, el ejemplo precargado y la
+  llamada a `solve()`. Los campos (`NumberField`, `ExpressionField`, …) leen el formulario con
+  `useFormContext`.
+- **Contexto:** Con el piloto, cada calculadora repetía unas 60 líneas de `useForm`, registro de
+  campos y conexión con el layout. Con cuatro métodos de raíces la repetición ya era evidente.
+- **Alternativas descartadas:** _Generar el formulario desde el schema Zod_: los schemas no
+  tienen etiquetas en LaTeX ni ayudas, y algunas entradas (matrices, listas de datos) necesitan
+  controles propios. _Mantener el formulario a mano en cada calculadora_: repetición.

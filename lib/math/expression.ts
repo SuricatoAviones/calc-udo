@@ -17,8 +17,10 @@ export interface ParsedExpression {
   node: MathNode;
   /** Representación LaTeX para mostrar en los pasos. */
   tex: string;
-  /** Evalúa en `x`. Devuelve `NaN` si el resultado no es un número real. */
+  /** Evalúa en la primera variable (normalmente `x`). `NaN` si el resultado no es real. */
   evaluate(x: number): number;
+  /** Evalúa con varias variables, p. ej. `{ x: 0, y: 1 }` para f(x, y). */
+  evaluateAt(scope: Record<string, number>): number;
 }
 
 export type ExpressionResult =
@@ -49,7 +51,12 @@ function translateParseError(error: unknown): string {
 }
 
 /** Valida símbolos y funciones. Devuelve un mensaje de error o `null` si todo está bien. */
-function validateSymbols(node: MathNode, variable: string): string | null {
+function describeVariables(variables: string[]): string {
+  if (variables.length === 1) return variables[0]!;
+  return `${variables.slice(0, -1).join(', ')} e ${variables.at(-1)}`;
+}
+
+function validateSymbols(node: MathNode, variables: string[]): string | null {
   let problem: string | null = null;
   node.traverse((child, path, parent) => {
     if (problem) return;
@@ -63,8 +70,8 @@ function validateSymbols(node: MathNode, variable: string): string | null {
       } else if (!ALLOWED_FUNCTIONS.has(name)) {
         problem = `La función «${name}» no está soportada.`;
       }
-    } else if (name !== variable && !ALLOWED_CONSTANTS.has(name)) {
-      problem = `La expresión solo puede depender de ${variable}; «${name}» no está definido.`;
+    } else if (!variables.includes(name) && !ALLOWED_CONSTANTS.has(name)) {
+      problem = `La expresión solo puede depender de ${describeVariables(variables)}; «${name}» no está definido.`;
     }
   });
   return problem;
@@ -80,25 +87,35 @@ function applyAliases(node: MathNode): MathNode {
   });
 }
 
-function toParsed(source: string, node: MathNode): ParsedExpression {
+function toParsed(source: string, node: MathNode, variables: string[]): ParsedExpression {
   const compiled = node.compile();
+  const evaluateAt = (scope: Record<string, number>) => {
+    try {
+      const value: unknown = compiled.evaluate({ ...scope });
+      return typeof value === 'number' ? value : NaN; // p. ej. Complex de sqrt(-1)
+    } catch {
+      return NaN;
+    }
+  };
+  const first = variables[0] ?? 'x';
   return {
     source,
     node,
     tex: node.toTex({ implicit: 'show' }),
-    evaluate(x: number) {
-      try {
-        const value: unknown = compiled.evaluate({ x });
-        return typeof value === 'number' ? value : NaN; // p. ej. Complex de sqrt(-1)
-      } catch {
-        return NaN;
-      }
-    },
+    evaluate: (x: number) => evaluateAt({ [first]: x }),
+    evaluateAt,
   };
 }
 
-/** Parsea una función de una variable escrita por el estudiante. */
-export function parseFunction(source: string, variable = 'x'): ExpressionResult {
+/**
+ * Parsea una función escrita por el estudiante. Por defecto de una variable `x`; para una EDO
+ * se pasa `['x', 'y']`.
+ */
+export function parseFunction(
+  source: string,
+  variables: string | string[] = 'x',
+): ExpressionResult {
+  const vars = typeof variables === 'string' ? [variables] : variables;
   const trimmed = source.trim();
   if (trimmed === '') return { ok: false, message: 'Escribe una función.' };
   if (trimmed.length > MAX_LENGTH) {
@@ -115,17 +132,17 @@ export function parseFunction(source: string, variable = 'x'): ExpressionResult 
     return { ok: false, message: translateParseError(error) };
   }
 
-  const problem = validateSymbols(node, variable);
+  const problem = validateSymbols(node, vars);
   if (problem) return { ok: false, message: problem };
 
-  return { ok: true, expr: toParsed(trimmed, applyAliases(node)) };
+  return { ok: true, expr: toParsed(trimmed, applyAliases(node), vars) };
 }
 
 /** Derivada simbólica respecto de `variable`. */
 export function differentiate(expr: ParsedExpression, variable = 'x'): ExpressionResult {
   try {
     const node = derivative(expr.node, variable);
-    return { ok: true, expr: toParsed(node.toString(), node) };
+    return { ok: true, expr: toParsed(node.toString(), node, [variable]) };
   } catch {
     return { ok: false, message: 'No se pudo derivar la función simbólicamente.' };
   }

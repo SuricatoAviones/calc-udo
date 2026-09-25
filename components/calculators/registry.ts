@@ -12,6 +12,9 @@ import type { ComponentType } from 'react';
  */
 export const calculatorRegistry: Record<string, () => Promise<{ default: ComponentType }>> = {
   // Métodos Numéricos
+  biseccion: () => import('./metodos-numericos/Bisection'),
+  'falsa-posicion': () => import('./metodos-numericos/FalsePosition'),
+  secante: () => import('./metodos-numericos/Secant'),
   'newton-raphson': () => import('./metodos-numericos/NewtonRaphson'),
 };
 
