@@ -93,3 +93,9 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
 - Tanda 2 — Integración (rectangular, trapecio, Simpson) y EDO (Euler, Heun, RK4) ✅
 - Tanda 3 — Colas (M/M/1, M/M/s, M/M/1/K) y Markov (n pasos, estado estable) ✅
 - Tanda 4 — Estadística (medidas descriptivas, binomial, Poisson, normal) ✅
+- Páginas legales (aviso legal, privacidad, datos, cookies) y versión **v0.1.0** ✅
+
+## Versiones
+
+SemVer (ADR-015). Al publicar: sube `version` en `package.json`, mueve lo de "Sin publicar" en
+`CHANGELOG.md` a la nueva versión y crea un tag anotado `vX.Y.Z` sobre `main`.

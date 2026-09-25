@@ -142,6 +142,31 @@
   }
 }
 
+@layer components {
+  /* Texto corrido de los documentos legales (app/(legal)). */
+  .legal-prose {
+    @apply flex flex-col gap-4 leading-relaxed;
+  }
+  .legal-prose h2 {
+    @apply mt-6 border-b pb-2 text-2xl font-semibold;
+  }
+  .legal-prose h3 {
+    @apply mt-2 text-lg font-semibold;
+  }
+  .legal-prose ul {
+    @apply ml-5 flex list-disc flex-col gap-1.5;
+  }
+  .legal-prose a {
+    @apply text-primary underline underline-offset-4 hover:no-underline;
+  }
+  .legal-prose code {
+    @apply bg-muted rounded px-1 py-0.5 font-mono text-[0.9em];
+  }
+  .legal-prose strong {
+    @apply font-semibold;
+  }
+}
+
 @layer utilities {
   /* Números tabulares: columnas de iteraciones alineadas. */
   .tabular {
