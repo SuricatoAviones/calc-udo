@@ -190,3 +190,17 @@ Plantilla:
   ("Método de Euler modificado (Heun)").
 - **Alternativas descartadas:** _Punto medio_: menos usado con ese nombre. _Heun iterado_:
   corresponde mejor a la calculadora `predictor-corrector`, que sigue en el roadmap.
+
+## ADR-014 — Test global contra caracteres de control en el LaTeX
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** `lib/calculators/contract.test.ts` resuelve el ejemplo de cada calculadora y falla
+  si algún texto del resultado contiene caracteres de control (U+0000 a U+001F).
+- **Contexto:** En un string de JavaScript, `"egin"` o `"rac"` sin doble barra se
+  convierten en backspace o salto de página, y KaTeX los muestra como □. Pasó con
+  `toLatexMatrix`, y su test unitario no lo detectó porque el valor esperado tenía el mismo
+  error. Un chequeo independiente del valor esperado cubre todas las calculadoras, las actuales
+  y las futuras.
+- **Alternativas descartadas:** _Confiar en los tests unitarios_: comparten el error con el
+  código. _Revisar a ojo_: el carácter es invisible en el editor.

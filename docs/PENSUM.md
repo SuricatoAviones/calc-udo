@@ -34,8 +34,8 @@ para que el mapa esté completo.
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 0 | 0 | 14 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
-| 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 0 | 0 | 7 |
-| 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 0 | 0 | 10 |
+| 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 2 | 0 | 5 |
+| 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 3 | 0 | 7 |
 | 071-4903 | [Teoría de Sobrevivencia](#teoria-de-sobrevivencia) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 0 | 0 | 4 |
 
 ---
@@ -339,12 +339,12 @@ de esta materia; solo aparece en la malla curricular.
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
 | Unidad I — Aspectos generales | _Tema conceptual, sin calculadora_ | — | — |
-| Unidad II — Cadenas de Markov | Probabilidades de transición en n pasos | 🗺️ Roadmap | `/procesos-estocasticos/cadenas-de-markov/transicion-en-n-pasos/` |
+| Unidad II — Cadenas de Markov | Probabilidades de transición en n pasos | ✅ Implementada | `/procesos-estocasticos/cadenas-de-markov/transicion-en-n-pasos/` |
 | Unidad II — Cadenas de Markov | Clasificación de estados | 🗺️ Roadmap | `/procesos-estocasticos/cadenas-de-markov/clasificacion-de-estados/` |
-| Unidad II — Cadenas de Markov | Probabilidades de estado estable | 🗺️ Roadmap | `/procesos-estocasticos/cadenas-de-markov/estado-estable/` |
-| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1 | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
-| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/s | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
-| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1/K | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
+| Unidad II — Cadenas de Markov | Probabilidades de estado estable | ✅ Implementada | `/procesos-estocasticos/cadenas-de-markov/estado-estable/` |
+| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
+| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
+| Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo con población finita | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
 | Unidad III — Fenómenos de espera | ↪︎ Análisis de costos | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
 | Unidad IV — Otros procesos estocásticos | Proceso de Poisson | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/proceso-de-poisson/` |
@@ -375,9 +375,9 @@ de esta materia; solo aparece en la malla curricular.
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
 | Unidad I — Fundamentos de fenómenos de espera | _Tema conceptual, sin calculadora_ | — | — |
-| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1 | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
-| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/s | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
-| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1/K | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
+| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
+| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
+| Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
 | Unidad II — Modelos con distribuciones exponenciales | Modelo con población finita | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
 | Unidad II — Modelos con distribuciones exponenciales | Análisis de costos | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
 | Unidad III — Otras aplicaciones | Modelo de pérdida de Erlang | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |

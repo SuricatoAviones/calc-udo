@@ -73,3 +73,14 @@ export function parseDecimal(text: string): number {
   if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(normalized)) return Number.NaN;
   return Number(normalized);
 }
+
+/** Matriz → LaTeX (`bmatrix`), con `significantDigits` cifras por entrada. */
+export function toLatexMatrix(matrix: number[][], significantDigits = 6): string {
+  const rows = matrix.map((row) => row.map((v) => toLatexNumber(v, significantDigits)).join(' & '));
+  return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+}
+
+/** Vector fila → LaTeX: `(0.32,\ 0.68)`. */
+export function toLatexVector(vector: number[], significantDigits = 6): string {
+  return `\\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(',\\ ')}\\right)`;
+}

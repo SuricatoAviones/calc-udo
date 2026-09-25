@@ -251,8 +251,11 @@ export default function NewtonRaphson() {
 
 Los campos disponibles están en
 [`components/calculators/form/fields.tsx`](../components/calculators/form/fields.tsx):
-`NumberField`, `ExpressionField` (con vista previa en LaTeX), `SelectField` e
-`IterationFields`. Leen el formulario con `useFormContext`, así que solo necesitan el `name`
+`NumberField`, `ExpressionField` (con vista previa en LaTeX; admite varias variables, p. ej.
+`f(x, y)`), `SelectField` e `IterationFields`. Para matrices y vectores de probabilidad están
+`MatrixField` y `OptionalVectorField` en
+[`form/MatrixField.tsx`](../components/calculators/form/MatrixField.tsx). Todos leen el
+formulario con `useFormContext`, así que solo necesitan el `name`
 del campo del schema. `NumberField` usa `type="text"` con `inputMode="decimal"` y
 `parseDecimal`, no `type="number"`: en teclados configurados en español, `type="number"`
 puede rechazar la coma.

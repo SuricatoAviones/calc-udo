@@ -63,4 +63,24 @@ describe('contrato de calculadoras', () => {
       expect(result.steps.length, `${where}: el resultado debe traer pasos`).toBeGreaterThan(0);
     }
   });
+
+  // Un "\b", "\f", "\r" o "\t" sin escapar dentro de un string LaTeX ("\begin", "\frac",
+  // "\right", "\times") se convierte en un carácter de control invisible que KaTeX muestra como
+  // □. Se revisa todo el texto que produce cada calculadora con su ejemplo.
+  it('ningún texto del resultado contiene caracteres de control', () => {
+    const texts = (value: unknown): string[] => {
+      if (typeof value === 'string') return [value];
+      if (Array.isArray(value)) return value.flatMap(texts);
+      if (value && typeof value === 'object') return Object.values(value).flatMap(texts);
+      return [];
+    };
+    for (const { file, calculator } of calculators) {
+      const result = calculator.solve(calculator.example);
+      for (const text of texts({ ...result, value: undefined })) {
+        expect(text, `${file}: ${JSON.stringify(text).slice(0, 80)}`).not.toMatch(
+          /[\u0000-\u001f]/,
+        );
+      }
+    }
+  });
 });

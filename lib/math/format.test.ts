@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatNumber, parseDecimal, toLatexNumber, toLatexOperand } from './format';
+import {
+  formatNumber,
+  parseDecimal,
+  toLatexMatrix,
+  toLatexNumber,
+  toLatexOperand,
+  toLatexVector,
+} from './format';
 
 // Casos de formateo: el valor esperado es la representación decimal del literal de entrada,
 // no el resultado de un cálculo, así que se verifica por inspección.
@@ -62,5 +69,27 @@ describe('parseDecimal', () => {
     expect(parseDecimal('abc')).toBeNaN();
     expect(parseDecimal('1,2,3')).toBeNaN();
     expect(parseDecimal('1.2.3')).toBeNaN();
+  });
+});
+
+describe('toLatexMatrix y toLatexVector', () => {
+  it('arma una bmatrix y un vector fila', () => {
+    expect(
+      toLatexMatrix([
+        [0.2, 0.8],
+        [0.6, 0.4],
+      ]),
+    ).toBe(String.raw`\begin{bmatrix} 0.2 & 0.8 \\ 0.6 & 0.4 \end{bmatrix}`);
+    expect(toLatexVector([0.32, 0.68])).toBe(String.raw`\left(0.32,\ 0.68\right)`);
+  });
+
+  // Un "\b" o "\r" mal escapado en el código se convierte en un carácter de control invisible
+  // (backspace, retorno de carro) que KaTeX muestra como □. Este test lo detecta aunque el valor
+  // esperado tenga el mismo error.
+  it('no produce caracteres de control', () => {
+    const latex = toLatexMatrix([[1]]) + toLatexVector([1]) + toLatexOperand(-1);
+    expect(latex).not.toMatch(/[\u0000-\u001f]/);
+    expect(latex).toContain('\\begin');
+    expect(latex).toContain('\\left');
   });
 });

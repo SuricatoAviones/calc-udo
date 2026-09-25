@@ -22,6 +22,15 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   euler: () => import('./metodos-numericos/Euler'),
   'euler-modificado': () => import('./metodos-numericos/ModifiedEuler'),
   'runge-kutta': () => import('./metodos-numericos/RungeKutta'),
+
+  // Procesos Estocásticos
+  'transicion-en-n-pasos': () => import('./procesos-estocasticos/NStepTransition'),
+  'estado-estable': () => import('./procesos-estocasticos/SteadyState'),
+
+  // Teoría de Colas
+  'cola-mm1': () => import('./teoria-de-colas/MM1'),
+  'cola-mms': () => import('./teoria-de-colas/MMS'),
+  'cola-mm1k': () => import('./teoria-de-colas/MM1K'),
 };
 
 export const implementedCalculatorIds: ReadonlySet<string> = new Set(
