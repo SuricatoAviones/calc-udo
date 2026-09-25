@@ -36,7 +36,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 export function CalculatorLayout({ meta, result, children }: CalculatorLayoutProps) {
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
-      <aside className="bg-card flex flex-col gap-4 rounded-lg border p-4 shadow-xs sm:p-5 lg:sticky lg:top-20">
+      <aside className="bg-card flex min-w-0 flex-col gap-4 rounded-lg border p-4 shadow-xs sm:p-5 lg:sticky lg:top-20">
         <h2 className="text-lg font-semibold">Datos</h2>
         {children}
       </aside>

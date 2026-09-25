@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
@@ -23,10 +22,15 @@ interface Row {
   ref?: number;
   /** Copia de y dentro del rango resaltado: se rellena el área bajo la curva solo ahí. */
   hl?: number;
+  /** Valores de las líneas adicionales (`series.others`), por índice. */
+  others?: Record<number, number>;
 }
 
 /** Más puntos que esto → sin marcadores (una curva muestreada, no iteraciones). */
 const MAX_DOTS = 30;
+
+/** Colores de las líneas adicionales, distintos del de la serie principal. */
+const OTHER_COLORS = ['var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-2)'];
 
 function ChartTooltip({
   active,
@@ -57,6 +61,16 @@ function ChartTooltip({
           <span className="text-foreground tabular font-mono">{formatNumber(row.ref, 6)}</span>
         </p>
       )}
+      {series.others?.map((other, i) =>
+        row.others?.[i] === undefined ? null : (
+          <p key={i} className="text-muted-foreground">
+            {other.label}:{' '}
+            <span className="text-foreground tabular font-mono">
+              {formatNumber(row.others[i], 6)}
+            </span>
+          </p>
+        ),
+      )}
     </div>
   );
 }
@@ -85,7 +99,28 @@ function tickDigits(values: number[]): number {
   return Math.min(8, Math.max(2, Math.ceil(Math.log10(magnitude / span)) + 2));
 }
 
-/** Une la serie principal y la de referencia en filas por x (pueden tener x distintos). */
+/**
+ * Completa cada línea adicional en los x de las demás series que caen dentro de su propio rango,
+ * interpolando linealmente, para que se dibuje continua sin unir tramos fuera de su rango.
+ */
+function fillOthers(sorted: Row[], series: Series): void {
+  series.others?.forEach((other, i) => {
+    const points = [...other.points].sort((a, b) => a.x - b.x);
+    const first = points[0];
+    const last = points.at(-1);
+    if (!first || !last) return;
+    for (const row of sorted) {
+      if (row.others?.[i] !== undefined || row.x < first.x || row.x > last.x) continue;
+      const right = points.findIndex((p) => p.x > row.x);
+      const a = points[right - 1];
+      const b = points[right];
+      if (!a || !b) continue;
+      row.others = { ...row.others, [i]: a.y + ((row.x - a.x) / (b.x - a.x)) * (b.y - a.y) };
+    }
+  });
+}
+
+/** Une la serie principal, la de referencia y las adicionales en filas por x. */
 function mergeRows(series: Series, isLog: boolean): Row[] {
   const keep = (y: number) => Number.isFinite(y) && (!isLog || y > 0);
   const rows = new Map<number, Row>();
@@ -94,7 +129,15 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
     if (!keep(p.y)) continue;
     rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), ref: p.y });
   }
+  series.others?.forEach((other, i) => {
+    for (const p of other.points) {
+      if (!keep(p.y)) continue;
+      const row = rows.get(p.x) ?? { x: p.x };
+      rows.set(p.x, { ...row, others: { ...row.others, [i]: p.y } });
+    }
+  });
   const sorted = [...rows.values()].sort((a, b) => a.x - b.x);
+  fillOthers(sorted, series);
   const { highlight } = series;
   if (!highlight || (series.kind ?? 'line') !== 'line') return sorted;
 
@@ -118,9 +161,9 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
 }
 
 /**
- * Gráfica de una serie: línea, área o barras, con una serie de referencia opcional (punteada) en
- * la misma escala. Con una sola serie no hay leyenda: el título la nombra. La tabla de
- * resultados es la vista alternativa accesible.
+ * Gráfica de una serie: línea, área o barras, con una serie de referencia opcional (punteada) y
+ * líneas adicionales (`others`) en la misma escala. Con una sola serie no hay leyenda: el título
+ * la nombra. La tabla de resultados es la vista alternativa accesible.
  */
 export function SeriesChart({ series }: { series: Series }) {
   const kind = series.kind ?? 'line';
@@ -129,14 +172,17 @@ export function SeriesChart({ series }: { series: Series }) {
   const mainCount = rows.filter((r) => r.y !== undefined).length;
   if (mainCount < 2 && !(kind === 'bar' && mainCount >= 1)) return null;
 
-  const yValues = rows.flatMap((r) => [r.y, r.ref]).filter((v): v is number => v !== undefined);
+  const others = kind === 'line' ? (series.others ?? []) : [];
+  const yValues = rows
+    .flatMap((r) => [r.y, r.ref, ...Object.values(r.others ?? {})])
+    .filter((v): v is number => v !== undefined);
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
   const logTicks = isLog ? decadeTicks(yValues) : undefined;
   const digits = isLog ? 2 : tickDigits(yValues);
   const allIntegers = rows.every((r) => Number.isInteger(r.x));
   const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
-  const hasLegend = Boolean(series.reference);
+  const hasLegend = Boolean(series.reference) || others.length > 0;
   const inHighlight = (x: number) =>
     series.highlight !== undefined && x >= series.highlight.from && x <= series.highlight.to;
 
@@ -152,10 +198,7 @@ export function SeriesChart({ series }: { series: Series }) {
         aria-label={`${series.title}: ${series.yLabel} en función de ${series.xLabel}`}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={rows}
-            margin={{ top: 12, right: 16, bottom: hasLegend ? 4 : 20, left: 8 }}
-          >
+          <ComposedChart data={rows} margin={{ top: 12, right: 16, bottom: 20, left: 8 }}>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="x"
@@ -197,13 +240,20 @@ export function SeriesChart({ series }: { series: Series }) {
                   : { stroke: 'var(--muted-foreground)', strokeDasharray: '3 3' }
               }
             />
-            {hasLegend && (
-              <Legend
-                verticalAlign="top"
-                height={28}
-                wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }}
+            {/* Primero las líneas adicionales, para que la serie principal quede encima. */}
+            {others.map((other, i) => (
+              <Line
+                key={i}
+                type="linear"
+                dataKey={(row: Row) => row.others?.[i]}
+                name={other.label}
+                stroke={OTHER_COLORS[i % OTHER_COLORS.length]}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
               />
-            )}
+            ))}
             {series.highlight && kind === 'line' && (
               <Area
                 type="linear"
@@ -285,6 +335,55 @@ export function SeriesChart({ series }: { series: Series }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      {hasLegend && (
+        <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          <LegendItem color="var(--chart-1)" label={series.label ?? series.yLabel} />
+          {series.reference && (
+            <LegendItem color="var(--chart-2)" label={series.reference.label} dashed />
+          )}
+          {others.map((other, i) => (
+            <LegendItem
+              key={i}
+              color={OTHER_COLORS[i % OTHER_COLORS.length]!}
+              label={other.label}
+              thin
+            />
+          ))}
+        </ul>
+      )}
     </figure>
+  );
+}
+
+/**
+ * Entrada de la leyenda. Va en HTML debajo de la gráfica, y no dentro del SVG, para que en
+ * pantallas angostas pueda ocupar varios renglones sin tapar las curvas.
+ */
+function LegendItem({
+  color,
+  label,
+  dashed = false,
+  thin = false,
+}: {
+  color: string;
+  label: string;
+  dashed?: boolean;
+  thin?: boolean;
+}) {
+  return (
+    <li className="flex items-center gap-1.5">
+      <svg width="18" height="8" aria-hidden className="shrink-0">
+        <line
+          x1="0"
+          y1="4"
+          x2="18"
+          y2="4"
+          stroke={color}
+          strokeWidth={thin ? 1.5 : 2.5}
+          strokeDasharray={dashed ? '4 3' : undefined}
+        />
+      </svg>
+      {label}
+    </li>
   );
 }

@@ -42,7 +42,8 @@ calc-udo/
 │   │                                  (p. ej. root-finding.ts, bracketing.ts)
 │   ├── math/                          helpers compartidos entre calculadoras
 │   │   ├── expression.ts              parsear/compilar/derivar con mathjs
-│   │   ├── format.ts                  redondeo y número → LaTeX
+│   │   ├── format.ts                  redondeo y número → LaTeX (también texto y fracciones)
+│   │   ├── normal.ts                  Φ(z), Φ⁻¹(p) y densidad de la normal
 │   │   └── error-metrics.ts           error absoluto y relativo
 │   ├── curriculum.ts                  tipos del currículum + consultas
 │   └── utils.ts                       cn() de shadcn
@@ -57,7 +58,8 @@ calc-udo/
 │       ├── StepByStep.tsx             renderiza Step[]
 │       ├── ResultTable.tsx            renderiza ResultTable[]
 │       ├── Formula.tsx                KaTeX
-│       ├── form/                      CalculatorForm + campos reutilizables
+│       ├── form/                      CalculatorForm + campos reutilizables (números,
+│       │                              expresiones, matrices, tablas de filas: TableField)
 │       └── <materia>/<Calculadora>.tsx  solo declara sus campos
 │
 ├── data/

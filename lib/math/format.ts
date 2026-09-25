@@ -84,3 +84,67 @@ export function toLatexMatrix(matrix: number[][], significantDigits = 6): string
 export function toLatexVector(vector: number[], significantDigits = 6): string {
   return `\\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(',\\ ')}\\right)`;
 }
+
+const LATEX_TEXT_ESCAPES: Record<string, string> = {
+  '\\': '\\textbackslash{}',
+  '{': '\\{',
+  '}': '\\}',
+  $: '\\$',
+  '&': '\\&',
+  '#': '\\#',
+  '%': '\\%',
+  _: '\\_',
+  '^': '\\textasciicircum{}',
+  '~': '\\textasciitilde{}',
+};
+
+/**
+ * Texto escrito por el estudiante (el nombre de una actividad o de un nodo) → `\text{…}`,
+ * escapando los caracteres que LaTeX interpreta.
+ */
+export function toLatexText(text: string): string {
+  return `\\text{${text.replace(/[\\{}$&#%_^~]/g, (c) => LATEX_TEXT_ESCAPES[c] ?? c)}}`;
+}
+
+export interface Rational {
+  numerator: number;
+  denominator: number;
+}
+
+/**
+ * Fracción p/q equivalente a `value` con q ≤ `maxDenominator` (por fracciones continuas), o
+ * `null` si no la hay. Sirve para mostrar como en el libro resultados que son racionales, p. ej.
+ * las estrategias mixtas de un juego con pagos enteros (7/11, 4/11).
+ */
+export function toRational(value: number, maxDenominator = 1000): Rational | null {
+  if (!Number.isFinite(value)) return null;
+  const sign = value < 0 ? -1 : 1;
+  let x = Math.abs(value);
+  // Convergentes h/k: se arranca con h₋₂ = 0, h₋₁ = 1, k₋₂ = 1, k₋₁ = 0.
+  let [h0, h1, k0, k1] = [0, 1, 1, 0];
+  for (let i = 0; i < 40; i++) {
+    const a = Math.floor(x);
+    [h0, h1] = [h1, a * h1 + h0];
+    [k0, k1] = [k1, a * k1 + k0];
+    if (k1 > maxDenominator) return null;
+    if (Math.abs((sign * h1) / k1 - value) <= 1e-9 * Math.max(1, Math.abs(value))) {
+      return { numerator: sign * h1, denominator: k1 };
+    }
+    const fraction = x - a;
+    if (fraction < 1e-12) return null;
+    x = 1 / fraction;
+  }
+  return null;
+}
+
+/**
+ * Número → LaTeX mostrando la fracción cuando es un racional sencillo: `\frac{7}{11} \approx
+ * 0.636364`. Los enteros y los números sin fracción corta se muestran como `toLatexNumber`.
+ */
+export function toLatexRational(value: number, significantDigits = 6): string {
+  const rational = toRational(value);
+  if (!rational || rational.denominator === 1) return toLatexNumber(value, significantDigits);
+  const { numerator, denominator } = rational;
+  const fraction = `${numerator < 0 ? '-' : ''}\\frac{${Math.abs(numerator)}}{${denominator}}`;
+  return `${fraction} \\approx ${toLatexNumber(value, significantDigits)}`;
+}

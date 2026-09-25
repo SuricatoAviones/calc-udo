@@ -65,6 +65,35 @@ export function NumberField({
   );
 }
 
+/** Campo de texto corto (el nombre de un nodo, una lista breve de pesos). */
+export function TextField({
+  name,
+  label,
+  hint,
+  className,
+  placeholder,
+}: BaseFieldProps & { placeholder?: string }) {
+  const { register } = useFormContext();
+  const error = useFieldError(name);
+  return (
+    <div className={className}>
+      <Field id={name} label={label} hint={hint} error={error}>
+        <Input
+          id={name}
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          placeholder={placeholder}
+          className="font-mono"
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy(name, Boolean(error))}
+          {...register(name)}
+        />
+      </Field>
+    </div>
+  );
+}
+
 /** Campo para una función escrita por el estudiante, con vista previa en LaTeX. */
 export function ExpressionField({
   name,

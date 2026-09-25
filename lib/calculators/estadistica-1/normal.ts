@@ -8,9 +8,9 @@
  * función error, así que el resultado puede diferir de la tabla en la 4.ª cifra decimal cuando z
  * tiene más de 2 decimales.
  */
-import { erf } from 'mathjs';
 import { z } from 'zod';
 import { toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { normalDensity, standardNormalCdf } from '@/lib/math/normal';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 
 export const normalQueryTypes = ['menor', 'mayor', 'entre'] as const;
@@ -44,11 +44,6 @@ export interface NormalValue {
 export type NormalErrorCode = never;
 
 const n = toLatexNumber;
-
-/** Φ(z): función de distribución acumulada de la normal estándar. */
-export function standardNormalCdf(z: number): number {
-  return 0.5 * (1 + erf(z / Math.SQRT2));
-}
 
 export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, NormalErrorCode> {
   const { mean: mu, sd: sigma, query, x } = input;
@@ -111,7 +106,7 @@ export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, N
   const to = mu + 4 * sigma;
   const density = Array.from({ length: 161 }, (_, k) => {
     const v = from + ((to - from) * k) / 160;
-    return { x: v, y: Math.exp(-(((v - mu) / sigma) ** 2) / 2) / (sigma * Math.sqrt(2 * Math.PI)) };
+    return { x: v, y: normalDensity(v, mu, sigma) };
   });
   const highlight =
     query === 'menor'
