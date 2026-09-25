@@ -9,7 +9,7 @@ import type { Subject } from '@/lib/curriculum';
  * - Cada calculadora se define UNA vez (en su tema "canónico") y otros temas la referencian con
  *   `{ ref: 'id' }`. Ej.: las distribuciones se definen en Estadísticas I y se refieren desde
  *   Inferencia; los modelos de colas se definen en Teoría de Colas y se refieren desde
- *   Procesos Estocásticos.
+ *   Procesos Estocásticos y Modelos de Operaciones II.
  * - El estado "implementada" NO se marca aquí: se deriva del registro de UI. Solo se marca
  *   `inProgress: true` mientras alguien trabaja en una calculadora.
  * - Temas sin calculadoras (p. ej. unidades de filosofía) se listan igual para que el mapa del
@@ -827,6 +827,257 @@ export const subjects: Subject[] = [
             id: 'ramificacion-y-acotamiento',
             title: 'Ramificación y acotamiento',
             summary: 'Resuelve modelos enteros explorando un árbol de subproblemas.',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Modelos de Operaciones I y II: el pensum trae objetivos, contenidos y bibliografía por
+  // unidad. Aquí la bibliografía de la materia es la unión de la general y la de cada unidad.
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'modelos-de-operaciones-1',
+    code: '071-4633',
+    name: 'Modelos de Operaciones I',
+    semester: 7,
+    kind: 'obligatoria',
+    prerequisites: ['071-3663'],
+    credits: { total: 3, theory: 2, practice: 2 },
+    creditsLabel: '3 (2T-2P)',
+    objective:
+      'Al finalizar, el estudiante estará en la capacidad de optimizar sistemas a través de métodos de programación matemática.',
+    content: 'definido',
+    bibliography: [
+      'bonini-2000',
+      'taha',
+      'aquilano-1994',
+      'anderson-1993',
+      'gould-eppen-schmidt',
+      'hillier-lieberman-2002',
+      'mckeown-davis',
+      'winston-1994',
+      'bazaraa-1993',
+      'cooper-1998',
+      'hadley-2000',
+      'rao-1999',
+    ],
+    topics: [
+      {
+        slug: 'pert-cpm',
+        name: 'Análisis de redes: PERT-CPM',
+        unit: 'Unidad I',
+        description:
+          'Importancia del análisis de redes y fases de planeación de un proyecto con PERT-CPM. Actividades y relaciones de precedencia; representación de la red y actividades ficticias. Revisión hacia adelante y hacia atrás, ruta crítica. Redes con incertidumbre: variabilidad de los tiempos y probabilidad de terminar el proyecto en una fecha. PERT-Costos.',
+        calculators: [
+          {
+            id: 'ruta-critica',
+            title: 'Ruta crítica (CPM)',
+            summary: 'Tiempos de inicio y terminación, holguras y ruta crítica de un proyecto.',
+          },
+          {
+            id: 'pert',
+            title: 'PERT con tres estimaciones de tiempo',
+            summary: 'Tiempo esperado, varianza y probabilidad de terminar en una fecha.',
+          },
+          {
+            id: 'pert-costos',
+            title: 'PERT-Costos (compresión del proyecto)',
+            summary: 'Acorta la duración del proyecto al menor costo de aceleración.',
+          },
+        ],
+      },
+      {
+        slug: 'teoria-de-juegos',
+        name: 'Teoría de juegos',
+        unit: 'Unidad II',
+        description:
+          'Aspectos básicos. Juegos de dos personas con suma cero: características del juego, matriz de pagos o de recompensa. Solución de juegos con estrategia mixta.',
+        calculators: [
+          {
+            id: 'estrategias-puras',
+            title: 'Estrategias puras y punto de silla',
+            summary: 'Maximin, minimax y punto de silla de una matriz de pagos.',
+          },
+          {
+            id: 'estrategias-mixtas',
+            title: 'Estrategias mixtas (método gráfico)',
+            summary: 'Dominancia y método gráfico para juegos de 2 × n y m × 2.',
+          },
+          {
+            id: 'juegos-programacion-lineal',
+            title: 'Juegos resueltos con programación lineal',
+            summary: 'Estrategias mixtas óptimas de un juego m × n con el método simplex.',
+          },
+        ],
+      },
+      {
+        slug: 'programacion-dinamica',
+        name: 'Programación dinámica',
+        unit: 'Unidad III',
+        description:
+          'Principio de optimalidad de Bellman. Naturaleza recursiva de los cálculos. Etapas, alternativas y estados. Recursión en reversa y en avance. Modelo de la ruta más corta. Modelo del tamaño de la fuerza de trabajo. Aplicaciones de la programación dinámica.',
+        calculators: [
+          {
+            id: 'ruta-mas-corta-pd',
+            title: 'Ruta más corta por programación dinámica',
+            summary: 'Recursión en reversa o en avance sobre una red por etapas.',
+          },
+          {
+            id: 'fuerza-de-trabajo',
+            title: 'Modelo del tamaño de la fuerza de trabajo',
+            summary: 'Cuántos trabajadores mantener en cada periodo al menor costo.',
+          },
+          {
+            id: 'mochila',
+            title: 'Modelo de la mochila (carga)',
+            summary: 'Reparte una capacidad limitada entre artículos para maximizar el beneficio.',
+          },
+          {
+            id: 'reemplazo-de-equipo',
+            title: 'Modelo de reemplazo de equipo',
+            summary: 'Cuándo conservar o reemplazar una máquina a lo largo de un horizonte.',
+          },
+        ],
+      },
+      {
+        slug: 'programacion-no-lineal',
+        name: 'Programación no lineal',
+        unit: 'Unidad IV',
+        description:
+          'Teoría de optimización clásica. Funciones convexas y cóncavas. Optimización no restringida: condiciones necesarias y suficientes para extremos. Optimización restringida: multiplicadores de Lagrange con restricciones de igualdad, de no negatividad y de desigualdad.',
+        calculators: [
+          {
+            id: 'convexidad',
+            title: 'Convexidad y concavidad de una función',
+            summary: 'Clasifica una función a partir de su matriz hessiana.',
+          },
+          { ref: 'optimizacion-una-variable' },
+          { ref: 'optimizacion-varias-variables' },
+          { ref: 'multiplicadores-de-lagrange' },
+          { ref: 'condiciones-kkt' },
+        ],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'modelos-de-operaciones-2',
+    code: '071-4133',
+    name: 'Modelos de Operaciones II',
+    semester: 8,
+    kind: 'obligatoria',
+    prerequisites: ['071-4633'],
+    credits: { total: 3, theory: 2, practice: 2 },
+    creditsLabel: '3 (2T-2P)',
+    objective: 'Optimizar sistemas a través de la aplicación de los modelos probabilísticos.',
+    content: 'definido',
+    bibliography: [
+      'bonini-2000',
+      'taha',
+      'aquilano-1994',
+      'anderson-1993',
+      'gould-eppen-schmidt',
+      'hillier-lieberman-2002',
+      'diaz-matalobos-1998',
+    ],
+    topics: [
+      {
+        slug: 'pronosticos',
+        name: 'Pronósticos',
+        unit: 'Unidad I',
+        description:
+          'Definición de pronósticos. La demanda como objeto de pronóstico: componentes y tipos de demanda. Técnicas cuantitativas de proyección: análisis de series de tiempo y proyección de la relación causal. Selección del método de proyección.',
+        calculators: [
+          {
+            id: 'promedio-movil',
+            title: 'Promedios móviles (simple y ponderado)',
+            summary: 'Pronostica con el promedio de los últimos n periodos y mide el error.',
+          },
+          {
+            id: 'suavizamiento-exponencial',
+            title: 'Suavizamiento exponencial simple',
+            summary: 'Corrige el pronóstico anterior con una fracción α del error.',
+          },
+          { ref: 'pronostico-de-series-de-tiempo' },
+          { ref: 'regresion-lineal' },
+          {
+            id: 'seleccion-de-metodo-de-pronostico',
+            title: 'Comparación de métodos de pronóstico',
+            summary: 'Compara varios métodos sobre los mismos datos con MAD, MSE y MAPE.',
+          },
+        ],
+      },
+      {
+        slug: 'teoria-de-colas',
+        name: 'Teoría de colas',
+        unit: 'Unidad II',
+        description:
+          'Sistemas de colas, redes de colas y sistemas de pérdida. Estructura del sistema: llegadas, servicio, número de servidores, disciplina, medidas de desempeño y notación. Modelos de un servidor, modelos generales de canal único, servidores múltiples, sistemas de pérdida y redes de colas. Programación y prioridades.',
+        calculators: [
+          { ref: 'cola-mm1' },
+          { ref: 'cola-mg1' },
+          { ref: 'cola-mms' },
+          { ref: 'cola-mm1k' },
+          { ref: 'perdida-de-erlang' },
+          { ref: 'colas-en-serie' },
+          { ref: 'redes-de-jackson' },
+          { ref: 'colas-con-prioridad' },
+        ],
+      },
+      {
+        slug: 'inventarios',
+        name: 'Modelos de inventarios',
+        unit: 'Unidad III',
+        description:
+          'Definición, propósito, clasificación y costos de los inventarios y su comportamiento gráfico. Demanda dependiente e independiente, determinística y probabilística. Modelos de cantidad fija y de periodo fijo con demanda independiente, modelos con demanda dependiente y técnicas de inventario.',
+        calculators: [
+          {
+            id: 'eoq',
+            title: 'Cantidad económica de pedido (EOQ)',
+            summary: 'Tamaño de lote que equilibra los costos de pedir y de mantener.',
+          },
+          {
+            id: 'eoq-con-faltantes',
+            title: 'EOQ con faltantes planeados',
+            summary: 'Tamaño de lote y faltante máximo cuando se permiten pedidos pendientes.',
+          },
+          {
+            id: 'lote-economico-de-produccion',
+            title: 'Lote económico de producción',
+            summary: 'Tamaño de lote cuando el reabastecimiento es gradual.',
+          },
+          {
+            id: 'descuentos-por-cantidad',
+            title: 'EOQ con descuentos por cantidad',
+            summary: 'Elige el tamaño de lote cuando el precio unitario baja con la cantidad.',
+          },
+          {
+            id: 'punto-de-reorden',
+            title: 'Punto de reorden y stock de seguridad',
+            summary: 'Cuándo pedir si la demanda durante el tiempo de entrega es aleatoria.',
+          },
+          {
+            id: 'modelo-de-un-periodo',
+            title: 'Modelo de un periodo (vendedor de periódicos)',
+            summary: 'Cuánto pedir de un producto perecedero con demanda aleatoria.',
+          },
+          {
+            id: 'revision-periodica',
+            title: 'Modelo de periodo fijo (revisión periódica)',
+            summary: 'Nivel meta de inventario cuando se revisa cada T periodos.',
+          },
+          {
+            id: 'mrp',
+            title: 'Planeación de requerimientos de materiales (MRP)',
+            summary: 'Necesidades netas de componentes a partir del plan maestro.',
+          },
+          {
+            id: 'clasificacion-abc',
+            title: 'Clasificación ABC',
+            summary: 'Ordena los artículos según su valor de uso anual.',
           },
         ],
       },

@@ -81,6 +81,45 @@ Convención: **término (en UI)** · `nombreEnCódigo` · símbolo, cuando aplic
 | **KKT**                          | `kkt`                  | —       | Condiciones de Karush-Kuhn-Tucker: necesarias para la optimalidad con restricciones de desigualdad. |
 | **Hessiana**                     | `hessian`              | H       | Matriz de segundas derivadas. Su definitud clasifica los puntos críticos.                           |
 
+## Redes de proyectos, juegos y programación dinámica (Modelos de Operaciones I)
+
+| Término                                 | Código                                    | Símbolo   | Significado                                                                                                                                                           |
+| --------------------------------------- | ----------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Predecesora inmediata**               | `predecessors`                            | —         | Actividad que debe terminar antes de que empiece otra.                                                                                                                |
+| **Actividad ficticia**                  | —                                         | —         | Actividad de duración 0 que solo transmite una precedencia. Hace falta en la red de actividades en las flechas; en la de actividades en los nodos (la de CalcUDO) no. |
+| **Inicio / terminación más próximos**   | `es` / `ef`                               | ES, EF    | Lo antes que puede empezar / terminar una actividad (recorrido hacia adelante).                                                                                       |
+| **Inicio / terminación más lejanos**    | `ls` / `lf`                               | LS, LF    | Lo más tarde que puede empezar / terminar sin retrasar el proyecto (recorrido hacia atrás).                                                                           |
+| **Holgura total**                       | `totalSlack`                              | HT        | LS − ES: cuánto puede retrasarse una actividad sin retrasar el proyecto.                                                                                              |
+| **Holgura libre**                       | `freeSlack`                               | HL        | mín{ES de las sucesoras} − EF: retraso que no afecta a ninguna sucesora.                                                                                              |
+| **Ruta crítica**                        | `criticalPaths`                           | —         | Cadena de actividades con holgura total 0; es la ruta más larga de la red y fija la duración T.                                                                       |
+| **Estimaciones PERT**                   | `optimistic`, `mostLikely`, `pessimistic` | a, m, b   | Tiempos optimista, más probable y pesimista. μ = (a + 4m + b)/6, σ² = ((b − a)/6)².                                                                                   |
+| **Matriz de pagos**                     | `payoff`                                  | aᵢⱼ       | Lo que gana el jugador A (filas) si B (columnas) usa cada estrategia, en un juego de suma cero.                                                                       |
+| **Maximin / minimax**                   | `maximin` / `minimax`                     | v̲ / v̄     | Mejor peor caso de A / menor pérdida máxima de B en estrategias puras.                                                                                                |
+| **Punto de silla**                      | `saddlePoints`                            | —         | Entrada que es mínimo de su fila y máximo de su columna: v̲ = v̄ y la solución es en estrategias puras.                                                                 |
+| **Estrategia dominada**                 | —                                         | —         | Estrategia que otra supera o iguala siempre; se elimina antes de resolver.                                                                                            |
+| **Estrategia mixta**                    | `strategyA`, `strategyB`                  | x, y      | Probabilidades con que un jugador usa cada estrategia pura.                                                                                                           |
+| **Etapa / estado / alternativa**        | —                                         | n / s / x | Elementos de un modelo de programación dinámica: la decisión de cada etapa depende solo del estado.                                                                   |
+| **Principio de optimalidad de Bellman** | —                                         | —         | Las decisiones que faltan forman una política óptima sin importar cómo se llegó al estado actual.                                                                     |
+| **Recursión en reversa / en avance**    | `recursion`                               | fₙ        | Resolver desde la última etapa hacia la primera / desde la primera hacia la última.                                                                                   |
+
+## Pronósticos e inventarios (Modelos de Operaciones II)
+
+| Término                          | Código                      | Símbolo         | Significado                                                                                             |
+| -------------------------------- | --------------------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
+| **Pronóstico**                   | `forecast`                  | Fₜ              | Valor estimado de la serie en el periodo t.                                                             |
+| **Promedio móvil**               | `movingAverage`             | n               | Pronóstico igual al promedio (simple o ponderado) de los últimos n datos.                               |
+| **Suavizamiento exponencial**    | `exponentialSmoothing`      | α               | Fₜ₊₁ = αYₜ + (1 − α)Fₜ: corrige el pronóstico anterior con una fracción α del error.                    |
+| **MAD / MSE / MAPE**             | `mad` / `mse` / `mape`      | —               | Desviación absoluta media, error cuadrático medio y error porcentual absoluto medio de los pronósticos. |
+| **Costo de pedir / de mantener** | `orderCost` / `holdingCost` | K / h           | Costo fijo de cada pedido o preparación / costo de guardar una unidad por unidad de tiempo.             |
+| **Cantidad económica de pedido** | `eoq`                       | Q*              | √(2KD/h): lote que minimiza la suma de los costos de pedir y de mantener.                               |
+| **Faltante planeado**            | `maxShortage`               | Q − S           | Demanda que queda pendiente y se surte con el siguiente lote, con costo p por unidad y tiempo.          |
+| **Descuento por cantidad**       | `tiers`                     | cⱼ              | Precio unitario más bajo si el lote alcanza cierta cantidad.                                            |
+| **Tiempo de entrega**            | `leadTime`                  | L               | Tiempo entre hacer un pedido y recibirlo.                                                               |
+| **Punto de reorden**             | `reorderPoint`              | R               | Nivel de inventario en el que se hace el pedido.                                                        |
+| **Stock de seguridad**           | `safetyStock`               | B               | Inventario adicional que cubre la variación de la demanda en el tiempo de entrega: zσ_L.                |
+| **Nivel de servicio**            | `serviceLevel`              | 1 − α           | Probabilidad de no quedarse sin inventario durante el tiempo de entrega.                                |
+| **Razón crítica**                | `criticalRatio`             | C_u/(C_u + C_o) | En el modelo de un periodo, probabilidad óptima de que la demanda no supere lo pedido.                  |
+
 ## Procesos estocásticos y colas
 
 | Término                                          | Código                     | Símbolo            | Significado                                                                                                  |

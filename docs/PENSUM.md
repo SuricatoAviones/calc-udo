@@ -33,6 +33,8 @@ para que el mapa esté completo.
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 0 | 0 | 14 |
+| 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 7 | 0 | 4 |
+| 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 2 | 0 | 5 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 3 | 0 | 7 |
@@ -297,6 +299,94 @@ de esta materia; solo aparece en la malla curricular.
 - Arreola J. Arreola A. (2003). Programación Lineal. International Thomson Editores. México. <sub>`arreola-2003`</sub>
 - Hillier F. Lieberman G. (2002). Investigación de Operaciones. 7ma Ed. Mc Graw Hill. México. <sub>`hillier-lieberman-2002`</sub>
 - Winston W. (1994). Investigación de Operaciones. Aplicaciones y algoritmos. 3ra Ed. Grupo Editorial Iberoamericana. México. <sub>`winston-1994`</sub>
+
+---
+
+<a id="modelos-de-operaciones-1"></a>
+
+## Modelos de Operaciones I
+
+**Código:** 071-4633 · **Ubicación:** Semestre VII · **Prelación:** Optimización de Operaciones (071-3663) · **Créditos:** 3 (2T-2P)
+
+**Objetivo general:** Al finalizar, el estudiante estará en la capacidad de optimizar sistemas a través de métodos de programación matemática.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Unidad I — Análisis de redes: PERT-CPM | Ruta crítica (CPM) | ✅ Implementada | `/modelos-de-operaciones-1/pert-cpm/ruta-critica/` |
+| Unidad I — Análisis de redes: PERT-CPM | PERT con tres estimaciones de tiempo | ✅ Implementada | `/modelos-de-operaciones-1/pert-cpm/pert/` |
+| Unidad I — Análisis de redes: PERT-CPM | PERT-Costos (compresión del proyecto) | 🗺️ Roadmap | `/modelos-de-operaciones-1/pert-cpm/pert-costos/` |
+| Unidad II — Teoría de juegos | Estrategias puras y punto de silla | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-puras/` |
+| Unidad II — Teoría de juegos | Estrategias mixtas (método gráfico) | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-mixtas/` |
+| Unidad II — Teoría de juegos | Juegos resueltos con programación lineal | 🗺️ Roadmap | `/modelos-de-operaciones-1/teoria-de-juegos/juegos-programacion-lineal/` |
+| Unidad III — Programación dinámica | Ruta más corta por programación dinámica | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/ruta-mas-corta-pd/` |
+| Unidad III — Programación dinámica | Modelo del tamaño de la fuerza de trabajo | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/fuerza-de-trabajo/` |
+| Unidad III — Programación dinámica | Modelo de la mochila (carga) | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/mochila/` |
+| Unidad III — Programación dinámica | Modelo de reemplazo de equipo | 🗺️ Roadmap | `/modelos-de-operaciones-1/programacion-dinamica/reemplazo-de-equipo/` |
+| Unidad IV — Programación no lineal | Convexidad y concavidad de una función | 🗺️ Roadmap | `/modelos-de-operaciones-1/programacion-no-lineal/convexidad/` |
+| Unidad IV — Programación no lineal | ↪︎ Optimización no restringida de una variable | 🗺️ Roadmap | `/programacion-no-lineal/optimizacion-clasica/optimizacion-una-variable/` |
+| Unidad IV — Programación no lineal | ↪︎ Optimización no restringida de varias variables | 🗺️ Roadmap | `/programacion-no-lineal/optimizacion-clasica/optimizacion-varias-variables/` |
+| Unidad IV — Programación no lineal | ↪︎ Multiplicadores de Lagrange | 🗺️ Roadmap | `/programacion-no-lineal/optimizacion-clasica/multiplicadores-de-lagrange/` |
+| Unidad IV — Programación no lineal | ↪︎ Condiciones de Karush-Kuhn-Tucker | 🗺️ Roadmap | `/programacion-no-lineal/optimizacion-clasica/condiciones-kkt/` |
+
+**Bibliografía**
+
+- Bonini – Hausman - Bierman (2000). Análisis Cuantitativo para los Negocios. 9na Ed. Mc Graw Hill - Irwin. Colombia. <sub>`bonini-2000`</sub>
+- Handy, Taha (1998/2003). Investigación de Operaciones. Una introducción. PH. México. <sub>`taha`</sub>
+- Aquilano, CH. (1994). Dirección de la Producción y de las Operaciones. 6ta Ed. Mc Graw Hill. USA. <sub>`aquilano-1994`</sub>
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). Introducción a los Modelos Cuantitativos para la Administración. Grupo Editorial Iberoamericana. México. <sub>`anderson-1993`</sub>
+- Gould – Eppen - Schmidt (1992/2000). Investigación de Operaciones en la Ciencia Administrativa. Prentice Hall. México. <sub>`gould-eppen-schmidt`</sub>
+- Hillier F. Lieberman G. (2002). Investigación de Operaciones. 7ma Ed. Mc Graw Hill. México. <sub>`hillier-lieberman-2002`</sub>
+- Mc Keown – Davis. Modelos Cuantitativos para Administración. Grupo Editorial Iberoamérica. México. <sub>`mckeown-davis`</sub>
+- Winston W. (1994). Investigación de Operaciones. Aplicaciones y algoritmos. 3ra Ed. Grupo Editorial Iberoamericana. México. <sub>`winston-1994`</sub>
+- Bazaraa M., Sherali H., Shetty C. (1993). Nonlinear Programming, Theory and Algorithms. John Wiley & Sons Inc.. USA. <sub>`bazaraa-1993`</sub>
+- Cooper, Leon (1998). Applied Nonlinear Programming for Engineer and Scientist. W.B. Saunders Co.. Philadelphia. <sub>`cooper-1998`</sub>
+- Hadley, G. (2000). Linear Programming. Addison Wesley. Reading, Mass.. <sub>`hadley-2000`</sub>
+- Rao, S. (1999). Optimization: Theory and Applications. Indian Institute of Technology Kanpur. John Wiley & Sons Inc.. USA. <sub>`rao-1999`</sub>
+
+---
+
+<a id="modelos-de-operaciones-2"></a>
+
+## Modelos de Operaciones II
+
+**Código:** 071-4133 · **Ubicación:** Semestre VIII · **Prelación:** Modelos de Operaciones I (071-4633) · **Créditos:** 3 (2T-2P)
+
+**Objetivo general:** Optimizar sistemas a través de la aplicación de los modelos probabilísticos.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Unidad I — Pronósticos | Promedios móviles (simple y ponderado) | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/promedio-movil/` |
+| Unidad I — Pronósticos | Suavizamiento exponencial simple | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/suavizamiento-exponencial/` |
+| Unidad I — Pronósticos | ↪︎ Predicción con series de tiempo | 🗺️ Roadmap | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
+| Unidad I — Pronósticos | ↪︎ Regresión lineal simple | 🗺️ Roadmap | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
+| Unidad I — Pronósticos | Comparación de métodos de pronóstico | 🗺️ Roadmap | `/modelos-de-operaciones-2/pronosticos/seleccion-de-metodo-de-pronostico/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo M/G/1 | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo de pérdida de Erlang | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
+| Unidad II — Teoría de colas | ↪︎ Colas en serie | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
+| Unidad II — Teoría de colas | ↪︎ Redes de Jackson | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
+| Unidad II — Teoría de colas | ↪︎ Colas con prioridad | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
+| Unidad III — Modelos de inventarios | Cantidad económica de pedido (EOQ) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq/` |
+| Unidad III — Modelos de inventarios | EOQ con faltantes planeados | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq-con-faltantes/` |
+| Unidad III — Modelos de inventarios | Lote económico de producción | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/lote-economico-de-produccion/` |
+| Unidad III — Modelos de inventarios | EOQ con descuentos por cantidad | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/descuentos-por-cantidad/` |
+| Unidad III — Modelos de inventarios | Punto de reorden y stock de seguridad | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/punto-de-reorden/` |
+| Unidad III — Modelos de inventarios | Modelo de un periodo (vendedor de periódicos) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/modelo-de-un-periodo/` |
+| Unidad III — Modelos de inventarios | Modelo de periodo fijo (revisión periódica) | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/revision-periodica/` |
+| Unidad III — Modelos de inventarios | Planeación de requerimientos de materiales (MRP) | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/mrp/` |
+| Unidad III — Modelos de inventarios | Clasificación ABC | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/clasificacion-abc/` |
+
+**Bibliografía**
+
+- Bonini – Hausman - Bierman (2000). Análisis Cuantitativo para los Negocios. 9na Ed. Mc Graw Hill - Irwin. Colombia. <sub>`bonini-2000`</sub>
+- Handy, Taha (1998/2003). Investigación de Operaciones. Una introducción. PH. México. <sub>`taha`</sub>
+- Aquilano, CH. (1994). Dirección de la Producción y de las Operaciones. 6ta Ed. Mc Graw Hill. USA. <sub>`aquilano-1994`</sub>
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). Introducción a los Modelos Cuantitativos para la Administración. Grupo Editorial Iberoamericana. México. <sub>`anderson-1993`</sub>
+- Gould – Eppen - Schmidt (1992/2000). Investigación de Operaciones en la Ciencia Administrativa. Prentice Hall. México. <sub>`gould-eppen-schmidt`</sub>
+- Hillier F. Lieberman G. (2002). Investigación de Operaciones. 7ma Ed. Mc Graw Hill. México. <sub>`hillier-lieberman-2002`</sub>
+- Díaz Matalobos, Angel (1998). Gestión de Inventarios. Ediciones IESA. Caracas. <sub>`diaz-matalobos-1998`</sub>
 
 ---
 
