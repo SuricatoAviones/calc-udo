@@ -34,6 +34,8 @@ Toda la documentación está en [`docs/`](docs/README.md), en español:
 - [Pensum y estado de las calculadoras](docs/PENSUM.md).
 - [Decisiones de diseño](docs/DECISIONES.md) y [glosario](docs/GLOSARIO.md).
 
+Los cambios de cada versión están en el [CHANGELOG](CHANGELOG.md).
+
 ## Licencia
 
 [MIT](LICENSE).

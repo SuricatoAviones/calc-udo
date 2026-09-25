@@ -204,3 +204,32 @@ Plantilla:
   y las futuras.
 - **Alternativas descartadas:** _Confiar en los tests unitarios_: comparten el error con el
   código. _Revisar a ojo_: el carácter es invisible en el editor.
+
+## ADR-015 — Versionado semántico con tags de git y CHANGELOG
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Las versiones siguen SemVer. `package.json` es la fuente de verdad del número;
+  cada versión publicada lleva un tag anotado `vX.Y.Z` sobre `main` y una entrada en
+  `CHANGELOG.md` (formato Keep a Changelog). El pie de página muestra la versión leyendo
+  `package.json` en tiempo de build. Mientras la versión sea `0.y.z`: una tanda de calculadoras
+  o una funcionalidad nueva sube el _minor_; las correcciones suben el _patch_.
+- **Contexto:** Con cuatro tandas de calculadoras y las páginas legales, el sitio ya es usable y
+  hace falta poder decir qué versión tiene un estudiante cuando reporta un resultado incorrecto.
+- **Alternativas descartadas:** _Versionado por fecha (CalVer)_: no comunica si un cambio rompe
+  algo. _Herramientas de release automáticas (changesets, semantic-release)_: demasiado para un
+  proyecto de este tamaño; se puede reconsiderar si crecen los colaboradores.
+
+## ADR-016 — Páginas legales como rutas estáticas en un grupo `(legal)`
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Aviso legal, privacidad, datos y cookies viven en `app/(legal)/<slug>/page.tsx`
+  y comparten la plantilla `components/layout/LegalPage.tsx`. La lista de documentos está en
+  `data/legal.ts` y de ahí salen el pie de página y los enlaces cruzados.
+- **Contexto:** Las URL legales (`/privacidad/`, `/cookies/`…) comparten el primer nivel con
+  `/[materia]/`. Next prioriza las rutas estáticas, pero una materia con el mismo slug quedaría
+  inaccesible; `data/legal.test.ts` lo impide. Como el sitio no usa cookies ni analítica
+  (ADR-002), no hay banner de consentimiento.
+- **Alternativas descartadas:** _Prefijo `/legal/…`_: URL más largas que las convencionales para
+  estas páginas. _Textos en Markdown_: añadiría un pipeline de MDX para cuatro páginas.
