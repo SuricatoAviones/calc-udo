@@ -176,3 +176,17 @@ Plantilla:
 - **Alternativas descartadas:** _Generar el formulario desde el schema Zod_: los schemas no
   tienen etiquetas en LaTeX ni ayudas, y algunas entradas (matrices, listas de datos) necesitan
   controles propios. _Mantener el formulario a mano en cada calculadora_: repetición.
+
+## ADR-013 — "Euler modificado" es el método de Heun sin iterar
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** La calculadora `euler-modificado` implementa el método de Heun con una sola
+  aplicación del corrector (Chapra & Canale, sec. 25.2.1, columna "1 iteración" de la tabla 25.2).
+- **Contexto:** El pensum de Métodos Numéricos lista "Euler modificado" y, por separado,
+  "predictor-corrector". En la bibliografía el nombre es ambiguo: algunos textos llaman así al
+  método de Heun y otros al del punto medio (polígono mejorado, Chapra 25.2.2). Heun es el que
+  más se enseña con ese nombre en cursos en español, y el título de la calculadora lo aclara
+  ("Método de Euler modificado (Heun)").
+- **Alternativas descartadas:** _Punto medio_: menos usado con ese nombre. _Heun iterado_:
+  corresponde mejor a la calculadora `predictor-corrector`, que sigue en el roadmap.

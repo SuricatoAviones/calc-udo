@@ -295,7 +295,7 @@ export const subjects: Subject[] = [
           {
             id: 'regla-rectangular',
             title: 'Regla rectangular',
-            summary: 'Aproxima una integral definida con rectángulos.',
+            summary: 'Aproxima una integral con rectángulos (izquierda, derecha o punto medio).',
           },
           {
             id: 'regla-trapezoidal',
@@ -344,8 +344,8 @@ export const subjects: Subject[] = [
           },
           {
             id: 'euler-modificado',
-            title: 'Método de Euler modificado',
-            summary: 'Mejora el método de Euler promediando pendientes.',
+            title: 'Método de Euler modificado (Heun)',
+            summary: 'Predice con Euler y corrige con el promedio de las pendientes.',
           },
           {
             id: 'predictor-corrector',
@@ -354,7 +354,7 @@ export const subjects: Subject[] = [
           },
           {
             id: 'runge-kutta',
-            title: 'Método de Runge-Kutta',
+            title: 'Método de Runge-Kutta de cuarto orden',
             summary: 'Resuelve un problema de valor inicial con pendientes ponderadas.',
           },
         ],

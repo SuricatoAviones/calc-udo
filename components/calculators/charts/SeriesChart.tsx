@@ -1,9 +1,14 @@
 'use client';
 
 import {
+  Area,
+  Bar,
   CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
   Line,
-  LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,23 +18,44 @@ import {
 import type { Series } from '@/lib/calculators/types';
 import { formatNumber } from '@/lib/math/format';
 
+interface Row {
+  x: number;
+  y?: number;
+  ref?: number;
+}
+
+/** Más puntos que esto → sin marcadores (una curva muestreada, no iteraciones). */
+const MAX_DOTS = 30;
+
 function ChartTooltip({
   active,
   payload,
   label,
   series,
 }: TooltipContentProps & { series: Series }) {
-  const point = payload?.[0];
-  if (!active || !point || typeof point.value !== 'number') return null;
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload as Row | undefined;
+  if (!row) return null;
   return (
     <div className="bg-popover text-popover-foreground rounded-md border px-3 py-2 text-xs shadow-md">
       <p className="text-muted-foreground">
-        {series.xLabel}: <span className="text-foreground tabular font-mono">{String(label)}</span>
+        {series.xLabel}:{' '}
+        <span className="text-foreground tabular font-mono">
+          {typeof label === 'number' ? formatNumber(label, 6) : String(label)}
+        </span>
       </p>
-      <p className="text-muted-foreground">
-        {series.yLabel}:{' '}
-        <span className="text-foreground tabular font-mono">{formatNumber(point.value, 6)}</span>
-      </p>
+      {row.y !== undefined && (
+        <p className="text-muted-foreground">
+          {series.label ?? series.yLabel}:{' '}
+          <span className="text-foreground tabular font-mono">{formatNumber(row.y, 6)}</span>
+        </p>
+      )}
+      {series.reference && row.ref !== undefined && (
+        <p className="text-muted-foreground">
+          {series.reference.label}:{' '}
+          <span className="text-foreground tabular font-mono">{formatNumber(row.ref, 6)}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -58,20 +84,40 @@ function tickDigits(values: number[]): number {
   return Math.min(8, Math.max(2, Math.ceil(Math.log10(magnitude / span)) + 2));
 }
 
+/** Une la serie principal y la de referencia en filas por x (pueden tener x distintos). */
+function mergeRows(series: Series, isLog: boolean): Row[] {
+  const keep = (y: number) => Number.isFinite(y) && (!isLog || y > 0);
+  const rows = new Map<number, Row>();
+  for (const p of series.points) if (keep(p.y)) rows.set(p.x, { x: p.x, y: p.y });
+  for (const p of series.reference?.points ?? []) {
+    if (!keep(p.y)) continue;
+    rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), ref: p.y });
+  }
+  return [...rows.values()].sort((a, b) => a.x - b.x);
+}
+
 /**
- * Gráfica de línea de una serie (p. ej. error vs. iteración). Una sola serie → sin leyenda: el
- * título la nombra. La tabla de resultados es la vista alternativa accesible.
+ * Gráfica de una serie: línea, área o barras, con una serie de referencia opcional (punteada) en
+ * la misma escala. Con una sola serie no hay leyenda: el título la nombra. La tabla de
+ * resultados es la vista alternativa accesible.
  */
 export function SeriesChart({ series }: { series: Series }) {
+  const kind = series.kind ?? 'line';
   const isLog = series.yScale === 'log';
-  // En escala logarítmica no existen el 0 ni los negativos (p. ej. error exactamente 0).
-  const points = isLog ? series.points.filter((p) => p.y > 0) : series.points;
-  if (points.length < 2) return null;
+  const rows = mergeRows(series, isLog);
+  const mainCount = rows.filter((r) => r.y !== undefined).length;
+  if (mainCount < 2 && !(kind === 'bar' && mainCount >= 1)) return null;
 
+  const yValues = rows.flatMap((r) => [r.y, r.ref]).filter((v): v is number => v !== undefined);
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
-  const logTicks = isLog ? decadeTicks(points.map((p) => p.y)) : undefined;
-  const digits = isLog ? 2 : tickDigits(points.map((p) => p.y));
+  const logTicks = isLog ? decadeTicks(yValues) : undefined;
+  const digits = isLog ? 2 : tickDigits(yValues);
+  const allIntegers = rows.every((r) => Number.isInteger(r.x));
+  const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
+  const hasLegend = Boolean(series.reference);
+  const inHighlight = (x: number) =>
+    series.highlight !== undefined && x >= series.highlight.from && x <= series.highlight.to;
 
   return (
     <figure className="flex flex-col gap-2">
@@ -85,13 +131,17 @@ export function SeriesChart({ series }: { series: Series }) {
         aria-label={`${series.title}: ${series.yLabel} en función de ${series.xLabel}`}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points} margin={{ top: 12, right: 16, bottom: 20, left: 8 }}>
+          <ComposedChart
+            data={rows}
+            margin={{ top: 12, right: 16, bottom: hasLegend ? 4 : 20, left: 8 }}
+          >
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="x"
-              type="number"
+              type={kind === 'bar' ? 'category' : 'number'}
               domain={['dataMin', 'dataMax']}
-              allowDecimals={false}
+              allowDecimals={!allIntegers}
+              tickFormatter={(v: number) => formatNumber(v, 4)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
               stroke="var(--border)"
               label={{
@@ -103,10 +153,15 @@ export function SeriesChart({ series }: { series: Series }) {
               }}
             />
             <YAxis
-              dataKey="y"
               type="number"
               scale={isLog ? 'log' : 'linear'}
-              domain={logTicks ? [logTicks[0]!, logTicks.at(-1)!] : ['auto', 'auto']}
+              domain={
+                logTicks
+                  ? [logTicks[0]!, logTicks.at(-1)!]
+                  : kind === 'line'
+                    ? ['auto', 'auto']
+                    : [0, 'auto']
+              }
               ticks={logTicks}
               tickFormatter={(v: number) => formatNumber(v, digits)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
@@ -115,18 +170,94 @@ export function SeriesChart({ series }: { series: Series }) {
             />
             <Tooltip
               content={(props) => <ChartTooltip {...props} series={series} />}
-              cursor={{ stroke: 'var(--muted-foreground)', strokeDasharray: '3 3' }}
+              cursor={
+                kind === 'bar'
+                  ? { fill: 'var(--muted)', opacity: 0.5 }
+                  : { stroke: 'var(--muted-foreground)', strokeDasharray: '3 3' }
+              }
             />
-            <Line
-              type="linear"
-              dataKey="y"
-              stroke="var(--chart-1)"
-              strokeWidth={2}
-              dot={{ r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }}
-              activeDot={{ r: 6, stroke: 'var(--card)', strokeWidth: 2 }}
-              isAnimationActive={false}
-            />
-          </LineChart>
+            {hasLegend && (
+              <Legend
+                verticalAlign="top"
+                height={28}
+                wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }}
+              />
+            )}
+            {series.highlight && kind !== 'bar' && (
+              <ReferenceArea
+                x1={series.highlight.from}
+                x2={series.highlight.to}
+                fill="var(--chart-1)"
+                fillOpacity={0.12}
+                strokeOpacity={0}
+                ifOverflow="extendDomain"
+              />
+            )}
+            {kind === 'bar' && (
+              <Bar
+                dataKey="y"
+                name={series.label ?? series.yLabel}
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={false}
+              >
+                {rows.map((row) => (
+                  <Cell
+                    key={row.x}
+                    fill="var(--chart-1)"
+                    fillOpacity={series.highlight && !inHighlight(row.x) ? 0.3 : 1}
+                  />
+                ))}
+              </Bar>
+            )}
+            {kind === 'area' && (
+              <Area
+                type="linear"
+                dataKey="y"
+                name={series.label ?? series.yLabel}
+                stroke="var(--chart-1)"
+                strokeWidth={2}
+                fill="var(--chart-1)"
+                fillOpacity={0.15}
+                dot={
+                  showDots
+                    ? { r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }
+                    : false
+                }
+                isAnimationActive={false}
+                connectNulls
+              />
+            )}
+            {kind === 'line' && (
+              <Line
+                type="linear"
+                dataKey="y"
+                name={series.label ?? series.yLabel}
+                stroke="var(--chart-1)"
+                strokeWidth={2}
+                dot={
+                  showDots
+                    ? { r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }
+                    : false
+                }
+                activeDot={{ r: 6, stroke: 'var(--card)', strokeWidth: 2 }}
+                isAnimationActive={false}
+                connectNulls
+              />
+            )}
+            {series.reference && (
+              <Line
+                type="monotone"
+                dataKey="ref"
+                name={series.reference.label}
+                stroke="var(--chart-2)"
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                dot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </figure>

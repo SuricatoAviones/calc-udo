@@ -28,7 +28,7 @@ para que el mapa esté completo.
 | 008-2814 | [Matemáticas III](#matematicas-3) | Semestre III | Matemáticas II (008-1824) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 0 | 0 | 5 |
-| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) | 3 (2T-2P) | 4 | 0 | 19 |
+| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 13 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 0 | 0 | 22 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
@@ -137,16 +137,16 @@ de esta materia; solo aparece en la malla curricular.
 | Diferencias finitas, interpolación y aproximación | Tabla de diferencias | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/tabla-de-diferencias/` |
 | Diferencias finitas, interpolación y aproximación | Interpolación con fórmulas de Newton | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/interpolacion-de-newton/` |
 | Diferencias finitas, interpolación y aproximación | Aproximación por mínimos cuadrados | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/minimos-cuadrados/` |
-| Integración numérica | Regla rectangular | 🗺️ Roadmap | `/metodos-numericos/integracion-numerica/regla-rectangular/` |
-| Integración numérica | Regla trapezoidal | 🗺️ Roadmap | `/metodos-numericos/integracion-numerica/regla-trapezoidal/` |
-| Integración numérica | Regla de Simpson | 🗺️ Roadmap | `/metodos-numericos/integracion-numerica/regla-de-simpson/` |
+| Integración numérica | Regla rectangular | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-rectangular/` |
+| Integración numérica | Regla trapezoidal | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-trapezoidal/` |
+| Integración numérica | Regla de Simpson | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-de-simpson/` |
 | Fórmulas en diferencias | Derivación por diferencias finitas | 🗺️ Roadmap | `/metodos-numericos/derivacion-numerica/derivacion-numerica/` |
-| Ecuaciones diferenciales | Método de Euler | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/euler/` |
+| Ecuaciones diferenciales | Método de Euler | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/euler/` |
 | Ecuaciones diferenciales | Método de Taylor | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodo-de-taylor/` |
 | Ecuaciones diferenciales | Métodos multipaso | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodos-multipaso/` |
-| Ecuaciones diferenciales | Método de Euler modificado | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/euler-modificado/` |
+| Ecuaciones diferenciales | Método de Euler modificado (Heun) | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/euler-modificado/` |
 | Ecuaciones diferenciales | Método predictor-corrector | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/predictor-corrector/` |
-| Ecuaciones diferenciales | Método de Runge-Kutta | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/runge-kutta/` |
+| Ecuaciones diferenciales | Método de Runge-Kutta de cuarto orden | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/runge-kutta/` |
 
 **Bibliografía**
 

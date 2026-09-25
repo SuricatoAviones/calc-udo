@@ -16,6 +16,12 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'falsa-posicion': () => import('./metodos-numericos/FalsePosition'),
   secante: () => import('./metodos-numericos/Secant'),
   'newton-raphson': () => import('./metodos-numericos/NewtonRaphson'),
+  'regla-rectangular': () => import('./metodos-numericos/RectangleRule'),
+  'regla-trapezoidal': () => import('./metodos-numericos/TrapezoidalRule'),
+  'regla-de-simpson': () => import('./metodos-numericos/SimpsonRule'),
+  euler: () => import('./metodos-numericos/Euler'),
+  'euler-modificado': () => import('./metodos-numericos/ModifiedEuler'),
+  'runge-kutta': () => import('./metodos-numericos/RungeKutta'),
 };
 
 export const implementedCalculatorIds: ReadonlySet<string> = new Set(

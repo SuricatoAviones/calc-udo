@@ -66,13 +66,29 @@ export interface ResultTable {
 }
 
 /** Datos crudos para una gráfica; la UI decide cómo dibujarlos. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface Series {
   id: string;
   title: string;
   xLabel: string;
   yLabel: string;
-  points: { x: number; y: number }[];
+  points: Point[];
   yScale?: 'linear' | 'log';
+  /**
+   * Cómo dibujar los puntos: `line` (por defecto), `area` (línea con el área bajo la curva, p. ej.
+   * una integral) o `bar` (valores discretos, p. ej. una distribución de probabilidad).
+   */
+  kind?: 'line' | 'area' | 'bar';
+  /** Nombre de la serie principal en la leyenda, cuando hay `reference`. */
+  label?: string;
+  /** Segunda serie en la misma escala para comparar (p. ej. la solución exacta), punteada. */
+  reference?: { label: string; points: Point[] };
+  /** Rango de x a resaltar (p. ej. la región cuya probabilidad se calcula). */
+  highlight?: { from: number; to: number };
 }
 
 export interface SummaryItem {
