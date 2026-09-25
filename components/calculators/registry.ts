@@ -29,6 +29,24 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'euler-modificado': () => import('./metodos-numericos/ModifiedEuler'),
   'runge-kutta': () => import('./metodos-numericos/RungeKutta'),
 
+  // Modelos de Operaciones I
+  'ruta-critica': () => import('./modelos-de-operaciones-1/CriticalPath'),
+  pert: () => import('./modelos-de-operaciones-1/Pert'),
+  'estrategias-puras': () => import('./modelos-de-operaciones-1/PureStrategies'),
+  'estrategias-mixtas': () => import('./modelos-de-operaciones-1/MixedStrategies'),
+  'ruta-mas-corta-pd': () => import('./modelos-de-operaciones-1/ShortestRoute'),
+  'fuerza-de-trabajo': () => import('./modelos-de-operaciones-1/Workforce'),
+  mochila: () => import('./modelos-de-operaciones-1/Knapsack'),
+
+  // Modelos de Operaciones II
+  'promedio-movil': () => import('./modelos-de-operaciones-2/MovingAverage'),
+  'suavizamiento-exponencial': () => import('./modelos-de-operaciones-2/ExponentialSmoothing'),
+  eoq: () => import('./modelos-de-operaciones-2/Eoq'),
+  'eoq-con-faltantes': () => import('./modelos-de-operaciones-2/EoqShortages'),
+  'descuentos-por-cantidad': () => import('./modelos-de-operaciones-2/Discounts'),
+  'punto-de-reorden': () => import('./modelos-de-operaciones-2/Reorder'),
+  'modelo-de-un-periodo': () => import('./modelos-de-operaciones-2/SinglePeriod'),
+
   // Procesos Estocásticos
   'transicion-en-n-pasos': () => import('./procesos-estocasticos/NStepTransition'),
   'estado-estable': () => import('./procesos-estocasticos/SteadyState'),

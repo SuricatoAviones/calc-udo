@@ -3,6 +3,10 @@
 > Copia literal del documento fuente entregado por el mantenedor. **Es la fuente de verdad del
 > proyecto**: `data/curriculum.ts`, `data/bibliography.ts` y `docs/PENSUM.md` se derivan de aquí.
 > No edites este archivo salvo para corregir una transcripción contra el pensum oficial.
+>
+> Los programas de **Modelos de Operaciones I y II** los entregó el mantenedor el 2026-09-25,
+> con más detalle que el resto (objetivos, contenidos y bibliografía por unidad). Se copian
+> literalmente; solo se ajustaron los niveles de los títulos para que encajen en este archivo.
 
 ## Matemáticas I
 
@@ -143,6 +147,276 @@ Introducción a la Programación Lineal (PL): investigación de operaciones, tip
 - Arreola J. Arreola A. (2003). *Programación Lineal*. International Thomson Editores. México.
 - Hillier F. Lieberman G. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill. México.
 - Winston W. (1994). *Investigación de Operaciones. Aplicaciones y algoritmos*. 3ra Ed. Grupo Editorial Iberoamericana. México.
+
+---
+
+## Modelos de Operaciones I
+
+**Código:** 071-4633 | **Semestre:** VII | **Prelación:** 071-3663 (Optimización de Operaciones)
+**Créditos:** 3 | **Horas semanales:** 4 (2T-2P) | **Total horas semestre:** 64 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Programación Lineal. Análisis de costos. Análisis de probabilidades.
+
+**Objetivo general:** Al finalizar, el estudiante estará en la capacidad de optimizar sistemas a través de métodos de programación matemática.
+
+**Sinopsis de contenido:**
+
+- Unidad I: Análisis de redes: PERT-CPM
+- Unidad II: Teoría de juegos
+- Unidad III: Programación dinámica
+- Unidad IV: Programación no lineal
+
+**Bibliografía general:**
+
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Handy, Taha. (1998). *Investigación de Operaciones. Una introducción*. PH. México.
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Gould – Eppen - Schmidt. (1992). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+
+### Unidad 1 — Análisis de Redes: PERT-CPM
+
+**Horas:** 20
+
+**Objetivos específicos:**
+
+1. Entender la importancia del análisis de redes PERT-CPM como apoyo a las actividades de planeación, programación y control de proyectos.
+2. Elaborar una red PERT-CPM partiendo de la definición de actividades y sus relaciones de precedencia.
+3. Analizar la red mediante la aplicación del método de revisión hacia adelante y hacia atrás.
+4. Analizar redes PERT-CPM con incertidumbre.
+5. Analizar redes PERT considerando los costos asociados al proyecto.
+
+**Contenidos:**
+
+- 1.1. Aspectos Generales: Importancia del análisis de redes.
+- 1.2. Fases de planeación de un proyecto con PERT-CPM.
+- 2.1. Definición de actividades y relaciones de precedencia.
+- 2.2. Representación y elaboración de la red: Actividades ficticias.
+- 3.1. Análisis de la red: Método de revisión hacia delante. Método de revisión hacia atrás. Ruta crítica.
+- 4.1. Red PERT-CPM con incertidumbre: Variabilidad en los tiempos de las actividades. Variabilidad en la fecha de terminación del proyecto. Probabilidad asociada a una fecha específica de terminación de un proyecto.
+- 5.1. Pert-Costos.
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos teóricos. Discusión dirigida. Resolución de ejercicios prácticos. Análisis de casos de estudio.
+
+**Estrategias de evaluación:** Examen práctico escrito sobre el contenido teórico de la unidad. Evaluación formativa de las intervenciones en clase en la resolución de ejercicios prácticos.
+
+**Bibliografía:**
+
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones*. Prentice Hall. México.
+- Hillier – Liberman. (2002). *Introducción a la Investigación de Operaciones*. Mc Graw Hill. México.
+- Mc Keown – Davis. *Modelos Cuantitativos para Administración*. Grupo Editorial Iberoamérica. México.
+
+### Unidad 2 — Teoría de Juegos
+
+**Horas:** 10
+
+**Objetivos específicos:**
+
+1. Definir los conceptos básicos relacionados con la teoría de juegos.
+2. Aplicar la teoría de juegos para la toma de decisiones.
+
+**Contenidos:**
+
+- 1.1. Aspectos básicos.
+- 2.1. Formulación de juegos de dos personas con suma cero: Características del juego. Matriz de pago o de recompensa.
+- 2.2. Solución de juegos con estrategia mixta.
+
+**Estrategias metodológicas:** Exposición oral del docente. Demostración de ejemplos ilustrativos y resolución de ejercicios prácticos. Sesión de problemas.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido de la unidad. Evaluación formativa de las intervenciones en clase.
+
+**Bibliografía:**
+
+- Anderson, D. – Sweeney, D. – Williams, T. *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Handy, Taha. (2003). *Investigación de Operaciones*. Prentice Hall. México.
+- Hillier – Liberman. (2002). *Introducción a la Investigación de Operaciones*. Mc Graw Hill. México.
+
+### Unidad 3 — Programación Dinámica
+
+**Horas:** 22
+
+**Objetivos específicos:**
+
+1. Reconocer la aplicabilidad e importancia de la programación dinámica en diversos escenarios.
+2. Entender la naturaleza recursiva de los cálculos que se realizan en programación dinámica.
+3. Definir los elementos básicos necesarios para la formulación del modelo de programación dinámica.
+4. Formular modelos de optimización de sistemas mediante la programación dinámica.
+
+**Contenidos:**
+
+- 1.1. Definición. Características de la programación dinámica. Principio de optimalidad de Bellman.
+- 2.1. Naturaleza recursiva de los cálculos en programación dinámica.
+- 3.1. Elementos básicos de un modelo de programación dinámica: Definición de las etapas. Definición de las alternativas en cada etapa. Definición de los estados para cada etapa.
+- 4.1. Recursión en reversa y en avance.
+- 4.2. Modelo de la ruta más corta.
+- 4.3. Modelo del tamaño de la fuerza de trabajo.
+- 4.4. Aplicaciones de la programación dinámica.
+
+**Estrategias metodológicas:** Explicación de los aspectos teóricos por parte del docente. Realización de ejemplos y resolución de ejercicios prácticos. Discusión y análisis de casos de estudio mediante taller grupal.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido de la unidad. Evaluación formativa de las intervenciones en clase. Evaluación de taller grupal en análisis de casos y desarrollo de modelos.
+
+**Bibliografía:**
+
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones*. Prentice Hall. México.
+- Hillier – Liberman. (2002). *Introducción a la Investigación de Operaciones*. Mc Graw Hill. México.
+- Mc Keown – Davis. *Modelos Cuantitativos para Administración*. Grupo Editorial Iberoamérica. México.
+- Wayne, Winston. (1994). *Investigación de Operaciones: Aplicaciones y Algoritmos*. Grupo Editorial Iberoamérica. México.
+
+### Unidad 4 — Programación No Lineal
+
+**Horas:** 12
+
+**Objetivos específicos:**
+
+1. Conocer los aspectos generales de la teoría de optimización clásica y su importancia en la toma de decisiones.
+2. Resolver problemas no lineales de optimización no restringida mediante las condiciones necesarias y de suficiencia para extremos.
+3. Aplicar el método de multiplicadores de Lagrange en la resolución de problemas no lineales con restricciones de igualdad, no negatividad y de desigualdad.
+
+**Contenidos:**
+
+- 1.1. Generalidades de la teoría de optimización clásica: Introducción a la optimización.
+- 1.2. Presentación de un problema de programación no lineal. Funciones convexa y cóncava.
+- 2.1. Optimización no restringida: Condiciones necesarias y suficientes para extremos.
+- 3.1. Optimización restringida.
+- 3.2. Método de Multiplicadores de Lagrange: Restricciones de igualdad. Algoritmo para restricciones no negativas. Algoritmo para restricciones de desigualdad.
+
+**Estrategias metodológicas:** Exposición oral del docente. Demostración de ejemplos y resolución de ejercicios prácticos. Investigación bibliográfica complementaria. Exposición sobre la investigación realizada.
+
+**Estrategias de evaluación:** Evaluación formativa de las intervenciones en clase. Evaluación sumativa mediante examen escrito. Evaluación sumativa de la exposición e investigación.
+
+**Bibliografía:**
+
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Bazaraa M., Sherali H., Shetty C. (1993). *Nonlinear Programming, Theory and Algorithms*. John Wiley & Sons Inc. USA.
+- Cooper, Leon. (1998). *Applied Nonlinear Programming for Engineer and Scientist*. W.B. Saunders Co. Philadelphia.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Hadley, G. (2000). *Linear Programming*. Addison Wesley. Reading, Mass.
+- Hillier – Liberman. (2002). *Introducción a la Investigación de Operaciones*. Mc Graw Hill. México.
+- Rao, S. (1999). *Optimization: Theory and Applications*. Indian Institute of Technology Kanpur. John Wiley & Sons Inc. USA.
+
+---
+
+## Modelos de Operaciones II
+
+**Código:** 071-4133 | **Semestre:** VIII | **Prelación:** 071-4633 (Modelos de Operaciones I)
+**Créditos:** 3 | **Horas semanales:** 4 (2T-2P) | **Total horas semestre:** 64 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Análisis de probabilidades. Teoría de modelado.
+
+**Objetivo general:** Optimizar sistemas a través de la aplicación de los modelos probabilísticos.
+
+**Sinopsis de contenido:**
+
+- Unidad I: Pronósticos
+- Unidad II: Teoría de colas
+- Unidad III: Teorías de inventarios
+
+**Bibliografía general:**
+
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Handy, Taha. (1998). *Investigación de Operaciones. Una introducción*. PH. México.
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Gould – Eppen - Schmidt. (1992). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+
+### Unidad 1 — Pronósticos
+
+**Horas:** 16
+
+**Objetivos específicos:**
+
+1. Analizar el comportamiento de un conjunto de datos.
+2. Aplicar diferentes métodos de pronóstico según el comportamiento de los datos.
+3. Seleccionar la técnica de proyección adecuada a cada conjunto de datos.
+
+**Contenidos:**
+
+- 1.1. Definición de pronósticos. Diferenciación con otros métodos de explorar el futuro. Entorno al sistema a ser pronosticado.
+- 1.2. La demanda como objeto de pronóstico. Componentes de una demanda. Tipos de demanda.
+- 1.3. Administración de los datos. Tipos de proyección: técnicas cuantitativas de la proyección, análisis de series de tiempo, proyección de la relación causal.
+- 2.1. Elementos para la selección de métodos de pronóstico.
+- 3.1. Selección del método de proyección. Proyección enfocada.
+
+**Estrategias metodológicas:** Explicación del profesor del contenido. Desarrollo de cuadros comparativos de los diferentes métodos. Revisión bibliográfica de casos de la vida real. Desarrollo de ejercicios en clase.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido teórico. Desarrollo de ejercicios en clase sobre aplicación de técnicas de pronóstico. Ejercicios escritos sobre la selección de métodos.
+
+**Bibliografía:**
+
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+- Hillier, Lieberman. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill.
+
+### Unidad 2 — Teoría de Colas
+
+**Horas:** 24
+
+**Objetivos específicos:**
+
+1. Estudiar los sistemas de procesamiento.
+2. Analizar la estructura de los sistemas.
+3. Desarrollar diferentes modelos de colas.
+4. Usar diferentes prioridades de programación y prioridades en sistemas de procesamiento.
+
+**Contenidos:**
+
+- 1.1. Definición de sistemas de colas. Redes de colas. Sistemas de pérdida. Usos de la teoría de colas. Ejemplos de sistemas de procesamiento.
+- 2.1. Estructura del sistema. Sistemas de pérdida frente a sistemas de colas. Llegada. Servicios. Estación única o red de estaciones. Cantidad de servidores. Disciplina de colas. Medidas de desempeño. Notación.
+- 3.1. Modelo de colas para un único servidor. Modelos generales para las colas de canal único. Servidores múltiples. Sistema de pérdida. Redes de colas.
+- 4.1. Programación y prioridades en sistemas.
+
+**Estrategias metodológicas:** Investigación bibliográfica sobre casos reales donde se observen colas. Revisión bibliográfica sobre los principales elementos de la teoría de colas y estructura de los sistemas. Explicación del docente de los diferentes modelos de colas. Desarrollo de casos de aplicación. Análisis de ejemplos en función de definición de prioridades.
+
+**Estrategias de evaluación:** Evaluación oral sobre los casos de aplicación. Discusión grupal en clase sobre la aplicación de la estructura de sistemas de colas. Evaluación de la aplicación de los modelos en diferentes casos.
+
+**Bibliografía:**
+
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+- Hillier, Lieberman. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill.
+
+### Unidad 3 — Modelos de Inventarios
+
+**Horas:** 24
+
+**Objetivos específicos:**
+
+1. Definir los conceptos principales relacionados con la teoría de inventarios.
+2. Analizar los diferentes tipos de demanda.
+3. Aplicar los modelos de inventarios conocidos.
+4. Seleccionar modelos de inventarios en función del comportamiento de la demanda.
+
+**Contenidos:**
+
+- 1.1. Definición de inventarios. Propósito de los inventarios. Clasificación de los inventarios. Costos de los inventarios. Comportamiento gráfico de los costos de inventario. Formas de medir los inventarios.
+- 2.1. Tipos de demanda: dependiente e independiente. Determinística y probabilística.
+- 3.1. Clasificación de los modelos de inventario en función del comportamiento de la demanda.
+- 4.1. Modelos de cantidad fija y modelos de periodo fijo con demanda independiente y modelos con demanda dependiente. Técnicas de inventario.
+
+**Estrategias metodológicas:** Taller grupal de análisis de la teoría general de inventarios y discusión de términos. Investigación bibliográfica sobre los diferentes tipos de demanda. Exposición del profesor y discusión en clase de cada modelo. Taller de desarrollo de ejemplos. Revisión de todos los modelos y clasificación en función del comportamiento de la demanda. Sesión de problemas.
+
+**Estrategias de evaluación:** Práctico escrito sobre la teoría de inventarios. Práctico escrito sobre tipos de demanda. Examen escrito sobre los modelos de inventario. Taller sobre selección de modelos de inventarios.
+
+**Bibliografía:**
+
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Díaz Matalobos, Angel. (1998). *Gestión de Inventarios*. Ediciones IESA. Caracas.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
 
 ---
 

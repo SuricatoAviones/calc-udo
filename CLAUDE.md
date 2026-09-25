@@ -75,9 +75,20 @@ Consúltalas al escribir UI o rutas.
 - `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ).
 - `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
 - `lib/calculators/estadistica-1/discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf).
-- `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices y vectores en
-  LaTeX), `linear-algebra.ts`, `data-list.ts`, `error-metrics.ts`.
-- UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx`).
+- `lib/calculators/modelos-de-operaciones-1/`: `network.ts` (red PERT-CPM: recorridos, holguras,
+  rutas críticas), `games.ts` (matriz de pagos, maximin/minimax), `dynamic-programming.ts`
+  (tablas por etapa).
+- `lib/calculators/modelos-de-operaciones-2/`: `forecasting.ts` (MAD, MSE, MAPE, tabla y
+  gráfica de pronósticos), `inventory.ts` (EOQ, punto de reorden, curvas de costo).
+- `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices, vectores,
+  texto y fracciones en LaTeX), `normal.ts` (Φ, Φ⁻¹ y densidad), `linear-algebra.ts`,
+  `data-list.ts`, `error-metrics.ts`.
+- UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx` con la
+  matriz rectangular, `TableField.tsx` para listas de filas). `Series.others` agrega líneas a
+  una gráfica (ADR-018).
+
+**Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
+lo cierra antes de tiempo; escribe `Q* / D`.
 
 **Cuidado con las barras invertidas.** En un string de JS, `"\frac"` sin doble barra contiene un
 salto de página y `"\begin"` un backspace; KaTeX los muestra como □. Escribe el código con las
@@ -94,6 +105,10 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
 - Tanda 3 — Colas (M/M/1, M/M/s, M/M/1/K) y Markov (n pasos, estado estable) ✅
 - Tanda 4 — Estadística (medidas descriptivas, binomial, Poisson, normal) ✅
 - Páginas legales (aviso legal, privacidad, datos, cookies) y versión **v0.1.0** ✅
+- Tanda 5 — Programas de Modelos de Operaciones I y II; PERT-CPM, teoría de juegos,
+  programación dinámica (ruta más corta, fuerza de trabajo, mochila), pronósticos (promedios
+  móviles, suavizamiento exponencial) e inventarios (EOQ, faltantes, descuentos, punto de
+  reorden, un periodo). Versión **v0.2.0** ✅
 
 ## Versiones
 

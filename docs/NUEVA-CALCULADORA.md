@@ -252,11 +252,14 @@ export default function NewtonRaphson() {
 Los campos disponibles están en
 [`components/calculators/form/fields.tsx`](../components/calculators/form/fields.tsx):
 `NumberField`, `ExpressionField` (con vista previa en LaTeX; admite varias variables, p. ej.
-`f(x, y)`), `SelectField`, `TextAreaField` (listas de datos) e `IterationFields`. Para matrices y vectores de probabilidad están
-`MatrixField` y `OptionalVectorField` en
-[`form/MatrixField.tsx`](../components/calculators/form/MatrixField.tsx). Todos leen el
-formulario con `useFormContext`, así que solo necesitan el `name`
-del campo del schema. `NumberField` usa `type="text"` con `inputMode="decimal"` y
+`f(x, y)`), `SelectField`, `TextField` (texto corto), `TextAreaField` (listas de datos) e
+`IterationFields`. Para matrices y vectores de probabilidad están `MatrixField` (cuadrada),
+`RectangularMatrixField` (m × n, p. ej. una matriz de pagos) y `OptionalVectorField` en
+[`form/MatrixField.tsx`](../components/calculators/form/MatrixField.tsx). Para listas de filas
+con varias columnas (actividades de un proyecto, arcos de una red, niveles de precio) está
+[`form/TableField.tsx`](../components/calculators/form/TableField.tsx), que valida cada celda
+con el schema de un arreglo de objetos. Todos leen el formulario con `useFormContext`, así que
+solo necesitan el `name` del campo del schema. `NumberField` usa `type="text"` con `inputMode="decimal"` y
 `parseDecimal`, no `type="number"`: en teclados configurados en español, `type="number"`
 puede rechazar la coma.
 

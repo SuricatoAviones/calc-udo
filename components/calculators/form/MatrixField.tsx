@@ -55,7 +55,7 @@ export function MatrixField({
         };
         const error = fieldState.error?.message;
         return (
-          <fieldset className="flex flex-col gap-2" aria-describedby={`${name}-help`}>
+          <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
             <div className="flex items-center justify-between gap-2">
               <legend className="text-sm font-medium">{label}</legend>
               <div className="flex items-center gap-1">
@@ -140,6 +140,177 @@ export function MatrixField({
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+            <div id={`${name}-help`}>
+              {error ? (
+                <p role="alert" className="text-destructive text-xs">
+                  {error}
+                </p>
+              ) : (
+                hint && <p className="text-muted-foreground text-xs">{hint}</p>
+              )}
+            </div>
+          </fieldset>
+        );
+      }}
+    />
+  );
+}
+
+function resizeRect(matrix: number[][], rows: number, cols: number): number[][] {
+  return Array.from({ length: rows }, (_, i) =>
+    Array.from({ length: cols }, (_, j) => matrix[i]?.[j] ?? 0),
+  );
+}
+
+function Stepper({
+  value,
+  min,
+  max,
+  unit,
+  onChange,
+  what,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  unit: string;
+  what: string;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="size-8"
+        disabled={value <= min}
+        onClick={() => onChange(value - 1)}
+        aria-label={`Quitar ${what}`}
+      >
+        <Minus className="size-4" />
+      </Button>
+      <span className="text-muted-foreground tabular w-20 text-center text-xs">
+        {value} {unit}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="size-8"
+        disabled={value >= max}
+        onClick={() => onChange(value + 1)}
+        aria-label={`Agregar ${what}`}
+      >
+        <Plus className="size-4" />
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Matriz m × n editable con filas y columnas nombradas (p. ej. la matriz de pagos de un juego:
+ * estrategias A1…Am del jugador de las filas contra B1…Bn del de las columnas).
+ */
+export function RectangularMatrixField({
+  name,
+  label,
+  hint,
+  rowPrefix,
+  colPrefix,
+  rowUnit,
+  colUnit,
+  min = 1,
+  max = 8,
+}: {
+  name: string;
+  label: ReactNode;
+  hint?: ReactNode;
+  /** Prefijo de los nombres de fila y columna: `A` → A1, A2… */
+  rowPrefix: string;
+  colPrefix: string;
+  /** Texto de los contadores: «filas», «columnas». */
+  rowUnit: string;
+  colUnit: string;
+  min?: number;
+  max?: number;
+}) {
+  const { control } = useFormContext();
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => {
+        const matrix = (field.value as number[][] | undefined) ?? resizeRect([], min, min);
+        const rows = matrix.length;
+        const cols = matrix[0]?.length ?? min;
+        const setCell = (i: number, j: number, text: string) => {
+          const next = matrix.map((row) => [...row]);
+          next[i]![j] = parseDecimal(text);
+          field.onChange(next);
+        };
+        const error = fieldState.error?.message;
+        return (
+          <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
+            <legend className="mb-2 text-sm font-medium">{label}</legend>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Stepper
+                value={rows}
+                min={min}
+                max={max}
+                unit={rowUnit}
+                what={`una estrategia de ${rowPrefix}`}
+                onChange={(next) => field.onChange(resizeRect(matrix, next, cols))}
+              />
+              <Stepper
+                value={cols}
+                min={min}
+                max={max}
+                unit={colUnit}
+                what={`una estrategia de ${colPrefix}`}
+                onChange={(next) => field.onChange(resizeRect(matrix, rows, next))}
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-separate border-spacing-1">
+                <thead>
+                  <tr>
+                    <th className="w-8" />
+                    {matrix[0]?.map((_, j) => (
+                      <th key={j} scope="col" className="text-muted-foreground text-xs font-normal">
+                        {colPrefix}
+                        {j + 1}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrix.map((row, i) => (
+                    <tr key={i}>
+                      <th scope="row" className="text-muted-foreground text-xs font-normal">
+                        {rowPrefix}
+                        {i + 1}
+                      </th>
+                      {row.map((v, j) => (
+                        <td key={`${rows}-${cols}-${i}-${j}`} className="min-w-14">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            aria-label={`${rowPrefix}${i + 1} contra ${colPrefix}${j + 1}`}
+                            aria-invalid={Boolean(error)}
+                            defaultValue={display(v)}
+                            onChange={(e) => setCell(i, j, e.target.value)}
+                            onBlur={field.onBlur}
+                            className={cellClass}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

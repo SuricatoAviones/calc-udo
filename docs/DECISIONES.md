@@ -233,3 +233,60 @@ Plantilla:
   (ADR-002), no hay banner de consentimiento.
 - **Alternativas descartadas:** _Prefijo `/legal/…`_: URL más largas que las convencionales para
   estas páginas. _Textos en Markdown_: añadiría un pipeline de MDX para cuatro páginas.
+
+## ADR-017 — Modelos de Operaciones I y II: temas por unidad y ediciones verificadas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Las dos materias se agregan con un tema por unidad del programa. Como el modelo
+  no tiene bibliografía por tema, la de cada materia es la unión de la general y la de sus
+  unidades. Lo que ya estaba definido en otra materia se refiere con `{ ref }`: los modelos de
+  colas (Teoría de Colas), la optimización clásica y Lagrange (Programación No Lineal) y la
+  tendencia y la regresión (Estadísticas II). Los casos de prueba se verificaron contra las
+  ediciones que se pudieron consultar, y cada test lo indica: Hillier & Lieberman 7.ª ed. en
+  inglés (2001; juegos e inventarios), 8.ª (2005; cap. 22, PERT/CPM) y 9.ª (2010; cap. 10,
+  programación dinámica); Taha 8.ª ed. en inglés (2007; cap. 10) y los datos de la 9.ª (2011)
+  según su «R Textbook Companion» (FOSSEE); Anderson, Sweeney y Williams, ejemplo de las ventas
+  de gasolina en ediciones recientes (la de 1993 que cita el pensum no está disponible).
+- **Contexto:** El mantenedor entregó los programas completos (objetivos, contenidos y
+  bibliografía por unidad). Varias unidades repiten contenido de electivas ya modeladas.
+- **Alternativas descartadas:** _Duplicar las calculadoras de colas y de programación no lineal
+  en las nuevas materias_: dos URLs y dos implementaciones del mismo método (ADR-006).
+  _Agregar bibliografía por tema al modelo_: cambio de tipos sin uso en la UI todavía.
+
+## ADR-018 — Tablas de filas, matrices rectangulares y gráficas con varias líneas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** `components/calculators/form/TableField.tsx` (con `useFieldArray`) edita listas
+  de filas con varias columnas: actividades de un proyecto, arcos de una red, artículos o niveles
+  de precio. `RectangularMatrixField` edita matrices m × n (matrices de pagos). `Series.others`
+  agrega líneas delgadas a una gráfica, y la leyenda pasa a ser una lista HTML debajo de la
+  gráfica.
+- **Contexto:** PERT-CPM, programación dinámica e inventarios necesitan filas con columnas de
+  distinto tipo; los juegos, matrices que no son cuadradas; el método gráfico y el comportamiento
+  de los costos de inventario, varias rectas o curvas en la misma gráfica. La leyenda de Recharts
+  dentro del SVG tapaba las curvas cuando ocupaba dos renglones en móvil.
+- **Alternativas descartadas:** _Un área de texto con un formato por línea (`H; E, G; 9`)_: fácil
+  de escribir mal y difícil de corregir en el teléfono. _Una gráfica por recta_: se pierde la
+  comparación, que es el punto del método gráfico. _Reutilizar `reference`_: admite una sola
+  serie.
+
+## ADR-019 — Estrategias mixtas por el método gráfico; PERT con la ruta de mayor varianza
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** `estrategias-mixtas` elimina estrategias dominadas (si dos son idénticas, la
+  segunda), busca un punto de silla y, si a un jugador le quedan dos estrategias, usa el método
+  gráfico. La estrategia del oponente combina las dos rectas que forman la envolvente a cada lado
+  del óptimo (la de mayor pendiente positiva y la de menor pendiente negativa), como en Hillier y
+  en el ejemplo 13.4-3 de Taha; si pasan más rectas por el óptimo se avisa que hay óptimos
+  alternativos. Los juegos que siguen siendo mayores que 2 × n y m × 2 devuelven `too-large` y
+  quedan para la calculadora de juegos por programación lineal. En PERT, si hay varias rutas
+  críticas medias, la varianza del proyecto se toma de la de mayor varianza y se avisa.
+- **Contexto:** Todavía no hay un simplex en `lib/`, y el método gráfico es el que se enseña
+  primero. Con rutas críticas empatadas los libros no fijan un criterio; la de mayor varianza da
+  la probabilidad más conservadora.
+- **Alternativas descartadas:** _Resolver todo juego con un simplex propio en esta tanda_: es el
+  mismo trabajo que las calculadoras de Optimización de Operaciones, que siguen en el roadmap.
+  _Promediar las varianzas de las rutas empatadas_: no tiene respaldo en la bibliografía.

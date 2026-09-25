@@ -235,6 +235,21 @@ export const bibliography = [
     place: 'México',
     note: 'En el programa de Teoría de Colas aparece como “Wayne, Winston”.',
   },
+  {
+    id: 'mckeown-davis',
+    authors: 'Mc Keown – Davis',
+    title: 'Modelos Cuantitativos para Administración',
+    publisher: 'Grupo Editorial Iberoamérica',
+    place: 'México',
+  },
+  {
+    id: 'diaz-matalobos-1998',
+    authors: 'Díaz Matalobos, Angel',
+    year: '1998',
+    title: 'Gestión de Inventarios',
+    publisher: 'Ediciones IESA',
+    place: 'Caracas',
+  },
 
   // ── Programación No Lineal ─────────────────────────────────────────────────
   {

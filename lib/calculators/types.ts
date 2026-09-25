@@ -87,6 +87,12 @@ export interface Series {
   label?: string;
   /** Segunda serie en la misma escala para comparar (p. ej. la solución exacta), punteada. */
   reference?: { label: string; points: Point[] };
+  /**
+   * Líneas adicionales, más delgadas, en la misma escala (solo con `kind: 'line'`). P. ej. las
+   * rectas de pago esperado del método gráfico de juegos, o los costos de pedir y de mantener
+   * junto al costo total de un inventario. Una línea puede cubrir solo parte del eje x.
+   */
+  others?: { label: string; points: Point[] }[];
   /** Rango de x a resaltar (p. ej. la región cuya probabilidad se calcula). */
   highlight?: { from: number; to: number };
 }

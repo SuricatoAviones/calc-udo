@@ -5,7 +5,10 @@ import {
   toLatexMatrix,
   toLatexNumber,
   toLatexOperand,
+  toLatexRational,
+  toLatexText,
   toLatexVector,
+  toRational,
 } from './format';
 
 // Casos de formateo: el valor esperado es la representación decimal del literal de entrada,
@@ -91,5 +94,41 @@ describe('toLatexMatrix y toLatexVector', () => {
     expect(latex).not.toMatch(/[\u0000-\u001f]/);
     expect(latex).toContain('\\begin');
     expect(latex).toContain('\\left');
+  });
+});
+
+describe('toLatexText', () => {
+  it('envuelve en \\text y escapa los caracteres especiales de LaTeX', () => {
+    expect(toLatexText('A')).toBe(String.raw`\text{A}`);
+    expect(toLatexText('x_1 & 50%')).toBe(String.raw`\text{x\_1 \& 50\%}`);
+    expect(toLatexText('{a}')).toBe(String.raw`\text{\{a\}}`);
+  });
+});
+
+// Fracciones: casos de las estrategias mixtas de Hillier & Lieberman (7.ª ed., sec. 14.4):
+// x₁ = 7/11, v = 2/11, y₂ = 5/11. El valor esperado es la fracción del libro.
+describe('toRational y toLatexRational', () => {
+  it('recupera fracciones sencillas', () => {
+    expect(toRational(7 / 11)).toEqual({ numerator: 7, denominator: 11 });
+    expect(toRational(-2 / 11)).toEqual({ numerator: -2, denominator: 11 });
+    expect(toRational(2.5)).toEqual({ numerator: 5, denominator: 2 });
+    expect(toRational(3)).toEqual({ numerator: 3, denominator: 1 });
+  });
+
+  it('devuelve null si no hay una fracción con denominador pequeño', () => {
+    expect(toRational(Math.PI)).toBeNull();
+    expect(toRational(Math.SQRT2)).toBeNull();
+    expect(toRational(Infinity)).toBeNull();
+  });
+
+  it('muestra la fracción y su valor decimal', () => {
+    expect(toLatexRational(7 / 11)).toBe(String.raw`\frac{7}{11} \approx 0.636364`);
+    expect(toLatexRational(-2 / 11)).toBe(String.raw`-\frac{2}{11} \approx -0.181818`);
+    expect(toLatexRational(5)).toBe('5');
+    expect(toLatexRational(Math.PI)).toBe('3.14159');
+  });
+
+  it('no produce caracteres de control', () => {
+    expect(toLatexRational(7 / 11) + toLatexText('a_b')).not.toMatch(/[\u0000-\u001f]/);
   });
 });
