@@ -55,6 +55,9 @@ export function legalPath(slug: LegalSlug): string {
 /** Fecha de la última revisión de los textos legales (ISO 8601). */
 export const LEGAL_LAST_UPDATED = '2026-09-25';
 
+export const AUTHOR_NAME = 'Luis Angel Gutierrez';
+export const AUTHOR_URL = 'https://luisangelgutierrez.com';
+
 export const REPOSITORY_URL = 'https://github.com/SuricatoAviones/calc-udo';
 
 /** Canal de contacto público: los issues del repositorio. */

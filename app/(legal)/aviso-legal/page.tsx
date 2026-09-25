@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage } from '@/components/layout/LegalPage';
-import { CONTACT_URL, getLegalDocument, legalPath, REPOSITORY_URL } from '@/data/legal';
+import {
+  AUTHOR_NAME,
+  AUTHOR_URL,
+  CONTACT_URL,
+  getLegalDocument,
+  legalPath,
+  REPOSITORY_URL,
+} from '@/data/legal';
 
 const doc = getLegalDocument('aviso-legal');
 
@@ -13,7 +20,13 @@ export default function LegalNoticePage() {
       <h2>1. Quién publica CalcUDO</h2>
       <p>
         CalcUDO es un proyecto comunitario, gratuito y sin fines de lucro, mantenido por{' '}
-        <strong>LuisAngel y los colaboradores de CalcUDO</strong>. Su código fuente es público en{' '}
+        <strong>
+          <a href={AUTHOR_URL} rel="noopener noreferrer">
+            {AUTHOR_NAME}
+          </a>{' '}
+          y los colaboradores de CalcUDO
+        </strong>
+        . Su código fuente es público en{' '}
         <a href={REPOSITORY_URL} rel="noopener noreferrer">
           GitHub
         </a>

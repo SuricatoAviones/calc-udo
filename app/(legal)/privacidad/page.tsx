@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage } from '@/components/layout/LegalPage';
-import { CONTACT_URL, getLegalDocument, legalPath } from '@/data/legal';
+import { AUTHOR_NAME, AUTHOR_URL, CONTACT_URL, getLegalDocument, legalPath } from '@/data/legal';
 
 const doc = getLegalDocument('privacidad');
 
@@ -18,7 +18,11 @@ export default function PrivacyPolicyPage() {
 
       <h2>1. Responsable</h2>
       <p>
-        El sitio lo mantienen LuisAngel y los colaboradores de CalcUDO (ver el{' '}
+        El sitio lo mantienen{' '}
+        <a href={AUTHOR_URL} rel="noopener noreferrer">
+          {AUTHOR_NAME}
+        </a>{' '}
+        y los colaboradores de CalcUDO (ver el{' '}
         <Link href={legalPath('aviso-legal')}>aviso legal</Link>). Puedes contactarnos abriendo un
         issue en{' '}
         <a href={CONTACT_URL} rel="noopener noreferrer">
