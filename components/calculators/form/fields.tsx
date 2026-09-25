@@ -165,3 +165,30 @@ export function IterationFields() {
     </div>
   );
 }
+
+/** Área de texto (p. ej. una lista de datos pegada desde una hoja de cálculo). */
+export function TextAreaField({
+  name,
+  label,
+  hint,
+  className,
+  rows = 4,
+}: BaseFieldProps & { rows?: number }) {
+  const { register } = useFormContext();
+  const error = useFieldError(name);
+  return (
+    <div className={className}>
+      <Field id={name} label={label} hint={hint} error={error}>
+        <textarea
+          id={name}
+          rows={rows}
+          spellCheck={false}
+          className="border-input bg-card focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 font-mono text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy(name, Boolean(error))}
+          {...register(name)}
+        />
+      </Field>
+    </div>
+  );
+}

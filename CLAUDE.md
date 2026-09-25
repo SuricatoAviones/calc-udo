@@ -67,9 +67,29 @@ En `.agents/skills/` (no versionado) hay skills útiles: `next-best-practices`,
 `react-best-practices`, `frontend-design`, `accessibility`, `composition-patterns`, `seo`.
 Consúltalas al escribir UI o rutas.
 
+## Núcleos compartidos (reutilízalos antes de escribir uno nuevo)
+
+- `lib/calculators/metodos-numericos/`: `root-finding.ts` (campos, error aproximado, gráficas
+  de convergencia), `bracketing.ts` (bisección y falsa posición), `integration.ts` (reglas de
+  Newton-Cotes), `ode.ts` + `ode-methods.ts` (métodos de un paso para EDO).
+- `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ).
+- `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
+- `lib/calculators/estadistica-1/discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf).
+- `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices y vectores en
+  LaTeX), `linear-algebra.ts`, `data-list.ts`, `error-metrics.ts`.
+- UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx`).
+
+**Cuidado con las barras invertidas.** En un string de JS, `"\frac"` sin doble barra contiene un
+salto de página y `"\begin"` un backspace; KaTeX los muestra como □. Escribe el código con las
+herramientas de edición de archivos, no con heredocs ni `node -e` desde la shell, que pueden
+perder barras. Un test del contrato detecta caracteres de control (ADR-014).
+
 ## Estado del plan
 
 - Fase 1 — Scaffolding, docs y currículum ✅
 - Fase 2 — Contrato (`types.ts`) y componentes genéricos ✅
-- Fase 3 — Newton-Raphson como piloto ✅. **No implementar más calculadoras hasta que el
-  mantenedor revise el piloto.**
+- Fase 3 — Newton-Raphson como piloto ✅ (revisado)
+- Tanda 1 — Bisección, falsa posición y secante ✅
+- Tanda 2 — Integración (rectangular, trapecio, Simpson) y EDO (Euler, Heun, RK4) ✅
+- Tanda 3 — Colas (M/M/1, M/M/s, M/M/1/K) y Markov (n pasos, estado estable) ✅
+- Tanda 4 — Estadística (medidas descriptivas, binomial, Poisson, normal) ✅

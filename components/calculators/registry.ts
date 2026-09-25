@@ -11,6 +11,12 @@ import type { ComponentType } from 'react';
  * empaqueta únicamente su propio componente.
  */
 export const calculatorRegistry: Record<string, () => Promise<{ default: ComponentType }>> = {
+  // Estadísticas I
+  'medidas-descriptivas': () => import('./estadistica-1/DescriptiveMeasures'),
+  'distribucion-binomial': () => import('./estadistica-1/Binomial'),
+  'distribucion-de-poisson': () => import('./estadistica-1/Poisson'),
+  'distribucion-normal': () => import('./estadistica-1/Normal'),
+
   // Métodos Numéricos
   biseccion: () => import('./metodos-numericos/Bisection'),
   'falsa-posicion': () => import('./metodos-numericos/FalsePosition'),

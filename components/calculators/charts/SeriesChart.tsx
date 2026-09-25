@@ -8,7 +8,6 @@ import {
   ComposedChart,
   Legend,
   Line,
-  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,6 +21,8 @@ interface Row {
   x: number;
   y?: number;
   ref?: number;
+  /** Copia de y dentro del rango resaltado: se rellena el área bajo la curva solo ahí. */
+  hl?: number;
 }
 
 /** Más puntos que esto → sin marcadores (una curva muestreada, no iteraciones). */
@@ -93,7 +94,27 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
     if (!keep(p.y)) continue;
     rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), ref: p.y });
   }
-  return [...rows.values()].sort((a, b) => a.x - b.x);
+  const sorted = [...rows.values()].sort((a, b) => a.x - b.x);
+  const { highlight } = series;
+  if (!highlight || (series.kind ?? 'line') !== 'line') return sorted;
+
+  // Se agregan los extremos del rango (interpolando) para que el área empiece y termine
+  // exactamente en ellos, aunque la curva esté muestreada en otros puntos.
+  const withEdges = [...sorted];
+  for (const edge of [highlight.from, highlight.to]) {
+    if (rows.has(edge)) continue;
+    const right = sorted.findIndex((r) => r.x > edge && r.y !== undefined);
+    const left = sorted[right - 1];
+    const next = sorted[right];
+    if (right <= 0 || !left || !next || left.y === undefined || next.y === undefined) continue;
+    const t = (edge - left.x) / (next.x - left.x);
+    withEdges.push({ x: edge, y: left.y + t * (next.y - left.y) });
+  }
+  return withEdges
+    .sort((a, b) => a.x - b.x)
+    .map((r) =>
+      r.y !== undefined && r.x >= highlight.from && r.x <= highlight.to ? { ...r, hl: r.y } : r,
+    );
 }
 
 /**
@@ -183,14 +204,18 @@ export function SeriesChart({ series }: { series: Series }) {
                 wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }}
               />
             )}
-            {series.highlight && kind !== 'bar' && (
-              <ReferenceArea
-                x1={series.highlight.from}
-                x2={series.highlight.to}
+            {series.highlight && kind === 'line' && (
+              <Area
+                type="linear"
+                dataKey="hl"
+                name="Área"
+                stroke="none"
                 fill="var(--chart-1)"
-                fillOpacity={0.12}
-                strokeOpacity={0}
-                ifOverflow="extendDomain"
+                fillOpacity={0.25}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+                activeDot={false}
               />
             )}
             {kind === 'bar' && (
