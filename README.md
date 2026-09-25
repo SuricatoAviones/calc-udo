@@ -1,40 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# CalcUDO
 
-## Getting Started
+**Calculadoras académicas con el procedimiento paso a paso** para estudiantes de Ingeniería de
+Sistemas de la Universidad de Oriente (UDO), Venezuela.
 
-First, run the development server:
+Organizadas por materia → tema → calculadora siguiendo el pensum oficial: Newton-Raphson,
+Simplex, modelos de colas M/M/1, regresión lineal, cadenas de Markov, entre otras.
+
+El diferenciador no es el resultado, es **el procedimiento**. Cada calculadora muestra cada
+paso con sus fórmulas renderizadas y cita el libro del que sale el método. Sirve para estudiar
+y para verificar ejercicios hechos a mano, no como una caja negra.
+
+> Proyecto comunitario y open source. **No es un sitio oficial de la UDO.**
+
+## Inicio rápido
+
+Requisitos: Node.js 22 o superior y [pnpm](https://pnpm.io) 11.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm test         # tests de la lógica matemática
+pnpm check        # typecheck + lint + formato + tests (lo mismo que se exige en un PR)
+pnpm build        # sitio estático en out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Documentación
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+Toda la documentación está en [`docs/`](docs/README.md), en español:
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+- [Arquitectura](docs/ARQUITECTURA.md): cómo está construido y por qué.
+- [Cómo contribuir](docs/CONTRIBUTING.md).
+- [**Cómo agregar una calculadora**](docs/NUEVA-CALCULADORA.md): la guía más importante.
+- [Pensum y estado de las calculadoras](docs/PENSUM.md).
+- [Decisiones de diseño](docs/DECISIONES.md) y [glosario](docs/GLOSARIO.md).
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Licencia
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+[MIT](LICENSE).

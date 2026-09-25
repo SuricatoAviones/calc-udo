@@ -1,0 +1,171 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'katex/dist/katex.min.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Identidad visual: "cuaderno de ingeniería".
+ * Claro = hoja cuadriculada con tinta azul oscuro y lápiz rojo para lo que importa.
+ * Oscuro = pizarrón verde con tiza y tiza amarilla como acento.
+ * Los nombres de tokens siguen la convención de shadcn/ui para que sus componentes funcionen tal cual.
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.975 0.008 85);
+  --foreground: oklch(0.26 0.03 250);
+  --card: oklch(0.99 0.005 85);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.33 0.07 255);
+  --primary-foreground: oklch(0.98 0.005 85);
+  --secondary: oklch(0.93 0.015 85);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.94 0.012 85);
+  --muted-foreground: oklch(0.47 0.025 250);
+  --accent: oklch(0.93 0.03 60);
+  --accent-foreground: oklch(0.3 0.05 40);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.86 0.02 240);
+  --input: oklch(0.84 0.02 240);
+  --ring: oklch(0.55 0.12 255);
+
+  /* Propios de CalcUDO */
+  --pencil: oklch(0.56 0.18 35); /* lápiz rojo: resultados y énfasis */
+  --grid-line: oklch(0.9 0.025 235 / 0.55);
+  --success: oklch(0.52 0.13 150);
+  --warning: oklch(0.68 0.14 75);
+
+  --chart-1: var(--primary);
+  --chart-2: var(--pencil);
+  --chart-3: oklch(0.6 0.11 180);
+  --chart-4: oklch(0.7 0.13 80);
+  --chart-5: oklch(0.55 0.1 300);
+}
+
+.dark {
+  --background: oklch(0.24 0.025 160);
+  --foreground: oklch(0.93 0.012 95);
+  --card: oklch(0.27 0.025 160);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.9 0.1 95);
+  --primary-foreground: oklch(0.24 0.025 160);
+  --secondary: oklch(0.31 0.025 160);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.3 0.022 160);
+  --muted-foreground: oklch(0.74 0.02 120);
+  --accent: oklch(0.34 0.03 160);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.68 0.17 25);
+  --border: oklch(0.38 0.025 160);
+  --input: oklch(0.4 0.025 160);
+  --ring: oklch(0.85 0.1 95);
+
+  --pencil: oklch(0.86 0.13 90);
+  --grid-line: oklch(0.4 0.02 160 / 0.35);
+  --success: oklch(0.78 0.13 150);
+  --warning: oklch(0.82 0.13 80);
+
+  --chart-1: oklch(0.9 0.1 95);
+  --chart-2: oklch(0.8 0.1 200);
+  --chart-3: oklch(0.78 0.12 150);
+  --chart-4: oklch(0.75 0.14 30);
+  --chart-5: oklch(0.75 0.1 300);
+}
+
+@theme inline {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-pencil: var(--pencil);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Cuadrícula de cuaderno: 24px, fija para que no "baile" al hacer scroll. */
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-attachment: fixed;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+    font-optical-sizing: auto;
+  }
+  :focus-visible {
+    @apply outline-ring outline-2 outline-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Números tabulares: columnas de iteraciones alineadas. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* KaTeX hereda el color de la tinta y no desborda en móvil. */
+.katex {
+  font-size: 1.05em;
+  color: inherit;
+}
+.katex-display {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
