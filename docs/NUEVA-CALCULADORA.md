@@ -83,6 +83,199 @@ calculadora (p. ej. `newton-raphson`), tal como aparecen en `data/curriculum.ts`
 
 ## Ejemplo completo: Newton-Raphson
 
-> 🚧 Esta sección se completa en la **Fase 3** con el código real de la calculadora piloto
-> (`lib/calculators/metodos-numericos/newton-raphson.ts`), para no documentar código que todavía
-> no existe.
+La calculadora piloto. Los fragmentos de abajo están resumidos; el código completo está en los
+archivos enlazados.
+
+### 0. Preparación
+
+En `data/curriculum.ts` ya existía:
+
+```ts
+// Métodos Numéricos → tema 'raices-de-ecuaciones'
+{ id: 'newton-raphson', title: 'Método de Newton-Raphson', summary: '…' },
+```
+
+Ejemplos del libro elegidos (Chapra & Canale, cap. 6):
+
+- **Ejemplo 6.3**: f(x) = e⁻ˣ − x, x₀ = 0. Tabla con x₁ … x₄ y εt. Es el caso normal.
+- **Ejemplo 6.5**: f(x) = x¹⁰ − 1, x₀ = 0.5. Converge muy lento (x₁ = 51.65, x₂ = 46.485, …),
+  así que con 5 iteraciones sirve de caso real de **no convergencia**.
+
+### 1. Tests: [`newton-raphson.test.ts`](../lib/calculators/metodos-numericos/newton-raphson.test.ts)
+
+Se escribieron antes que la implementación. Observa el comentario con la fuente y que se
+verifican **los valores intermedios**, no solo la raíz:
+
+```ts
+// Chapra & Canale, Métodos Numéricos para Ingenieros, sección 6.2, Ejemplo 6.3
+// ("Método de Newton-Raphson"): raíz de f(x) = e^{-x} − x con x0 = 0.
+// Tabla del libro (i, x_i, εt %): 1 0.500000000 11.8 / 2 0.566311003 0.147 / …
+it('reproduce cada iteración de la tabla del libro', () => {
+  const [x1, x2, x3, x4] = approximations(result);
+  expect(x1).toBeCloseTo(0.5, 9);
+  expect(x2).toBeCloseTo(0.566311003, 8);
+  expect(x3).toBeCloseTo(0.567143165, 8);
+  expect(x4).toBeCloseTo(0.56714329, 8);
+});
+```
+
+Casos cubiertos, uno por cada código de error y los casos borde:
+
+| Caso                             | Fuente                                    | Código esperado                       |
+| -------------------------------- | ----------------------------------------- | ------------------------------------- |
+| e⁻ˣ − x, x₀ = 0                  | Chapra, Ej. 6.3                           | `ok: true`, 4 iteraciones             |
+| x¹⁰ − 1, x₀ = 0.5, 5 iteraciones | Chapra, Ej. 6.5                           | `max-iterations`                      |
+| x² − 4, x₀ = 0 (f′(0) = 0)       | Caso borde, analítico (Chapra, fig. 6.6d) | `zero-derivative`                     |
+| x² − 2x + 5, x₀ = 3 (f′(x₁) = 0) | Caso borde, analítico                     | `zero-derivative` en la 2.ª iteración |
+| x² − 4, x₀ = 2                   | Caso borde: x₀ ya es raíz                 | `ok: true`, 0 iteraciones             |
+| 2x − 4                           | Caso borde: lineal, exacta en 1 iteración | `ok: true`                            |
+| `x^^2`, `y - 1`, `log(x)`, vacío | Validación                                | `invalid-expression`                  |
+| 1/x en 0, √x en −1               | Valores no reales                         | `non-finite`                          |
+
+### 2. Lógica: [`newton-raphson.ts`](../lib/calculators/metodos-numericos/newton-raphson.ts)
+
+**Schema de entrada**, con mensajes en español. Lo comparten el formulario y `solve()`:
+
+```ts
+export const newtonRaphsonInputSchema = z.object({
+  expression: z.string().trim().min(1, 'Escribe la función f(x).').max(200, '…'),
+  x0: finiteNumber('x₀'),
+  tolerance: finiteNumber('la tolerancia')
+    .refine((v) => v > 0, '…')
+    .refine((v) => v <= 100, '…'),
+  maxIterations: z.number().int('…').min(1, '…').max(100, '…'),
+});
+```
+
+**Tipos del resultado y códigos de error**, que la UI y los tests usan con autocompletado:
+
+```ts
+export interface NewtonRaphsonValue {
+  root: number;
+  iterations: number;
+  converged: boolean;
+  approximateError: number | null;
+  residual: number;
+}
+export type NewtonRaphsonErrorCode =
+  'invalid-expression' | 'zero-derivative' | 'non-finite' | 'max-iterations';
+```
+
+**Reutilizar `lib/math/`** en vez de reimplementar:
+
+```ts
+const parsed = parseFunction(input.expression); // valida, traduce ln/sen, errores en español
+const derived = differentiate(parsed.expr); // derivada simbólica + LaTeX
+const ea = relativeErrorPercent(xNext, x); // criterio de Chapra
+n(xNext) / op(x); // toLatexNumber / toLatexOperand
+```
+
+**Cada iteración es un `Step` con subpasos**: evaluar f, evaluar f′, aplicar la fórmula y
+calcular el error. La fórmula general va en `formula`, la sustitución con números en
+`substitution` y el resultado en `result`:
+
+```ts
+{
+  title: 'Aplicar la fórmula de Newton-Raphson',
+  formula: "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}",
+  substitution: `${xn1} = ${n(x)} - \\frac{${n(fx)}}{${n(dfx)}}`,
+  result: `${xn1} = ${n(xNext)}`,
+}
+```
+
+**Los fallos también devuelven la traza**: `fail()` empaqueta los pasos acumulados hasta ese
+momento.
+
+```ts
+if (dfx === 0) {
+  steps.push({
+    title: `Iteración ${i + 1}`,
+    explanation: 'La derivada vale 0: …',
+    children: evaluation,
+  });
+  return fail('zero-derivative', `La derivada se anula en x = ${formatNumber(x)} …`);
+}
+```
+
+**El objeto `Calculator`** une todo. `example` es el caso del libro:
+
+```ts
+export const newtonRaphson: Calculator<NewtonRaphsonInput, NewtonRaphsonValue, NewtonRaphsonErrorCode> = {
+  meta: {
+    id: 'newton-raphson',                    // = id en data/curriculum.ts
+    title: 'Método de Newton-Raphson',
+    summary: '…',
+    citations: [{ sourceId: 'chapra-canale-2000', locator: 'Cap. 6, sección 6.2, Ejemplos 6.3 y 6.5' }, …],
+  },
+  inputSchema: newtonRaphsonInputSchema,
+  example: { expression: 'e^(-x) - x', x0: 0, tolerance: 0.00005, maxIterations: 20 },
+  solve: solveNewtonRaphson,
+};
+```
+
+No hace falta registrar la lógica en ningún lado:
+[`lib/calculators/contract.test.ts`](../lib/calculators/contract.test.ts) encuentra el archivo
+solo y verifica que el id exista en el currículum, que las citas sean válidas y que el ejemplo
+se resuelva con pasos.
+
+### 3. UI: [`NewtonRaphson.tsx`](../components/calculators/metodos-numericos/NewtonRaphson.tsx)
+
+Solo el formulario. Todo lo demás lo dibuja `CalculatorLayout` a partir del resultado:
+
+```tsx
+'use client';
+export default function NewtonRaphson() {
+  const [result, setResult] = useState<Result | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<NewtonRaphsonInput>({
+    resolver: zodResolver(newtonRaphson.inputSchema),
+    defaultValues: newtonRaphson.example,
+  });
+  return (
+    <CalculatorLayout meta={newtonRaphson.meta} result={result}>
+      <form onSubmit={handleSubmit((values) => setResult(newtonRaphson.solve(values)))}>
+        <Field id="x0" label="Valor inicial" error={errors.x0?.message}>
+          {/* setValueAs: parseDecimal acepta "0,5" (coma decimal) */}
+          <Input
+            {...register('x0', { setValueAs: (v) => parseDecimal(String(v)) })}
+            inputMode="decimal"
+          />
+        </Field>
+        {/* … f(x) con vista previa en LaTeX, tolerancia, máx. iteraciones … */}
+        <Button type="submit">Calcular</Button>
+      </form>
+    </CalculatorLayout>
+  );
+}
+```
+
+Los campos numéricos usan `type="text"` con `inputMode="decimal"` y `parseDecimal`, no
+`type="number"`: en teclados configurados en español, `type="number"` puede rechazar la coma.
+
+### 4. Registro: [`registry.ts`](../components/calculators/registry.ts)
+
+```ts
+export const calculatorRegistry = {
+  // Métodos Numéricos
+  'newton-raphson': () => import('./metodos-numericos/NewtonRaphson'),
+};
+```
+
+Con esta línea, la calculadora aparece como ✅ en el home, en la materia y en el tema, y se
+genera `/metodos-numericos/raices-de-ecuaciones/newton-raphson/`.
+
+### 5. Cierre
+
+```bash
+pnpm docs:pensum   # PENSUM.md: Newton-Raphson → ✅ Implementada
+pnpm check         # typecheck + lint + formato + tests
+git commit -m "feat(metodos-numericos): agregar calculadora de Newton-Raphson"
+```
+
+**Archivos tocados en total**: `newton-raphson.ts`, `newton-raphson.test.ts`,
+`NewtonRaphson.tsx`, una línea en `registry.ts` y `PENSUM.md` regenerado. Los helpers de
+`lib/math/` (`expression.ts`, `parseDecimal`) se crearon con el piloto; las próximas
+calculadoras de raíces (bisección, falsa posición, secante) los reutilizan sin cambios.

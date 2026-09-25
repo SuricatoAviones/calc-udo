@@ -34,6 +34,17 @@ function ChartTooltip({
   );
 }
 
+/** Potencias de 10 desde la década del mínimo hasta la del máximo (máx. ~8 marcas). */
+function decadeTicks(values: number[]): number[] {
+  const lo = Math.floor(Math.log10(Math.min(...values)));
+  const hi = Math.ceil(Math.log10(Math.max(...values)));
+  const step = Math.max(1, Math.ceil((hi - lo) / 8));
+  const ticks: number[] = [];
+  for (let e = lo; e <= hi; e += step) ticks.push(10 ** e);
+  if (ticks.at(-1)! < 10 ** hi) ticks.push(10 ** (lo + step * ticks.length));
+  return ticks;
+}
+
 /**
  * Gráfica de línea de una serie (p. ej. error vs. iteración). Una sola serie → sin leyenda: el
  * título la nombra. La tabla de resultados es la vista alternativa accesible.
@@ -43,6 +54,10 @@ export function SeriesChart({ series }: { series: Series }) {
   // En escala logarítmica no existen el 0 ni los negativos (p. ej. error exactamente 0).
   const points = isLog ? series.points.filter((p) => p.y > 0) : series.points;
   if (points.length < 2) return null;
+
+  // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
+  // se fija en potencias de 10 que envuelven los datos, con una marca por década.
+  const logTicks = isLog ? decadeTicks(points.map((p) => p.y)) : undefined;
 
   return (
     <figure className="flex flex-col gap-2">
@@ -75,9 +90,10 @@ export function SeriesChart({ series }: { series: Series }) {
             />
             <YAxis
               dataKey="y"
-              scale={isLog ? 'log' : 'auto'}
-              domain={isLog ? ['auto', 'auto'] : [0, 'auto']}
-              allowDataOverflow
+              type="number"
+              scale={isLog ? 'log' : 'linear'}
+              domain={logTicks ? [logTicks[0]!, logTicks.at(-1)!] : ['auto', 'auto']}
+              ticks={logTicks}
               tickFormatter={(v: number) => formatNumber(v, 2)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
               stroke="var(--border)"

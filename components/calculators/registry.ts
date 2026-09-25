@@ -10,7 +10,10 @@ import type { ComponentType } from 'react';
  * Las funciones de carga solo se invocan en la página de la calculadora, así que cada ruta
  * empaqueta únicamente su propio componente.
  */
-export const calculatorRegistry: Record<string, () => Promise<{ default: ComponentType }>> = {};
+export const calculatorRegistry: Record<string, () => Promise<{ default: ComponentType }>> = {
+  // Métodos Numéricos
+  'newton-raphson': () => import('./metodos-numericos/NewtonRaphson'),
+};
 
 export const implementedCalculatorIds: ReadonlySet<string> = new Set(
   Object.keys(calculatorRegistry),

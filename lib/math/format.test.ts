@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatNumber, toLatexNumber, toLatexOperand } from './format';
+import { formatNumber, parseDecimal, toLatexNumber, toLatexOperand } from './format';
 
 // Casos de formateo: el valor esperado es la representación decimal del literal de entrada,
 // no el resultado de un cálculo, así que se verifica por inspección.
@@ -15,6 +15,9 @@ describe('formatNumber', () => {
   it('respeta las cifras significativas pedidas', () => {
     expect(formatNumber(0.56714329040978, 9)).toBe('0.56714329');
     expect(formatNumber(0.56714329040978, 4)).toBe('0.5671');
+    // Con menos cifras que dígitos enteros no debe caer en notación exponencial.
+    expect(formatNumber(100, 2)).toBe('100');
+    expect(formatNumber(51.65, 2)).toBe('52');
   });
 
   it('usa notación científica para valores muy pequeños o muy grandes', () => {
@@ -43,5 +46,21 @@ describe('toLatexOperand', () => {
     expect(toLatexOperand(-2)).toBe('\\left(-2\\right)');
     expect(toLatexOperand(1e-6)).toBe('\\left(1 \\times 10^{-6}\\right)');
     expect(toLatexOperand(3)).toBe('3');
+  });
+});
+
+describe('parseDecimal', () => {
+  it('acepta punto o coma decimal, signo y notación científica', () => {
+    expect(parseDecimal('0,5')).toBe(0.5);
+    expect(parseDecimal(' -2.25 ')).toBe(-2.25);
+    expect(parseDecimal('5e-5')).toBe(0.00005);
+    expect(parseDecimal('.5')).toBe(0.5);
+  });
+
+  it('devuelve NaN para texto vacío o no numérico', () => {
+    expect(parseDecimal('')).toBeNaN();
+    expect(parseDecimal('abc')).toBeNaN();
+    expect(parseDecimal('1,2,3')).toBeNaN();
+    expect(parseDecimal('1.2.3')).toBeNaN();
   });
 });

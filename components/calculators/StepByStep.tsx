@@ -5,7 +5,8 @@ import { Formula } from './Formula';
 /** Con más pasos que esto, solo el primero y el último empiezan abiertos. */
 const OPEN_ALL_THRESHOLD = 6;
 
-function StepBody({ step }: { step: Step }) {
+/** `nested`: los resultados intermedios van en tinta normal; el lápiz rojo queda para el resultado del paso. */
+function StepBody({ step, nested = false }: { step: Step; nested?: boolean }) {
   return (
     <div className="flex flex-col gap-2">
       {step.explanation && <p className="text-muted-foreground text-sm">{step.explanation}</p>}
@@ -15,17 +16,20 @@ function StepBody({ step }: { step: Step }) {
           <Formula tex={step.substitution} display />
         </div>
       )}
-      {step.result && (
-        <div className="border-pencil text-pencil border-l-2 pl-3">
+      {step.result &&
+        (nested ? (
           <Formula tex={step.result} display />
-        </div>
-      )}
+        ) : (
+          <div className="border-pencil text-pencil border-l-2 pl-3">
+            <Formula tex={step.result} display />
+          </div>
+        ))}
       {step.children && step.children.length > 0 && (
         <ol className="border-border mt-1 flex flex-col gap-3 border-l pl-4">
           {step.children.map((child, i) => (
             <li key={i}>
               <p className="text-sm font-medium">{child.title}</p>
-              <StepBody step={child} />
+              <StepBody step={child} nested />
             </li>
           ))}
         </ol>

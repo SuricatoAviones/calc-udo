@@ -33,7 +33,9 @@ export function formatNumber(
     const [mantissa = '', exponent = '0'] = value.toExponential(significantDigits - 1).split('e');
     return `${trimZeros(mantissa)}e${Number(exponent)}`;
   }
-  return trimZeros(value.toPrecision(significantDigits));
+  // toPrecision puede devolver notación exponencial ("1.0e+2" para 100 con 2 cifras); pasar por
+  // Number la devuelve a decimal y de paso elimina ceros sobrantes.
+  return String(Number(value.toPrecision(significantDigits)));
 }
 
 /** Número → LaTeX. Usa `\times 10^{n}` en vez de `e`. */
@@ -60,4 +62,14 @@ export function toLatexOperand(
 ): string {
   const tex = toLatexNumber(value, significantDigits);
   return value < 0 || tex.includes('\\times') ? `\\left(${tex}\\right)` : tex;
+}
+
+/**
+ * Texto de un campo numérico → número. Acepta coma decimal ("0,5"), como se escribe en
+ * Venezuela. Devuelve `NaN` si el texto no es un número, para que la validación lo rechace.
+ */
+export function parseDecimal(text: string): number {
+  const normalized = text.trim().replace(/\s+/g, '').replace(',', '.');
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(normalized)) return Number.NaN;
+  return Number(normalized);
 }

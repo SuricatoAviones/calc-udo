@@ -106,7 +106,7 @@ Definido en `lib/calculators/types.ts`. Toda calculadora exporta un objeto que c
 ```ts
 export interface Calculator<TInput, TValue, TErrorCode extends string = string> {
   meta: CalculatorMeta; // id, título, resumen, citas bibliográficas
-  inputSchema: z.ZodType<TInput>; // validación compartida con el formulario
+  inputSchema: z.ZodType<TInput, TInput>; // validación compartida con el formulario
   example: TInput; // ejemplo precargado, tomado de la bibliografía
   solve(input: TInput): CalculatorResult<TValue, TErrorCode>; // pura, nunca lanza
 }

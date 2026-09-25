@@ -28,6 +28,10 @@ const calculators = Object.entries(modules).flatMap(([file, mod]) =>
 );
 
 describe('contrato de calculadoras', () => {
+  it('encuentra las calculadoras (el glob no está roto)', () => {
+    expect(calculators.length).toBeGreaterThan(0);
+  });
+
   it('los ids son únicos', () => {
     const ids = calculators.map((c) => c.calculator.meta.id);
     expect(new Set(ids).size).toBe(ids.length);

@@ -112,8 +112,12 @@ export type CalculatorResult<TValue, TErrorCode extends string = string> =
 
 export interface Calculator<TInput, TValue, TErrorCode extends string = string> {
   meta: CalculatorMeta;
-  /** El formulario (con zodResolver) y `solve()` comparten este schema. */
-  inputSchema: z.ZodType<TInput>;
+  /**
+   * El formulario (con zodResolver) y `solve()` comparten este schema. Entrada y salida tienen
+   * la misma forma: la conversión de texto a número la hace el formulario (`setValueAs`), así los
+   * valores del formulario están tipados igual que la entrada de `solve()`.
+   */
+  inputSchema: z.ZodType<TInput, TInput>;
   /** Ejemplo precargado, tomado de la bibliografía citada. */
   example: TInput;
   /** Pura y total: nunca lanza; los errores esperables se devuelven con `ok: false`. */

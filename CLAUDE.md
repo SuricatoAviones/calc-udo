@@ -70,6 +70,6 @@ Consúltalas al escribir UI o rutas.
 ## Estado del plan
 
 - Fase 1 — Scaffolding, docs y currículum ✅
-- Fase 2 — Contrato (`types.ts`) y componentes genéricos
-- Fase 3 — Newton-Raphson como piloto. **No implementar más calculadoras hasta que el
+- Fase 2 — Contrato (`types.ts`) y componentes genéricos ✅
+- Fase 3 — Newton-Raphson como piloto ✅. **No implementar más calculadoras hasta que el
   mantenedor revise el piloto.**

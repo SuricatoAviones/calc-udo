@@ -28,7 +28,7 @@ para que el mapa esté completo.
 | 008-2814 | [Matemáticas III](#matematicas-3) | Semestre III | Matemáticas II (008-1824) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 0 | 0 | 5 |
-| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) | 3 (2T-2P) | 0 | 0 | 23 |
+| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) | 3 (2T-2P) | 1 | 0 | 22 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 0 | 0 | 22 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
@@ -131,7 +131,7 @@ de esta materia; solo aparece en la malla curricular.
 | Raíces de ecuaciones | Método de bisección | 🗺️ Roadmap | `/metodos-numericos/raices-de-ecuaciones/biseccion/` |
 | Raíces de ecuaciones | Método de la falsa posición | 🗺️ Roadmap | `/metodos-numericos/raices-de-ecuaciones/falsa-posicion/` |
 | Raíces de ecuaciones | Método de la secante | 🗺️ Roadmap | `/metodos-numericos/raices-de-ecuaciones/secante/` |
-| Raíces de ecuaciones | Método de Newton-Raphson | 🗺️ Roadmap | `/metodos-numericos/raices-de-ecuaciones/newton-raphson/` |
+| Raíces de ecuaciones | Método de Newton-Raphson | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/newton-raphson/` |
 | Transformación de polinomios y división sintética | División sintética | 🗺️ Roadmap | `/metodos-numericos/polinomios/division-sintetica/` |
 | Método del descenso más rápido | Método del descenso más rápido | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/descenso-mas-rapido/` |
 | Diferencias finitas, interpolación y aproximación | Tabla de diferencias | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/tabla-de-diferencias/` |
