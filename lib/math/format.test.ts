@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+import { formatNumber, toLatexNumber, toLatexOperand } from './format';
+
+// Casos de formateo: el valor esperado es la representación decimal del literal de entrada,
+// no el resultado de un cálculo, así que se verifica por inspección.
+
+describe('formatNumber', () => {
+  it('elimina ruido de coma flotante y ceros sobrantes', () => {
+    expect(formatNumber(0.1 + 0.2)).toBe('0.3');
+    expect(formatNumber(0.5)).toBe('0.5');
+    expect(formatNumber(2)).toBe('2');
+    expect(formatNumber(-1.25)).toBe('-1.25');
+  });
+
+  it('respeta las cifras significativas pedidas', () => {
+    expect(formatNumber(0.56714329040978, 9)).toBe('0.56714329');
+    expect(formatNumber(0.56714329040978, 4)).toBe('0.5671');
+  });
+
+  it('usa notación científica para valores muy pequeños o muy grandes', () => {
+    expect(formatNumber(1.2345e-7)).toBe('1.2345e-7');
+    expect(formatNumber(3e12)).toBe('3e12');
+  });
+
+  it('normaliza -0 y representa valores no finitos', () => {
+    expect(formatNumber(-0)).toBe('0');
+    expect(formatNumber(NaN)).toBe('indefinido');
+    expect(formatNumber(Infinity)).toBe('∞');
+    expect(formatNumber(-Infinity)).toBe('−∞');
+  });
+});
+
+describe('toLatexNumber', () => {
+  it('convierte la notación científica a potencias de 10', () => {
+    expect(toLatexNumber(2.2e-5)).toBe('2.2 \\times 10^{-5}');
+    expect(toLatexNumber(0.25)).toBe('0.25');
+    expect(toLatexNumber(Infinity)).toBe('\\infty');
+  });
+});
+
+describe('toLatexOperand', () => {
+  it('encierra negativos y notación científica entre paréntesis', () => {
+    expect(toLatexOperand(-2)).toBe('\\left(-2\\right)');
+    expect(toLatexOperand(1e-6)).toBe('\\left(1 \\times 10^{-6}\\right)');
+    expect(toLatexOperand(3)).toBe('3');
+  });
+});
