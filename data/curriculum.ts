@@ -17,6 +17,14 @@ import type { Subject } from '@/lib/curriculum';
  *
  * Para extender a otras ramas de la carrera basta con agregar objetos `Subject` a este arreglo.
  */
+/**
+ * Materias de otras ramas que aparecen como prelación, con el nombre que da el pensum. No tienen
+ * temas ni página propia en CalcUDO.
+ */
+export const externalSubjects: Record<string, string> = {
+  '072-2103': 'Programación Orientada a Objetos',
+};
+
 export const subjects: Subject[] = [
   // ════════════════════════════════════════════════════════════════════════
   // Matemáticas I–IV: el pensum no incluye su programa analítico.
@@ -85,7 +93,7 @@ export const subjects: Subject[] = [
     credits: { total: 2, theory: 2, practice: 0 },
     creditsLabel: '2 (2T-0P)',
     objective:
-      'Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades y la dialéctica.',
+      'Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades, y la dialéctica.',
     content: 'definido',
     bibliography: [
       'fatone',
@@ -101,14 +109,16 @@ export const subjects: Subject[] = [
         slug: 'introduccion-a-la-filosofia',
         name: 'Introducción al estudio de la Filosofía',
         unit: 'Unidad I',
-        description: 'Introducción al Estudio de la Filosofía.',
+        description:
+          'Definición, evolución y problemas de la filosofía. Clasificación de las disciplinas filosóficas: ética, estética, lógica, teoría del conocimiento, metafísica de la naturaleza y metafísica del espíritu.',
         calculators: [],
       },
       {
         slug: 'el-pensar-y-el-pensamiento',
         name: 'El pensar y el pensamiento',
         unit: 'Unidad II',
-        description: 'El Pensar y El Pensamiento.',
+        description:
+          'Definición del pensar y del pensamiento. Contenido y formas de los pensamientos: el concepto, las proposiciones, el juicio y el razonamiento.',
         calculators: [],
       },
       {
@@ -116,22 +126,32 @@ export const subjects: Subject[] = [
         name: 'Principios y leyes de la lógica',
         unit: 'Unidad III',
         description:
-          'Principios y Leyes de la Lógica (incluye Sistemas de Numeración, Tablas de Verdad, Representación Binaria).',
+          'Definición de la lógica; el silogismo y sus tipos. Principios de identidad, no contradicción, tercero excluido y razón suficiente; modus ponendo ponens y modus tollendo tollens; leyes y propiedades de la equivalencia (conmutatividad, asociatividad, distributividad, leyes de De Morgan, implicación, bicondicionalidad…). Tablas de la verdad, representación binaria y sistemas de numeración.',
         calculators: [
+          {
+            id: 'tablas-de-verdad',
+            title: 'Tablas de verdad',
+            summary: 'Construye la tabla de verdad de una proposición y la clasifica.',
+          },
+          {
+            id: 'equivalencia-logica',
+            title: 'Equivalencia lógica',
+            summary: 'Comprueba con una tabla de verdad si dos proposiciones son equivalentes.',
+          },
+          {
+            id: 'validez-de-argumentos',
+            title: 'Validez de un razonamiento',
+            summary: 'Decide si una conclusión se sigue de las premisas (modus ponens, tollens…).',
+          },
           {
             id: 'sistemas-de-numeracion',
             title: 'Conversión entre sistemas de numeración',
             summary: 'Convierte números entre bases (binaria, octal, decimal, hexadecimal…).',
           },
           {
-            id: 'tablas-de-verdad',
-            title: 'Tablas de verdad',
-            summary: 'Construye la tabla de verdad de una proposición lógica.',
-          },
-          {
             id: 'representacion-binaria',
-            title: 'Representación binaria',
-            summary: 'Representa números en binario y muestra el procedimiento.',
+            title: 'Representación binaria de enteros',
+            summary: 'Signo y magnitud, complemento a 1, complemento a 2 y exceso con n bits.',
           },
         ],
       },
@@ -140,7 +160,7 @@ export const subjects: Subject[] = [
         name: 'Introducción al estudio de algoritmos',
         unit: 'Unidad IV',
         description:
-          'Definición, estructuras algorítmicas, diagramas de flujo, pseudocódigo, algoritmos de búsqueda y ordenamiento.',
+          'Definición y características de los algoritmos. Estructuras secuencial, selectiva y repetitiva. Diagramas de flujo y pseudocódigo: simbología y estructura. Formulación de algoritmos de búsqueda y ordenamiento.',
         calculators: [
           {
             id: 'algoritmos-de-busqueda',
@@ -175,7 +195,7 @@ export const subjects: Subject[] = [
       {
         slug: 'modelos-y-errores',
         name: 'Modelos matemáticos y errores',
-        description: 'Modelos matemáticos y errores (truncamiento, redondeo).',
+        description: 'Modelos matemáticos. Pifias. Error de truncamiento y de redondeo.',
         calculators: [
           {
             id: 'errores-numericos',
@@ -204,7 +224,7 @@ export const subjects: Subject[] = [
       {
         slug: 'sistemas-de-ecuaciones-lineales',
         name: 'Eliminación gaussiana y pivoteo',
-        description: 'Eliminación Gaussiana y estrategia de pivoteo.',
+        description: 'Eliminación Gaussiana. Estrategia de pivoteo.',
         calculators: [
           {
             id: 'eliminacion-gaussiana',
@@ -216,7 +236,8 @@ export const subjects: Subject[] = [
       {
         slug: 'raices-de-ecuaciones',
         name: 'Raíces de ecuaciones',
-        description: 'Métodos de bisección, falsa posición, secante, Newton.',
+        description:
+          'Métodos preliminares y bisección. Falsa posición y método de secante. Convergencia y razón de convergencia. Método de Newton.',
         calculators: [
           {
             id: 'biseccion',
@@ -243,24 +264,34 @@ export const subjects: Subject[] = [
       {
         slug: 'polinomios',
         name: 'Transformación de polinomios y división sintética',
-        description: 'Transformación de polinomios y división sintética.',
+        description: 'Transformación de polinomio. División sintética. Factores cuadráticos.',
         calculators: [
           {
             id: 'division-sintetica',
             title: 'División sintética',
             summary: 'Divide un polinomio entre (x − r) con el esquema de Ruffini.',
           },
+          {
+            id: 'factores-cuadraticos',
+            title: 'Factores cuadráticos (método de Bairstow)',
+            summary: 'Extrae factores cuadráticos de un polinomio para hallar sus raíces.',
+          },
         ],
       },
       {
         slug: 'descenso-mas-rapido',
-        name: 'Método del descenso más rápido',
-        description: 'Método del descenso más rápido.',
+        name: 'Descenso más rápido y método de Newton',
+        description: 'El método del descenso más rápido. Método de Newton.',
         calculators: [
           {
             id: 'descenso-mas-rapido',
             title: 'Método del descenso más rápido',
             summary: 'Busca un mínimo avanzando en la dirección opuesta al gradiente.',
+          },
+          {
+            id: 'newton-varias-variables',
+            title: 'Método de Newton para varias variables',
+            summary: 'Resuelve sistemas no lineales con el jacobiano en cada iteración.',
           },
         ],
       },
@@ -268,7 +299,7 @@ export const subjects: Subject[] = [
         slug: 'diferencias-e-interpolacion',
         name: 'Diferencias finitas, interpolación y aproximación',
         description:
-          'Operadores en diferencias. Tablas de diferencia y fórmulas de Newton. Interpolación y aproximación (mínimos cuadrados).',
+          'Operadores en diferencia de potencias factoriales. Tablas de diferencia. Fórmulas en diferencias hacia adelante de Newton. Interpolación y aproximación. Mínimos cuadrados para datos discretos.',
         calculators: [
           {
             id: 'tabla-de-diferencias',
@@ -290,7 +321,7 @@ export const subjects: Subject[] = [
       {
         slug: 'integracion-numerica',
         name: 'Integración numérica',
-        description: 'Integración numérica (reglas rectangular, trapezoidal, Simpson).',
+        description: 'Las reglas rectangular, trapezoidal y de Simpson. Integrales definidas.',
         calculators: [
           {
             id: 'regla-rectangular',
@@ -312,12 +343,19 @@ export const subjects: Subject[] = [
       {
         slug: 'derivacion-numerica',
         name: 'Fórmulas en diferencias',
-        description: 'Fórmulas en diferencias hacia adelante y centradas.',
+        description:
+          'Fórmulas de diferencias hacia adelante. Fórmulas en diferencias centradas. Métodos de coeficientes indeterminados.',
         calculators: [
           {
             id: 'derivacion-numerica',
             title: 'Derivación por diferencias finitas',
             summary: 'Aproxima derivadas con diferencias hacia adelante y centradas.',
+          },
+          {
+            id: 'coeficientes-indeterminados',
+            title: 'Método de coeficientes indeterminados',
+            summary:
+              'Deduce una fórmula de derivación o integración numérica con un sistema lineal.',
           },
         ],
       },
@@ -325,7 +363,7 @@ export const subjects: Subject[] = [
         slug: 'ecuaciones-diferenciales',
         name: 'Ecuaciones diferenciales',
         description:
-          'Método de Euler, Taylor, métodos multipaso, Euler modificado, predictor-corrector, Runge-Kutta.',
+          'Ecuaciones diferenciales y ecuaciones en diferencias. Método de Euler. Método de Taylor y error de truncamiento. Métodos multipaso. El método de Euler modificado. Método predictor-corrector. Método de Runge-Kutta.',
         calculators: [
           {
             id: 'euler',
@@ -709,7 +747,7 @@ export const subjects: Subject[] = [
     credits: { total: 3, theory: 2, practice: 3 },
     creditsLabel: '3 (2T-3P)',
     objective:
-      'Aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.',
+      'Al finalizar el curso el estudiante estará en capacidad de aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.',
     content: 'definido',
     bibliography: [
       'bonini-2000',
@@ -725,30 +763,37 @@ export const subjects: Subject[] = [
       {
         slug: 'introduccion-a-la-programacion-lineal',
         name: 'Introducción a la programación lineal',
+        unit: 'Unidad I',
         description:
-          'Investigación de operaciones, tipos de modelos, estructura matemática, fases de un estudio de PL.',
+          'Investigación de operaciones: orígenes y definición. Programación lineal. Clasificación de los modelos (simbólicos o matemáticos, de simulación, heurísticos). Estructura matemática: variables de decisión, parámetros, función objetivo y restricciones. Fases de un estudio de programación lineal. Formulación de modelos.',
         calculators: [],
       },
       {
         slug: 'resolucion-de-modelos',
-        name: 'Resolución de modelos de PL',
+        name: 'Resolución de modelos de programación lineal',
+        unit: 'Unidad II',
         description:
-          'Método gráfico, forma canónica/estándar, método simplex (algebraico y tabular), técnicas de penalización (Método de la M grande, Método de las Dos Fases).',
+          'Método gráfico y tipos de soluciones. Forma canónica y forma estándar. Teoremas básicos del método simplex. Método simplex algebraico y tabular. Técnicas de penalización: método de la M grande y método de las dos fases.',
         calculators: [
           {
             id: 'metodo-grafico',
             title: 'Método gráfico',
-            summary: 'Resuelve un modelo de PL de dos variables sobre el plano.',
+            summary: 'Resuelve un modelo de dos variables sobre el plano y clasifica la solución.',
           },
           {
             id: 'forma-estandar',
-            title: 'Forma canónica y estándar',
-            summary: 'Convierte un modelo de PL a forma estándar con holguras y excesos.',
+            title: 'Forma canónica y forma estándar',
+            summary: 'Reescribe un modelo con restricciones ≤ o con igualdades y holguras.',
+          },
+          {
+            id: 'simplex-algebraico',
+            title: 'Método simplex algebraico',
+            summary: 'Itera con las ecuaciones del sistema en lugar de la tabla.',
           },
           {
             id: 'simplex',
-            title: 'Método simplex',
-            summary: 'Resuelve un modelo de PL con tablas simplex iteración por iteración.',
+            title: 'Método simplex tabular',
+            summary: 'Resuelve un modelo con tablas simplex iteración por iteración.',
           },
           {
             id: 'metodo-m-grande',
@@ -764,31 +809,39 @@ export const subjects: Subject[] = [
       },
       {
         slug: 'dualidad-y-sensibilidad',
-        name: 'Dualidad y análisis de sensibilidad',
-        description: 'Dualidad y método dual-simplex, análisis de sensibilidad.',
+        name: 'Método dual simplex y análisis de sensibilidad',
+        unit: 'Unidad III',
+        description:
+          'Dualidad: definición y usos. Forma primal y forma dual y relación entre sus soluciones. Método dual simplex. Análisis de sensibilidad: cambios en la rigidez de las restricciones, en los coeficientes de la función objetivo y en los coeficientes tecnológicos; adición de una variable o de una restricción.',
         calculators: [
           {
             id: 'problema-dual',
-            title: 'Construcción del problema dual',
-            summary: 'Obtiene el dual de un modelo de PL.',
+            title: 'Problema dual',
+            summary: 'Construye el dual de un modelo y compara las soluciones de ambos.',
           },
           {
             id: 'dual-simplex',
-            title: 'Método dual-simplex',
+            title: 'Método dual simplex',
             summary: 'Simplex que parte de una solución óptima pero no factible.',
           },
           {
             id: 'analisis-de-sensibilidad',
             title: 'Análisis de sensibilidad',
-            summary: 'Rangos de los coeficientes y recursos que conservan la base óptima.',
+            summary: 'Precios duales y rangos de los recursos y de los coeficientes del objetivo.',
+          },
+          {
+            id: 'cambios-en-el-modelo',
+            title: 'Cambios en coeficientes tecnológicos, variables y restricciones',
+            summary: 'Revisa si la solución óptima resiste un cambio en el modelo.',
           },
         ],
       },
       {
         slug: 'transporte-y-asignacion',
         name: 'Transporte y asignación',
+        unit: 'Unidad IV',
         description:
-          'Esquina noroeste, costo mínimo, aproximación de Vogel, método de multiplicadores, método húngaro.',
+          'Modelo de transporte y condiciones para resolverlo. Solución básica inicial por los métodos de la esquina noroeste, del costo mínimo y de aproximación de Vogel. Solución óptima con el método de los multiplicadores. Modelo de asignación y método húngaro.',
         calculators: [
           {
             id: 'esquina-noroeste',
@@ -807,7 +860,7 @@ export const subjects: Subject[] = [
           },
           {
             id: 'metodo-de-multiplicadores',
-            title: 'Método de multiplicadores',
+            title: 'Método de los multiplicadores',
             summary: 'Mejora una solución de transporte hasta la óptima.',
           },
           {
@@ -819,9 +872,10 @@ export const subjects: Subject[] = [
       },
       {
         slug: 'programacion-entera',
-        name: 'Programación entera',
+        name: 'Programación entera y uso del computador',
+        unit: 'Unidad V',
         description:
-          'Programación entera (pura, mixta, binaria), técnicas de ramificación y acotamiento, uso de software (GPL, TORA, WSB).',
+          'Programación entera pura, mixta y binaria: definición, aplicaciones y resolución. Técnicas de ramificación y acotamiento. Software para programación lineal (GPL, TORA, WSB).',
         calculators: [
           {
             id: 'ramificacion-y-acotamiento',

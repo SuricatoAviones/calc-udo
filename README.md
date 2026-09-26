@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo-udo.webp" alt="Logo de la Universidad de Oriente" width="120" height="120">
+</p>
+
 # CalcUDO
 
 **Calculadoras académicas con el procedimiento paso a paso** para estudiantes de Ingeniería de

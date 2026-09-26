@@ -11,7 +11,7 @@
  * actividades críticas desde el inicio hasta el fin del proyecto.
  */
 import { z } from 'zod';
-import { toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
 import type { CalculatorError, ResultTable, Step } from '../types';
 
 export const MAX_ACTIVITIES = 60;
@@ -361,12 +361,6 @@ export function analyzeNetwork(
 /** Ruta en LaTeX: `\text{A} \to \text{B} \to …`. */
 export function criticalPathLatex(path: string[]): string {
   return path.map(name).join(' \\to ');
-}
-
-/** Varias líneas de LaTeX, una debajo de otra (sirve en modo en línea y en bloque). */
-export function latexLines(lines: string[]): string {
-  if (lines.length <= 1) return lines[0] ?? '';
-  return `\\begin{array}{l} ${lines.join(' \\\\ ')} \\end{array}`;
 }
 
 /** Ruta en texto plano: «A → B → C». */

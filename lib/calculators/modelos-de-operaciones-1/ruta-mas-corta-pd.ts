@@ -12,7 +12,7 @@
  * la etapa anterior, no las decisiones que llevaron a ellos.
  */
 import { z } from 'zod';
-import { toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -22,7 +22,6 @@ import {
   type Step,
 } from '../types';
 import { argOptimum, optimumLatex, stageTable, type StageRow } from './dynamic-programming';
-import { latexLines } from './network';
 
 const MAX_ARCS = 80;
 const MAX_ROUTES = 20;

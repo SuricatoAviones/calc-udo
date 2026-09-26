@@ -39,11 +39,13 @@ calc-udo/
 │   │       ├── <calculadora>.ts       lógica: implementa Calculator<I, V, E>
 │   │       ├── <calculadora>.test.ts  tests con casos de la bibliografía
 │   │       └── <familia>.ts           núcleo compartido por métodos parecidos
-│   │                                  (p. ej. root-finding.ts, bracketing.ts)
+│   │                                  (p. ej. root-finding.ts, bracketing.ts,
+│   │                                  tableau.ts, transport.ts, proposition.ts)
 │   ├── math/                          helpers compartidos entre calculadoras
 │   │   ├── expression.ts              parsear/compilar/derivar con mathjs
 │   │   ├── format.ts                  redondeo y número → LaTeX (también texto y fracciones)
 │   │   ├── normal.ts                  Φ(z), Φ⁻¹(p) y densidad de la normal
+│   │   ├── rational.ts                fracciones exactas (bigint) para PL y transporte
 │   │   └── error-metrics.ts           error absoluto y relativo
 │   ├── curriculum.ts                  tipos del currículum + consultas
 │   └── utils.ts                       cn() de shadcn

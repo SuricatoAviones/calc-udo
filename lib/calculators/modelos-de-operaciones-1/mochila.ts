@@ -10,7 +10,7 @@
  * además permite leer la solución para capacidades menores.
  */
 import { z } from 'zod';
-import { toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -19,7 +19,6 @@ import {
   type Step,
 } from '../types';
 import { argOptimum, optimumLatex, stageTable, type StageRow } from './dynamic-programming';
-import { latexLines } from './network';
 
 const MAX_CAPACITY = 40;
 const MAX_ITEMS = 8;

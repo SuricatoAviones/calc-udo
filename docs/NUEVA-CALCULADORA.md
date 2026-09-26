@@ -170,6 +170,10 @@ const ea = relativeErrorPercent(xNext, x); // criterio de Chapra
 n(xNext) / op(x); // toLatexNumber / toLatexOperand
 ```
 
+Si el método se hace a mano con fracciones (simplex, transporte, asignación), calcula con
+`Rational` de `lib/math/rational.ts`: `toLatex()` muestra enteros, decimales cortos o
+`\frac{2}{3}` como en el libro, y las comparaciones con 0 no dependen de una tolerancia.
+
 **Cada iteración es un `Step` con subpasos**: evaluar f, evaluar f′, aplicar la fórmula y
 calcular el error. La fórmula general va en `formula`, la sustitución con números en
 `substitution` y el resultado en `result`:

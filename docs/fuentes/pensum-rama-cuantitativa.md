@@ -4,9 +4,11 @@
 > proyecto**: `data/curriculum.ts`, `data/bibliography.ts` y `docs/PENSUM.md` se derivan de aquí.
 > No edites este archivo salvo para corregir una transcripción contra el pensum oficial.
 >
-> Los programas de **Modelos de Operaciones I y II** los entregó el mantenedor el 2026-09-25,
-> con más detalle que el resto (objetivos, contenidos y bibliografía por unidad). Se copian
-> literalmente; solo se ajustaron los niveles de los títulos para que encajen en este archivo.
+> Los programas completos (objetivos, contenidos y bibliografía por unidad) de **Modelos de
+> Operaciones I y II** y luego de **Optimización de Operaciones**, **Métodos Numéricos** (solo
+> sinóptico) e **Introducción a la Lógica Formal y Algoritmos** los entregó el mantenedor el
+> 2026-09-25. Se copian literalmente; solo se ajustaron los niveles de los títulos para que
+> encajen en este archivo.
 
 ## Matemáticas I
 
@@ -32,18 +34,23 @@
 
 ## Introducción a la Lógica Formal y Algoritmos
 
-**Código:** 072-1162 | **Semestre:** II | **Prelación:** Ninguno | **Créditos:** 2 (2T-0P)
+**Código:** 072-1162 | **Semestre:** II | **Prelación:** Ninguno
+**Créditos:** 2 | **Horas semanales:** 2 (2T-0P) | **Total horas semestre:** 32 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
 
-**Objetivo general:** Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades y la dialéctica.
+**Síntesis de conocimientos previos:** Comprensión y manejo apropiado del lenguaje, construcción gramatical.
 
-**Contenido (analítico):**
+**Objetivo general:** Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades, y la dialéctica.
+
+**Sinopsis de contenido:**
 
 - Unidad I: Introducción al Estudio de la Filosofía
 - Unidad II: El Pensar y El Pensamiento
-- Unidad III: Principios y Leyes de la Lógica (incluye Sistemas de Numeración, Tablas de Verdad, Representación Binaria)
-- Unidad IV: Introducción al Estudio de Algoritmos (definición, estructuras algorítmicas, diagramas de flujo, pseudocódigo, algoritmos de búsqueda y ordenamiento)
+- Unidad III: Principios y Leyes de la Lógica
+- Unidad IV: Introducción al Estudio de Algoritmos
 
-**Bibliografía:**
+**Bibliografía general:**
 
 - Fatone, Vicente. *Lógica y Teoría del Conocimiento*. Kapeluz. Buenos Aires.
 - Figerman G. (1998). *Lógica y Teoría del Conocimiento*. Editorial Librería Ateneo.
@@ -53,23 +60,155 @@
 - Romero, Francisco y Pucciarelli, Eugenio. *Lógica y Nociones de Teoría del Conocimiento*. Espasa Calpe. Buenos Aires.
 - Tucker A. – Joyanes L. (2000). *Lógica, resolución de problemas, algoritmos y programas*. Mc Graw Hill.
 
+### Unidad 1 — Introducción al Estudio de la Filosofía
+
+**Horas:** 2
+
+**Objetivos específicos:**
+
+1. Dar una definición amplia acerca de la filosofía, su evolución y problemas.
+2. Clasificar las disciplinas filosóficas en función de los problemas filosóficos.
+
+**Contenidos:**
+
+- 1.1. Definición de filosofía.
+- 1.2. Evolución del Concepto de Filosofía.
+- 1.3. Problemas de la Filosofía.
+- 2.1. Clasificación de las disciplinas filosóficas:
+  - 2.1.1. La Ética
+  - 2.1.2. La Estética
+  - 2.1.3. La Lógica
+  - 2.1.4. Teoría del Conocimiento
+  - 2.1.5. Metafísica de la Naturaleza
+  - 2.1.6. Metafísica del Espíritu
+
+**Estrategias metodológicas:** Exposición oral del docente acerca de la definición, evolución y problemas de la filosofía. Discusión dirigida sobre la clasificación de las disciplinas filosóficas.
+
+**Estrategias de evaluación:** Evaluación formativa oral de base no estructurada mediante discusión en grupo. Examen práctico escrito del contenido teórico de la unidad.
+
+**Bibliografía:** (bibliografía general de la asignatura)
+
+### Unidad 2 — El Pensar y El Pensamiento
+
+**Horas:** 6
+
+**Objetivos específicos:**
+
+1. Diferenciar la definición de Pensar y Pensamiento.
+2. Diferenciar entre contenido y formas de los pensamientos.
+
+**Contenidos:**
+
+- 1.1. Definición del Pensar.
+- 1.2. Definición del Pensamiento.
+- 2.1. Contenido y formas de los pensamientos:
+  - 2.1.1. El Concepto
+  - 2.1.2. Las Proposiciones
+  - 2.1.3. El Juicio
+  - 2.1.4. El Razonamiento
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos teóricos. Realización de ejemplos y resolución de ejercicios prácticos.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido de la unidad. Evaluación formativa de las intervenciones en clase.
+
+**Bibliografía:**
+
+- Figerman G. (1998). *Lógica y Teoría del Conocimiento*. Editorial Librería Ateneo.
+- Tucker A. – Joyanes L. (2000). *Lógica, resolución de problemas, algoritmos y programas*. Mc Graw Hill.
+- Muñoz, A. (1996). *Lógica Simbólica Elemental*. Editorial Miró.
+
+### Unidad 3 — Principios y Leyes de la Lógica
+
+**Horas:** 10
+
+**Objetivos específicos:**
+
+1. Definir a la lógica.
+2. Interpretar los principios y leyes de la lógica.
+3. Relacionar la Lógica con los Sistemas de Numeración.
+
+**Contenidos:**
+
+- 1.1. Definición de la Lógica.
+- 1.2. Definición de silogismo y Tipos.
+- 2.1. Principios y Leyes de la Lógica:
+  - 2.1.1. Principio de Identidad
+  - 2.1.2. Principio de no Contradicción
+  - 2.1.3. Principio de Tercer Excluido
+  - 2.1.4. Principio de Razón Suficiente
+  - 2.1.5. Modus Ponendo Ponens
+  - 2.1.6. Modus Tollendo Tollens
+  - 2.1.7. Leyes y Propiedades de la equivalencia: Identidad, Conmutatividad, Asociatividad, Distributividad, Leyes de Morgan, Ley de la Implicación, Ley de la Bicondicionalidad, Propiedad de la Negación, Ley de la Exclusión del Término Medio, Ley de la Contradicción, U-Simplificación, Simplificación.
+- 3.1. Tablas de la Verdad, Representación Binaria.
+- 3.2. Sistemas de Numeración.
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos teóricos. Realización de ejemplos y resolución de ejercicios prácticos.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido de la unidad. Evaluación formativa de las intervenciones en clase.
+
+**Bibliografía:**
+
+- Figerman G. (1998). *Lógica y Teoría del Conocimiento*. Editorial Librería Ateneo.
+- Tucker A. – Joyanes L. (2000). *Lógica, resolución de problemas, algoritmos y programas*. Mc Graw Hill.
+- Muñoz, A. (1996). *Lógica Simbólica Elemental*. Editorial Miró.
+
+### Unidad 4 — Introducción al Estudio de Algoritmos
+
+**Horas:** 14
+
+**Objetivos específicos:**
+
+1. Definir Algoritmos y sus estructuras.
+2. Realizar Diagramas de Flujos y Pseudocódigos.
+3. Interpretar los Algoritmos de Búsqueda y Ordenamiento.
+
+**Contenidos:**
+
+- 1.1. Definición de Algoritmos.
+- 1.2. Características de los Algoritmos.
+- 1.3. Estructuras Algorítmicas Básicas:
+  - i. Estructura Secuencial
+  - ii. Estructura Selectiva
+  - iii. Estructura Repetitiva
+- 2.1. Definición de Diagramas de Flujos.
+- 2.2. Simbología y estructura de los Diagramas de Flujo.
+- 2.3. Definición de Pseudocódigo.
+- 2.4. Simbología y estructura de Pseudocódigos.
+- 3.1. Formulación de Algoritmos de Búsqueda y Ordenamiento.
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos teóricos. Realización de ejemplos y resolución de ejercicios prácticos.
+
+**Estrategias de evaluación:** Examen escrito sobre el contenido de la unidad.
+
+**Bibliografía:**
+
+- Tucker A. – Joyanes L. (2000). *Lógica, resolución de problemas, algoritmos y programas*. Mc Graw Hill.
+
 ---
 
 ## Métodos Numéricos
 
-**Código:** 072-3913 | **Semestre:** V | **Prelación:** 008-2824 / 072-2103 | **Créditos:** 3 (2T-2P)
+**Código:** 072-3913 | **Semestre:** V | **Prelación:** 008-2824 (Matemáticas IV) / 072-2103 (Programación Orientada a Objetos)
+**Créditos:** 3 | **Horas semanales:** 4 (2T-2P) | **Total horas semestre:** 64 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Conocimientos y manejo del cálculo matemático. Conceptos de derivadas, de integrales. Ecuaciones diferenciales.
 
 **Objetivo general:** Aplicar soluciones numéricas aproximadas a problemas cuya solución analítica sea excesivamente laboriosa.
 
-**Contenido:**
-Modelos matemáticos y errores (truncamiento, redondeo). Determinantes y matrices. Eliminación Gaussiana y estrategia de pivoteo. Métodos de bisección, falsa posición, secante, Newton. Transformación de polinomios y división sintética. Método del descenso más rápido. Operadores en diferencias. Tablas de diferencia y fórmulas de Newton. Interpolación y aproximación (mínimos cuadrados). Integración numérica (reglas rectangular, trapezoidal, Simpson). Fórmulas en diferencias hacia adelante y centradas. Ecuaciones diferenciales: método de Euler, Taylor, métodos multipaso, Euler modificado, predictor-corrector, Runge-Kutta.
+**Sinopsis de contenido:**
+
+Modelos matemáticos. Pifias. Error de truncamiento y de redondeo. Determinantes y matrices. Eliminación Gaussiana. Estrategia de pivoteo. Métodos preliminares y bisección. Falsa posición y método de secante. Convergencia y razón de convergencia. Método de Newton. Transformación de polinomio. División sintética. Factores cuadráticos. El método del descenso más rápido. Método de Newton. Operadores en diferencia de potencias factoriales. Tablas de diferencia. Fórmulas en diferencias hacia adelante de Newton. Interpolación y aproximación. Mínimos cuadrados para datos discretos. Las reglas rectangular, trapezoidal y de Simpson. Integrales definidas. Fórmulas de diferencias hacia adelante. Fórmulas en diferencias centradas. Métodos de coeficientes indeterminados. Ecuaciones diferenciales y ecuaciones en diferencias. Método de Euler. Método de Taylor y error de truncamiento. Métodos multipaso. El Método de Euler modificado. Método predictor-corrector. Método de Runge-Kutta.
 
 **Bibliografía:**
 
 - Ledanois, J. – López, A. – Pimentel, J. (2000). *Métodos Numéricos Aplicados en Ingeniería*. Mc Graw Hill.
-- Chapra, Steven – Canale, R. (2000). *Métodos Numéricos para Ingenieros*. 3ra Ed. Mc Graw Hill. México.
+- Chapra, Steven - Canale, R. (2000). *Métodos Numéricos para Ingenieros*. 3ra Ed. Mc Graw Hill. México.
 - Nakamura, Schoichiro. (1994). *Métodos Numéricos Aplicados con Software*. Prentice Hall Hispanoamericana. México.
 - Smith, Allen. (1993). *Análisis Numéricos*. Prentice Hall Hispanoamericana. México.
+
+> **Nota:** El pensum solo incluye el programa sinóptico de esta asignatura; no hay programa analítico con desglose por unidades.
 
 ---
 
@@ -130,23 +269,218 @@ Curvas de regresión, regresión lineal, método de mínimos cuadrados, interval
 
 ## Optimización de Operaciones
 
-**Código:** 071-3663 | **Semestre:** VI | **Prelación:** 072-3913 | **Créditos:** 3 (2T-3P)
+**Código:** 071-3663 | **Semestre:** VI | **Prelación:** 072-3913 (Métodos Numéricos)
+**Créditos:** 3 | **Horas semanales:** 5 (2T-3P) | **Total horas semestre:** 80 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
 
-**Objetivo general:** Aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.
+**Síntesis de conocimientos previos:** Matrices: operaciones básicas, aplicaciones. Sistemas de ecuaciones.
 
-**Contenido:**
-Introducción a la Programación Lineal (PL): investigación de operaciones, tipos de modelos, estructura matemática, fases de un estudio de PL. Resolución de modelos: método gráfico, forma canónica/estándar, método simplex (algebraico y tabular), técnicas de penalización (Método de la M grande, Método de las Dos Fases). Dualidad y método dual-simplex, análisis de sensibilidad. Transporte y asignación (esquina noroeste, costo mínimo, aproximación de Vogel, método de multiplicadores, método húngaro). Programación entera (pura, mixta, binaria), técnicas de ramificación y acotamiento, uso de software (GPL, TORA, WSB).
+**Objetivo general:** Al finalizar el curso el estudiante estará en capacidad de aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.
+
+**Sinopsis de contenido:**
+
+- Unidad I: Introducción a la programación lineal
+- Unidad II: Resolución de modelos de programación lineal
+- Unidad III: Método dual simplex y análisis de sensibilidad
+- Unidad IV: Transporte y asignación
+- Unidad V: Programación entera – uso del computador
+
+**Bibliografía general:**
+
+- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
+- Handy, Taha. (1998). *Investigación de Operaciones. Una introducción*. PH. México.
+- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
+- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
+- Gould – Eppen - Schmidt. (1992). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+
+### Unidad 1 — Introducción a la Programación Lineal
+
+**Horas:** 10
+
+**Objetivos específicos:**
+
+1. Definir los conceptos principales de la Programación Lineal y la Investigación de Operaciones.
+2. Identificar los tipos de modelos de programación lineal.
+3. Identificar las fases de un estudio de programación lineal.
+4. Formular modelos de programación lineal.
+
+**Contenidos:**
+
+- 1.1. Investigación de Operaciones. Orígenes. Definición.
+- 1.2. Programación Lineal. Definición.
+- 2.1. Clasificación de los Modelos:
+  - 2.1.1. Simbólico o Matemático
+  - 2.1.2. De Simulación
+  - 2.1.3. Heurísticos
+- 2.2. Estructura Matemática de un Modelo de Programación Lineal:
+  - 2.2.1. Variables de Decisión
+  - 2.2.2. Parámetros
+  - 2.2.3. Función Objetivo
+  - 2.2.4. Restricciones
+- 3.1. Fases de un Estudio de Programación Lineal.
+- 4.1. Formulación de Modelos de Programación Lineal.
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos generales relacionados con la Investigación de Operaciones y los Modelos Matemáticos. Presentación y resolución de problemas sobre formulación de modelos.
+
+**Estrategias de evaluación:** Evaluación formativa en base a la participación significativa del alumno en clase. Asignación práctica grupal sobre los conceptos de la Investigación de Operaciones y ejercicios sobre formulación de modelos. Examen práctico escrito del contenido teórico de la unidad.
 
 **Bibliografía:**
 
-- Bonini – Hausman - Bierman. (2000). *Análisis Cuantitativo para los Negocios*. 9na Ed. Mc Graw Hill - Irwin. Colombia.
-- Handy, Taha. (1998/2003). *Investigación de Operaciones. Una introducción*. PH. México.
-- Aquilano, CH. (1994). *Dirección de la Producción y de las Operaciones*. 6ta Ed. Mc Graw Hill. USA.
-- Anderson, D. – Sweeney, D. – Williams, T. (1993). *Introducción a los Modelos Cuantitativos para la Administración*. Grupo Editorial Iberoamericana. México.
-- Gould – Eppen - Schmidt. (1992/2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
-- Arreola J. Arreola A. (2003). *Programación Lineal*. International Thomson Editores. México.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+
+### Unidad 2 — Resolución de Modelos de Programación Lineal
+
+**Horas:** 25
+
+**Objetivos específicos:**
+
+1. Resolver problemas de Programación Lineal aplicando el Método Gráfico.
+2. Identificar la Forma Estándar y la Forma Canónica de un problema de programación lineal.
+3. Manejar los teoremas básicos del Método Simplex.
+4. Resolver problemas de programación lineal aplicando el método Simplex Algebraico.
+5. Resolver problemas de programación lineal aplicando el método Simplex Tabular.
+6. Resolver problemas de programación lineal aplicando las Técnicas de Penalización.
+
+**Contenidos:**
+
+- 1.1. Método Gráfico. Definición. Conceptos básicos.
+- 1.2. Tipos de Soluciones.
+- 1.3. Resolución de modelos utilizando el Método Gráfico.
+- 2.1. Forma Canónica y Forma Estándar de un problema de programación lineal.
+- 3.1. Teoremas Básicos del Método Simplex.
+- 4.1. Método Simplex Algebraico. Fundamentos Teóricos.
+- 4.2. Metodología.
+- 4.3. Resolución de problemas aplicando el Método Simplex Algebraico.
+- 5.1. Método Simplex Tabular. Fundamentos Teóricos.
+- 5.2. Metodología.
+- 5.3. Resolución de problemas aplicando el Método Simplex Tabular.
+- 6.1. Técnicas de Penalización. Definición.
+  - 6.1.1. Método de la M grande. Fundamentos Teóricos. Metodología. Resolución de problemas.
+  - 6.1.2. Método de las Dos Fases. Fundamentos Teóricos. Metodología. Resolución de problemas.
+
+**Estrategias metodológicas:** Exposición oral del docente de los aspectos teóricos. Realización de ejemplos y resolución de ejercicios prácticos sobre los diferentes métodos. Realización de lecturas complementarias.
+
+**Estrategias de evaluación:** Examen escrito sobre resolución de modelos matemáticos aplicando los diferentes métodos. Evaluación formativa de las intervenciones en clase. Asignación práctica grupal sobre resolución de ejercicios usando el Método Gráfico y las Técnicas de Penalización. Examen práctico escrito del contenido teórico.
+
+**Bibliografía:**
+
+- Arreola J. Arreola A. (2003). *Programación Lineal*. 1ra Ed. International Thomson Editores. México.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+
+### Unidad 3 — Método Dual Simplex y Análisis de Sensibilidad
+
+**Horas:** 15
+
+**Objetivos específicos:**
+
+1. Definir los conceptos principales de Dualidad.
+2. Obtener la Forma Dual y/o Primal de un problema de programación lineal y relacionar sus soluciones.
+3. Identificar los pasos para resolver problemas aplicando el Método Dual Simplex.
+4. Resolver problemas de programación lineal aplicando el método Dual Simplex.
+5. Reconocer los conceptos relacionados al Análisis de Sensibilidad.
+6. Identificar los diferentes casos de Análisis de Sensibilidad y cómo se resuelven.
+7. Resolver problemas de Análisis de Sensibilidad para cada uno de los casos vistos.
+
+**Contenidos:**
+
+- 1.1. Dualidad. Definición y Usos.
+- 2.1. Forma Primal y Forma Dual de un problema de programación lineal.
+- 2.2. Relación entre la solución Primal y la solución Dual.
+- 3.1. Método Dual Simplex. Fundamentos Teóricos.
+- 3.2. Metodología.
+- 4.1. Resolución de problemas aplicando el Método Dual Simplex.
+- 5.1. Análisis de Sensibilidad. Definición. Fundamentos Teóricos.
+- 6.1. Casos de Análisis de Sensibilidad:
+  - 6.1.1. Cambios en la rigidez de las Restricciones.
+  - 6.1.2. Cambios en los coeficientes de la Función Objetivo.
+  - 6.1.3. Cambios en los coeficientes Tecnológicos.
+  - 6.1.4. Adición de una nueva Variable.
+  - 6.1.5. Adición de una Restricción.
+- 7.1. Resolución de problemas aplicando los diferentes casos de Análisis de Sensibilidad.
+
+**Estrategias metodológicas:** Exposición oral del docente sobre el Método Dual Simplex y su utilización en el Análisis de Sensibilidad. Realización de ejemplos prácticos sobre la obtención de la forma Dual (Primal). Resolución de ejercicios prácticos donde se aborden los diferentes casos de Análisis de Sensibilidad.
+
+**Estrategias de evaluación:** Asignación grupal sobre resolución de ejercicios prácticos de los diferentes casos de análisis de sensibilidad. Evaluación formativa de las intervenciones en clase. Evaluación sumativa escrita.
+
+**Bibliografía:**
+
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+- Hillier F. Lieberman G. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill. México.
+
+### Unidad 4 — Transporte y Asignación
+
+**Horas:** 15
+
+**Objetivos específicos:**
+
+1. Definir los conceptos principales del Modelo de Transporte.
+2. Identificar las condiciones para resolver el modelo de transporte.
+3. Obtener la solución básica inicial del Problema de Transporte utilizando los métodos de Esquina Nor-Oeste, Costo Mínimo y Aproximación de Vogel.
+4. Obtener la solución óptima de problemas de transporte utilizando el método de los multiplicadores.
+5. Definir los conceptos principales del Modelo de Asignación y su metodología de resolución.
+6. Resolver problemas de Asignación utilizando el Método Húngaro.
+
+**Contenidos:**
+
+- 1.1. Modelo de Transporte. Definición y Usos.
+- 2.1. Condiciones para resolver el modelo de transporte.
+- 3.1. Obtención de la Solución Básica Inicial para el problema de Transporte:
+  - 3.1.1. Método de la Esquina Nor-Oeste.
+  - 3.1.2. Método del Costo Mínimo.
+  - 3.1.3. Método de Aproximación de Vogel.
+- 4.1. Método de los Multiplicadores.
+- 4.2. Obtención de la solución óptima de problemas de transporte utilizando el método de los multiplicadores.
+- 5.1. Modelo de Asignación. Definición y Usos.
+- 5.2. Método Húngaro.
+- 6.1. Resolver problemas de Asignación utilizando el Método Húngaro.
+
+**Estrategias metodológicas:** Exposición oral del docente sobre el Método de Transporte y el Problema de Asignación. Resolución de ejercicios prácticos aplicando los diferentes métodos de obtención de la solución inicial y posterior obtención de la solución óptima. Resolución de ejercicios prácticos sobre el Modelo de Asignación.
+
+**Estrategias de evaluación:** Evaluación formativa en base a las intervenciones en clase. Evaluación sumativa escrita.
+
+**Bibliografía:**
+
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
 - Hillier F. Lieberman G. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill. México.
 - Winston W. (1994). *Investigación de Operaciones. Aplicaciones y algoritmos*. 3ra Ed. Grupo Editorial Iberoamericana. México.
+
+### Unidad 5 — Programación Entera – Uso del Computador
+
+**Horas:** 15
+
+**Objetivos específicos:**
+
+1. Definir los conceptos principales de la Programación Entera y sus aplicaciones.
+2. Identificar los diferentes modelos de Programación Entera.
+3. Resolver problemas de Programación Entera Pura, Mixta y Binaria.
+4. Aplicar las técnicas de Ramificación y Acotamiento.
+5. Manejar diferentes software para resolver problemas de Programación Lineal.
+6. Resolver problemas de Programación Lineal utilizando los softwares referidos.
+
+**Contenidos:**
+
+- 1.1. Programación Entera. Definición y Aplicaciones.
+- 2.1. Modelos de Programación Entera:
+  - 2.1.1. Programación Entera Pura.
+  - 2.1.2. Programación Entera Mixta.
+  - 2.1.3. Programación Entera Binaria.
+- 3.1. Resolución de problemas de programación Entera.
+- 4.1. Técnicas de Ramificación y Acotamiento.
+- 5.1. Software para resolución de problemas de Programación Lineal: GPL, TORA, WSB.
+- 6.1. Resolución de problemas de Programación Lineal utilizando los softwares referidos.
+
+**Estrategias metodológicas:** Exposición oral del docente. Resolución en clase de problemas de Programación Entera. Prácticas con el computador para la utilización de diferente software. Resolución de problemas mediante el uso del computador.
+
+**Estrategias de evaluación:** Evaluación formativa en base a la participación significativa del alumno. Evaluación práctica sumativa mediante el uso del computador. Examen práctico escrito sobre resolución de problemas de Programación Entera.
+
+**Bibliografía:**
+
+- Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+- Hillier F. Lieberman G. (2002). *Investigación de Operaciones*. 7ma Ed. Mc Graw Hill. México.
+- Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
 
 ---
 

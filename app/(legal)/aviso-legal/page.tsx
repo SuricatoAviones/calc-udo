@@ -34,8 +34,9 @@ export default function LegalNoticePage() {
       </p>
       <p>
         <strong>CalcUDO no es un sitio oficial de la Universidad de Oriente (UDO)</strong> ni está
-        afiliado, patrocinado o avalado por ella. El nombre de la universidad y de sus materias se
-        usan solo para describir a qué pensum corresponden las calculadoras.
+        afiliado, patrocinado o avalado por ella. El nombre y el logo de la universidad y los
+        nombres de sus materias se usan solo para identificar a qué pensum corresponden las
+        calculadoras.
       </p>
       <p>
         Para cualquier consulta, reclamo o aviso sobre este sitio, abre un issue en{' '}
@@ -99,8 +100,8 @@ export default function LegalNoticePage() {
           solo los referencia para indicar de dónde sale cada método; no reproduce sus contenidos.
         </li>
         <li>
-          Las marcas y nombres de terceros (incluida la Universidad de Oriente) pertenecen a sus
-          respectivos titulares.
+          Las marcas, nombres y logotipos de terceros (incluidos el nombre y el logo de la
+          Universidad de Oriente) pertenecen a sus respectivos titulares.
         </li>
       </ul>
 

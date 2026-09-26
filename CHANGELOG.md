@@ -7,6 +7,37 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [0.3.0] — 2026-09-25
+
+### Agregado
+
+- Programas completos de **Optimización de Operaciones** (071-3663), **Métodos Numéricos**
+  (072-3913, sinopsis ampliada) e **Introducción a la Lógica Formal y Algoritmos** (072-1162)
+  en el pensum y el currículum. Las prelaciones con materias de otras ramas muestran su nombre
+  (Programación Orientada a Objetos, 072-2103).
+- **Optimización de Operaciones:** método gráfico con la región factible sombreada, forma
+  estándar, simplex tabular, M grande (con M simbólica), dos fases, problema dual, dual simplex,
+  análisis de sensibilidad (precios duales y rangos), esquina noroeste, costo mínimo,
+  aproximación de Vogel, método de los multiplicadores, método húngaro y ramificación y
+  acotamiento. Las tablas se calculan con fracciones exactas, como en el libro.
+- **Modelos de Operaciones I:** juegos m × n resueltos con programación lineal.
+- **Lógica Formal y Algoritmos:** tablas de verdad (tautología, contradicción, contingencia),
+  equivalencia lógica con la ley reconocida, validez de un razonamiento (modus ponens, modus
+  tollens, silogismos y falacias), conversión entre sistemas de numeración, representación
+  binaria de enteros (signo y magnitud, complementos a 1 y a 2, exceso) y trazas de búsqueda
+  (secuencial, binaria) y ordenamiento (burbuja, selección, inserción).
+- Logo de la Universidad de Oriente como ícono del sitio, en el encabezado y en el README.
+- Campos para escribir un programa lineal como texto (con vista previa), tablas de transporte y
+  proposiciones con botones para los conectores.
+
+### Cambiado
+
+- Los campos de matriz muestran el error de la celda que falla.
+
+### Eliminado
+
+- `public/favicon.ico` de la plantilla de Next.
+
 ## [0.2.0] — 2026-09-25
 
 ### Agregado
@@ -55,6 +86,7 @@ Primera versión etiquetada.
   enlazadas desde el pie de página.
 - Versión de la aplicación visible en el pie de página.
 
-[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.2.0...HEAD
+[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.1.0

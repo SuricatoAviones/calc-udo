@@ -85,6 +85,12 @@ export function toLatexVector(vector: number[], significantDigits = 6): string {
   return `\\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(',\\ ')}\\right)`;
 }
 
+/** Varias líneas de LaTeX, una debajo de otra (sirve en modo en línea y en bloque). */
+export function latexLines(lines: string[]): string {
+  if (lines.length <= 1) return lines[0] ?? '';
+  return `\\begin{array}{l} ${lines.join(' \\\\ ')} \\end{array}`;
+}
+
 const LATEX_TEXT_ESCAPES: Record<string, string> = {
   '\\': '\\textbackslash{}',
   '{': '\\{',

@@ -27,13 +27,13 @@ para que el mapa esté completo.
 | 008-1824 | [Matemáticas II](#matematicas-2) | Semestre II | Matemáticas I (008-1814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 008-2814 | [Matemáticas III](#matematicas-3) | Semestre III | Matemáticas II (008-1824) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
-| 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 0 | 0 | 5 |
-| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 13 |
+| 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
+| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 4 | 0 | 18 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
-| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 0 | 0 | 14 |
-| 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 7 | 0 | 4 |
+| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
+| 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 2 | 0 | 5 |
@@ -92,17 +92,19 @@ de esta materia; solo aparece en la malla curricular.
 
 **Código:** 072-1162 · **Ubicación:** Semestre II · **Prelación:** Ninguna · **Créditos:** 2 (2T-0P)
 
-**Objetivo general:** Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades y la dialéctica.
+**Objetivo general:** Proporcionar una visión amplia de la Lógica Formal con la finalidad de inducir al estudiante a que comprenda lo que es el pensamiento, el juicio, la teoría del concepto, el razonamiento, el silogismo y sus variedades, y la dialéctica.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
 | Unidad I — Introducción al estudio de la Filosofía | _Tema conceptual, sin calculadora_ | — | — |
 | Unidad II — El pensar y el pensamiento | _Tema conceptual, sin calculadora_ | — | — |
-| Unidad III — Principios y leyes de la lógica | Conversión entre sistemas de numeración | 🗺️ Roadmap | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/sistemas-de-numeracion/` |
-| Unidad III — Principios y leyes de la lógica | Tablas de verdad | 🗺️ Roadmap | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/tablas-de-verdad/` |
-| Unidad III — Principios y leyes de la lógica | Representación binaria | 🗺️ Roadmap | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/representacion-binaria/` |
-| Unidad IV — Introducción al estudio de algoritmos | Traza de algoritmos de búsqueda | 🗺️ Roadmap | `/logica-formal-y-algoritmos/algoritmos/algoritmos-de-busqueda/` |
-| Unidad IV — Introducción al estudio de algoritmos | Traza de algoritmos de ordenamiento | 🗺️ Roadmap | `/logica-formal-y-algoritmos/algoritmos/algoritmos-de-ordenamiento/` |
+| Unidad III — Principios y leyes de la lógica | Tablas de verdad | ✅ Implementada | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/tablas-de-verdad/` |
+| Unidad III — Principios y leyes de la lógica | Equivalencia lógica | ✅ Implementada | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/equivalencia-logica/` |
+| Unidad III — Principios y leyes de la lógica | Validez de un razonamiento | ✅ Implementada | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/validez-de-argumentos/` |
+| Unidad III — Principios y leyes de la lógica | Conversión entre sistemas de numeración | ✅ Implementada | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/sistemas-de-numeracion/` |
+| Unidad III — Principios y leyes de la lógica | Representación binaria de enteros | ✅ Implementada | `/logica-formal-y-algoritmos/principios-y-leyes-de-la-logica/representacion-binaria/` |
+| Unidad IV — Introducción al estudio de algoritmos | Traza de algoritmos de búsqueda | ✅ Implementada | `/logica-formal-y-algoritmos/algoritmos/algoritmos-de-busqueda/` |
+| Unidad IV — Introducción al estudio de algoritmos | Traza de algoritmos de ordenamiento | ✅ Implementada | `/logica-formal-y-algoritmos/algoritmos/algoritmos-de-ordenamiento/` |
 
 **Bibliografía**
 
@@ -120,7 +122,7 @@ de esta materia; solo aparece en la malla curricular.
 
 ## Métodos Numéricos
 
-**Código:** 072-3913 · **Ubicación:** Semestre V · **Prelación:** Matemáticas IV (008-2824) / 072-2103 (fuera de esta rama) · **Créditos:** 3 (2T-2P)
+**Código:** 072-3913 · **Ubicación:** Semestre V · **Prelación:** Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) · **Créditos:** 3 (2T-2P)
 
 **Objetivo general:** Aplicar soluciones numéricas aproximadas a problemas cuya solución analítica sea excesivamente laboriosa.
 
@@ -135,7 +137,9 @@ de esta materia; solo aparece en la malla curricular.
 | Raíces de ecuaciones | Método de la secante | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/secante/` |
 | Raíces de ecuaciones | Método de Newton-Raphson | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/newton-raphson/` |
 | Transformación de polinomios y división sintética | División sintética | 🗺️ Roadmap | `/metodos-numericos/polinomios/division-sintetica/` |
-| Método del descenso más rápido | Método del descenso más rápido | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/descenso-mas-rapido/` |
+| Transformación de polinomios y división sintética | Factores cuadráticos (método de Bairstow) | 🗺️ Roadmap | `/metodos-numericos/polinomios/factores-cuadraticos/` |
+| Descenso más rápido y método de Newton | Método del descenso más rápido | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/descenso-mas-rapido/` |
+| Descenso más rápido y método de Newton | Método de Newton para varias variables | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/newton-varias-variables/` |
 | Diferencias finitas, interpolación y aproximación | Tabla de diferencias | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/tabla-de-diferencias/` |
 | Diferencias finitas, interpolación y aproximación | Interpolación con fórmulas de Newton | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/interpolacion-de-newton/` |
 | Diferencias finitas, interpolación y aproximación | Aproximación por mínimos cuadrados | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/minimos-cuadrados/` |
@@ -143,6 +147,7 @@ de esta materia; solo aparece en la malla curricular.
 | Integración numérica | Regla trapezoidal | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-trapezoidal/` |
 | Integración numérica | Regla de Simpson | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-de-simpson/` |
 | Fórmulas en diferencias | Derivación por diferencias finitas | 🗺️ Roadmap | `/metodos-numericos/derivacion-numerica/derivacion-numerica/` |
+| Fórmulas en diferencias | Método de coeficientes indeterminados | 🗺️ Roadmap | `/metodos-numericos/derivacion-numerica/coeficientes-indeterminados/` |
 | Ecuaciones diferenciales | Método de Euler | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/euler/` |
 | Ecuaciones diferenciales | Método de Taylor | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodo-de-taylor/` |
 | Ecuaciones diferenciales | Métodos multipaso | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodos-multipaso/` |
@@ -269,25 +274,27 @@ de esta materia; solo aparece en la malla curricular.
 
 **Código:** 071-3663 · **Ubicación:** Semestre VI · **Prelación:** Métodos Numéricos (072-3913) · **Créditos:** 3 (2T-3P)
 
-**Objetivo general:** Aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.
+**Objetivo general:** Al finalizar el curso el estudiante estará en capacidad de aplicar herramientas de la investigación de operaciones para la optimización de procesos en estado estable, mediante la planificación de la producción, rutas, distribuciones de productos, etc.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
-| Introducción a la programación lineal | _Tema conceptual, sin calculadora_ | — | — |
-| Resolución de modelos de PL | Método gráfico | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-grafico/` |
-| Resolución de modelos de PL | Forma canónica y estándar | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/forma-estandar/` |
-| Resolución de modelos de PL | Método simplex | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex/` |
-| Resolución de modelos de PL | Método de la M grande | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-m-grande/` |
-| Resolución de modelos de PL | Método de las dos fases | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-dos-fases/` |
-| Dualidad y análisis de sensibilidad | Construcción del problema dual | 🗺️ Roadmap | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/problema-dual/` |
-| Dualidad y análisis de sensibilidad | Método dual-simplex | 🗺️ Roadmap | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/dual-simplex/` |
-| Dualidad y análisis de sensibilidad | Análisis de sensibilidad | 🗺️ Roadmap | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/analisis-de-sensibilidad/` |
-| Transporte y asignación | Método de la esquina noroeste | 🗺️ Roadmap | `/optimizacion-de-operaciones/transporte-y-asignacion/esquina-noroeste/` |
-| Transporte y asignación | Método del costo mínimo | 🗺️ Roadmap | `/optimizacion-de-operaciones/transporte-y-asignacion/costo-minimo/` |
-| Transporte y asignación | Método de aproximación de Vogel | 🗺️ Roadmap | `/optimizacion-de-operaciones/transporte-y-asignacion/aproximacion-de-vogel/` |
-| Transporte y asignación | Método de multiplicadores | 🗺️ Roadmap | `/optimizacion-de-operaciones/transporte-y-asignacion/metodo-de-multiplicadores/` |
-| Transporte y asignación | Método húngaro | 🗺️ Roadmap | `/optimizacion-de-operaciones/transporte-y-asignacion/metodo-hungaro/` |
-| Programación entera | Ramificación y acotamiento | 🗺️ Roadmap | `/optimizacion-de-operaciones/programacion-entera/ramificacion-y-acotamiento/` |
+| Unidad I — Introducción a la programación lineal | _Tema conceptual, sin calculadora_ | — | — |
+| Unidad II — Resolución de modelos de programación lineal | Método gráfico | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-grafico/` |
+| Unidad II — Resolución de modelos de programación lineal | Forma canónica y forma estándar | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/forma-estandar/` |
+| Unidad II — Resolución de modelos de programación lineal | Método simplex algebraico | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex-algebraico/` |
+| Unidad II — Resolución de modelos de programación lineal | Método simplex tabular | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex/` |
+| Unidad II — Resolución de modelos de programación lineal | Método de la M grande | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-m-grande/` |
+| Unidad II — Resolución de modelos de programación lineal | Método de las dos fases | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-dos-fases/` |
+| Unidad III — Método dual simplex y análisis de sensibilidad | Problema dual | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/problema-dual/` |
+| Unidad III — Método dual simplex y análisis de sensibilidad | Método dual simplex | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/dual-simplex/` |
+| Unidad III — Método dual simplex y análisis de sensibilidad | Análisis de sensibilidad | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/analisis-de-sensibilidad/` |
+| Unidad III — Método dual simplex y análisis de sensibilidad | Cambios en coeficientes tecnológicos, variables y restricciones | 🗺️ Roadmap | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/cambios-en-el-modelo/` |
+| Unidad IV — Transporte y asignación | Método de la esquina noroeste | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/esquina-noroeste/` |
+| Unidad IV — Transporte y asignación | Método del costo mínimo | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/costo-minimo/` |
+| Unidad IV — Transporte y asignación | Método de aproximación de Vogel | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/aproximacion-de-vogel/` |
+| Unidad IV — Transporte y asignación | Método de los multiplicadores | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/metodo-de-multiplicadores/` |
+| Unidad IV — Transporte y asignación | Método húngaro | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/metodo-hungaro/` |
+| Unidad V — Programación entera y uso del computador | Ramificación y acotamiento | ✅ Implementada | `/optimizacion-de-operaciones/programacion-entera/ramificacion-y-acotamiento/` |
 
 **Bibliografía**
 
@@ -317,7 +324,7 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad I — Análisis de redes: PERT-CPM | PERT-Costos (compresión del proyecto) | 🗺️ Roadmap | `/modelos-de-operaciones-1/pert-cpm/pert-costos/` |
 | Unidad II — Teoría de juegos | Estrategias puras y punto de silla | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-puras/` |
 | Unidad II — Teoría de juegos | Estrategias mixtas (método gráfico) | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-mixtas/` |
-| Unidad II — Teoría de juegos | Juegos resueltos con programación lineal | 🗺️ Roadmap | `/modelos-de-operaciones-1/teoria-de-juegos/juegos-programacion-lineal/` |
+| Unidad II — Teoría de juegos | Juegos resueltos con programación lineal | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/juegos-programacion-lineal/` |
 | Unidad III — Programación dinámica | Ruta más corta por programación dinámica | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/ruta-mas-corta-pd/` |
 | Unidad III — Programación dinámica | Modelo del tamaño de la fuerza de trabajo | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/fuerza-de-trabajo/` |
 | Unidad III — Programación dinámica | Modelo de la mochila (carga) | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/mochila/` |
