@@ -13,6 +13,7 @@ import {
   formatSemester,
   formatSource,
   getCalculatorStatus,
+  getExternalSubjectName,
   getSource,
   getSubjectByCode,
   getSubjects,
@@ -35,7 +36,11 @@ function prerequisites(subject: Subject): string {
   return subject.prerequisites
     .map((code) => {
       const pre = getSubjectByCode(code);
-      return pre ? `${pre.name} (${code})` : `${code} (fuera de esta rama)`;
+      if (pre) return `${pre.name} (${code})`;
+      const external = getExternalSubjectName(code);
+      return external
+        ? `${external} (${code}, fuera de esta rama)`
+        : `${code} (fuera de esta rama)`;
     })
     .join(' / ');
 }

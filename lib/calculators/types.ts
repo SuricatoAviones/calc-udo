@@ -93,6 +93,11 @@ export interface Series {
    * junto al costo total de un inventario. Una línea puede cubrir solo parte del eje x.
    */
   others?: { label: string; points: Point[] }[];
+  /**
+   * Región sombreada entre una curva inferior y una superior (solo con `kind: 'line'`), p. ej. la
+   * región factible del método gráfico. Se interpola linealmente entre los puntos.
+   */
+  region?: { label: string; points: { x: number; low: number; high: number }[] };
   /** Rango de x a resaltar (p. ej. la región cuya probabilidad se calcula). */
   highlight?: { from: number; to: number };
 }

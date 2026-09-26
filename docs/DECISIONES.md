@@ -290,3 +290,73 @@ Plantilla:
 - **Alternativas descartadas:** _Resolver todo juego con un simplex propio en esta tanda_: es el
   mismo trabajo que las calculadoras de Optimización de Operaciones, que siguen en el roadmap.
   _Promediar las varianzas de las rutas empatadas_: no tiene respaldo en la bibliografía.
+
+## ADR-020 — Programación lineal con fracciones exactas y M simbólica
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** Las calculadoras de Optimización de Operaciones (simplex, M grande, dos fases,
+  dual, dual simplex, sensibilidad, transporte, asignación y ramificación y acotamiento) y la de
+  juegos por programación lineal calculan con `Rational` (`lib/math/rational.ts`, numerador y
+  denominador `bigint`). La M grande es simbólica: cada coeficiente es `a + bM` (`MValue`) y se
+  compara primero el coeficiente de M. Las tablas siguen la convención de Taha: el renglón z
+  guarda −c, en maximización entra la más negativa y en minimización la más positiva, sale la de
+  menor razón y los empates se rompen por el menor índice. El modelo se escribe como texto
+  (`5x1 + 4x2`, una restricción por línea con `<=`, `>=` o `=`) y el formulario muestra cómo se
+  leyó.
+- **Contexto:** Con coma flotante, 1/3 aparece como 0.333333 y las pruebas de optimalidad («¿es
+  cero?») dependen de una tolerancia. Los libros muestran fracciones exactas, y con un valor
+  numérico grande para M los renglones z de Taha (−4 + 7M) se vuelven ilegibles. Las tablas
+  simplex tienen un número variable de variables y restricciones, que en el teléfono se escribe
+  mejor como texto que como una grilla.
+- **Alternativas descartadas:** _mathjs con `fraction`_: no maneja la M simbólica y agrega
+  conversiones en cada operación. _M = 10⁶ numérica_: los pasos no coinciden con el libro y
+  puede elegir mal la variable que entra. _Una grilla de coeficientes_: más difícil de editar en
+  móvil y no muestra el modelo tal como se escribe en clase.
+
+## ADR-021 — Región sombreada en las gráficas y tabla de transporte editable
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** `Series.region` dibuja un área entre una curva inferior y una superior (la
+  región factible del método gráfico) debajo de las demás líneas. `TransportTableField` edita en
+  una sola tabla los costos, la oferta (última columna) y la demanda (última fila), y avisa si el
+  problema no está balanceado. `firstErrorMessage` muestra el primer error de una celda en los
+  campos de matriz.
+- **Contexto:** El método gráfico necesita ver la región y las rectas a la vez. La tabla de
+  transporte de Taha junta las tres cosas; en tres campos separados es fácil que no coincidan
+  los tamaños.
+- **Alternativas descartadas:** _Polígono SVG propio_: duplicaría ejes y escalas de Recharts.
+  _Tres campos (matriz y dos vectores)_: el estudiante copia la tabla del libro tal como la ve.
+
+## ADR-022 — Lógica proposicional con lector propio y leyes reconocidas por esquemas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** `lib/calculators/logica-formal-y-algoritmos/proposition.ts` lee proposiciones
+  con un analizador de precedencia (¬, ∧, ∨ y ⊕, →, ↔; el condicional asocia a la derecha), con
+  símbolos Unicode y alternativas de teclado (`~`, `&`, `|`, `v`, `->`, `<->`). Las tablas listan
+  las filas de todas V a todas F. Las leyes de equivalencia y las reglas de inferencia del
+  programa (De Morgan, implicación, modus ponens, modus tollens, silogismos, falacias clásicas) se
+  reconocen encajando la entrada en esquemas escritos como texto; las premisas se prueban en
+  cualquier orden. Los algoritmos de búsqueda y ordenamiento usan arreglos desde 1 y
+  pseudocódigo en español, como Tucker y Joyanes.
+- **Contexto:** mathjs no tiene conectores lógicos con esta notación. La tabla de verdad decide
+  la equivalencia y la validez, pero nombrar la ley es lo que conecta el resultado con la clase.
+- **Alternativas descartadas:** _Evaluar con `eval` o mathjs usando `and`/`or`_: no admite `→`
+  ni `↔` y mostraría otra notación. _Reconocer leyes comparando tablas_: dos leyes distintas
+  tienen la misma tabla; el esquema identifica la forma.
+
+## ADR-023 — Logo de la UDO como ícono y en el encabezado
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decisión:** El logo de la Universidad de Oriente (`public/Logo_UDO.svg.webp`, original) se
+  usa como ícono del sitio (`app/icon.png` de 192 px y `app/apple-icon.png` de 180 px, generados
+  desde el original), junto al nombre en el encabezado y en el README (`public/logo-udo.webp`,
+  256 px). Se eliminó `public/favicon.ico`. Las prelaciones con materias de otras ramas muestran
+  el nombre de la materia (`externalSubjects` en `data/curriculum.ts`).
+- **Contexto:** El mantenedor pidió usar el logo de la universidad en la app y en el README.
+  El aviso legal aclara que el proyecto no es un sitio oficial de la UDO.
+- **Alternativas descartadas:** _Servir el original de 332 KB en cada página_: pesa dieciséis veces
+  más que la versión de 256 px. _Mantener el `favicon.ico` de Next_: no identifica el sitio.

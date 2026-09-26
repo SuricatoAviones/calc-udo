@@ -24,6 +24,8 @@ interface Row {
   hl?: number;
   /** Valores de las líneas adicionales (`series.others`), por índice. */
   others?: Record<number, number>;
+  /** Límites inferior y superior de la región sombreada (`series.region`). */
+  band?: [number, number];
 }
 
 /** Más puntos que esto → sin marcadores (una curva muestreada, no iteraciones). */
@@ -120,7 +122,24 @@ function fillOthers(sorted: Row[], series: Series): void {
   });
 }
 
-/** Une la serie principal, la de referencia y las adicionales en filas por x. */
+/** Igual que `fillOthers`, para los dos bordes de la región sombreada. */
+function fillRegion(sorted: Row[], series: Series): void {
+  const points = [...(series.region?.points ?? [])].sort((a, b) => a.x - b.x);
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last) return;
+  for (const row of sorted) {
+    if (row.band || row.x < first.x || row.x > last.x) continue;
+    const right = points.findIndex((p) => p.x > row.x);
+    const a = points[right - 1];
+    const b = points[right];
+    if (!a || !b) continue;
+    const t = (row.x - a.x) / (b.x - a.x);
+    row.band = [a.low + t * (b.low - a.low), a.high + t * (b.high - a.high)];
+  }
+}
+
+/** Une la serie principal, la de referencia, las adicionales y la región en filas por x. */
 function mergeRows(series: Series, isLog: boolean): Row[] {
   const keep = (y: number) => Number.isFinite(y) && (!isLog || y > 0);
   const rows = new Map<number, Row>();
@@ -136,8 +155,13 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
       rows.set(p.x, { ...row, others: { ...row.others, [i]: p.y } });
     }
   });
+  for (const p of series.region?.points ?? []) {
+    if (!keep(p.low) || !keep(p.high)) continue;
+    rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), band: [p.low, p.high] });
+  }
   const sorted = [...rows.values()].sort((a, b) => a.x - b.x);
   fillOthers(sorted, series);
+  fillRegion(sorted, series);
   const { highlight } = series;
   if (!highlight || (series.kind ?? 'line') !== 'line') return sorted;
 
@@ -173,8 +197,9 @@ export function SeriesChart({ series }: { series: Series }) {
   if (mainCount < 2 && !(kind === 'bar' && mainCount >= 1)) return null;
 
   const others = kind === 'line' ? (series.others ?? []) : [];
+  const region = kind === 'line' ? series.region : undefined;
   const yValues = rows
-    .flatMap((r) => [r.y, r.ref, ...Object.values(r.others ?? {})])
+    .flatMap((r) => [r.y, r.ref, ...Object.values(r.others ?? {}), ...(r.band ?? [])])
     .filter((v): v is number => v !== undefined);
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
@@ -182,7 +207,7 @@ export function SeriesChart({ series }: { series: Series }) {
   const digits = isLog ? 2 : tickDigits(yValues);
   const allIntegers = rows.every((r) => Number.isInteger(r.x));
   const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
-  const hasLegend = Boolean(series.reference) || others.length > 0;
+  const hasLegend = Boolean(series.reference) || others.length > 0 || Boolean(region);
   const inHighlight = (x: number) =>
     series.highlight !== undefined && x >= series.highlight.from && x <= series.highlight.to;
 
@@ -240,7 +265,21 @@ export function SeriesChart({ series }: { series: Series }) {
                   : { stroke: 'var(--muted-foreground)', strokeDasharray: '3 3' }
               }
             />
-            {/* Primero las líneas adicionales, para que la serie principal quede encima. */}
+            {/* Primero la región y las líneas adicionales, para que la serie principal quede encima. */}
+            {region && (
+              <Area
+                type="linear"
+                dataKey="band"
+                name={region.label}
+                stroke="none"
+                fill="var(--chart-1)"
+                fillOpacity={0.18}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+                activeDot={false}
+              />
+            )}
             {others.map((other, i) => (
               <Line
                 key={i}
@@ -338,6 +377,7 @@ export function SeriesChart({ series }: { series: Series }) {
       {hasLegend && (
         <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <LegendItem color="var(--chart-1)" label={series.label ?? series.yLabel} />
+          {region && <LegendItem color="var(--chart-1)" label={region.label} area />}
           {series.reference && (
             <LegendItem color="var(--chart-2)" label={series.reference.label} dashed />
           )}
@@ -364,12 +404,25 @@ function LegendItem({
   label,
   dashed = false,
   thin = false,
+  area = false,
 }: {
   color: string;
   label: string;
   dashed?: boolean;
   thin?: boolean;
+  /** Muestra un rectángulo relleno (una región) en vez de una línea. */
+  area?: boolean;
 }) {
+  if (area) {
+    return (
+      <li className="flex items-center gap-1.5">
+        <svg width="18" height="10" aria-hidden className="shrink-0">
+          <rect width="18" height="10" rx="2" fill={color} fillOpacity={0.25} />
+        </svg>
+        {label}
+      </li>
+    );
+  }
   return (
     <li className="flex items-center gap-1.5">
       <svg width="18" height="8" aria-hidden className="shrink-0">

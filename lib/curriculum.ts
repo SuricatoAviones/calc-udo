@@ -5,7 +5,7 @@
  * navegarlos. La navegación y las rutas estáticas del sitio se generan a partir de esto.
  */
 import { bibliography, type BibliographyId } from '@/data/bibliography';
-import { subjects } from '@/data/curriculum';
+import { externalSubjects, subjects } from '@/data/curriculum';
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,11 @@ export function getSubject(slug: string): Subject | undefined {
 
 export function getSubjectByCode(code: string): Subject | undefined {
   return subjects.find((s) => s.code === code);
+}
+
+/** Nombre de una materia de otra rama que aparece como prelación, si el pensum lo da. */
+export function getExternalSubjectName(code: string): string | undefined {
+  return externalSubjects[code];
 }
 
 export function getTopic(subjectSlug: string, topicSlug: string): Topic | undefined {

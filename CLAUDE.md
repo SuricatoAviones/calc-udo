@@ -80,12 +80,22 @@ Consúltalas al escribir UI o rutas.
   (tablas por etapa).
 - `lib/calculators/modelos-de-operaciones-2/`: `forecasting.ts` (MAD, MSE, MAPE, tabla y
   gráfica de pronósticos), `inventory.ts` (EOQ, punto de reorden, curvas de costo).
+- `lib/calculators/optimizacion-de-operaciones/`: `lp-model.ts` (leer un modelo escrito como
+  texto, LaTeX), `tableau.ts` (forma estándar, tablas simplex, pivoteo, M simbólica),
+  `lp-solve.ts` (simplex, M grande, dos fases, `solveLpSilently`), `transport.ts` (balanceo,
+  soluciones iniciales, tabla de asignación) y `transport-initial.ts` (ADR-020).
+- `lib/calculators/logica-formal-y-algoritmos/`: `proposition.ts` (lector de proposiciones,
+  evaluación, tablas de verdad, esquemas), `numeration.ts` (bases, divisiones y
+  multiplicaciones sucesivas), `algorithms.ts` (listas y pseudocódigo) (ADR-022).
 - `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices, vectores,
-  texto y fracciones en LaTeX), `normal.ts` (Φ, Φ⁻¹ y densidad), `linear-algebra.ts`,
-  `data-list.ts`, `error-metrics.ts`.
+  texto y fracciones en LaTeX; `latexLines`), `normal.ts` (Φ, Φ⁻¹ y densidad),
+  `rational.ts` (fracciones exactas con `bigint`), `linear-algebra.ts`, `data-list.ts`,
+  `error-metrics.ts`.
 - UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx` con la
   matriz rectangular, `TableField.tsx` para listas de filas). `Series.others` agrega líneas a
-  una gráfica (ADR-018).
+  una gráfica (ADR-018) y `Series.region` sombrea una región (ADR-021). Campos por materia:
+  `optimizacion-de-operaciones/LpFields.tsx` y `TransportTableField.tsx`,
+  `logica-formal-y-algoritmos/FormulaField.tsx`.
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
 lo cierra antes de tiempo; escribe `Q* / D`.
@@ -109,6 +119,12 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   programación dinámica (ruta más corta, fuerza de trabajo, mochila), pronósticos (promedios
   móviles, suavizamiento exponencial) e inventarios (EOQ, faltantes, descuentos, punto de
   reorden, un periodo). Versión **v0.2.0** ✅
+- Tanda 6 — Programas de Optimización de Operaciones, Métodos Numéricos y Lógica Formal;
+  programación lineal (gráfico, forma estándar, simplex, M grande, dos fases, dual, dual
+  simplex, sensibilidad), transporte (esquina noroeste, costo mínimo, Vogel, multiplicadores),
+  método húngaro, ramificación y acotamiento, juegos por PL; lógica (tablas de verdad,
+  equivalencia, validez, sistemas de numeración, representación binaria, búsqueda y
+  ordenamiento). Logo de la UDO. Versión **v0.3.0** ✅
 
 ## Versiones
 

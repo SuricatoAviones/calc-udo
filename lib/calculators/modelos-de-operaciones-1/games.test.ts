@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mixedStrategies } from './estrategias-mixtas';
 import { pureStrategies } from './estrategias-puras';
+import { gameLp } from './juegos-programacion-lineal';
 
 // Fuentes:
 // - Taha, Operations Research: An Introduction, 9.ª ed. en inglés (2011), sec. 13.4. Las matrices
@@ -216,5 +217,52 @@ describe('Estrategias mixtas', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('too-large');
     expect(result.steps.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('Juegos por programación lineal', () => {
+  // Hillier, sec. 14.5: la variación 3 resuelta por PL da x = (7/11, 4/11, 0),
+  // y = (0, 5/11, 6/11) y v = 2/11, igual que el método gráfico.
+  it('Hillier, variación 3: v = 2/11', () => {
+    const { value } = ok(gameLp.solve(gameLp.example));
+    expect(value.value).toBeCloseTo(2 / 11, 12);
+    expectVector(value.strategyA, [7 / 11, 4 / 11, 0]);
+    expectVector(value.strategyB, [0, 5 / 11, 6 / 11]);
+    expect(value.shift).toBe(5);
+  });
+
+  // Caso borde analítico: piedra, papel o tijera (3 × 3 sin dominancia) tiene valor 0 y
+  // estrategias uniformes; el método gráfico no lo resuelve.
+  it('piedra, papel o tijera: v = 0 con estrategias uniformes', () => {
+    const { value } = ok(
+      gameLp.solve({
+        payoff: [
+          [0, -1, 1],
+          [1, 0, -1],
+          [-1, 1, 0],
+        ],
+      }),
+    );
+    expect(value.value).toBeCloseTo(0, 12);
+    expectVector(value.strategyA, [1 / 3, 1 / 3, 1 / 3]);
+    expectVector(value.strategyB, [1 / 3, 1 / 3, 1 / 3]);
+  });
+
+  // Taha, ejemplo 13.4-3: v = 5/2 y x = (1/2, 1/2); B tiene óptimos alternativos, así que solo se
+  // verifica que su estrategia asegure v.
+  it('Taha 13.4-3: v = 5/2', () => {
+    const payoff = [
+      [2, 2, 3, -1],
+      [4, 3, 2, 6],
+    ];
+    const { value } = ok(gameLp.solve({ payoff }));
+    expect(value.value).toBeCloseTo(2.5, 12);
+    expectVector(value.strategyA, [0.5, 0.5]);
+    for (const row of [
+      [1, 0],
+      [0, 1],
+    ]) {
+      expect(expected(payoff, row, value.strategyB)).toBeLessThanOrEqual(2.5 + 1e-12);
+    }
   });
 });

@@ -24,6 +24,26 @@ Convención: **término (en UI)** · `nombreEnCódigo` · símbolo, cuando aplic
 | **Traza**                 | `Trace`              | —       | En CalcUDO: todo lo que `solve()` devuelve para explicar el procedimiento (pasos, tablas, series y avisos).                                                                |
 | **Paso**                  | `Step`               | —       | Una unidad del procedimiento: fórmula general, sustitución con números y resultado.                                                                                        |
 
+## Lógica y algoritmos
+
+| Término                                       | Código                              | Símbolo     | Significado                                                                                                                               |
+| --------------------------------------------- | ----------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Proposición**                               | `Formula`                           | p, q, r     | Enunciado que es verdadero (V) o falso (F). Las compuestas se forman con conectores.                                                      |
+| **Conector**                                  | `BinaryOp`                          | ¬ ∧ ∨ ⊕ → ↔ | Negación, conjunción, disyunción, disyunción exclusiva, condicional y bicondicional. Jerarquía, de mayor a menor: ¬, ∧, ∨ y ⊕, →, ↔.      |
+| **Tabla de verdad**                           | `assignments`                       | —           | Valor de una proposición en las 2ⁿ combinaciones de valores de sus n variables, de todas V a todas F.                                     |
+| **Tautología / contradicción / contingencia** | `Classification`                    | —           | Proposición V en todas las filas / F en todas / V en unas y F en otras.                                                                   |
+| **Equivalencia lógica**                       | —                                   | A ≡ B       | A y B tienen la misma columna; es decir, A ↔ B es tautología (De Morgan, implicación, distributividad…).                                  |
+| **Esquema**                                   | `schema`, `matchSchemas`            | —           | Forma general de una ley o regla con variables que representan cualquier proposición (p → q, p ∴ q).                                      |
+| **Razonamiento válido**                       | `valid`                             | P₁ … Pₙ ∴ C | No hay fila con todas las premisas V y la conclusión F: (P₁ ∧ … ∧ Pₙ) → C es tautología.                                                  |
+| **Fila crítica / contraejemplo**              | `criticalRows` / `counterexamples`  | —           | Fila con todas las premisas V / fila crítica con la conclusión F.                                                                         |
+| **Modus ponens / modus tollens**              | —                                   | —           | p → q, p ∴ q / p → q, ¬q ∴ ¬p. Sus imitaciones inválidas son las falacias de afirmación del consecuente y de negación del antecedente.    |
+| **Sistema posicional**                        | `Numeral`                           | (d…d)_b     | Un número en base b vale Σ dᵢ·bⁱ. Se convierte con divisiones sucesivas (parte entera) y multiplicaciones sucesivas (parte fraccionaria). |
+| **Signo y magnitud**                          | `signMagnitude`                     | —           | Bit de signo más la magnitud en n − 1 bits; tiene +0 y −0.                                                                                |
+| **Complemento a 1 / a 2**                     | `onesComplement` / `twosComplement` | C₁, C₂      | Negativo: invertir los bits de \|x\| / invertirlos y sumar 1 (2ⁿ − \|x\|).                                                                |
+| **Exceso**                                    | `excess`                            | —           | x + 2ⁿ⁻¹ en binario sin signo.                                                                                                            |
+| **Búsqueda secuencial / binaria**             | `sequential` / `binary`             | —           | Recorrer el arreglo / comparar con el central de un arreglo ordenado y descartar la mitad.                                                |
+| **Pasada**                                    | `Pass`                              | —           | Una vuelta del ciclo externo de un algoritmo de ordenamiento (burbuja, selección, inserción).                                             |
+
 ## Métodos Numéricos
 
 | Término                         | Código               | Símbolo                  | Significado                                                                                                                                                                                     |
@@ -68,18 +88,30 @@ Convención: **término (en UI)** · `nombreEnCódigo` · símbolo, cuando aplic
 
 ## Optimización (programación lineal y no lineal)
 
-| Término                          | Código                 | Símbolo | Significado                                                                                         |
-| -------------------------------- | ---------------------- | ------- | --------------------------------------------------------------------------------------------------- |
-| **Función objetivo**             | `objective`            | Z       | Lo que se maximiza o minimiza.                                                                      |
-| **Variable de holgura / exceso** | `slack` / `surplus`    | sᵢ      | Convierten desigualdades ≤ / ≥ en igualdades (forma estándar).                                      |
-| **Variable artificial**          | `artificial`           | Rᵢ      | Variable temporal para obtener una solución básica inicial (métodos M grande y dos fases).          |
-| **Solución básica factible**     | —                      | SBF     | Vértice de la región factible. Simplex salta entre ellas.                                           |
-| **Variable que entra / sale**    | `entering` / `leaving` | —       | Columna pivote (mejora Z) / fila pivote (prueba de la razón mínima).                                |
-| **Precio sombra**                | `shadowPrice`          | yᵢ      | Cuánto mejora Z por cada unidad adicional de un recurso. Es el valor de la variable dual.           |
-| **Dual**                         | —                      | —       | Problema asociado cuyo óptimo coincide con el del primal.                                           |
-| **Lagrangiano**                  | —                      | L, λ    | f(x) − Σλᵢgᵢ(x). Los λ son los multiplicadores de Lagrange.                                         |
-| **KKT**                          | `kkt`                  | —       | Condiciones de Karush-Kuhn-Tucker: necesarias para la optimalidad con restricciones de desigualdad. |
-| **Hessiana**                     | `hessian`              | H       | Matriz de segundas derivadas. Su definitud clasifica los puntos críticos.                           |
+| Término                                 | Código                     | Símbolo  | Significado                                                                                                                                                        |
+| --------------------------------------- | -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Función objetivo**                    | `objective`                | Z        | Lo que se maximiza o minimiza.                                                                                                                                     |
+| **Variable de holgura / exceso**        | `slack` / `surplus`        | sᵢ, eᵢ   | Convierten desigualdades ≤ / ≥ en igualdades (forma estándar).                                                                                                     |
+| **Forma estándar**                      | `toStandardForm`           | —        | Todas las restricciones como igualdades con lado derecho no negativo y todas las variables no negativas.                                                           |
+| **M grande**                            | `MValue`, `bigM`           | M        | Penalización simbólica (a + bM) de las artificiales en la función objetivo; se compara primero el coeficiente de M.                                                |
+| **Dos fases**                           | `twoPhase`                 | r        | Fase I: minimizar la suma de artificiales; si llega a 0, la fase II parte de esa base con la función objetivo original.                                            |
+| **Dual simplex**                        | `dualSimplex`              | —        | Parte de un renglón z óptimo con alguna básica negativa: sale la de lado derecho más negativo y entra la de menor razón \|zⱼ / αᵣⱼ\|.                              |
+| **Rango de factibilidad / optimalidad** | `rhsRanges` / `costRanges` | —        | Cuánto puede cambiar un recurso (bᵢ) o un coeficiente de la función objetivo (cⱼ) sin que cambie la base óptima.                                                   |
+| **Problema de transporte**              | `TransportData`            | cᵢⱼ, xᵢⱼ | Enviar desde orígenes con oferta sᵢ a destinos con demanda dⱼ al menor costo. Balanceado si Σs = Σd; si no, se agrega un origen o destino **ficticio** de costo 0. |
+| **Solución degenerada**                 | —                          | —        | Solución básica con alguna básica igual a 0. En transporte se conserva para tener m + n − 1 básicas.                                                               |
+| **Multiplicadores**                     | `u`, `v`                   | uᵢ, vⱼ   | Método MODI: uᵢ + vⱼ = cᵢⱼ en las celdas básicas; entra la no básica con mayor uᵢ + vⱼ − cᵢⱼ > 0.                                                                  |
+| **Ciclo**                               | `loop`                     | θ        | Camino cerrado de celdas básicas que parte de la que entra; θ es la menor cantidad en las celdas con signo −.                                                      |
+| **Método húngaro**                      | `hungarian`                | —        | Asignación óptima: restar mínimos de filas y columnas y ajustar con θ hasta que n líneas no basten para cubrir los ceros.                                          |
+| **Ramificación y acotamiento**          | `branchAndBound`           | —        | Programación entera: resolver la relajación lineal y ramificar en xⱼ ≤ ⌊x⌋ y xⱼ ≥ ⌈x⌉; un nodo se poda si no mejora la mejor solución entera.                      |
+| **Número racional exacto**              | `Rational`                 | —        | Fracción con numerador y denominador `bigint` (`lib/math/rational.ts`); las tablas de PL, transporte y asignación no redondean.                                    |
+| **Variable artificial**                 | `artificial`               | Rᵢ       | Variable temporal para obtener una solución básica inicial (métodos M grande y dos fases).                                                                         |
+| **Solución básica factible**            | —                          | SBF      | Vértice de la región factible. Simplex salta entre ellas.                                                                                                          |
+| **Variable que entra / sale**           | `entering` / `leaving`     | —        | Columna pivote (mejora Z) / fila pivote (prueba de la razón mínima).                                                                                               |
+| **Precio sombra**                       | `shadowPrice`              | yᵢ       | Cuánto mejora Z por cada unidad adicional de un recurso. Es el valor de la variable dual.                                                                          |
+| **Dual**                                | —                          | —        | Problema asociado cuyo óptimo coincide con el del primal.                                                                                                          |
+| **Lagrangiano**                         | —                          | L, λ     | f(x) − Σλᵢgᵢ(x). Los λ son los multiplicadores de Lagrange.                                                                                                        |
+| **KKT**                                 | `kkt`                      | —        | Condiciones de Karush-Kuhn-Tucker: necesarias para la optimalidad con restricciones de desigualdad.                                                                |
+| **Hessiana**                            | `hessian`                  | H        | Matriz de segundas derivadas. Su definitud clasifica los puntos críticos.                                                                                          |
 
 ## Redes de proyectos, juegos y programación dinámica (Modelos de Operaciones I)
 

@@ -7,11 +7,27 @@ import { Button } from '@/components/ui/button';
 import { formatNumber, parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
 
-const cellClass =
+export const cellClass =
   'border-input bg-card focus-visible:ring-ring/50 h-9 w-full min-w-0 rounded-md border px-2 text-center font-mono text-sm shadow-xs outline-none focus-visible:ring-[3px]';
 
-function display(v: number | undefined): string {
+export function display(v: number | undefined): string {
   return v === undefined || Number.isNaN(v) ? '' : formatNumber(v);
+}
+
+/**
+ * Primer mensaje de error de un campo compuesto. Si el error es de una celda (`costs.0.1`), el
+ * mensaje no está en la raíz sino en el arreglo anidado.
+ */
+export function firstErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  if ('message' in error && typeof error.message === 'string') return error.message;
+  for (const [key, value] of Object.entries(error)) {
+    // `ref` apunta al elemento del DOM; no se recorre.
+    if (key === 'ref') continue;
+    const message = firstErrorMessage(value);
+    if (message) return message;
+  }
+  return undefined;
 }
 
 function resize(matrix: number[][], size: number): number[][] {
@@ -53,7 +69,7 @@ export function MatrixField({
           next[i]![j] = parseDecimal(text);
           field.onChange(next);
         };
-        const error = fieldState.error?.message;
+        const error = firstErrorMessage(fieldState.error);
         return (
           <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
             <div className="flex items-center justify-between gap-2">
@@ -165,7 +181,7 @@ function resizeRect(matrix: number[][], rows: number, cols: number): number[][] 
   );
 }
 
-function Stepper({
+export function Stepper({
   value,
   min,
   max,
@@ -223,6 +239,8 @@ export function RectangularMatrixField({
   colPrefix,
   rowUnit,
   colUnit,
+  rowItem,
+  colItem,
   min = 1,
   max = 8,
 }: {
@@ -235,6 +253,9 @@ export function RectangularMatrixField({
   /** Texto de los contadores: «filas», «columnas». */
   rowUnit: string;
   colUnit: string;
+  /** Qué agrega o quita cada botón (para lectores de pantalla): «una fila». */
+  rowItem?: string;
+  colItem?: string;
   min?: number;
   max?: number;
 }) {
@@ -252,7 +273,7 @@ export function RectangularMatrixField({
           next[i]![j] = parseDecimal(text);
           field.onChange(next);
         };
-        const error = fieldState.error?.message;
+        const error = firstErrorMessage(fieldState.error);
         return (
           <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
             <legend className="mb-2 text-sm font-medium">{label}</legend>
@@ -262,7 +283,7 @@ export function RectangularMatrixField({
                 min={min}
                 max={max}
                 unit={rowUnit}
-                what={`una estrategia de ${rowPrefix}`}
+                what={rowItem ?? `una estrategia de ${rowPrefix}`}
                 onChange={(next) => field.onChange(resizeRect(matrix, next, cols))}
               />
               <Stepper
@@ -270,7 +291,7 @@ export function RectangularMatrixField({
                 min={min}
                 max={max}
                 unit={colUnit}
-                what={`una estrategia de ${colPrefix}`}
+                what={colItem ?? `una estrategia de ${colPrefix}`}
                 onChange={(next) => field.onChange(resizeRect(matrix, rows, next))}
               />
             </div>

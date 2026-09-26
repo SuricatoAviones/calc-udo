@@ -11,7 +11,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { toLatexNumber } from '@/lib/math/format';
+import { latexLines, toLatexNumber } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -20,7 +20,6 @@ import {
   type Step,
 } from '../types';
 import { argOptimum, optimumLatex, stageTable, type StageRow } from './dynamic-programming';
-import { latexLines } from './network';
 
 const MAX_PERIODS = 12;
 const MAX_WORKERS = 60;

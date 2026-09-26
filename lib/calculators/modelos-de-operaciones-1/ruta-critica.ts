@@ -4,13 +4,12 @@
  * de proyectos con PERT/CPM; Taha, sec. 6.5).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { latexLines, toLatexNumber } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Notice } from '../types';
 import {
   activityNameField,
   analyzeNetwork,
   criticalPathLatex,
-  latexLines,
   MAX_ACTIVITIES,
   multiplePathsMessage,
   parsePredecessors,

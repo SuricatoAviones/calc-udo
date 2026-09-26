@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/curriculum/StatusBadge';
 import {
   formatSemester,
   formatSource,
+  getExternalSubjectName,
   getSource,
   getSubject,
   getSubjectByCode,
@@ -62,7 +63,11 @@ export default async function SubjectPage({ params }: Props) {
                           {pre.name} ({code})
                         </Link>
                       ) : (
-                        <span title="Materia fuera de la rama cuantitativa">{code}</span>
+                        <span title="Materia fuera de la rama cuantitativa">
+                          {getExternalSubjectName(code)
+                            ? `${getExternalSubjectName(code)} (${code})`
+                            : code}
+                        </span>
                       )}
                     </span>
                   );
