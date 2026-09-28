@@ -53,6 +53,8 @@ export interface DiscreteQueryInput {
 export interface DiscreteModel {
   /** Nombre del modelo en el texto: "binomial". */
   name: string;
+  /** Menor valor posible de X (0 si se omite; 1 en la geométrica). */
+  min?: number;
   /** Mayor valor posible de X (`Infinity` si no hay). */
   max: number;
   pmf(x: number): number;
@@ -85,15 +87,15 @@ const SUBSTITUTED_TERMS = 3;
 const MAX_TABLE_ROWS = 120;
 
 /** Intervalo [a, b] de valores de X que pide la consulta. */
-function interval(input: DiscreteQueryInput, max: number): [number, number] {
+function interval(input: DiscreteQueryInput, min: number, max: number): [number, number] {
   const { query, k } = input;
   switch (query) {
     case 'igual':
       return [k, k];
     case 'menor-igual':
-      return [0, k];
+      return [min, k];
     case 'menor':
-      return [0, k - 1];
+      return [min, k - 1];
     case 'mayor-igual':
       return [k, max];
     case 'mayor':
@@ -130,7 +132,9 @@ export function solveDiscrete(
   model: DiscreteModel,
 ): CalculatorResult<DiscreteValue, DiscreteErrorCode> {
   const target = queryLatex(input);
-  const [a, bRaw] = interval(input, model.max);
+  const min = model.min ?? 0;
+  const [aRaw, bRaw] = interval(input, min, model.max);
+  const a = Math.max(aRaw, min);
   const b = Math.min(bRaw, model.max);
 
   const steps: Step[] = [
@@ -144,7 +148,7 @@ export function solveDiscrete(
   // ¿Suma directa o complemento? Se elige la que tiene menos términos (o finitos).
   const direct = a > b || !Number.isFinite(b) ? [] : range(a, b);
   const complementTerms = [
-    ...range(0, a - 1),
+    ...range(min, a - 1),
     ...(Number.isFinite(model.max) ? range(b + 1, model.max) : []),
   ];
   // Con soporte infinito (Poisson) el complemento de un intervalo acotado tiene infinitos
@@ -240,11 +244,11 @@ export function solveDiscrete(
     : Math.max(b === Infinity ? a : b, Math.ceil(model.mean + 10 * standardDeviation + 10));
   let cumulative = 0;
   const rows: { x: number; px: number; cumulative: number }[] = [];
-  for (let x = 0; x <= upper && rows.length < MAX_TABLE_ROWS; x++) {
+  for (let x = min; x <= upper && rows.length < MAX_TABLE_ROWS; x++) {
     const px = model.pmf(x);
     cumulative += px;
     const inQuery = x >= a && x <= b;
-    if (px >= 1e-6 || inQuery || x <= 1) rows.push({ x, px, cumulative });
+    if (px >= 1e-6 || inQuery || x <= min + 1) rows.push({ x, px, cumulative });
   }
 
   const summary: SummaryItem[] = [

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatNumber,
+  fractionToLatex,
   parseDecimal,
+  parseFraction,
   toLatexMatrix,
   toLatexNumber,
   toLatexOperand,
@@ -72,6 +74,27 @@ describe('parseDecimal', () => {
     expect(parseDecimal('abc')).toBeNaN();
     expect(parseDecimal('1,2,3')).toBeNaN();
     expect(parseDecimal('1.2.3')).toBeNaN();
+  });
+});
+
+describe('parseFraction y fractionToLatex', () => {
+  it('acepta fracciones y decimales', () => {
+    expect(parseFraction('2/9')).toBeCloseTo(2 / 9, 15);
+    expect(parseFraction(' 11 / 18 ')).toBeCloseTo(11 / 18, 15);
+    expect(parseFraction('0,25')).toBe(0.25);
+    expect(parseFraction('1.5/3')).toBe(0.5);
+  });
+
+  it('devuelve NaN si no es un número o el denominador es 0', () => {
+    expect(parseFraction('1/0')).toBeNaN();
+    expect(parseFraction('1/2/3')).toBeNaN();
+    expect(parseFraction('a/2')).toBeNaN();
+    expect(parseFraction('')).toBeNaN();
+  });
+
+  it('muestra la fracción como se escribió', () => {
+    expect(fractionToLatex('2/9')).toBe('\\frac{2}{9}');
+    expect(fractionToLatex('0,3')).toBe('0.3');
   });
 });
 

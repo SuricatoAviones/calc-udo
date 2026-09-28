@@ -74,6 +74,30 @@ export function parseDecimal(text: string): number {
   return Number(normalized);
 }
 
+/**
+ * Número escrito como fracción ("2/9") o como decimal ("0,25"), como se dan las probabilidades
+ * en los libros. Devuelve `NaN` si no es válido o si el denominador es 0.
+ */
+export function parseFraction(text: string): number {
+  const parts = text.split('/');
+  if (parts.length === 1) return parseDecimal(text);
+  if (parts.length !== 2) return Number.NaN;
+  const numerator = parseDecimal(parts[0]!);
+  const denominator = parseDecimal(parts[1]!);
+  if (denominator === 0) return Number.NaN;
+  return numerator / denominator;
+}
+
+/** El texto de `parseFraction` en LaTeX: "2/9" → `\frac{2}{9}`, "0,25" → `0.25`. */
+export function fractionToLatex(text: string): string {
+  const parts = text.split('/');
+  if (parts.length === 2) {
+    const [top, bottom] = parts.map((part) => toLatexNumber(parseDecimal(part)));
+    return `\\frac{${top}}{${bottom}}`;
+  }
+  return toLatexNumber(parseDecimal(text));
+}
+
 /** Matriz → LaTeX (`bmatrix`), con `significantDigits` cifras por entrada. */
 export function toLatexMatrix(matrix: number[][], significantDigits = 6): string {
   const rows = matrix.map((row) => row.map((v) => toLatexNumber(v, significantDigits)).join(' & '));

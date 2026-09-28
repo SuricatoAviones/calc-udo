@@ -22,7 +22,12 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
 
   // Estadísticas I
   'medidas-descriptivas': () => import('./estadistica-1/DescriptiveMeasures'),
+  'distribucion-bernoulli': () => import('./estadistica-1/Bernoulli'),
   'distribucion-binomial': () => import('./estadistica-1/Binomial'),
+  'distribucion-geometrica': () => import('./estadistica-1/Geometric'),
+  'distribucion-de-pascal': () => import('./estadistica-1/Pascal'),
+  'distribucion-multinomial': () => import('./estadistica-1/Multinomial'),
+  'distribucion-hipergeometrica': () => import('./estadistica-1/Hypergeometric'),
   'distribucion-de-poisson': () => import('./estadistica-1/Poisson'),
   'distribucion-normal': () => import('./estadistica-1/Normal'),
 
