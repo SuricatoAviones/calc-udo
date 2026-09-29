@@ -22,6 +22,8 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
 
   // Estadísticas I
   'medidas-descriptivas': () => import('./estadistica-1/DescriptiveMeasures'),
+  'tecnicas-de-conteo': () => import('./estadistica-1/Counting'),
+  'teorema-de-bayes': () => import('./estadistica-1/Bayes'),
   'distribucion-bernoulli': () => import('./estadistica-1/Bernoulli'),
   'distribucion-binomial': () => import('./estadistica-1/Binomial'),
   'distribucion-geometrica': () => import('./estadistica-1/Geometric'),

@@ -29,7 +29,7 @@ para que el mapa esté completo.
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
 | 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
-| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 14 | 0 | 8 |
+| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 16 | 0 | 6 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
@@ -176,8 +176,8 @@ de esta materia; solo aparece en la malla curricular.
 |---|---|---|---|
 | Descripción de datos | Tabla de frecuencias e histograma | 🗺️ Roadmap | `/estadistica-1/descripcion-de-datos/tabla-de-frecuencias/` |
 | Descripción de datos | Medidas de tendencia central y dispersión | ✅ Implementada | `/estadistica-1/descripcion-de-datos/medidas-descriptivas/` |
-| Introducción a probabilidades | Permutaciones y combinaciones | 🗺️ Roadmap | `/estadistica-1/probabilidades/tecnicas-de-conteo/` |
-| Introducción a probabilidades | Probabilidad condicional y teorema de Bayes | 🗺️ Roadmap | `/estadistica-1/probabilidades/teorema-de-bayes/` |
+| Introducción a probabilidades | Permutaciones y combinaciones | ✅ Implementada | `/estadistica-1/probabilidades/tecnicas-de-conteo/` |
+| Introducción a probabilidades | Probabilidad condicional y teorema de Bayes | ✅ Implementada | `/estadistica-1/probabilidades/teorema-de-bayes/` |
 | Variables aleatorias | Esperanza y varianza de una variable aleatoria | 🗺️ Roadmap | `/estadistica-1/variables-aleatorias/esperanza-y-varianza/` |
 | Variables aleatorias | Desigualdad de Chebyshev | 🗺️ Roadmap | `/estadistica-1/variables-aleatorias/desigualdad-de-chebyshev/` |
 | Variables aleatorias | Función generadora de momentos | 🗺️ Roadmap | `/estadistica-1/variables-aleatorias/funcion-generadora-de-momentos/` |
@@ -217,7 +217,7 @@ de esta materia; solo aparece en la malla curricular.
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
 | Aspectos generales de la inferencia | _Tema conceptual, sin calculadora_ | — | — |
-| Conceptos básicos de probabilidad | ↪︎ Probabilidad condicional y teorema de Bayes | 🗺️ Roadmap | `/estadistica-1/probabilidades/teorema-de-bayes/` |
+| Conceptos básicos de probabilidad | ↪︎ Probabilidad condicional y teorema de Bayes | ✅ Implementada | `/estadistica-1/probabilidades/teorema-de-bayes/` |
 | Variables aleatorias | ↪︎ Esperanza y varianza de una variable aleatoria | 🗺️ Roadmap | `/estadistica-1/variables-aleatorias/esperanza-y-varianza/` |
 | Estimación de parámetros | Estimación por máxima verosimilitud | 🗺️ Roadmap | `/inferencia-y-diseno-de-experimentos/estimacion-de-parametros/maxima-verosimilitud/` |
 | Distribuciones de probabilidad | ↪︎ Distribución binomial | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-binomial/` |
