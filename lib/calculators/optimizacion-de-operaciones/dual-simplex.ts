@@ -11,13 +11,7 @@
  */
 import { latexLines } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
-import {
-  emptyTrace,
-  type CalculatorResult,
-  type Calculator,
-  type ResultTable,
-  type Step,
-} from '../types';
+import { emptyTrace, type CalculatorResult, type Calculator } from '../types';
 import { variableLatex, type LinearProgram, type LpConstraint } from './lp-model';
 import { parseForSolve, type LpInput, type LpValue } from './lp-solve';
 import { lpInputSchema } from './simplex';
@@ -25,12 +19,12 @@ import {
   alternativeOptimaColumns,
   basicSolution,
   degenerateBasics,
+  dualIterationStep,
+  dualTableauTable,
   initialTableau,
-  MAX_ITERATIONS,
-  pivotTableau,
+  runDualSimplex,
   tableauTable,
   toStandardForm,
-  type Tableau,
 } from './tableau';
 
 export type DualSimplexErrorCode =
@@ -56,28 +50,6 @@ function toLessEqual(lp: LinearProgram): { lp: LinearProgram; notes: string[] } 
     return [{ ...c, relation: '<=' as const }, negate(c)];
   });
   return { lp: { ...lp, constraints }, notes };
-}
-
-interface DualIteration {
-  leaving: number;
-  entering: number | null;
-  ratios: (Rational | null)[];
-}
-
-function dualTable(t: Tableau, id: string, title: string, info?: DualIteration): ResultTable {
-  const table = tableauTable(t, id, title);
-  if (info) {
-    table.rows = table.rows.map((row, i) =>
-      i === info.leaving + 1 ? { ...row, basic: `${row.basic}\\ \\leftarrow` } : row,
-    );
-    const ratioRow: Record<string, string | null> = { basic: '\\text{Razón}', rhs: null };
-    info.ratios.forEach((ratio, j) => {
-      ratioRow[`c${j}`] =
-        ratio === null ? null : `${ratio.toLatex()}${j === info.entering ? '\\ \\uparrow' : ''}`;
-    });
-    table.rows.push(ratioRow);
-  }
-  return table;
 }
 
 export function solveDualSimplex(input: LpInput): Result {
@@ -130,79 +102,29 @@ export function solveDualSimplex(input: LpInput): Result {
     };
   }
 
-  let iterations = 0;
-  for (; iterations < MAX_ITERATIONS; iterations++) {
-    let r = -1;
-    t.rhs.forEach((v, i) => {
-      if (v.sign() < 0 && (r < 0 || v.lt(t.rhs[r]!))) r = i;
-    });
-    if (r < 0) break;
-    const ratios = t.columns.map((_, j) => {
-      const a = t.rows[r]![j]!;
-      if (t.basis.includes(j) || a.sign() >= 0) return null;
-      return t.z[j]!.a.div(a).abs();
-    });
-    let e: number | null = null;
-    for (let j = 0; j < ratios.length; j++) {
-      const ratio = ratios[j]!;
-      if (ratio !== null && (e === null || ratio.lt(ratios[e]!))) e = j;
-    }
-    const info: DualIteration = { leaving: r, entering: e, ratios };
-    const leaving = t.columns[t.basis[r]!]!.latex;
+  const run = runDualSimplex(t);
+  run.iterations.forEach((info, k) => {
+    const before = run.tableaus[k]!;
     trace.tables.push(
-      dualTable(
-        t,
-        `dual-${iterations}`,
-        iterations === 0 ? 'Tabla inicial' : `Tabla ${iterations}`,
-        info,
-      ),
+      dualTableauTable(before, `dual-${k}`, k === 0 ? 'Tabla inicial' : `Tabla ${k}`, info),
     );
-    const children: Step[] = [
-      {
-        title: 'Variable que sale',
-        explanation: 'Sale la variable básica con el lado derecho más negativo.',
-        result: `${leaving} = ${t.rhs[r]!.toLatex()} \\ \\text{sale}`,
+    trace.steps.push(dualIterationStep(before, info, k + 1));
+  });
+  t = run.final;
+  const iterations = run.tableaus.length - 1;
+  if (run.status === 'infeasible') {
+    const r = run.iterations.at(-1)!.leaving;
+    return {
+      ok: false,
+      error: {
+        code: 'infeasible',
+        message: `Problema infactible: ${t.columns[t.basis[r]!]!.name} es negativa y ninguna variable puede entrar para corregirla (su fila no tiene coeficientes negativos).`,
       },
-      {
-        title: 'Variable que entra',
-        explanation:
-          'Entre las no básicas con coeficiente negativo en la fila que sale, entra la de menor cociente |coeficiente en z / coeficiente en la fila|; así la tabla sigue siendo óptima.',
-        substitution: latexLines(
-          ratios.flatMap((ratio, j) =>
-            ratio === null
-              ? []
-              : [
-                  `${t.columns[j]!.latex}:\\ \\left|\\frac{${t.z[j]!.a.toLatex()}}{${t.rows[r]![j]!.toLatex()}}\\right| = ${ratio.toLatex()}`,
-                ],
-          ),
-        ),
-        result:
-          e === null
-            ? '\\text{Ningún coeficiente negativo en la fila: no hay variable que entre}'
-            : `${t.columns[e]!.latex} \\ \\text{entra; pivote } = ${t.rows[r]![e]!.toLatex()}`,
-      },
-    ];
-    if (e === null) {
-      trace.steps.push({ title: `Iteración ${iterations + 1}`, children });
-      return {
-        ok: false,
-        error: {
-          code: 'infeasible',
-          message: `Problema infactible: ${t.columns[t.basis[r]!]!.name} es negativa y ninguna variable puede entrar para corregirla (su fila no tiene coeficientes negativos).`,
-        },
-        ...emptyTrace(),
-        ...trace,
-      };
-    }
-    const { tableau, operations } = pivotTableau(t, r, e);
-    children.push({
-      title: 'Operaciones de fila (Gauss-Jordan)',
-      substitution: latexLines(operations),
-    });
-    trace.steps.push({ title: `Iteración ${iterations + 1}`, children });
-    t = tableau;
+      ...emptyTrace(),
+      ...trace,
+    };
   }
-  if (iterations >= MAX_ITERATIONS) {
+  if (run.status === 'max-iterations') {
     return {
       ok: false,
       error: { code: 'max-iterations', message: 'Se alcanzó el máximo de iteraciones.' },
