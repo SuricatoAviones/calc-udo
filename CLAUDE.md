@@ -139,7 +139,7 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   (ADR-024). Versión **v0.4.0** ✅
 - Tanda 8 — Optimización de Operaciones completa: simplex algebraico y análisis post-óptimo
   (lado derecho, objetivo, coeficientes tecnológicos, nueva variable y nueva restricción), con
-  tests contra Taha 10.ª ed. (ADR-026). Buscador de calculadoras (ADR-027) ✅ (sin publicar)
+  tests contra Taha 10.ª ed. (ADR-026). Buscador de calculadoras (ADR-027). Versión **v0.5.0** ✅
 
 ## Versiones
 
