@@ -64,13 +64,14 @@ export interface LpInput {
   constraints: string;
 }
 
-interface Trace {
+export interface LpTrace {
   steps: Step[];
   tables: ResultTable[];
   notices: Notice[];
 }
+type Trace = LpTrace;
 
-function fail(code: LpErrorCode, message: string, trace: Trace): LpResult {
+export function fail(code: LpErrorCode, message: string, trace: Trace): LpResult {
   return { ok: false, error: { code, message }, ...emptyTrace(), ...trace };
 }
 
@@ -112,7 +113,7 @@ export function standardFormLatex(
   return `\\begin{aligned} ${objective.replace('=', '&=')} \\\\ ${rows.join(' \\\\ ')} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
 }
 
-function standardFormStep(lp: LinearProgram, sf: StandardForm, mode: ObjectiveMode): Step {
+export function standardFormStep(lp: LinearProgram, sf: StandardForm, mode: ObjectiveMode): Step {
   const parts = [
     'Cada restricción ≤ recibe una variable de holgura sᵢ (lo que sobra del recurso); cada ≥, una de exceso eᵢ que se resta.',
   ];
@@ -188,8 +189,17 @@ function optimalityStep(t: Tableau): Step {
   };
 }
 
-/** Resultado final: valores, avisos de casos especiales y resumen. */
-function finish(lp: LinearProgram, t: Tableau, iterations: number, trace: Trace): LpResult {
+/**
+ * Resultado final: valores, avisos de casos especiales y resumen. `wording` cambia la redacción
+ * de los dos últimos pasos (el simplex algebraico no habla de «fila z» ni de «columna Solución»).
+ */
+export function finish(
+  lp: LinearProgram,
+  t: Tableau,
+  iterations: number,
+  trace: Trace,
+  wording: { optimality?: Step; solution?: string } = {},
+): LpResult {
   const values = basicSolution(t);
   const decisions = lp.variables.map((_, j) => values[j]!);
   const z = t.zRhs.a;
@@ -204,9 +214,10 @@ function finish(lp: LinearProgram, t: Tableau, iterations: number, trace: Trace)
     )
     .filter(Boolean)
     .join(',\\ ');
-  trace.steps.push(optimalityStep(t), {
+  trace.steps.push(wording.optimality ?? optimalityStep(t), {
     title: 'Solución óptima',
     explanation:
+      wording.solution ??
       'Las variables básicas toman el valor de la columna Solución; las no básicas valen 0. El valor de z es el lado derecho de la fila z.',
     result: latexLines([
       `${decisionLatex}, \\qquad z^* = ${z.toLatex()}`,
@@ -247,7 +258,7 @@ function finish(lp: LinearProgram, t: Tableau, iterations: number, trace: Trace)
   };
 }
 
-function unbounded(t: Tableau, trace: Trace): LpResult {
+export function unbounded(t: Tableau, trace: Trace): LpResult {
   return fail(
     'unbounded',
     `Solución no acotada: la variable que debería entrar no tiene coeficientes positivos en su columna, así que puede crecer sin límite y z ${t.sense === 'max' ? 'aumenta' : 'disminuye'} indefinidamente. Revisa si falta una restricción.`,
@@ -255,7 +266,7 @@ function unbounded(t: Tableau, trace: Trace): LpResult {
   );
 }
 
-function tooMany(trace: Trace): LpResult {
+export function tooMany(trace: Trace): LpResult {
   return fail('max-iterations', 'Se alcanzó el máximo de iteraciones sin llegar al óptimo.', trace);
 }
 

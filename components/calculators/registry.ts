@@ -81,6 +81,7 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Optimización de Operaciones
   'metodo-grafico': () => import('./optimizacion-de-operaciones/Graphical'),
   'forma-estandar': () => import('./optimizacion-de-operaciones/StandardForm'),
+  'simplex-algebraico': () => import('./optimizacion-de-operaciones/AlgebraicSimplex'),
   simplex: () => import('./optimizacion-de-operaciones/Simplex'),
   'metodo-m-grande': () => import('./optimizacion-de-operaciones/BigM'),
   'metodo-dos-fases': () => import('./optimizacion-de-operaciones/TwoPhase'),

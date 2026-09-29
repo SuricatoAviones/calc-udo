@@ -32,7 +32,7 @@ para que el mapa esté completo.
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
-| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
+| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 15 | 0 | 1 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
@@ -281,7 +281,7 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad I — Introducción a la programación lineal | _Tema conceptual, sin calculadora_ | — | — |
 | Unidad II — Resolución de modelos de programación lineal | Método gráfico | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-grafico/` |
 | Unidad II — Resolución de modelos de programación lineal | Forma canónica y forma estándar | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/forma-estandar/` |
-| Unidad II — Resolución de modelos de programación lineal | Método simplex algebraico | 🗺️ Roadmap | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex-algebraico/` |
+| Unidad II — Resolución de modelos de programación lineal | Método simplex algebraico | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex-algebraico/` |
 | Unidad II — Resolución de modelos de programación lineal | Método simplex tabular | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/simplex/` |
 | Unidad II — Resolución de modelos de programación lineal | Método de la M grande | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-m-grande/` |
 | Unidad II — Resolución de modelos de programación lineal | Método de las dos fases | ✅ Implementada | `/optimizacion-de-operaciones/resolucion-de-modelos/metodo-dos-fases/` |
