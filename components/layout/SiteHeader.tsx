@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { SearchDialog } from '@/components/search/SearchDialog';
 
 export function SiteHeader() {
   return (
@@ -26,7 +27,10 @@ export function SiteHeader() {
             </span>
           </span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <SearchDialog />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

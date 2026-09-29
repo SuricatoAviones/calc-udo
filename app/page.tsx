@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { implementedCalculatorIds } from '@/components/calculators/registry';
 import { StatusBadge } from '@/components/curriculum/StatusBadge';
+import { CalculatorSearch } from '@/components/search/CalculatorSearch';
 import {
   formatSemester,
   getSubjects,
@@ -80,6 +81,7 @@ export default function HomePage() {
           Calculadoras organizadas por materia y tema que muestran cada paso con sus fórmulas, para
           estudiar y para verificar los ejercicios que resuelves a mano.
         </p>
+        <CalculatorSearch className="mt-2 max-w-xl" limit={10} />
       </section>
 
       {semesters.map((semester) => {
