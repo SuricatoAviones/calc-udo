@@ -29,7 +29,7 @@ para que el mapa esté completo.
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
 | 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
-| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 19 | 0 | 3 |
+| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
@@ -174,7 +174,7 @@ de esta materia; solo aparece en la malla curricular.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
-| Descripción de datos | Tabla de frecuencias e histograma | 🗺️ Roadmap | `/estadistica-1/descripcion-de-datos/tabla-de-frecuencias/` |
+| Descripción de datos | Tabla de frecuencias e histograma | ✅ Implementada | `/estadistica-1/descripcion-de-datos/tabla-de-frecuencias/` |
 | Descripción de datos | Medidas de tendencia central y dispersión | ✅ Implementada | `/estadistica-1/descripcion-de-datos/medidas-descriptivas/` |
 | Introducción a probabilidades | Permutaciones y combinaciones | ✅ Implementada | `/estadistica-1/probabilidades/tecnicas-de-conteo/` |
 | Introducción a probabilidades | Probabilidad condicional y teorema de Bayes | ✅ Implementada | `/estadistica-1/probabilidades/teorema-de-bayes/` |
@@ -194,8 +194,8 @@ de esta materia; solo aparece en la malla curricular.
 | Distribuciones continuas | Distribución beta | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-beta/` |
 | Distribuciones continuas | Distribución de Weibull | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-weibull/` |
 | Distribuciones continuas | Distribución normal | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-normal/` |
-| Distribuciones continuas | Teorema del límite central | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/teorema-del-limite-central/` |
-| Teoría elemental del muestreo | Distribuciones muestrales | 🗺️ Roadmap | `/estadistica-1/muestreo/distribuciones-muestrales/` |
+| Distribuciones continuas | Teorema del límite central | ✅ Implementada | `/estadistica-1/distribuciones-continuas/teorema-del-limite-central/` |
+| Teoría elemental del muestreo | Distribuciones muestrales | ✅ Implementada | `/estadistica-1/muestreo/distribuciones-muestrales/` |
 
 **Bibliografía**
 

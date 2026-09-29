@@ -21,6 +21,7 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'algoritmos-de-ordenamiento': () => import('./logica-formal-y-algoritmos/Sort'),
 
   // Estadísticas I
+  'tabla-de-frecuencias': () => import('./estadistica-1/FrequencyTable'),
   'medidas-descriptivas': () => import('./estadistica-1/DescriptiveMeasures'),
   'tecnicas-de-conteo': () => import('./estadistica-1/Counting'),
   'teorema-de-bayes': () => import('./estadistica-1/Bayes'),
@@ -40,6 +41,8 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'distribucion-beta': () => import('./estadistica-1/Beta'),
   'distribucion-weibull': () => import('./estadistica-1/Weibull'),
   'distribucion-normal': () => import('./estadistica-1/Normal'),
+  'teorema-del-limite-central': () => import('./estadistica-1/CentralLimit'),
+  'distribuciones-muestrales': () => import('./estadistica-1/SamplingDistributions'),
 
   // Métodos Numéricos
   biseccion: () => import('./metodos-numericos/Bisection'),
