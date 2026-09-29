@@ -71,20 +71,29 @@ Convención: **término (en UI)** · `nombreEnCódigo` · símbolo, cuando aplic
 
 ## Estadística y probabilidad
 
-| Término                            | Código        | Símbolo    | Significado                                                                          |
-| ---------------------------------- | ------------- | ---------- | ------------------------------------------------------------------------------------ |
-| **Variable aleatoria**             | —             | X          | Función que asigna un número a cada resultado de un experimento.                     |
-| **Función de masa / densidad**     | `pmf` / `pdf` | p(x), f(x) | Probabilidad puntual (discreta) o densidad (continua).                               |
-| **Función de distribución**        | `cdf`         | F(x)       | P(X ≤ x).                                                                            |
-| **Esperanza**                      | `mean`        | E[X], μ    | Promedio ponderado por probabilidad.                                                 |
-| **Varianza**                       | `variance`    | Var(X), σ² | E[(X − μ)²].                                                                         |
-| **Función generadora de momentos** | `mgf`         | M(t)       | E[e^{tX}]. Sus derivadas en t = 0 dan los momentos.                                  |
-| **Máxima verosimilitud**           | `mle`         | θ̂          | Estimador que maximiza la probabilidad de haber observado la muestra.                |
-| **Hipótesis nula / alternativa**   | —             | H₀ / H₁    | La afirmación que se contrasta / la que se acepta si se rechaza H₀.                  |
-| **Error tipo I / II**              | —             | α / β      | Rechazar H₀ siendo cierta / no rechazarla siendo falsa.                              |
-| **Potencia**                       | `power`       | 1 − β      | Probabilidad de rechazar H₀ cuando es falsa. El pensum la llama "función potencial". |
-| **Nivel de confianza**             | `confidence`  | 1 − α      | Probabilidad de que el intervalo contenga al parámetro.                              |
-| **Coeficiente de correlación**     | `r`           | r          | Mide la asociación lineal, en [−1, 1].                                               |
+| Término                                        | Código                | Símbolo            | Significado                                                                                       |
+| ---------------------------------------------- | --------------------- | ------------------ | ------------------------------------------------------------------------------------------------- |
+| **Variable aleatoria**                         | —                     | X                  | Función que asigna un número a cada resultado de un experimento.                                  |
+| **Función de masa / densidad**                 | `pmf` / `pdf`         | p(x), f(x)         | Probabilidad puntual (discreta) o densidad (continua).                                            |
+| **Función de distribución**                    | `cdf`                 | F(x)               | P(X ≤ x).                                                                                         |
+| **Esperanza**                                  | `mean`                | E[X], μ            | Promedio ponderado por probabilidad.                                                              |
+| **Varianza**                                   | `variance`            | Var(X), σ²         | E[(X − μ)²].                                                                                      |
+| **Función generadora de momentos**             | `mgf`                 | M(t)               | E[e^{tX}]. Sus derivadas en t = 0 dan los momentos.                                               |
+| **Máxima verosimilitud**                       | `mle`                 | θ̂                  | Estimador que maximiza la probabilidad de haber observado la muestra.                             |
+| **Marca de clase**                             | `midpoint`            | mᵢ                 | Punto medio de una clase; representa a sus datos al calcular con datos agrupados.                 |
+| **Fronteras de clase**                         | `boundaries`          | —                  | Límites de clase ± media unidad de medida (u/2), para que no queden huecos entre clases.          |
+| **Regla de Sturges**                           | —                     | k                  | Número de clases sugerido: k = 1 + 3.322 log₁₀ n, redondeado hacia arriba.                        |
+| **Probabilidad a priori / a posteriori**       | `prior` / `posterior` | P(Bᵢ) / P(Bᵢ \| A) | Probabilidad de cada causa antes y después de observar A (regla de Bayes).                        |
+| **Desigualdad de Chebyshev**                   | `bound`               | 1 − 1/k²           | Al menos esa fracción de cualquier distribución está a menos de k desviaciones estándar de μ.     |
+| **Error estándar**                             | `standardError`       | σ_X̄                | Desviación estándar de la media muestral: σ/√n (con reemplazo o población infinita).              |
+| **Factor de corrección para población finita** | —                     | (N − n)/(N − 1)    | Multiplica a σ²/n cuando se muestrea sin reemplazo de una población de tamaño N.                  |
+| **Función gamma incompleta**                   | `regularizedGammaP`   | F(x; α)            | P(Y ≤ x) para una gamma(α, 1); da la función de distribución de la gamma (tabla A.23 de Walpole). |
+| **Función beta incompleta**                    | `regularizedBeta`     | Iₓ(α, β)           | Función de distribución de la beta(α, β).                                                         |
+| **Hipótesis nula / alternativa**               | —                     | H₀ / H₁            | La afirmación que se contrasta / la que se acepta si se rechaza H₀.                               |
+| **Error tipo I / II**                          | —                     | α / β              | Rechazar H₀ siendo cierta / no rechazarla siendo falsa.                                           |
+| **Potencia**                                   | `power`               | 1 − β              | Probabilidad de rechazar H₀ cuando es falsa. El pensum la llama "función potencial".              |
+| **Nivel de confianza**                         | `confidence`          | 1 − α              | Probabilidad de que el intervalo contenga al parámetro.                                           |
+| **Coeficiente de correlación**                 | `r`                   | r                  | Mide la asociación lineal, en [−1, 1].                                                            |
 
 ## Optimización (programación lineal y no lineal)
 

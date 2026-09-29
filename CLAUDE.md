@@ -74,7 +74,9 @@ Consúltalas al escribir UI o rutas.
   Newton-Cotes), `ode.ts` + `ode-methods.ts` (métodos de un paso para EDO).
 - `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ).
 - `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
-- `lib/calculators/estadistica-1/discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf).
+- `lib/calculators/estadistica-1/`: `discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf, con
+  soporte desde `min`), `continuous.ts` (P(X < x), P(X > x), P(a < X < b) con la F del modelo y
+  la gráfica de la densidad) (ADR-025).
 - `lib/calculators/modelos-de-operaciones-1/`: `network.ts` (red PERT-CPM: recorridos, holguras,
   rutas críticas), `games.ts` (matriz de pagos, maximin/minimax), `dynamic-programming.ts`
   (tablas por etapa).
@@ -88,7 +90,9 @@ Consúltalas al escribir UI o rutas.
   evaluación, tablas de verdad, esquemas), `numeration.ts` (bases, divisiones y
   multiplicaciones sucesivas), `algorithms.ts` (listas y pseudocódigo) (ADR-022).
 - `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices, vectores,
-  texto y fracciones en LaTeX; `latexLines`), `normal.ts` (Φ, Φ⁻¹ y densidad),
+  texto y fracciones en LaTeX; `latexLines`; `parseFraction` para probabilidades como 2/9),
+  `normal.ts` (Φ, Φ⁻¹ y densidad), `special.ts` (Γ, ln Γ, gamma y beta incompletas),
+  `quadrature.ts` (integral adaptativa con límites infinitos y detección de divergencia),
   `rational.ts` (fracciones exactas con `bigint`), `linear-algebra.ts`, `data-list.ts`,
   `error-metrics.ts`.
 - UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx` con la
@@ -125,6 +129,11 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   método húngaro, ramificación y acotamiento, juegos por PL; lógica (tablas de verdad,
   equivalencia, validez, sistemas de numeración, representación binaria, búsqueda y
   ordenamiento). Logo de la UDO. Versión **v0.3.0** ✅
+- Tanda 7 — Estadísticas I e Inferencia completas: tabla de frecuencias, conteo, Bayes,
+  esperanza y varianza, Chebyshev, FGM, distribuciones discretas (Bernoulli, geométrica, Pascal,
+  multinomial, hipergeométrica) y continuas (uniforme, exponencial, gamma, beta, Weibull), límite
+  central, distribuciones muestrales y máxima verosimilitud. Tests contra Walpole 9.ª ed.
+  (ADR-024) ✅ (sin publicar)
 
 ## Versiones
 

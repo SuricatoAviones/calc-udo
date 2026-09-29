@@ -7,6 +7,25 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Estadísticas I** completa: tabla de frecuencias con histograma y media de datos agrupados,
+  permutaciones y combinaciones (también circulares, con objetos repetidos y particiones),
+  probabilidad total y teorema de Bayes, esperanza y varianza de variables discretas y continuas,
+  desigualdad de Chebyshev, momentos con la función generadora, distribuciones de Bernoulli,
+  geométrica, de Pascal, multinomial, hipergeométrica, uniforme, exponencial, gamma, beta y de
+  Weibull, teorema del límite central y distribuciones muestrales enumerando las muestras.
+- **Inferencia y Diseño de Experimentos** completa: estimación por máxima verosimilitud para
+  Bernoulli, Poisson, geométrica, exponencial, normal y f(x; θ) = θ/x^(θ+1).
+- Funciones especiales (Γ, ln Γ, gamma y beta incompletas) e integración numérica adaptativa con
+  límites infinitos en `lib/math/`.
+- Las probabilidades de las tablas (Bayes, multinomial, esperanza) aceptan fracciones como 2/9.
+
+### Cambiado
+
+- El núcleo de distribuciones discretas admite soportes que no empiezan en 0.
+- La distribución normal comparte los campos de consulta con las demás distribuciones continuas.
+
 ## [0.3.0] — 2026-09-25
 
 ### Agregado

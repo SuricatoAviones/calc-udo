@@ -360,3 +360,45 @@ Plantilla:
   El aviso legal aclara que el proyecto no es un sitio oficial de la UDO.
 - **Alternativas descartadas:** _Servir el original de 332 KB en cada página_: pesa dieciséis veces
   más que la versión de 256 px. _Mantener el `favicon.ico` de Next_: no identifica el sitio.
+
+## ADR-024 — Estadísticas I e Inferencia verificadas contra Walpole, 9.ª ed. en español
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decisión:** Los casos de prueba de las calculadoras nuevas de Estadísticas I e Inferencia se
+  verificaron contra Walpole, Myers, Myers y Ye, 9.ª ed. en español (Pearson, 2012), la edición
+  que se pudo consultar para los capítulos 1, 2 y 4 a 9. Cada test cita el ejemplo y la página de
+  esa edición, y los `locator` de las calculadoras dicen "9.ª ed. en español". Los tests
+  anteriores (binomial, Poisson, normal y medidas descriptivas) conservan la numeración de la 8.ª
+  (ADR-011). La distribución muestral usa el problema de Spiegel (Schaum) de la población 2, 3,
+  6, 8, 11. Si el resultado impreso no se lee en la copia consultada (ejemplos 2.18, 2.23 y 5.7) o
+  el libro no trae un ejemplo numérico (beta, geométrica, Poisson en máxima verosimilitud), el
+  valor se verifica con la fórmula del libro o analíticamente, y el test lo dice.
+- **Contexto:** La numeración cambia entre ediciones: el ejemplo de los 15 pacientes es el 5.5
+  en la 8.ª (según los tests existentes) y el 5.2 en la 9.ª. Citar un número sin verificarlo
+  manda al estudiante a otro ejemplo.
+- **Alternativas descartadas:** _Citar la numeración de la 8.ª sin haberla consultado_: podría
+  ser falsa. _Renumerar los tests anteriores_: ya estaban verificados contra la 8.ª y no hay
+  motivo para cambiarlos.
+
+## ADR-025 — Distribuciones continuas con funciones especiales e integración adaptativa
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decisión:** `lib/calculators/estadistica-1/continuous.ts` es el núcleo de las distribuciones
+  continuas, como `discrete.ts` para las discretas: cada modelo da f, F, sus fórmulas y su
+  sustitución, y el núcleo arma los pasos, P(X < x), P(X > x) o P(a < X < b) y la gráfica. F se
+  calcula con funciones especiales (`lib/math/special.ts`: ln Γ de Lanczos y las funciones gamma
+  y beta incompletas regularizadas de Numerical Recipes), no interpolando tablas. La esperanza de
+  una densidad escrita por el estudiante se integra con Gauss-Kronrod 7-15 adaptativo
+  (`lib/math/quadrature.ts`), que admite límites infinitos y detecta integrales divergentes (una
+  media o una varianza que no existen). Las probabilidades que se escriben en tablas (Bayes,
+  multinomial, esperanza discreta) son texto y aceptan fracciones (`parseFraction`).
+- **Contexto:** Walpole lee la gamma incompleta de la tabla A.23, que solo tiene α enteros y
+  pocas cifras. mathjs no trae las funciones incompletas y su `lgamma` tiene errores de ~10⁻¹²,
+  que se notan en la beta. Los libros dan probabilidades como 2/9 o 12/35, y 1/3 escrito en
+  decimales no suma exactamente 1.
+- **Alternativas descartadas:** _Integrar la densidad para obtener F_: más lento y menos preciso
+  en las colas. _Simpson compuesto para la esperanza_: no admite límites infinitos ni
+  singularidades en los extremos. _Agregar jStat u otra dependencia_: mucho peso por cuatro
+  funciones. _Campos numéricos con decimales para las probabilidades_: obligan a redondear.
