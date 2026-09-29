@@ -29,6 +29,11 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'distribucion-multinomial': () => import('./estadistica-1/Multinomial'),
   'distribucion-hipergeometrica': () => import('./estadistica-1/Hypergeometric'),
   'distribucion-de-poisson': () => import('./estadistica-1/Poisson'),
+  'distribucion-uniforme': () => import('./estadistica-1/Uniform'),
+  'distribucion-exponencial': () => import('./estadistica-1/Exponential'),
+  'distribucion-gamma': () => import('./estadistica-1/Gamma'),
+  'distribucion-beta': () => import('./estadistica-1/Beta'),
+  'distribucion-weibull': () => import('./estadistica-1/Weibull'),
   'distribucion-normal': () => import('./estadistica-1/Normal'),
 
   // Métodos Numéricos

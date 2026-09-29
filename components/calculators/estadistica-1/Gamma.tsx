@@ -3,28 +3,29 @@
 import { Formula } from '@/components/calculators/Formula';
 import { CalculatorForm } from '@/components/calculators/form/CalculatorForm';
 import { NumberField } from '@/components/calculators/form/fields';
-import { normal } from '@/lib/calculators/estadistica-1/normal';
+import { gamma } from '@/lib/calculators/estadistica-1/distribucion-gamma';
 import { ContinuousQueryFields } from './ContinuousQueryFields';
 
-export default function Normal() {
+export default function Gamma() {
   return (
-    <CalculatorForm calculator={normal}>
+    <CalculatorForm calculator={gamma}>
       <div className="grid grid-cols-2 gap-3">
         <NumberField
-          name="mean"
+          name="alpha"
           label={
             <>
-              Media <Formula tex="\mu" />
+              Forma <Formula tex="\alpha" />
             </>
           }
         />
         <NumberField
-          name="sd"
+          name="beta"
           label={
             <>
-              Desv. estándar <Formula tex="\sigma" />
+              Escala <Formula tex="\beta" />
             </>
           }
+          hint="Si te dan una tasa λ, β = 1/λ."
         />
       </div>
       <ContinuousQueryFields />

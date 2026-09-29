@@ -29,7 +29,7 @@ para que el mapa esté completo.
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
 | 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
-| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 9 | 0 | 13 |
+| 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 14 | 0 | 8 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
@@ -188,11 +188,11 @@ de esta materia; solo aparece en la malla curricular.
 | Distribuciones discretas | Distribución multinomial | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-multinomial/` |
 | Distribuciones discretas | Distribución hipergeométrica | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-hipergeometrica/` |
 | Distribuciones discretas | Distribución de Poisson | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-de-poisson/` |
-| Distribuciones continuas | Distribución uniforme | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-uniforme/` |
-| Distribuciones continuas | Distribución exponencial | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-exponencial/` |
-| Distribuciones continuas | Distribución gamma | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-gamma/` |
-| Distribuciones continuas | Distribución beta | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-beta/` |
-| Distribuciones continuas | Distribución de Weibull | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-weibull/` |
+| Distribuciones continuas | Distribución uniforme | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-uniforme/` |
+| Distribuciones continuas | Distribución exponencial | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-exponencial/` |
+| Distribuciones continuas | Distribución gamma | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-gamma/` |
+| Distribuciones continuas | Distribución beta | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-beta/` |
+| Distribuciones continuas | Distribución de Weibull | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-weibull/` |
 | Distribuciones continuas | Distribución normal | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-normal/` |
 | Distribuciones continuas | Teorema del límite central | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/teorema-del-limite-central/` |
 | Teoría elemental del muestreo | Distribuciones muestrales | 🗺️ Roadmap | `/estadistica-1/muestreo/distribuciones-muestrales/` |
@@ -226,8 +226,8 @@ de esta materia; solo aparece en la malla curricular.
 | Distribuciones de probabilidad | ↪︎ Distribución hipergeométrica | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-hipergeometrica/` |
 | Distribuciones de probabilidad | ↪︎ Distribución de Poisson | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-de-poisson/` |
 | Distribuciones de probabilidad | ↪︎ Distribución normal | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-normal/` |
-| Distribuciones de probabilidad | ↪︎ Distribución exponencial | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-exponencial/` |
-| Distribuciones de probabilidad | ↪︎ Distribución de Weibull | 🗺️ Roadmap | `/estadistica-1/distribuciones-continuas/distribucion-weibull/` |
+| Distribuciones de probabilidad | ↪︎ Distribución exponencial | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-exponencial/` |
+| Distribuciones de probabilidad | ↪︎ Distribución de Weibull | ✅ Implementada | `/estadistica-1/distribuciones-continuas/distribucion-weibull/` |
 
 **Bibliografía**
 
