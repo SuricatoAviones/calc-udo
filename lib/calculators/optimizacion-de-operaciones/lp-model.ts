@@ -197,6 +197,44 @@ export function parseLinearProgram(
   };
 }
 
+/** Coeficientes en el orden de `variables`, o un error si aparece una variable que no está. */
+function coefficientsOver(terms: Map<string, Rational>, variables: string[]): Rational[] | string {
+  const unknown = [...terms.keys()].find((name) => !variables.includes(name));
+  if (unknown) return `«${unknown}» no es una variable del modelo (${variables.join(', ')})`;
+  return variables.map((v) => terms.get(v) ?? Rational.ZERO);
+}
+
+/**
+ * Expresión lineal sobre las variables de un modelo ya leído («2x1 + 3x2 + 4x3», con o sin
+ * «z =»), p. ej. una función objetivo nueva. Devuelve los coeficientes o un mensaje de error.
+ */
+export function parseLinearCoefficients(text: string, variables: string[]): Rational[] | string {
+  const source = normalize(text).replace(/^(max|min)?(z|w)?=/i, '');
+  const parsed = parseExpression(source);
+  if (typeof parsed === 'string') return parsed;
+  if (!parsed.constant.isZero()) return 'la expresión no debe tener un término constante';
+  return coefficientsOver(parsed.terms, variables);
+}
+
+/** Una restricción escrita como texto («3x1 + 3x2 + x3 <= 500») sobre las variables del modelo. */
+export function parseConstraintLine(line: string, variables: string[]): LpConstraint | string {
+  const text = normalize(line);
+  const match = /^(.*?)(<=|>=|=)(.*)$/.exec(text);
+  if (!match) return 'falta el signo de la restricción (<=, >= o =)';
+  const [, left = '', rel, right = ''] = match;
+  if (/[<>=]/.test(right)) return 'usa un solo signo en la restricción';
+  const l = parseExpression(left);
+  const r = parseExpression(right);
+  if (typeof l === 'string') return l;
+  if (typeof r === 'string') return r;
+  const lhs = new Map(l.terms);
+  for (const [name, value] of r.terms) lhs.set(name, (lhs.get(name) ?? Rational.ZERO).sub(value));
+  if ([...lhs.values()].every((v) => v.isZero())) return 'la restricción no tiene variables';
+  const coefficients = coefficientsOver(lhs, variables);
+  if (typeof coefficients === 'string') return coefficients;
+  return { coefficients, relation: rel as Relation, rhs: r.constant.sub(l.constant) };
+}
+
 /** Campos del formulario comunes a todas las calculadoras de PL. */
 export const lpInputShape = {
   sense: z.enum(['max', 'min'], { error: 'Elige si se maximiza o se minimiza.' }),

@@ -88,6 +88,7 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'problema-dual': () => import('./optimizacion-de-operaciones/DualProblem'),
   'dual-simplex': () => import('./optimizacion-de-operaciones/DualSimplex'),
   'analisis-de-sensibilidad': () => import('./optimizacion-de-operaciones/Sensitivity'),
+  'cambios-en-el-modelo': () => import('./optimizacion-de-operaciones/ModelChange'),
   'esquina-noroeste': () => import('./optimizacion-de-operaciones/NorthwestCorner'),
   'costo-minimo': () => import('./optimizacion-de-operaciones/LeastCost'),
   'aproximacion-de-vogel': () => import('./optimizacion-de-operaciones/Vogel'),

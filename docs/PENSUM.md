@@ -32,7 +32,7 @@ para que el mapa esté completo.
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
-| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 15 | 0 | 1 |
+| 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
@@ -288,7 +288,7 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad III — Método dual simplex y análisis de sensibilidad | Problema dual | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/problema-dual/` |
 | Unidad III — Método dual simplex y análisis de sensibilidad | Método dual simplex | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/dual-simplex/` |
 | Unidad III — Método dual simplex y análisis de sensibilidad | Análisis de sensibilidad | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/analisis-de-sensibilidad/` |
-| Unidad III — Método dual simplex y análisis de sensibilidad | Cambios en coeficientes tecnológicos, variables y restricciones | 🗺️ Roadmap | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/cambios-en-el-modelo/` |
+| Unidad III — Método dual simplex y análisis de sensibilidad | Cambios en coeficientes tecnológicos, variables y restricciones | ✅ Implementada | `/optimizacion-de-operaciones/dualidad-y-sensibilidad/cambios-en-el-modelo/` |
 | Unidad IV — Transporte y asignación | Método de la esquina noroeste | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/esquina-noroeste/` |
 | Unidad IV — Transporte y asignación | Método del costo mínimo | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/costo-minimo/` |
 | Unidad IV — Transporte y asignación | Método de aproximación de Vogel | ✅ Implementada | `/optimizacion-de-operaciones/transporte-y-asignacion/aproximacion-de-vogel/` |
