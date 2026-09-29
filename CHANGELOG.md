@@ -7,6 +7,23 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Buscador de calculadoras** en el inicio y en el encabezado (también con Ctrl/⌘ + K o «/»):
+  busca sin tildes por título, resumen, tema y materia, y muestra las del roadmap como
+  «Próximamente».
+- **Optimización de Operaciones** completa:
+  - método simplex algebraico, con las soluciones básicas del modelo y cada iteración escrita
+    como ecuaciones en función de las no básicas;
+  - análisis post-óptimo de cambios en el modelo: nuevo lado derecho, nueva función objetivo,
+    coeficientes tecnológicos de una variable, nueva variable y nueva restricción, con el dual
+    simplex o el simplex primal cuando hace falta.
+
+### Cambiado
+
+- El dual simplex pasó al motor de tablas para reutilizarlo; la calculadora da el mismo
+  resultado.
+
 ## [0.4.0] — 2026-09-28
 
 ### Agregado

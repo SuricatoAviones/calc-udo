@@ -402,3 +402,43 @@ Plantilla:
   en las colas. _Simpson compuesto para la esperanza_: no admite límites infinitos ni
   singularidades en los extremos. _Agregar jStat u otra dependencia_: mucho peso por cuatro
   funciones. _Campos numéricos con decimales para las probabilidades_: obligan a redondear.
+
+## ADR-026 — Simplex algebraico y análisis post-óptimo sobre el motor de tablas
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decisión:** El simplex algebraico usa el mismo motor que el tabular (`runSimplex`) y solo
+  cambia la presentación: las básicas y z se escriben en función de las no básicas, la razón
+  mínima se expresa como desigualdades y se enumeran las soluciones básicas cuando son pocas
+  (C(n, m) ≤ 84). El análisis post-óptimo (`cambios-en-el-modelo`) parte de la tabla óptima con
+  holguras, de la que lee B⁻¹ y los precios duales, y continúa con el simplex primal o con el dual
+  simplex, que pasó a `tableau.ts` (`runDualSimplex`). Si cambia la columna de una variable
+  básica, el modelo se resuelve de nuevo, como indica Taha. Los casos de prueba se verificaron
+  contra Taha, 10.ª ed. en inglés (2017), sec. 3.2, 3.3.1 y 4.5; los ejemplos 4.5-1 a 4.5-4 son
+  los mismos en la 9.ª ed. (R Textbook Companion de FOSSEE).
+- **Contexto:** Faltaban las dos calculadoras de Optimización de Operaciones del programa (simplex
+  algebraico; cambios en coeficientes tecnológicos, variables y restricciones). Duplicar las
+  reglas del simplex permitiría que el algebraico y el tabular dieran resultados distintos.
+- **Alternativas descartadas:** _Un simplex algebraico con su propio pivoteo_: dos
+  implementaciones de las mismas reglas. _Actualizar B⁻¹ cuando cambia una columna básica_ (forma
+  producto de la inversa): fuera del alcance del curso y del libro.
+
+## ADR-027 — Buscador con índice estático cargado bajo demanda
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decisión:** `lib/search.ts` arma el índice desde el currículum (una entrada por calculadora,
+  con URL solo si está implementada) y busca sin tildes ni mayúsculas: cada palabra debe
+  aparecer en el título, el resumen, el id, el tema, la materia o la descripción del tema, con
+  más peso en el título. Si hay coincidencias directas, se descartan las que solo aparecen en la
+  descripción del tema. El índice se genera en el build como `/indice-de-busqueda.json` (ruta con
+  `dynamic = 'force-static'`) y el navegador lo descarga la primera vez que se usa el buscador.
+  La interfaz es una caja en el inicio y un `<dialog>` nativo en el encabezado (Ctrl/⌘ + K o
+  «/»), con resultados que son enlaces.
+- **Contexto:** Con 76 calculadoras implementadas (133 en el currículum), buscar por materia y
+  tema es lento, sobre todo si el estudiante no sabe en qué materia está un método. El sitio es estático (ADR-002), así que la
+  búsqueda ocurre en el navegador.
+- **Alternativas descartadas:** _Pasar el índice como prop en cada página_: agrega ~60 KB al HTML
+  de todas las páginas aunque nadie busque. _Una librería de búsqueda difusa_: más peso por un
+  índice pequeño. _Un combobox ARIA con `aria-activedescendant`_: los enlaces enfocables son más
+  simples, funcionan con lectores de pantalla y permiten abrir en otra pestaña.

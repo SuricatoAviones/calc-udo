@@ -83,9 +83,11 @@ Consúltalas al escribir UI o rutas.
 - `lib/calculators/modelos-de-operaciones-2/`: `forecasting.ts` (MAD, MSE, MAPE, tabla y
   gráfica de pronósticos), `inventory.ts` (EOQ, punto de reorden, curvas de costo).
 - `lib/calculators/optimizacion-de-operaciones/`: `lp-model.ts` (leer un modelo escrito como
-  texto, LaTeX), `tableau.ts` (forma estándar, tablas simplex, pivoteo, M simbólica),
-  `lp-solve.ts` (simplex, M grande, dos fases, `solveLpSilently`), `transport.ts` (balanceo,
-  soluciones iniciales, tabla de asignación) y `transport-initial.ts` (ADR-020).
+  texto, una restricción o una expresión lineal sueltas, LaTeX), `tableau.ts` (forma estándar,
+  tablas simplex, pivoteo, M simbólica, `runSimplex` y `runDualSimplex`), `lp-solve.ts`
+  (simplex, M grande, dos fases, `solveLpSilently`, `finish`), `transport.ts` (balanceo,
+  soluciones iniciales, tabla de asignación) y `transport-initial.ts` (ADR-020, ADR-026).
+- `lib/search.ts`: índice y búsqueda de calculadoras (ADR-027).
 - `lib/calculators/logica-formal-y-algoritmos/`: `proposition.ts` (lector de proposiciones,
   evaluación, tablas de verdad, esquemas), `numeration.ts` (bases, divisiones y
   multiplicaciones sucesivas), `algorithms.ts` (listas y pseudocódigo) (ADR-022).
@@ -99,7 +101,8 @@ Consúltalas al escribir UI o rutas.
   matriz rectangular, `TableField.tsx` para listas de filas). `Series.others` agrega líneas a
   una gráfica (ADR-018) y `Series.region` sombrea una región (ADR-021). Campos por materia:
   `optimizacion-de-operaciones/LpFields.tsx` y `TransportTableField.tsx`,
-  `logica-formal-y-algoritmos/FormulaField.tsx`.
+  `logica-formal-y-algoritmos/FormulaField.tsx`. Buscador: `components/search/`
+  (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
 lo cierra antes de tiempo; escribe `Q* / D`.
@@ -134,6 +137,9 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   multinomial, hipergeométrica) y continuas (uniforme, exponencial, gamma, beta, Weibull), límite
   central, distribuciones muestrales y máxima verosimilitud. Tests contra Walpole 9.ª ed.
   (ADR-024). Versión **v0.4.0** ✅
+- Tanda 8 — Optimización de Operaciones completa: simplex algebraico y análisis post-óptimo
+  (lado derecho, objetivo, coeficientes tecnológicos, nueva variable y nueva restricción), con
+  tests contra Taha 10.ª ed. (ADR-026). Buscador de calculadoras (ADR-027) ✅ (sin publicar)
 
 ## Versiones
 
