@@ -30,7 +30,7 @@ para que el mapa esté completo.
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
 | 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
-| 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 0 | 0 | 1 |
+| 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 14 | 0 | 2 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
@@ -219,7 +219,7 @@ de esta materia; solo aparece en la malla curricular.
 | Aspectos generales de la inferencia | _Tema conceptual, sin calculadora_ | — | — |
 | Conceptos básicos de probabilidad | ↪︎ Probabilidad condicional y teorema de Bayes | ✅ Implementada | `/estadistica-1/probabilidades/teorema-de-bayes/` |
 | Variables aleatorias | ↪︎ Esperanza y varianza de una variable aleatoria | ✅ Implementada | `/estadistica-1/variables-aleatorias/esperanza-y-varianza/` |
-| Estimación de parámetros | Estimación por máxima verosimilitud | 🗺️ Roadmap | `/inferencia-y-diseno-de-experimentos/estimacion-de-parametros/maxima-verosimilitud/` |
+| Estimación de parámetros | Estimación por máxima verosimilitud | ✅ Implementada | `/inferencia-y-diseno-de-experimentos/estimacion-de-parametros/maxima-verosimilitud/` |
 | Distribuciones de probabilidad | ↪︎ Distribución binomial | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-binomial/` |
 | Distribuciones de probabilidad | ↪︎ Distribución geométrica | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-geometrica/` |
 | Distribuciones de probabilidad | ↪︎ Distribución de Pascal | ✅ Implementada | `/estadistica-1/distribuciones-discretas/distribucion-de-pascal/` |

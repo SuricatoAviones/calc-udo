@@ -44,6 +44,9 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'teorema-del-limite-central': () => import('./estadistica-1/CentralLimit'),
   'distribuciones-muestrales': () => import('./estadistica-1/SamplingDistributions'),
 
+  // Inferencia y Diseño de Experimentos
+  'maxima-verosimilitud': () => import('./inferencia-y-diseno-de-experimentos/MaximumLikelihood'),
+
   // Métodos Numéricos
   biseccion: () => import('./metodos-numericos/Bisection'),
   'falsa-posicion': () => import('./metodos-numericos/FalsePosition'),
