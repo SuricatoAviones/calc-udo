@@ -133,7 +133,7 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   esperanza y varianza, Chebyshev, FGM, distribuciones discretas (Bernoulli, geométrica, Pascal,
   multinomial, hipergeométrica) y continuas (uniforme, exponencial, gamma, beta, Weibull), límite
   central, distribuciones muestrales y máxima verosimilitud. Tests contra Walpole 9.ª ed.
-  (ADR-024) ✅ (sin publicar)
+  (ADR-024). Versión **v0.4.0** ✅
 
 ## Versiones
 
