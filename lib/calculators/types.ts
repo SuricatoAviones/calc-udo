@@ -100,6 +100,11 @@ export interface Series {
   region?: { label: string; points: { x: number; low: number; high: number }[] };
   /** Rango de x a resaltar (p. ej. la región cuya probabilidad se calcula). */
   highlight?: { from: number; to: number };
+  /**
+   * Puntos sueltos, sin unir (solo con `kind: 'line'`): p. ej. los datos junto a la recta o el
+   * polinomio ajustado.
+   */
+  scatter?: { label: string; points: Point[] };
 }
 
 export interface SummaryItem {

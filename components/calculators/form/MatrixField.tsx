@@ -47,6 +47,8 @@ export function MatrixField({
   min = 2,
   max = 8,
   showRowSums = false,
+  unit = 'estados',
+  item = 'un estado',
 }: {
   name: string;
   label: ReactNode;
@@ -54,6 +56,10 @@ export function MatrixField({
   min?: number;
   max?: number;
   showRowSums?: boolean;
+  /** Texto del contador de tamaño: «estados», «filas». */
+  unit?: string;
+  /** Qué agrega o quita cada botón (para lectores de pantalla): «un estado». */
+  item?: string;
 }) {
   const { control } = useFormContext();
   return (
@@ -82,12 +88,12 @@ export function MatrixField({
                   className="size-8"
                   disabled={size <= min}
                   onClick={() => setSize(size - 1)}
-                  aria-label="Quitar un estado"
+                  aria-label={`Quitar ${item}`}
                 >
                   <Minus className="size-4" />
                 </Button>
                 <span className="text-muted-foreground tabular w-16 text-center text-xs">
-                  {size} estados
+                  {size} {unit}
                 </span>
                 <Button
                   type="button"
@@ -96,7 +102,7 @@ export function MatrixField({
                   className="size-8"
                   disabled={size >= max}
                   onClick={() => setSize(size + 1)}
-                  aria-label="Agregar un estado"
+                  aria-label={`Agregar ${item}`}
                 >
                   <Plus className="size-4" />
                 </Button>
@@ -243,6 +249,7 @@ export function RectangularMatrixField({
   colItem,
   min = 1,
   max = 8,
+  cellLabel,
 }: {
   name: string;
   label: ReactNode;
@@ -258,6 +265,8 @@ export function RectangularMatrixField({
   colItem?: string;
   min?: number;
   max?: number;
+  /** Nombre de una celda para lectores de pantalla (por defecto «A1 contra B2»). */
+  cellLabel?: (i: number, j: number) => string;
 }) {
   const { control } = useFormContext();
   return (
@@ -321,7 +330,10 @@ export function RectangularMatrixField({
                             type="text"
                             inputMode="decimal"
                             autoComplete="off"
-                            aria-label={`${rowPrefix}${i + 1} contra ${colPrefix}${j + 1}`}
+                            aria-label={
+                              cellLabel?.(i, j) ??
+                              `${rowPrefix}${i + 1} contra ${colPrefix}${j + 1}`
+                            }
                             aria-invalid={Boolean(error)}
                             defaultValue={display(v)}
                             onChange={(e) => setCell(i, j, e.target.value)}

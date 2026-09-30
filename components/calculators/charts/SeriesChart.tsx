@@ -26,6 +26,8 @@ interface Row {
   others?: Record<number, number>;
   /** Límites inferior y superior de la región sombreada (`series.region`). */
   band?: [number, number];
+  /** Punto suelto (`series.scatter`). */
+  sc?: number;
 }
 
 /** Más puntos que esto → sin marcadores (una curva muestreada, no iteraciones). */
@@ -61,6 +63,12 @@ function ChartTooltip({
         <p className="text-muted-foreground">
           {series.reference.label}:{' '}
           <span className="text-foreground tabular font-mono">{formatNumber(row.ref, 6)}</span>
+        </p>
+      )}
+      {series.scatter && row.sc !== undefined && (
+        <p className="text-muted-foreground">
+          {series.scatter.label}:{' '}
+          <span className="text-foreground tabular font-mono">{formatNumber(row.sc, 6)}</span>
         </p>
       )}
       {series.others?.map((other, i) =>
@@ -159,6 +167,10 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
     if (!keep(p.low) || !keep(p.high)) continue;
     rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), band: [p.low, p.high] });
   }
+  for (const p of series.scatter?.points ?? []) {
+    if (!keep(p.y)) continue;
+    rows.set(p.x, { ...(rows.get(p.x) ?? { x: p.x }), sc: p.y });
+  }
   const sorted = [...rows.values()].sort((a, b) => a.x - b.x);
   fillOthers(sorted, series);
   fillRegion(sorted, series);
@@ -198,8 +210,9 @@ export function SeriesChart({ series }: { series: Series }) {
 
   const others = kind === 'line' ? (series.others ?? []) : [];
   const region = kind === 'line' ? series.region : undefined;
+  const scatter = kind === 'line' ? series.scatter : undefined;
   const yValues = rows
-    .flatMap((r) => [r.y, r.ref, ...Object.values(r.others ?? {}), ...(r.band ?? [])])
+    .flatMap((r) => [r.y, r.ref, r.sc, ...Object.values(r.others ?? {}), ...(r.band ?? [])])
     .filter((v): v is number => v !== undefined);
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
@@ -207,7 +220,8 @@ export function SeriesChart({ series }: { series: Series }) {
   const digits = isLog ? 2 : tickDigits(yValues);
   const allIntegers = rows.every((r) => Number.isInteger(r.x));
   const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
-  const hasLegend = Boolean(series.reference) || others.length > 0 || Boolean(region);
+  const hasLegend =
+    Boolean(series.reference) || others.length > 0 || Boolean(region) || Boolean(scatter);
   const inHighlight = (x: number) =>
     series.highlight !== undefined && x >= series.highlight.from && x <= series.highlight.to;
 
@@ -358,6 +372,19 @@ export function SeriesChart({ series }: { series: Series }) {
                 connectNulls
               />
             )}
+            {scatter && (
+              // Una línea sin trazo con marcadores: los puntos quedan sueltos y las filas sin
+              // dato (las de la curva) no dibujan nada.
+              <Line
+                type="linear"
+                dataKey="sc"
+                name={scatter.label}
+                stroke="none"
+                dot={{ r: 3.5, fill: 'var(--chart-2)', stroke: 'var(--card)', strokeWidth: 1.5 }}
+                activeDot={{ r: 5, fill: 'var(--chart-2)', stroke: 'var(--card)', strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+            )}
             {series.reference && (
               <Line
                 type="monotone"
@@ -378,6 +405,7 @@ export function SeriesChart({ series }: { series: Series }) {
         <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <LegendItem color="var(--chart-1)" label={series.label ?? series.yLabel} />
           {region && <LegendItem color="var(--chart-1)" label={region.label} area />}
+          {scatter && <LegendItem color="var(--chart-2)" label={scatter.label} dot />}
           {series.reference && (
             <LegendItem color="var(--chart-2)" label={series.reference.label} dashed />
           )}
@@ -405,6 +433,7 @@ function LegendItem({
   dashed = false,
   thin = false,
   area = false,
+  dot = false,
 }: {
   color: string;
   label: string;
@@ -412,7 +441,19 @@ function LegendItem({
   thin?: boolean;
   /** Muestra un rectángulo relleno (una región) en vez de una línea. */
   area?: boolean;
+  /** Muestra un punto (datos sueltos) en vez de una línea. */
+  dot?: boolean;
 }) {
+  if (dot) {
+    return (
+      <li className="flex items-center gap-1.5">
+        <svg width="18" height="10" aria-hidden className="shrink-0">
+          <circle cx="9" cy="5" r="3.5" fill={color} />
+        </svg>
+        {label}
+      </li>
+    );
+  }
   if (area) {
     return (
       <li className="flex items-center gap-1.5">
