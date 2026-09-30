@@ -31,7 +31,7 @@ para que el mapa esté completo.
 | 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 26 | 0 | 0 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
-| 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
+| 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 9 | 0 | 0 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
@@ -251,15 +251,15 @@ de esta materia; solo aparece en la malla curricular.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
-| Regresión y correlación | Regresión lineal simple | 🗺️ Roadmap | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
-| Regresión y correlación | Coeficiente de correlación | 🗺️ Roadmap | `/estadistica-2/regresion-y-correlacion/coeficiente-de-correlacion/` |
-| Pruebas de hipótesis | Prueba de hipótesis sobre la media | 🗺️ Roadmap | `/estadistica-2/pruebas-de-hipotesis/prueba-de-hipotesis-media/` |
-| Pruebas de hipótesis | Prueba de hipótesis sobre la varianza | 🗺️ Roadmap | `/estadistica-2/pruebas-de-hipotesis/prueba-de-hipotesis-varianza/` |
-| Pruebas de hipótesis | Errores tipo I y II y función potencia | 🗺️ Roadmap | `/estadistica-2/pruebas-de-hipotesis/errores-tipo-i-y-ii/` |
-| Pruebas de hipótesis | Prueba de bondad de ajuste | 🗺️ Roadmap | `/estadistica-2/pruebas-de-hipotesis/bondad-de-ajuste/` |
-| Pruebas de hipótesis | Pruebas no paramétricas | 🗺️ Roadmap | `/estadistica-2/pruebas-de-hipotesis/pruebas-no-parametricas/` |
-| Series de tiempo | Análisis de series de tiempo | 🗺️ Roadmap | `/estadistica-2/series-de-tiempo/componentes-de-series-de-tiempo/` |
-| Series de tiempo | Predicción con series de tiempo | 🗺️ Roadmap | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
+| Regresión y correlación | Regresión lineal simple | ✅ Implementada | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
+| Regresión y correlación | Coeficiente de correlación | ✅ Implementada | `/estadistica-2/regresion-y-correlacion/coeficiente-de-correlacion/` |
+| Pruebas de hipótesis | Prueba de hipótesis sobre la media | ✅ Implementada | `/estadistica-2/pruebas-de-hipotesis/prueba-de-hipotesis-media/` |
+| Pruebas de hipótesis | Prueba de hipótesis sobre la varianza | ✅ Implementada | `/estadistica-2/pruebas-de-hipotesis/prueba-de-hipotesis-varianza/` |
+| Pruebas de hipótesis | Errores tipo I y II y función potencia | ✅ Implementada | `/estadistica-2/pruebas-de-hipotesis/errores-tipo-i-y-ii/` |
+| Pruebas de hipótesis | Prueba de bondad de ajuste | ✅ Implementada | `/estadistica-2/pruebas-de-hipotesis/bondad-de-ajuste/` |
+| Pruebas de hipótesis | Pruebas no paramétricas | ✅ Implementada | `/estadistica-2/pruebas-de-hipotesis/pruebas-no-parametricas/` |
+| Series de tiempo | Análisis de series de tiempo | ✅ Implementada | `/estadistica-2/series-de-tiempo/componentes-de-series-de-tiempo/` |
+| Series de tiempo | Predicción con series de tiempo | ✅ Implementada | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
 
 **Bibliografía**
 
@@ -364,8 +364,8 @@ de esta materia; solo aparece en la malla curricular.
 |---|---|---|---|
 | Unidad I — Pronósticos | Promedios móviles (simple y ponderado) | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/promedio-movil/` |
 | Unidad I — Pronósticos | Suavizamiento exponencial simple | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/suavizamiento-exponencial/` |
-| Unidad I — Pronósticos | ↪︎ Predicción con series de tiempo | 🗺️ Roadmap | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
-| Unidad I — Pronósticos | ↪︎ Regresión lineal simple | 🗺️ Roadmap | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
+| Unidad I — Pronósticos | ↪︎ Predicción con series de tiempo | ✅ Implementada | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
+| Unidad I — Pronósticos | ↪︎ Regresión lineal simple | ✅ Implementada | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
 | Unidad I — Pronósticos | Comparación de métodos de pronóstico | 🗺️ Roadmap | `/modelos-de-operaciones-2/pronosticos/seleccion-de-metodo-de-pronostico/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/G/1 | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |

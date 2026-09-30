@@ -47,6 +47,17 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Inferencia y Diseño de Experimentos
   'maxima-verosimilitud': () => import('./inferencia-y-diseno-de-experimentos/MaximumLikelihood'),
 
+  // Estadísticas II
+  'regresion-lineal': () => import('./estadistica-2/LinearRegression'),
+  'coeficiente-de-correlacion': () => import('./estadistica-2/Correlation'),
+  'prueba-de-hipotesis-media': () => import('./estadistica-2/MeanTest'),
+  'prueba-de-hipotesis-varianza': () => import('./estadistica-2/VarianceTest'),
+  'errores-tipo-i-y-ii': () => import('./estadistica-2/ErrorTypes'),
+  'bondad-de-ajuste': () => import('./estadistica-2/GoodnessOfFit'),
+  'pruebas-no-parametricas': () => import('./estadistica-2/NonParametric'),
+  'componentes-de-series-de-tiempo': () => import('./estadistica-2/SeriesComponents'),
+  'pronostico-de-series-de-tiempo': () => import('./estadistica-2/SeriesForecast'),
+
   // Métodos Numéricos
   'errores-numericos': () => import('./metodos-numericos/NumericErrors'),
   determinante: () => import('./metodos-numericos/Determinant'),
