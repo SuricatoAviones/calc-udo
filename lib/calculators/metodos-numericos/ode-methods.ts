@@ -101,7 +101,7 @@ const heunRule: OdeRule = {
 
 // ─── Runge-Kutta clásico de cuarto orden ───────────────────────────────────
 
-const rk4Rule: OdeRule = {
+export const rk4Rule: OdeRule = {
   slopeColumns: [
     { key: 'k1', header: 'k_1' },
     { key: 'k2', header: 'k_2' },

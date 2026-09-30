@@ -25,34 +25,53 @@ const MAX_STEPS = 1000;
 /** Con más pasos que esto, solo se detallan los primeros y el último. */
 const DETAILED_STEPS = 10;
 
-export const odeInputSchema = z
-  .object({
-    expression: z
-      .string()
-      .trim()
-      .min(1, 'Escribe f(x, y).')
-      .max(200, 'La expresión es demasiado larga.'),
-    x0: finiteNumber('x₀'),
-    y0: finiteNumber('y₀'),
-    h: finiteNumber('el tamaño de paso h').refine((v) => v > 0, 'h debe ser mayor que 0.'),
-    xf: finiteNumber('el valor final de x'),
-    exact: z.string().trim().max(200, 'La expresión es demasiado larga.').optional(),
-  })
-  .refine((v) => v.xf > v.x0, {
-    message: 'El valor final de x debe ser mayor que x₀.',
-    path: ['xf'],
-  })
-  .refine(
-    (v) => {
-      const steps = (v.xf - v.x0) / v.h;
-      return Math.abs(steps - Math.round(steps)) < 1e-9 * Math.max(1, steps);
-    },
-    { message: 'h debe dividir el intervalo [x₀, x_f] en un número entero de pasos.', path: ['h'] },
-  )
-  .refine((v) => (v.xf - v.x0) / v.h <= MAX_STEPS + 1e-9, {
-    message: `Son demasiados pasos (máximo ${MAX_STEPS}). Aumenta h.`,
-    path: ['h'],
-  });
+/** Campos comunes; los métodos con opciones propias los extienden. */
+export const odeShape = {
+  expression: z
+    .string()
+    .trim()
+    .min(1, 'Escribe f(x, y).')
+    .max(200, 'La expresión es demasiado larga.'),
+  x0: finiteNumber('x₀'),
+  y0: finiteNumber('y₀'),
+  h: finiteNumber('el tamaño de paso h').refine((v) => v > 0, 'h debe ser mayor que 0.'),
+  xf: finiteNumber('el valor final de x'),
+  exact: z.string().trim().max(200, 'La expresión es demasiado larga.').optional(),
+};
+
+interface OdeBounds {
+  x0: number;
+  h: number;
+  xf: number;
+}
+
+/** Validaciones del intervalo y del paso, comunes a todos los métodos. */
+export function refineOde(v: OdeBounds, ctx: z.RefinementCtx): void {
+  if (!(v.xf > v.x0)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['xf'],
+      message: 'El valor final de x debe ser mayor que x₀.',
+    });
+    return;
+  }
+  const steps = (v.xf - v.x0) / v.h;
+  if (Math.abs(steps - Math.round(steps)) >= 1e-9 * Math.max(1, steps)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['h'],
+      message: 'h debe dividir el intervalo [x₀, x_f] en un número entero de pasos.',
+    });
+  } else if (steps > MAX_STEPS + 1e-9) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['h'],
+      message: `Son demasiados pasos (máximo ${MAX_STEPS}). Aumenta h.`,
+    });
+  }
+}
+
+export const odeInputSchema = z.object(odeShape).superRefine(refineOde);
 
 export type OdeInput = z.infer<typeof odeInputSchema>;
 
@@ -80,6 +99,10 @@ export interface Slope {
 export interface OdeRule {
   /** Columnas de pendientes en la tabla, en orden. */
   slopeColumns: TableColumn[];
+  /** Pasos previos al primer avance (p. ej. las derivadas del método de Taylor). */
+  introSteps?: Step[];
+  /** Título del paso i, si el método lo distingue (p. ej. "arranque con RK4"). */
+  stepTitle?(i: number): string | undefined;
   /** Calcula y_{i+1} a partir de (x_i, y_i) y explica el paso. */
   advance(
     f: ParsedExpression,
@@ -87,8 +110,17 @@ export interface OdeRule {
     x: number,
     y: number,
     h: number,
-  ): { yNext: number; slopes: Slope[]; update: Step };
+  ): { yNext: number; slopes: Slope[]; update: Step; extra?: Step[] };
 }
+
+/**
+ * Regla que se arma después de leer f y la solución exacta (p. ej. los métodos multipaso, que
+ * guardan la historia de los puntos). Devuelve un mensaje de error si no se puede construir.
+ */
+export type OdeRuleFactory = (
+  f: ParsedExpression,
+  exact: ParsedExpression | null,
+) => OdeRule | string;
 
 const n = toLatexNumber;
 
@@ -108,7 +140,7 @@ export function slopeStep(
   };
 }
 
-export function solveOde(input: OdeInput, rule: OdeRule): OdeResult {
+export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactory): OdeResult {
   const { x0, y0, h } = input;
   const parsed = parseFunction(input.expression, ['x', 'y']);
   if (!parsed.ok) {
@@ -133,6 +165,12 @@ export function solveOde(input: OdeInput, rule: OdeRule): OdeResult {
     exact = parsedExact.expr;
   }
 
+  const built = typeof ruleOrFactory === 'function' ? ruleOrFactory(f, exact) : ruleOrFactory;
+  if (typeof built === 'string') {
+    return { ok: false, error: { code: 'invalid-expression', message: built }, ...emptyTrace() };
+  }
+  const rule = built;
+
   const count = Math.round((input.xf - x0) / h);
   const xs = Array.from({ length: count + 1 }, (_, i) => x0 + i * h);
   const ys: number[] = [y0];
@@ -145,6 +183,7 @@ export function solveOde(input: OdeInput, rule: OdeRule): OdeResult {
       formula: `\\frac{dy}{dx} = ${f.tex}, \\qquad y(${n(x0)}) = ${n(y0)}`,
       result: exact ? `y_{\\text{exacta}}(x) = ${exact.tex}` : undefined,
     },
+    ...(rule.introSteps ?? []),
   ];
 
   const trueValues = exact ? xs.map((x) => exact.evaluate(x)) : null;
@@ -205,14 +244,15 @@ export function solveOde(input: OdeInput, rule: OdeRule): OdeResult {
   for (let i = 0; i < count; i++) {
     const x = xs[i]!;
     const y = ys[i]!;
-    const { yNext, slopes, update } = rule.advance(f, i, x, y, h);
+    const { yNext, slopes, update, extra } = rule.advance(f, i, x, y, h);
     slopeRows[i] = Object.fromEntries(slopes.map((s) => [s.key, s.value]));
 
     const detailed = count <= 2 * DETAILED_STEPS || i < DETAILED_STEPS || i === count - 1;
     if (detailed) {
+      const label = rule.stepTitle?.(i);
       steps.push({
-        title: `Paso ${i + 1}: de x = ${formatNumber(x)} a x = ${formatNumber(xs[i + 1]!)}`,
-        children: [...slopes.map((s) => s.step), update],
+        title: `Paso ${i + 1}: de x = ${formatNumber(x)} a x = ${formatNumber(xs[i + 1]!)}${label ? ` (${label})` : ''}`,
+        children: [...slopes.map((s) => s.step), update, ...(extra ?? [])],
       });
     } else if (i === DETAILED_STEPS) {
       steps.push({
