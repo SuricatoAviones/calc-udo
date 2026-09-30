@@ -71,7 +71,15 @@ Consúltalas al escribir UI o rutas.
 
 - `lib/calculators/metodos-numericos/`: `root-finding.ts` (campos, error aproximado, gráficas
   de convergencia), `bracketing.ts` (bisección y falsa posición), `integration.ts` (reglas de
-  Newton-Cotes), `ode.ts` + `ode-methods.ts` (métodos de un paso para EDO).
+  Newton-Cotes), `ode.ts` + `ode-methods.ts` (EDO: `odeShape`/`refineOde` para extender el
+  schema y `OdeRuleFactory` para reglas con estado, como los multipaso), `matrix.ts` (matrices del
+  formulario, eliminación con traza, sustitución hacia atrás, determinante), `polynomial.ts`
+  (coeficientes, división sintética, Ruffini) y `differences.ts` (listas x, y; diferencias hacia
+  adelante y divididas) (ADR-028).
+- `lib/calculators/estadistica-2/`: `hypothesis.ts` (región crítica, valor P, decisión y gráfica
+  de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
+  `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
+  (descomposición, índices estacionales, tendencia) (ADR-029).
 - `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ).
 - `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
 - `lib/calculators/estadistica-1/`: `discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf, con
@@ -93,15 +101,18 @@ Consúltalas al escribir UI o rutas.
   multiplicaciones sucesivas), `algorithms.ts` (listas y pseudocódigo) (ADR-022).
 - `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices, vectores,
   texto y fracciones en LaTeX; `latexLines`; `parseFraction` para probabilidades como 2/9),
-  `normal.ts` (Φ, Φ⁻¹ y densidad), `special.ts` (Γ, ln Γ, gamma y beta incompletas),
+  `normal.ts` (Φ, Φ⁻¹ y densidad), `distributions.ts` (t, χ² y F: densidad, F y cuantiles),
+  `special.ts` (Γ, ln Γ, gamma y beta incompletas),
   `quadrature.ts` (integral adaptativa con límites infinitos y detección de divergencia),
   `rational.ts` (fracciones exactas con `bigint`), `linear-algebra.ts`, `data-list.ts`,
   `error-metrics.ts`.
 - UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx` con la
   matriz rectangular, `TableField.tsx` para listas de filas). `Series.others` agrega líneas a
-  una gráfica (ADR-018) y `Series.region` sombrea una región (ADR-021). Campos por materia:
-  `optimizacion-de-operaciones/LpFields.tsx` y `TransportTableField.tsx`,
-  `logica-formal-y-algoritmos/FormulaField.tsx`. Buscador: `components/search/`
+  una gráfica (ADR-018), `Series.region` sombrea una región (ADR-021) y `Series.scatter` dibuja
+  puntos sueltos (ADR-030). Campos por materia: `optimizacion-de-operaciones/LpFields.tsx` y
+  `TransportTableField.tsx`, `logica-formal-y-algoritmos/FormulaField.tsx`,
+  `metodos-numericos/LinearSystemField.tsx` ([A | b]) y `PointsFields.tsx` (listas x, y),
+  `estadistica-2/TestFields.tsx` (H₁ y α). Buscador: `components/search/`
   (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
@@ -140,6 +151,12 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
 - Tanda 8 — Optimización de Operaciones completa: simplex algebraico y análisis post-óptimo
   (lado derecho, objetivo, coeficientes tecnológicos, nueva variable y nueva restricción), con
   tests contra Taha 10.ª ed. (ADR-026). Buscador de calculadoras (ADR-027). Versión **v0.5.0** ✅
+- Tanda 9 — Métodos Numéricos completo (errores, matrices, eliminación gaussiana, división
+  sintética, Bairstow, descenso más rápido, Newton para sistemas, diferencias, interpolación,
+  mínimos cuadrados, derivación, coeficientes indeterminados, Taylor, multipaso,
+  predictor-corrector; ADR-028) y Estadísticas II completa (regresión, correlación, pruebas de
+  hipótesis, errores tipo I y II, bondad de ajuste, no paramétricas, series de tiempo; ADR-029).
+  Releases de GitHub para todas las versiones. Versión **v0.6.0** ✅
 
 ## Versiones
 

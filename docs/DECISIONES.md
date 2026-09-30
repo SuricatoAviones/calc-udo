@@ -442,3 +442,73 @@ Plantilla:
   de todas las páginas aunque nadie busque. _Una librería de búsqueda difusa_: más peso por un
   índice pequeño. _Un combobox ARIA con `aria-activedescendant`_: los enlaces enfocables son más
   simples, funcionan con lectores de pantalla y permiten abrir en otra pestaña.
+
+## ADR-028 — Métodos Numéricos completos: casos de Chapra y núcleos compartidos
+
+- **Fecha:** 2026-09-30
+- **Estado:** Aceptada
+- **Decisión:** Las 16 calculadoras que faltaban de Métodos Numéricos se verifican contra Chapra &
+  Canale, 5.ª ed. en español, y cada test cita el ejemplo (3.1, 3.2, 4.1, 4.2, 4.4, 6.11, 7.1,
+  7.3, 9.2, 9.3, 9.5, 9.9, 10.3, 14.3, 14.4, 17.1, 17.2, 17.5, 18.1 a 18.3, 23.1, 25.2 y 26.2) o el
+  cuadro (PT3.2 y 9.1). La numeración se contrastó con la copia en línea de esa edición. Cuando el
+  libro no trae un ejemplo numérico (tabla de diferencias hacia adelante, métodos multipaso,
+  coeficientes indeterminados), el valor esperado se verifica analíticamente y el test lo dice:
+  por ejemplo, Adams-Bashforth de 4 pasos es exacto si f es un cúbico en x, así que debe reproducir
+  los valores verdaderos de la tabla 25.1. Núcleos nuevos: `matrix.ts` (eliminación hacia adelante
+  con la traza de cada operación de fila, sustitución hacia atrás y determinante),
+  `polynomial.ts` (coeficientes, división sintética, esquema de Ruffini) y `differences.ts`
+  (listas de puntos, diferencias hacia adelante y divididas). `ode.ts` acepta una fábrica de
+  reglas con estado (`OdeRuleFactory`) para los métodos multipaso y el predictor-corrector, y
+  campos propios (`odeShape` + `refineOde`). El predictor-corrector itera el corrector hasta la
+  tolerancia (con una iteración y el predictor de Euler coincide con `euler-modificado`, ADR-013);
+  los métodos multipaso aplican el corrector una sola vez por paso. El descenso más rápido obtiene
+  el paso óptimo con Newton sobre g′(h) (exacto en un paso si f es cuadrática, como en el
+  ejemplo 14.4) y, si no sirve, con la sección dorada. Los coeficientes indeterminados se resuelven
+  con fracciones exactas (`Rational`) para mostrar 1/3 y 4/3 como en el libro.
+- **Contexto:** El pensum lista 26 calculadoras de la materia y solo 10 estaban implementadas. Los
+  datos de algunos ejemplos se imprimen con menos cifras de las que el libro usa para calcular
+  (ln x con 6 decimales en el ejemplo 18.3; el error estándar 0.77345 redondeado a 0.7735): los
+  tests usan la precisión impresa y lo explican.
+- **Alternativas descartadas:** _Simular aritmética de k cifras para reproducir el 7.00003 del
+  ejemplo 9.5_: el redondeo intermedio del libro no se puede reconstruir con certeza. _Citar
+  números de ejemplos sin contrastarlos_: la numeración cambia entre ediciones (el ejemplo de
+  Bairstow es el 7.3 en esta edición y otro número en otras).
+
+## ADR-029 — Estadísticas II: distribuciones de muestreo calculadas y pruebas exactas
+
+- **Fecha:** 2026-09-30
+- **Estado:** Aceptada
+- **Decisión:** `lib/math/distributions.ts` calcula la densidad, la función de distribución y los
+  cuantiles de t, ji-cuadrada y F con las funciones gamma y beta incompletas (ADR-025); sus tests
+  comparan con las tablas A.4 a A.6 de Walpole. `estadistica-2/hypothesis.ts` es el núcleo de las
+  pruebas: región crítica con la notación del libro (valores críticos por el área a su derecha),
+  valor P, decisión y la gráfica de la densidad con la región de rechazo sombreada. Las pruebas de
+  rangos (signo, rangos con signo, Mann-Whitney) usan la distribución exacta del estadístico
+  (hasta n = 50 y n₁, n₂ ≤ 30), de la que salen los valores críticos de las tablas A.16 y A.17;
+  con muestras mayores, la aproximación normal. La bondad de ajuste combina las celdas con
+  frecuencia esperada menor que 5, como Walpole. Las series de tiempo usan la descomposición
+  multiplicativa (promedios móviles centrados, índices ajustados para sumar L, tendencia de la
+  serie desestacionalizada). Los casos de prueba vienen de Walpole, Myers, Myers y Ye, 9.ª ed.
+  (caps. 10, 11 y 16, identificados por sus datos) y, para series de tiempo, de Anderson, Sweeney
+  y Williams (ventas de bicicletas y de televisores), contrastados con ediciones recientes como en
+  los pronósticos de Modelos de Operaciones II.
+- **Contexto:** La bibliografía de Estadísticas II (Canavos, Meyer) no se pudo consultar ni trae
+  series de tiempo; Walpole está en la bibliografía de Estadísticas I y Anderson en la de Modelos
+  de Operaciones II. El libro lee z, t, χ² y F de tablas con 2 o 3 decimales (en el capítulo 11
+  usa t₀.₀₂₅ = 2.045 con 31 grados de libertad, cuyo valor exacto es 2.0395), así que los tests
+  comparan con la precisión impresa y lo explican.
+- **Alternativas descartadas:** _Guardar las tablas del libro_: solo cubren algunos α y grados de
+  libertad. _Aproximación normal siempre en las pruebas de rangos_: con muestras pequeñas no da los
+  valores críticos de las tablas (w = 8 para n = 10, u = 17 para 8 y 10).
+
+## ADR-030 — Puntos sueltos en las gráficas
+
+- **Fecha:** 2026-09-30
+- **Estado:** Aceptada
+- **Decisión:** `Series.scatter` dibuja puntos sin unir junto a la serie principal (una `Line` sin
+  trazo y con marcadores, que no dibuja nada en las filas sin dato). Lo usan la regresión, la
+  correlación, la interpolación y los mínimos cuadrados para mostrar los datos junto a la curva.
+- **Contexto:** Con `reference` los datos quedaban unidos por una línea punteada ordenada por x,
+  que sugiere una curva que no existe.
+- **Alternativas descartadas:** _El componente `Scatter` de Recharts dentro de la gráfica
+  compuesta_: comparte el arreglo de filas con la curva y habría que filtrar las filas sin dato.

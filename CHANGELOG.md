@@ -7,6 +7,49 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Métodos Numéricos** completo:
+  - errores de truncamiento y redondeo: error verdadero y relativo de una aproximación, corte y
+    redondeo a k cifras significativas y serie de Taylor orden por orden con criterio de parada;
+  - determinante (por cofactores o por eliminación de Gauss), operaciones con matrices (suma,
+    resta, producto por escalar, producto, transpuesta e inversa por Gauss-Jordan) y eliminación
+    gaussiana con pivoteo parcial y comprobación de la solución;
+  - división sintética con el esquema de Ruffini y transformación a potencias de (x − r), y
+    factores cuadráticos por el método de Bairstow (raíces reales y complejas);
+  - descenso (o ascenso) más rápido con paso óptimo y método de Newton para sistemas no lineales
+    de 2 o 3 ecuaciones con la matriz jacobiana;
+  - tabla de diferencias hacia adelante y divididas, interpolación de Newton (diferencias
+    divididas y Newton-Gregory) con grado creciente, y mínimos cuadrados con polinomios de grado
+    1 a 6;
+  - derivación por diferencias finitas (primera y segunda derivada, básica y de alta exactitud) y
+    método de coeficientes indeterminados, que deduce fórmulas de derivación o integración con su
+    error de truncamiento;
+  - método de Taylor de orden 1 a 4, métodos multipaso (Adams-Bashforth de 2, 3 y 4 pasos, Adams
+    de cuarto orden y Milne) y predictor-corrector con el corrector iterado.
+- **Estadísticas II** completa:
+  - regresión lineal simple con R², intervalos de confianza para β₀ y β₁, prueba de la
+    pendiente, respuesta media e intervalo de predicción;
+  - coeficiente de correlación de Pearson o de Spearman y prueba sobre ρ (t o transformación de
+    Fisher);
+  - pruebas de hipótesis sobre la media (z o t) y sobre la varianza (ji-cuadrada o F), con región
+    crítica, valor P y la gráfica de la región de rechazo;
+  - errores tipo I y II y función potencia (media normal o proporción binomial);
+  - prueba de bondad de ajuste con probabilidades dadas, Poisson, binomial o normal;
+  - pruebas no paramétricas: signo, rangos con signo de Wilcoxon, suma de rangos (Mann-Whitney)
+    con distribuciones exactas, y Kruskal-Wallis;
+  - análisis de series de tiempo (tendencia, índices estacionales, fluctuaciones cíclicas) y
+    pronósticos a corto y largo plazo.
+- Distribuciones t de Student, ji-cuadrada y F (densidad, función de distribución y cuantiles) en
+  `lib/math/`.
+- Las gráficas pueden mostrar datos como puntos sueltos junto a una curva ajustada.
+
+### Cambiado
+
+- El núcleo de EDO admite reglas con estado y campos propios; Euler, Heun y Runge-Kutta dan los
+  mismos resultados.
+- Los campos de matriz aceptan el texto del contador (filas en vez de estados).
+
 ## [0.5.0] — 2026-09-28
 
 ### Agregado
