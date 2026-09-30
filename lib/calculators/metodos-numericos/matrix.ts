@@ -8,7 +8,7 @@
  *   f_{ik} = a_{ik} / a_{kk},     R_i ← R_i − f_{ik} R_k
  *
  * Con pivoteo parcial (sec. 9.4.2), antes de eliminar se intercambia la fila k con la que tenga
- * el mayor |a_{ik}| en la columna. Cada intercambio cambia el signo del determinante (sec. 9.2.3):
+ * el mayor |a_{ik}| en la columna. Cada intercambio cambia el signo del determinante (cuadro 9.1):
  *
  *   det A = (−1)^p · a_{11} a_{22} ⋯ a_{nn}      (matriz triangular superior, p intercambios)
  */

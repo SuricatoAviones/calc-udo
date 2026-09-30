@@ -1,5 +1,5 @@
 /**
- * Método del descenso (o ascenso) más rápido con paso óptimo (Chapra & Canale, sec. 14.2.2):
+ * Método del descenso (o ascenso) más rápido con paso óptimo (Chapra & Canale, sec. 14.2):
  *
  *   ∇f = (∂f/∂x, ∂f/∂y)
  *   g(h) = f(x + h·d_x, y + h·d_y),   d = −∇f para minimizar, d = +∇f para maximizar
@@ -457,7 +457,7 @@ export const steepestDescent: Calculator<
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 14, sec. 14.2.2 (ascenso de máxima inclinación con paso óptimo, ejemplo 14.4: f = 2xy + 2x − x² − 2y² desde (−1, 1)), 5.ª ed. en español',
+          'Cap. 14, sec. 14.2, ejemplos 14.3 y 14.4 (ascenso optimal de máxima inclinación: f = 2xy + 2x − x² − 2y² desde (−1, 1)), 5.ª ed. en español',
       },
       { sourceId: 'smith-1993' },
       { sourceId: 'nakamura-1994' },

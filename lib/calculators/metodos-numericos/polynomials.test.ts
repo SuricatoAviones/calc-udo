@@ -17,7 +17,7 @@ function fail<T extends { ok: boolean }>(result: T) {
 }
 
 describe('División sintética', () => {
-  // Sec. 7.2.2 (deflación polinomial): f(x) = (x − 4)(x + 6) = x² + 2x − 24; al dividir entre
+  // Ejemplo 7.1 (deflación polinomial): f(x) = (x − 4)(x + 6) = x² + 2x − 24; al dividir entre
   // x − 4 queda el cociente x + 6 con residuo 0.
   it('Chapra: x² + 2x − 24 entre x − 4', () => {
     const { value } = ok(synthetic.solve(synthetic.example));
@@ -64,7 +64,7 @@ describe('División sintética', () => {
 });
 
 describe('Método de Bairstow', () => {
-  // Sec. 7.5, ejemplo del método de Bairstow: f₅(x) = x⁵ − 3.5x⁴ + 2.75x³ + 2.125x² − 3.875x + 1.25
+  // Sec. 7.5, ejemplo 7.3 (método de Bairstow): f₅(x) = x⁵ − 3.5x⁴ + 2.75x³ + 2.125x² − 3.875x + 1.25
   // con r = s = −1 y εs = 1 %. Primera iteración: b₅ = 1, b₄ = −4.5, b₃ = 6.25, b₂ = 0.375,
   // b₁ = −10.5, b₀ = 11.375; c₅ = 1, c₄ = −5.5, c₃ = 10.75, c₂ = −4.875, c₁ = −16.375;
   // Δr = 0.3558, Δs = 1.1381, r = −0.6442, s = 0.1381, εa,r = 55.23 %, εa,s = 824.1 %.

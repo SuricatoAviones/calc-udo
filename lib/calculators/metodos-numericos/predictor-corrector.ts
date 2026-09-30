@@ -213,7 +213,7 @@ export const predictorCorrector: Calculator<PredictorCorrectorInput, OdeValue, O
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 25, sec. 25.2.1 (Heun con corrector iterado, ejemplo 25.5 y tabla 25.2) y cap. 26, sec. 26.2.1 (método de Heun sin autoinicio), 5.ª ed. en español',
+          'Cap. 25, sec. 25.2.1 (Heun con corrector iterado, ejemplo 25.5 y tabla 25.2) y cap. 26, sec. 26.2.1, ejemplo 26.2 (método de Heun sin autoinicio), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'ledanois-2000' },

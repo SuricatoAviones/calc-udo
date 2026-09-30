@@ -120,7 +120,7 @@ describe('Mínimos cuadrados', () => {
     expect(value.r!).toBeCloseTo(0.932, 3);
   });
 
-  // Sec. 17.2, ejemplo de regresión polinomial: x = 0, …, 5; y = 2.1, 7.7, 13.6, 27.2, 40.9, 61.1.
+  // Sec. 17.2, ejemplo 17.5 (regresión polinomial): x = 0, …, 5; y = 2.1, 7.7, 13.6, 27.2, 40.9, 61.1.
   // Σx = 15, Σx² = 55, Σx³ = 225, Σx⁴ = 979, Σy = 152.6, Σxy = 585.6, Σx²y = 2 488.8;
   // y = 2.47857 + 2.35929x + 1.86071x², s_{y/x} = 1.12, r² = 0.99851.
   it('Chapra: regresión polinomial de segundo grado', () => {

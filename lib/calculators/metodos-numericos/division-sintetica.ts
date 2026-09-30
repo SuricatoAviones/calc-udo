@@ -1,6 +1,6 @@
 /**
- * División sintética entre (x − r) y transformación del polinomio (Chapra & Canale, sec. 7.2.1 y
- * 7.2.2; Nakamura, cap. de raíces de polinomios).
+ * División sintética entre (x − r) y transformación del polinomio (Chapra & Canale, sec. 7.2,
+ * ejemplo 7.1; Nakamura, cap. de raíces de polinomios).
  *
  * Dividir:      P(x) = (x − r) Q(x) + R,   con R = P(r) (teorema del residuo).
  * Transformar:  dividiendo una y otra vez los cocientes entre (x − r), los residuos son los
@@ -242,7 +242,7 @@ export const syntheticDivisionCalculator: Calculator<
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 7, sec. 7.2.1 (evaluación de polinomios) y 7.2.2 (deflación: x² + 2x − 24 entre x − 4), 5.ª ed. en español',
+          'Cap. 7, sec. 7.2 (cálculos con polinomios), ejemplo 7.1 (deflación polinomial: −24 + 2x + x² entre x − 4), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'smith-1993' },

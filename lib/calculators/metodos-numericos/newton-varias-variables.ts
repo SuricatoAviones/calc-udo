@@ -296,7 +296,7 @@ export const newtonSystem: Calculator<NewtonSystemInput, NewtonSystemValue, Newt
         {
           sourceId: 'chapra-canale-2000',
           locator:
-            'Cap. 6, sec. 6.6.2 (Newton-Raphson para sistemas no lineales, ejemplo u = x² + xy − 10, v = y + 3xy² − 57 desde (1.5, 3.5)), 5.ª ed. en español',
+            'Cap. 6, sec. 6.6.2, ejemplo 6.11 (Newton-Raphson para un sistema no lineal: u = x² + xy − 10, v = y + 3xy² − 57 desde (1.5, 3.5)), 5.ª ed. en español',
         },
         { sourceId: 'nakamura-1994' },
         { sourceId: 'smith-1993' },

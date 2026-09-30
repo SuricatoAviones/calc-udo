@@ -127,7 +127,7 @@ describe('Métodos multipaso', () => {
 });
 
 describe('Predictor-corrector', () => {
-  // Sec. 26.2.1, método de Heun sin autoinicio: y' = 4e^{0.8x} − 0.5y, y(0) = 2, h = 1, con
+  // Sec. 26.2.1, ejemplo 26.2 (método de Heun sin autoinicio): y' = 4e^{0.8x} − 0.5y, y(0) = 2, h = 1, con
   // y₋₁ = −0.3929953 de la solución exacta. Primer paso: predictor y⁰₁ = −0.3929953 + 3(2) =
   // 5.607005; el corrector da 6.549331, 6.313749, … y converge a 6.360865 (εt = −2.68 %).
   // Segundo paso: predictor y⁰₂ = 2 + 2·f(1, 6.360865) = 13.44346; converge a 15.30224

@@ -16,7 +16,7 @@ function fail<T extends { ok: boolean }>(result: T) {
   return result as Extract<T, { ok: false }>;
 }
 
-/** Sistema del ejemplo de eliminación de Gauss simple de Chapra (sec. 9.2). */
+/** Sistema del ejemplo de eliminación de Gauss simple de Chapra (ejemplo 9.5). */
 const CHAPRA_SYSTEM = [
   [3, -0.1, -0.2, 7.85],
   [0.1, 7, -0.3, -19.3],
@@ -25,7 +25,7 @@ const CHAPRA_SYSTEM = [
 const CHAPRA_A = CHAPRA_SYSTEM.map((row) => row.slice(0, 3));
 
 describe('Determinante', () => {
-  // Sec. 9.1.2, regla de Cramer: 0.3x₁ + 0.52x₂ + x₃ = −0.01, 0.5x₁ + x₂ + 1.9x₃ = 0.67,
+  // Ejemplo 9.3 (regla de Cramer): 0.3x₁ + 0.52x₂ + x₃ = −0.01, 0.5x₁ + x₂ + 1.9x₃ = 0.67,
   // 0.1x₁ + 0.3x₂ + 0.5x₃ = −0.44. Menores A₁ = −0.07, A₂ = 0.06, A₃ = 0.05 y
   // D = 0.3(−0.07) − 0.52(0.06) + 1(0.05) = −0.0022.
   it('por cofactores reproduce D = −0.0022 y sus menores', () => {
@@ -41,8 +41,8 @@ describe('Determinante', () => {
     expect(result.value.determinant).toBeCloseTo(-0.0022, 12);
   });
 
-  // Sec. 9.2.3: el determinante del sistema del ejemplo de eliminación de Gauss es el producto de
-  // la diagonal de la matriz triangular, D = 3(7.00333)(10.0120) = 210.353.
+  // Cuadro 9.1 (evaluación de determinantes usando la eliminación de Gauss) aplicado a la matriz
+  // triangular del ejemplo 9.5: D = 3(7.00333)(10.0120) = 210.353 (producto de la diagonal).
   it('Chapra: D = 3(7.00333)(10.0120) = 210.353', () => {
     const result = ok(determinant.solve({ matrix: CHAPRA_A, method: 'gauss' }));
     expect(result.value.determinant).toBeCloseTo(210.353, 2);
@@ -50,7 +50,7 @@ describe('Determinante', () => {
     expect(cofactors.value.determinant).toBeCloseTo(result.value.determinant, 10);
   });
 
-  // Sec. 9.1.2: determinantes de los sistemas de 2 × 2 de las figuras 9.1 y 9.2:
+  // Ejemplo 9.2 (determinantes de los sistemas de 2 × 2 de las figuras 9.1 y 9.2):
   // 3(2) − 2(−1) = 8; rectas paralelas −½(1) − 1(−½) = 0; casi paralelas −½(1) − 1(−2.3/5) = −0.04.
   it('Chapra: sistemas de 2 × 2 (8, 0 y −0.04)', () => {
     const det = (matrix: number[][]) =>
@@ -124,7 +124,7 @@ describe('Determinante', () => {
 });
 
 describe('Eliminación gaussiana', () => {
-  // Sec. 9.2, ejemplo de eliminación de Gauss simple: 3x₁ − 0.1x₂ − 0.2x₃ = 7.85,
+  // Ejemplo 9.5 (eliminación de Gauss simple): 3x₁ − 0.1x₂ − 0.2x₃ = 7.85,
   // 0.1x₁ + 7x₂ − 0.3x₃ = −19.3, 0.3x₁ − 0.2x₂ + 10x₃ = 71.4. El libro trabaja con 6 cifras:
   // tras la primera etapa 7.00333x₂ − 0.293333x₃ = −19.5617 y −0.190000x₂ + 10.0200x₃ = 70.6150;
   // tras la segunda 10.0120x₃ = 70.0843. Resultado x₃ = 7.00003, x₂ = −2.50000, x₁ = 3.00000
@@ -160,7 +160,7 @@ describe('Eliminación gaussiana', () => {
     for (const r of result.value.residuals) expect(Math.abs(r)).toBeLessThan(1e-12);
   });
 
-  // Sec. 9.4.2, ejemplo de pivoteo parcial: 0.0003x₁ + 3.0000x₂ = 2.0001, x₁ + x₂ = 1, con
+  // Ejemplo 9.9 (pivoteo parcial): 0.0003x₁ + 3.0000x₂ = 2.0001, x₁ + x₂ = 1, con
   // solución exacta x₁ = 1/3, x₂ = 2/3. Con pivoteo, la primera ecuación pasa a ser la segunda.
   it('pivoteo parcial intercambia las filas del ejemplo de Chapra', () => {
     const pivot = ok(
@@ -207,9 +207,9 @@ describe('Eliminación gaussiana', () => {
 });
 
 describe('Operaciones con matrices', () => {
-  // Parte 3, figura PT3.2: [3 1; 8 6; 0 4] × [5 9; 7 2] = [22 29; 82 84; 28 8]
-  // (c₁₁ = 3 × 5 + 1 × 7 = 22).
-  it('producto de la figura PT3.2', () => {
+  // Parte 3, cuadro PT3.2 (un método simple para multiplicar dos matrices):
+  // [3 1; 8 6; 0 4] × [5 9; 7 2] = [22 29; 82 84; 28 8] (c₁₁ = 3 × 5 + 1 × 7 = 22).
+  it('producto del cuadro PT3.2', () => {
     const result = ok(operations.solve(operations.example));
     expect(result.value.result).toEqual([
       [22, 29],
@@ -218,7 +218,7 @@ describe('Operaciones con matrices', () => {
     ]);
   });
 
-  // Sec. 10.2, ejemplo de la matriz inversa: la inversa de la matriz del ejemplo de eliminación
+  // Sec. 10.2, ejemplo 10.3 (inversión de matrices): la inversa de la matriz del ejemplo de eliminación
   // de Gauss es
   //   [ 0.33249   0.004944  0.006798
   //    −0.00518   0.142903  0.004183

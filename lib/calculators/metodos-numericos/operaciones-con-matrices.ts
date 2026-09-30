@@ -341,7 +341,7 @@ export const matrixOperationsCalculator: Calculator<
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Parte 3, sec. PT3.2.2 (reglas de operaciones con matrices, figura PT3.2 del producto) y sec. 10.2 (la matriz inversa), 5.ª ed. en español',
+          'Parte 3, sec. PT3.2 (reglas de operaciones con matrices; cuadro PT3.2, un método simple para multiplicar dos matrices) y sec. 10.2, ejemplo 10.3 (inversión de matrices), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'smith-1993' },

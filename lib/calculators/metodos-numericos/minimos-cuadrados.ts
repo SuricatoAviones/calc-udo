@@ -292,7 +292,7 @@ export const leastSquares: Calculator<LeastSquaresInput, LeastSquaresValue, Leas
         {
           sourceId: 'chapra-canale-2000',
           locator:
-            'Cap. 17, sec. 17.1 (regresión lineal, ejemplos 17.1 y 17.2) y sec. 17.2 (regresión polinomial, ejemplo de segundo grado), 5.ª ed. en español',
+            'Cap. 17, sec. 17.1, ejemplos 17.1 y 17.2 (regresión lineal) y sec. 17.2, ejemplo 17.5 (regresión polinomial), 5.ª ed. en español',
         },
         { sourceId: 'nakamura-1994' },
         { sourceId: 'smith-1993' },

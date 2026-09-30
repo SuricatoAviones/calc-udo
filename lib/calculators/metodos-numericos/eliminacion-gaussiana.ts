@@ -164,7 +164,7 @@ export function solveGaussElimination(
   steps.push({
     ...det.step,
     title: 'De paso: el determinante de A',
-    explanation: `${det.step.explanation} (Chapra, sec. 9.2.3.)`,
+    explanation: `${det.step.explanation} (Chapra, cuadro 9.1.)`,
   });
 
   const summary: SummaryItem[] = [
@@ -228,7 +228,7 @@ export const gaussElimination: Calculator<
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 9, sec. 9.2 (eliminación de Gauss simple, ejemplo 3x₁ − 0.1x₂ − 0.2x₃ = 7.85) y sec. 9.4.2 (pivoteo parcial), 5.ª ed. en español',
+          'Cap. 9, sec. 9.2, ejemplo 9.5 (eliminación de Gauss simple) y sec. 9.4.2, ejemplo 9.9 (pivoteo parcial), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'smith-1993' },

@@ -103,7 +103,7 @@ describe('Descenso (ascenso) más rápido', () => {
 });
 
 describe('Newton-Raphson para sistemas no lineales', () => {
-  // Sec. 6.6.2: u(x, y) = x² + xy − 10 = 0, v(x, y) = y + 3xy² − 57 = 0 desde x = 1.5, y = 3.5.
+  // Sec. 6.6.2, ejemplo 6.11: u(x, y) = x² + xy − 10 = 0, v(x, y) = y + 3xy² − 57 = 0 desde x = 1.5, y = 3.5.
   // ∂u/∂x = 6.5, ∂u/∂y = 1.5, ∂v/∂x = 36.75, ∂v/∂y = 32.5; det J = 156.125; u₀ = −2.5,
   // v₀ = 1.625; x₁ = 2.03603, y₁ = 2.84388. Converge a la raíz x = 2, y = 3.
   const result = ok(newtonSystem.solve(newtonSystem.example));

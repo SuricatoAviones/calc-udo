@@ -1,5 +1,5 @@
 /**
- * Determinante de una matriz cuadrada (Chapra & Canale, sec. 9.1.2 y 9.2.3):
+ * Determinante de una matriz cuadrada (Chapra & Canale, sec. 9.1.2 y cuadro 9.1):
  *
  * - Por cofactores (expansión por la primera fila):
  *     D = Σⱼ (−1)^{1+j} a_{1j} M_{1j},   con 2 × 2: D = a₁₁a₂₂ − a₁₂a₂₁
@@ -186,7 +186,7 @@ export const determinant: Calculator<DeterminantInput, DeterminantValue, Determi
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 9, sec. 9.1.2 (determinantes y regla de Cramer, ejemplo con D = −0.0022) y sec. 9.2.3 (determinante con eliminación de Gauss), 5.ª ed. en español',
+          'Cap. 9, sec. 9.1.2, ejemplos 9.2 (determinantes) y 9.3 (regla de Cramer, D = −0.0022), y cuadro 9.1 (evaluación de determinantes usando la eliminación de Gauss), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'smith-1993' },

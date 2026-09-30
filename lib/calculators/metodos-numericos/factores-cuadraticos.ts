@@ -354,7 +354,7 @@ export const bairstow: Calculator<BairstowInput, BairstowValue, BairstowErrorCod
       {
         sourceId: 'chapra-canale-2000',
         locator:
-          'Cap. 7, sec. 7.5 (método de Bairstow, ejemplo con f₅(x) = x⁵ − 3.5x⁴ + 2.75x³ + 2.125x² − 3.875x + 1.25), 5.ª ed. en español',
+          'Cap. 7, sec. 7.5, ejemplo 7.3 (método de Bairstow con f₅(x) = x⁵ − 3.5x⁴ + 2.75x³ + 2.125x² − 3.875x + 1.25), 5.ª ed. en español',
       },
       { sourceId: 'nakamura-1994' },
       { sourceId: 'smith-1993' },
