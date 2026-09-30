@@ -7,6 +7,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [0.6.0] — 2026-09-30
+
 ### Agregado
 
 - **Métodos Numéricos** completo:
@@ -169,7 +171,8 @@ Primera versión etiquetada.
   enlazadas desde el pie de página.
 - Versión de la aplicación visible en el pie de página.
 
-[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.5.0...HEAD
+[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.6.0
 [0.5.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.5.0
 [0.4.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.4.0
 [0.3.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.3.0
