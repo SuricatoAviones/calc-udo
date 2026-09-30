@@ -131,6 +131,13 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'cola-mm1': () => import('./teoria-de-colas/MM1'),
   'cola-mms': () => import('./teoria-de-colas/MMS'),
   'cola-mm1k': () => import('./teoria-de-colas/MM1K'),
+  'cola-poblacion-finita': () => import('./teoria-de-colas/FinitePopulation'),
+  'costos-de-colas': () => import('./teoria-de-colas/QueueCost'),
+  'perdida-de-erlang': () => import('./teoria-de-colas/ErlangLoss'),
+  'colas-con-prioridad': () => import('./teoria-de-colas/PriorityQueue'),
+  'cola-mg1': () => import('./teoria-de-colas/MG1'),
+  'colas-en-serie': () => import('./teoria-de-colas/SeriesQueue'),
+  'redes-de-jackson': () => import('./teoria-de-colas/Jackson'),
 };
 
 export const implementedCalculatorIds: ReadonlySet<string> = new Set(

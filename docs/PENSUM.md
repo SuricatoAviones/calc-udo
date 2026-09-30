@@ -37,7 +37,7 @@ para que el mapa esté completo.
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 2 | 0 | 5 |
-| 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 3 | 0 | 7 |
+| 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
 | 071-4903 | [Teoría de Sobrevivencia](#teoria-de-sobrevivencia) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 0 | 0 | 4 |
 
 ---
@@ -368,13 +368,13 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad I — Pronósticos | ↪︎ Regresión lineal simple | ✅ Implementada | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
 | Unidad I — Pronósticos | Comparación de métodos de pronóstico | 🗺️ Roadmap | `/modelos-de-operaciones-2/pronosticos/seleccion-de-metodo-de-pronostico/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
-| Unidad II — Teoría de colas | ↪︎ Modelo M/G/1 | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo M/G/1 | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
-| Unidad II — Teoría de colas | ↪︎ Modelo de pérdida de Erlang | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
-| Unidad II — Teoría de colas | ↪︎ Colas en serie | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
-| Unidad II — Teoría de colas | ↪︎ Redes de Jackson | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
-| Unidad II — Teoría de colas | ↪︎ Colas con prioridad | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
+| Unidad II — Teoría de colas | ↪︎ Modelo de pérdida de Erlang | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
+| Unidad II — Teoría de colas | ↪︎ Colas en serie | ✅ Implementada | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
+| Unidad II — Teoría de colas | ↪︎ Redes de Jackson | ✅ Implementada | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
+| Unidad II — Teoría de colas | ↪︎ Colas con prioridad | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
 | Unidad III — Modelos de inventarios | Cantidad económica de pedido (EOQ) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq/` |
 | Unidad III — Modelos de inventarios | EOQ con faltantes planeados | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq-con-faltantes/` |
 | Unidad III — Modelos de inventarios | Lote económico de producción | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/lote-economico-de-produccion/` |
@@ -442,8 +442,8 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
-| Unidad III — Fenómenos de espera | ↪︎ Modelo con población finita | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
-| Unidad III — Fenómenos de espera | ↪︎ Análisis de costos | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
+| Unidad III — Fenómenos de espera | ↪︎ Modelo con población finita | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
+| Unidad III — Fenómenos de espera | ↪︎ Análisis de costos | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
 | Unidad IV — Otros procesos estocásticos | Proceso de Poisson | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/proceso-de-poisson/` |
 | Unidad IV — Otros procesos estocásticos | Caminata aleatoria | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/caminata-aleatoria/` |
 | Unidad IV — Otros procesos estocásticos | Proceso de nacimiento y muerte | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
@@ -475,14 +475,14 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
 | Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
 | Unidad II — Modelos con distribuciones exponenciales | Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
-| Unidad II — Modelos con distribuciones exponenciales | Modelo con población finita | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
-| Unidad II — Modelos con distribuciones exponenciales | Análisis de costos | 🗺️ Roadmap | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
-| Unidad III — Otras aplicaciones | Modelo de pérdida de Erlang | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
-| Unidad III — Otras aplicaciones | Colas con prioridad | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
-| Unidad III — Otras aplicaciones | Modelo M/G/1 | 🗺️ Roadmap | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
+| Unidad II — Modelos con distribuciones exponenciales | Modelo con población finita | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
+| Unidad II — Modelos con distribuciones exponenciales | Análisis de costos | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
+| Unidad III — Otras aplicaciones | Modelo de pérdida de Erlang | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
+| Unidad III — Otras aplicaciones | Colas con prioridad | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
+| Unidad III — Otras aplicaciones | Modelo M/G/1 | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
 | Unidad III — Otras aplicaciones | ↪︎ Proceso de nacimiento y muerte | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
-| Unidad IV — Redes de colas | Colas en serie | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
-| Unidad IV — Redes de colas | Redes de Jackson | 🗺️ Roadmap | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
+| Unidad IV — Redes de colas | Colas en serie | ✅ Implementada | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
+| Unidad IV — Redes de colas | Redes de Jackson | ✅ Implementada | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
 
 **Bibliografía**
 

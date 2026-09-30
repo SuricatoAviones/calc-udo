@@ -142,6 +142,42 @@ export function probabilityTrace(
   };
 }
 
+export function factorial(k: number): number {
+  let result = 1;
+  for (let i = 2; i <= k; i++) result *= i;
+  return result;
+}
+
+/** Medidas de desempeño de una estación M/M/s (Taha, sec. 17.6.3; Hillier, sec. 17.6). */
+export interface MmsMeasures {
+  /** Carga ofrecida r = λ/μ. */
+  r: number;
+  /** Utilización ρ = λ/(sμ). */
+  rho: number;
+  p0: number;
+  /** Probabilidad de que un cliente tenga que esperar, P(n ≥ s) (fórmula C de Erlang). */
+  waitProbability: number;
+  Lq: number;
+  L: number;
+  Wq: number;
+  W: number;
+}
+
+/** M/M/s en estado estable, o `null` si ρ ≥ 1. Con λ = 0 el sistema está siempre vacío. */
+export function mmsMeasures(lambda: number, mu: number, s: number): MmsMeasures | null {
+  const r = lambda / mu;
+  const rho = r / s;
+  if (rho >= 1) return null;
+  let sum = 0;
+  for (let k = 0; k < s; k++) sum += r ** k / factorial(k);
+  const tail = r ** s / (factorial(s) * (1 - rho));
+  const p0 = 1 / (sum + tail);
+  const waitProbability = tail * p0;
+  const Lq = (waitProbability * rho) / (1 - rho);
+  const Wq = lambda > 0 ? Lq / lambda : 0;
+  return { r, rho, p0, waitProbability, Lq, L: Lq + r, Wq, W: Wq + 1 / mu };
+}
+
 /** Falla por inestabilidad (ρ ≥ 1): la cola crece sin límite. */
 export function unstable(steps: Step[], rho: number): QueueResult {
   return {
