@@ -126,6 +126,11 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Procesos Estocásticos
   'transicion-en-n-pasos': () => import('./procesos-estocasticos/NStepTransition'),
   'estado-estable': () => import('./procesos-estocasticos/SteadyState'),
+  'clasificacion-de-estados': () => import('./procesos-estocasticos/StateClassification'),
+  'proceso-de-poisson': () => import('./procesos-estocasticos/PoissonProcess'),
+  'caminata-aleatoria': () => import('./procesos-estocasticos/RandomWalk'),
+  'nacimiento-y-muerte': () => import('./procesos-estocasticos/BirthDeath'),
+  simulacion: () => import('./procesos-estocasticos/Simulation'),
 
   // Teoría de Colas
   'cola-mm1': () => import('./teoria-de-colas/MM1'),

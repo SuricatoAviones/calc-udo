@@ -36,7 +36,7 @@ para que el mapa esté completo.
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 0 | 0 | 8 |
-| 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 2 | 0 | 5 |
+| 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
 | 071-4903 | [Teoría de Sobrevivencia](#teoria-de-sobrevivencia) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 0 | 0 | 4 |
 
@@ -437,17 +437,17 @@ de esta materia; solo aparece en la malla curricular.
 |---|---|---|---|
 | Unidad I — Aspectos generales | _Tema conceptual, sin calculadora_ | — | — |
 | Unidad II — Cadenas de Markov | Probabilidades de transición en n pasos | ✅ Implementada | `/procesos-estocasticos/cadenas-de-markov/transicion-en-n-pasos/` |
-| Unidad II — Cadenas de Markov | Clasificación de estados | 🗺️ Roadmap | `/procesos-estocasticos/cadenas-de-markov/clasificacion-de-estados/` |
+| Unidad II — Cadenas de Markov | Clasificación de estados | ✅ Implementada | `/procesos-estocasticos/cadenas-de-markov/clasificacion-de-estados/` |
 | Unidad II — Cadenas de Markov | Probabilidades de estado estable | ✅ Implementada | `/procesos-estocasticos/cadenas-de-markov/estado-estable/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo M/M/1/K | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1k/` |
 | Unidad III — Fenómenos de espera | ↪︎ Modelo con población finita | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-poblacion-finita/` |
 | Unidad III — Fenómenos de espera | ↪︎ Análisis de costos | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/costos-de-colas/` |
-| Unidad IV — Otros procesos estocásticos | Proceso de Poisson | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/proceso-de-poisson/` |
-| Unidad IV — Otros procesos estocásticos | Caminata aleatoria | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/caminata-aleatoria/` |
-| Unidad IV — Otros procesos estocásticos | Proceso de nacimiento y muerte | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
-| Unidad IV — Otros procesos estocásticos | Simulación | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/simulacion/` |
+| Unidad IV — Otros procesos estocásticos | Proceso de Poisson | ✅ Implementada | `/procesos-estocasticos/otros-procesos/proceso-de-poisson/` |
+| Unidad IV — Otros procesos estocásticos | Caminata aleatoria | ✅ Implementada | `/procesos-estocasticos/otros-procesos/caminata-aleatoria/` |
+| Unidad IV — Otros procesos estocásticos | Proceso de nacimiento y muerte | ✅ Implementada | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
+| Unidad IV — Otros procesos estocásticos | Simulación | ✅ Implementada | `/procesos-estocasticos/otros-procesos/simulacion/` |
 
 **Bibliografía**
 
@@ -480,7 +480,7 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad III — Otras aplicaciones | Modelo de pérdida de Erlang | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/perdida-de-erlang/` |
 | Unidad III — Otras aplicaciones | Colas con prioridad | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
 | Unidad III — Otras aplicaciones | Modelo M/G/1 | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
-| Unidad III — Otras aplicaciones | ↪︎ Proceso de nacimiento y muerte | 🗺️ Roadmap | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
+| Unidad III — Otras aplicaciones | ↪︎ Proceso de nacimiento y muerte | ✅ Implementada | `/procesos-estocasticos/otros-procesos/nacimiento-y-muerte/` |
 | Unidad IV — Redes de colas | Colas en serie | ✅ Implementada | `/teoria-de-colas/redes-de-colas/colas-en-serie/` |
 | Unidad IV — Redes de colas | Redes de Jackson | ✅ Implementada | `/teoria-de-colas/redes-de-colas/redes-de-jackson/` |
 
