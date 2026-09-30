@@ -28,7 +28,7 @@ para que el mapa esté completo.
 | 008-2814 | [Matemáticas III](#matematicas-3) | Semestre III | Matemáticas II (008-1824) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 008-2824 | [Matemáticas IV](#matematicas-4) | Semestre IV | Matemáticas III (008-2814) | 4 (3T-3P) | ⏳ | ⏳ | ⏳ |
 | 072-1162 | [Introducción a la Lógica Formal y Algoritmos](#logica-formal-y-algoritmos) | Semestre II | Ninguna | 2 (2T-0P) | 7 | 0 | 0 |
-| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 10 | 0 | 16 |
+| 072-3913 | [Métodos Numéricos](#metodos-numericos) | Semestre V | Matemáticas IV (008-2824) / Programación Orientada a Objetos (072-2103, fuera de esta rama) | 3 (2T-2P) | 26 | 0 | 0 |
 | 062-3313 | [Estadísticas I](#estadistica-1) | Semestre IV | Matemáticas III (008-2814) | 3 (3T-0P) | 22 | 0 | 0 |
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 0 | 0 | 9 |
@@ -128,31 +128,31 @@ de esta materia; solo aparece en la malla curricular.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
-| Modelos matemáticos y errores | Errores de truncamiento y redondeo | 🗺️ Roadmap | `/metodos-numericos/modelos-y-errores/errores-numericos/` |
-| Determinantes y matrices | Determinante de una matriz | 🗺️ Roadmap | `/metodos-numericos/determinantes-y-matrices/determinante/` |
-| Determinantes y matrices | Operaciones con matrices | 🗺️ Roadmap | `/metodos-numericos/determinantes-y-matrices/operaciones-con-matrices/` |
-| Eliminación gaussiana y pivoteo | Eliminación gaussiana con pivoteo | 🗺️ Roadmap | `/metodos-numericos/sistemas-de-ecuaciones-lineales/eliminacion-gaussiana/` |
+| Modelos matemáticos y errores | Errores de truncamiento y redondeo | ✅ Implementada | `/metodos-numericos/modelos-y-errores/errores-numericos/` |
+| Determinantes y matrices | Determinante de una matriz | ✅ Implementada | `/metodos-numericos/determinantes-y-matrices/determinante/` |
+| Determinantes y matrices | Operaciones con matrices | ✅ Implementada | `/metodos-numericos/determinantes-y-matrices/operaciones-con-matrices/` |
+| Eliminación gaussiana y pivoteo | Eliminación gaussiana con pivoteo | ✅ Implementada | `/metodos-numericos/sistemas-de-ecuaciones-lineales/eliminacion-gaussiana/` |
 | Raíces de ecuaciones | Método de bisección | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/biseccion/` |
 | Raíces de ecuaciones | Método de la falsa posición | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/falsa-posicion/` |
 | Raíces de ecuaciones | Método de la secante | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/secante/` |
 | Raíces de ecuaciones | Método de Newton-Raphson | ✅ Implementada | `/metodos-numericos/raices-de-ecuaciones/newton-raphson/` |
-| Transformación de polinomios y división sintética | División sintética | 🗺️ Roadmap | `/metodos-numericos/polinomios/division-sintetica/` |
-| Transformación de polinomios y división sintética | Factores cuadráticos (método de Bairstow) | 🗺️ Roadmap | `/metodos-numericos/polinomios/factores-cuadraticos/` |
-| Descenso más rápido y método de Newton | Método del descenso más rápido | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/descenso-mas-rapido/` |
-| Descenso más rápido y método de Newton | Método de Newton para varias variables | 🗺️ Roadmap | `/metodos-numericos/descenso-mas-rapido/newton-varias-variables/` |
-| Diferencias finitas, interpolación y aproximación | Tabla de diferencias | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/tabla-de-diferencias/` |
-| Diferencias finitas, interpolación y aproximación | Interpolación con fórmulas de Newton | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/interpolacion-de-newton/` |
-| Diferencias finitas, interpolación y aproximación | Aproximación por mínimos cuadrados | 🗺️ Roadmap | `/metodos-numericos/diferencias-e-interpolacion/minimos-cuadrados/` |
+| Transformación de polinomios y división sintética | División sintética | ✅ Implementada | `/metodos-numericos/polinomios/division-sintetica/` |
+| Transformación de polinomios y división sintética | Factores cuadráticos (método de Bairstow) | ✅ Implementada | `/metodos-numericos/polinomios/factores-cuadraticos/` |
+| Descenso más rápido y método de Newton | Método del descenso más rápido | ✅ Implementada | `/metodos-numericos/descenso-mas-rapido/descenso-mas-rapido/` |
+| Descenso más rápido y método de Newton | Método de Newton para varias variables | ✅ Implementada | `/metodos-numericos/descenso-mas-rapido/newton-varias-variables/` |
+| Diferencias finitas, interpolación y aproximación | Tabla de diferencias | ✅ Implementada | `/metodos-numericos/diferencias-e-interpolacion/tabla-de-diferencias/` |
+| Diferencias finitas, interpolación y aproximación | Interpolación con fórmulas de Newton | ✅ Implementada | `/metodos-numericos/diferencias-e-interpolacion/interpolacion-de-newton/` |
+| Diferencias finitas, interpolación y aproximación | Aproximación por mínimos cuadrados | ✅ Implementada | `/metodos-numericos/diferencias-e-interpolacion/minimos-cuadrados/` |
 | Integración numérica | Regla rectangular | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-rectangular/` |
 | Integración numérica | Regla trapezoidal | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-trapezoidal/` |
 | Integración numérica | Regla de Simpson | ✅ Implementada | `/metodos-numericos/integracion-numerica/regla-de-simpson/` |
-| Fórmulas en diferencias | Derivación por diferencias finitas | 🗺️ Roadmap | `/metodos-numericos/derivacion-numerica/derivacion-numerica/` |
-| Fórmulas en diferencias | Método de coeficientes indeterminados | 🗺️ Roadmap | `/metodos-numericos/derivacion-numerica/coeficientes-indeterminados/` |
+| Fórmulas en diferencias | Derivación por diferencias finitas | ✅ Implementada | `/metodos-numericos/derivacion-numerica/derivacion-numerica/` |
+| Fórmulas en diferencias | Método de coeficientes indeterminados | ✅ Implementada | `/metodos-numericos/derivacion-numerica/coeficientes-indeterminados/` |
 | Ecuaciones diferenciales | Método de Euler | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/euler/` |
-| Ecuaciones diferenciales | Método de Taylor | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodo-de-taylor/` |
-| Ecuaciones diferenciales | Métodos multipaso | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/metodos-multipaso/` |
+| Ecuaciones diferenciales | Método de Taylor | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/metodo-de-taylor/` |
+| Ecuaciones diferenciales | Métodos multipaso | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/metodos-multipaso/` |
 | Ecuaciones diferenciales | Método de Euler modificado (Heun) | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/euler-modificado/` |
-| Ecuaciones diferenciales | Método predictor-corrector | 🗺️ Roadmap | `/metodos-numericos/ecuaciones-diferenciales/predictor-corrector/` |
+| Ecuaciones diferenciales | Método predictor-corrector | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/predictor-corrector/` |
 | Ecuaciones diferenciales | Método de Runge-Kutta de cuarto orden | ✅ Implementada | `/metodos-numericos/ecuaciones-diferenciales/runge-kutta/` |
 
 **Bibliografía**
