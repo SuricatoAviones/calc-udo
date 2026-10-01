@@ -123,6 +123,16 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'metodo-hungaro': () => import('./optimizacion-de-operaciones/Hungarian'),
   'ramificacion-y-acotamiento': () => import('./optimizacion-de-operaciones/BranchAndBound'),
 
+  // Programación No Lineal
+  'optimizacion-una-variable': () => import('./programacion-no-lineal/OneVariable'),
+  'optimizacion-varias-variables': () => import('./programacion-no-lineal/MultiVariable'),
+  'multiplicadores-de-lagrange': () => import('./programacion-no-lineal/Lagrange'),
+  'funciones-de-penalidad': () => import('./programacion-no-lineal/Penalty'),
+  'condiciones-kkt': () => import('./programacion-no-lineal/Kkt'),
+  'metodo-de-wolfe': () => import('./programacion-no-lineal/Wolfe'),
+  'programacion-geometrica': () => import('./programacion-no-lineal/Geometric'),
+  'programacion-separable': () => import('./programacion-no-lineal/Separable'),
+
   // Procesos Estocásticos
   'transicion-en-n-pasos': () => import('./procesos-estocasticos/NStepTransition'),
   'estado-estable': () => import('./procesos-estocasticos/SteadyState'),

@@ -138,6 +138,14 @@ export function parseFunction(
   return { ok: true, expr: toParsed(trimmed, applyAliases(node), vars) };
 }
 
+/**
+ * Expresión a partir de un nodo de mathjs ya validado (p. ej. una derivada, que puede contener
+ * `log` = ln y no debe volver a pasar por `parseFunction`).
+ */
+export function expressionFromNode(node: MathNode, variables: string[]): ParsedExpression {
+  return toParsed(node.toString(), node, variables);
+}
+
 /** Derivada simbólica respecto de `variable`. */
 export function differentiate(expr: ParsedExpression, variable = 'x'): ExpressionResult {
   try {
