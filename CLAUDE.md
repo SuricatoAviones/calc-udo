@@ -80,8 +80,13 @@ Consúltalas al escribir UI o rutas.
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
   (descomposición, índices estacionales, tendencia) (ADR-029).
-- `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ).
+- `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ, `mmsMeasures` para
+  cualquier estación M/M/s) y `networks.ts` (tabla de estaciones de las redes de colas).
 - `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
+- `lib/calculators/programacion-no-lineal/`: `nlp.ts` (funciones de x1 … x6, gradiente y hessiana
+  simbólicos, menores principales y clasificación de matrices, Newton para sistemas, restricciones
+  escritas como texto) y `restricted-simplex.ts` (simplex con base restringida sobre el motor de
+  tablas; lo usan Wolfe y la programación separable) (ADR-031).
 - `lib/calculators/estadistica-1/`: `discrete.ts` (P(X = k), P(X ≤ k)… sobre una pmf, con
   soporte desde `min`), `continuous.ts` (P(X < x), P(X > x), P(a < X < b) con la F del modelo y
   la gráfica de la densidad) (ADR-025).
@@ -99,7 +104,8 @@ Consúltalas al escribir UI o rutas.
 - `lib/calculators/logica-formal-y-algoritmos/`: `proposition.ts` (lector de proposiciones,
   evaluación, tablas de verdad, esquemas), `numeration.ts` (bases, divisiones y
   multiplicaciones sucesivas), `algorithms.ts` (listas y pseudocódigo) (ADR-022).
-- `lib/math/`: `expression.ts` (f(x) y f(x, y)), `format.ts` (números, matrices, vectores,
+- `lib/math/`: `expression.ts` (f(x) y f(x, y); `expressionFromNode` para derivadas de mathjs),
+  `format.ts` (números, matrices, vectores,
   texto y fracciones en LaTeX; `latexLines`; `parseFraction` para probabilidades como 2/9),
   `normal.ts` (Φ, Φ⁻¹ y densidad), `distributions.ts` (t, χ² y F: densidad, F y cuantiles),
   `special.ts` (Γ, ln Γ, gamma y beta incompletas),
@@ -112,7 +118,9 @@ Consúltalas al escribir UI o rutas.
   puntos sueltos (ADR-030). Campos por materia: `optimizacion-de-operaciones/LpFields.tsx` y
   `TransportTableField.tsx`, `logica-formal-y-algoritmos/FormulaField.tsx`,
   `metodos-numericos/LinearSystemField.tsx` ([A | b]) y `PointsFields.tsx` (listas x, y),
-  `estadistica-2/TestFields.tsx` (H₁ y α). Buscador: `components/search/`
+  `estadistica-2/TestFields.tsx` (H₁ y α), `programacion-no-lineal/NlpFields.tsx` (objetivo,
+  restricciones y punto) y `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
+  matriz de rutas sigue su tamaño). Buscador: `components/search/`
   (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
@@ -157,6 +165,10 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   predictor-corrector; ADR-028) y Estadísticas II completa (regresión, correlación, pruebas de
   hipótesis, errores tipo I y II, bondad de ajuste, no paramétricas, series de tiempo; ADR-029).
   Releases de GitHub para todas las versiones. Versión **v0.6.0** ✅
+- Tanda 10 — Teoría de Colas, Procesos Estocásticos, Programación No Lineal y Modelos de
+  Operaciones I y II completas (ADR-031); Teoría de Sobrevivencia con Kaplan-Meier y la tabla de
+  vida. El nivel crítico y el LED Markoviano siguen en el roadmap: su método (trabajos de Bórean)
+  no está publicado (ADR-032). Versión **v0.7.0** ✅
 
 ## Versiones
 

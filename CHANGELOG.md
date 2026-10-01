@@ -7,6 +7,40 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Teoría de Colas** completa:
+  - modelo con población finita (reparación de máquinas) con productividad de la población;
+  - análisis de costos: número de servidores que minimiza el costo total de un M/M/s;
+  - modelo de pérdida de Erlang con la búsqueda del número de servidores para una meta de bloqueo;
+  - colas con prioridad, con y sin interrupción del servicio, para uno o varios servidores;
+  - modelo M/G/1 con la fórmula de Pollaczek-Khintchine (incluye el M/D/1);
+  - colas en serie y redes de Jackson (ecuaciones de flujo y cada estación como M/M/s).
+- **Procesos Estocásticos** completa:
+  - clasificación de estados (clases, estados absorbentes, recurrentes y transitorios, período,
+    ergodicidad) y análisis de absorción con la matriz fundamental;
+  - proceso de Poisson con incrementos independientes y tiempos entre llegadas;
+  - caminata aleatoria con o sin barreras absorbentes (ruina del jugador);
+  - proceso de nacimiento y muerte con tasas por tramos;
+  - simulación manual de una cola con un servidor, con números aleatorios dados o generados por el
+    método congruencial.
+- **Programación No Lineal** completa: optimización de una y varias variables (derivadas de orden
+  superior, hessiana y Newton-Raphson), multiplicadores de Lagrange con la hessiana orlada,
+  condiciones KKT con verificación de suficiencia, funciones de penalidad (SUMT), método de Wolfe,
+  programación separable con base restringida y programación geométrica por el dual.
+- **Modelos de Operaciones I** completa: PERT-Costos (compresión al menor costo y duración de costo
+  total mínimo), reemplazo de equipo por programación dinámica y convexidad o concavidad de una
+  función.
+- **Modelos de Operaciones II** completa: comparación de métodos de pronóstico, lote económico de
+  producción, modelo de periodo fijo con inventario de seguridad, MRP y clasificación ABC.
+- **Teoría de Sobrevivencia**: estimador de Kaplan-Meier y tabla de sobrevivencia y fallas con los
+  criterios de censura de Elisa Lee y de Kaplan-Meier. El nivel crítico y el LED Markoviano siguen en
+  el roadmap porque su método no está publicado (ADR-032).
+
+### Corregido
+
+- Una fórmula larga en el resumen del resultado ya no ensancha la página en el teléfono.
+
 ## [0.6.0] — 2026-09-30
 
 ### Agregado

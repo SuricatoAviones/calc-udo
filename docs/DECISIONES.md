@@ -512,3 +512,56 @@ Plantilla:
   que sugiere una curva que no existe.
 - **Alternativas descartadas:** _El componente `Scatter` de Recharts dentro de la gráfica
   compuesta_: comparte el arreglo de filas con la curva y habría que filtrar las filas sin dato.
+
+## ADR-031 — Electivas y Modelos de Operaciones completos: ediciones consultadas y núcleos nuevos
+
+- **Fecha:** 2026-09-30
+- **Estado:** Aceptada
+- **Decisión:** Las 28 calculadoras que faltaban de Teoría de Colas, Procesos Estocásticos,
+  Programación No Lineal y Modelos de Operaciones I y II se verifican contra las ediciones que se
+  pudieron consultar, y cada test lo dice: Taha, 10.ª ed. en inglés (2017; caps. 12 y 17 a 21);
+  Hillier & Lieberman, 7.ª ed. en inglés (2001, la edición del pensum; caps. 10, 13, 16 y 17 y
+  apéndice 2); Winston, 4.ª ed. (2004; cap. 20); Anderson, Sweeney, Williams, Camm y Martin,
+  13.ª ed. (2012; caps. 10, 11 y 15), y Chase, Jacobs y Aquilano, 12.ª ed. en español (2009;
+  caps. 17 y 18), con la numeración de la 15.ª en el `locator`. La programación geométrica usa la
+  caja de grava de Duffin, Peterson y Zener porque Rao (bibliografía de la materia) no se pudo
+  consultar. Núcleos nuevos: `teoria-de-colas/queueing.ts` (`mmsMeasures`) y `networks.ts`
+  (estaciones M/M/s de las redes); `programacion-no-lineal/nlp.ts` (funciones de x1 … x6,
+  gradiente y hessiana simbólicos, menores principales, Newton para sistemas, restricciones como
+  texto) y `restricted-simplex.ts` (simplex con base restringida sobre el motor de tablas de
+  ADR-020, usado por Wolfe y la programación separable). `lib/math/expression.ts` exporta
+  `expressionFromNode` para usar derivadas de mathjs sin volver a pasar por el lector (que rechaza
+  `log`). PERT-Costos acorta una unidad a la vez eligiendo el corte mínimo de vértices de la subred
+  crítica (flujo máximo), que equivale al conjunto de actividades más barato que acorta todas las
+  rutas críticas. Las colas con prioridad e interrupción con varios servidores siguen el
+  procedimiento iterativo de Hillier (las clases 1 … k como un M/M/s). SUMT arma ∇P y ∇²P con las
+  derivadas de f y de cada restricción calculadas una sola vez.
+- **Contexto:** El pensum lista estas calculadoras desde la Tanda 5 y seguían en el roadmap. Varios
+  ejemplos tienen valores impresos que no coinciden con el cálculo exacto, y los tests lo explican
+  en vez de forzar el resultado: Hillier imprime 0.889 y 1.033 para la clase 3 del hospital con un
+  médico (la ley de conservación del M/M/1 exige 0.909 y 1.030); Taha anota «R» en la etapa 3 del
+  reemplazo de equipo con t = 5, donde conservar da el f₃(5) = 17.0 que el propio libro reporta;
+  TORA y las tablas de Winston, Chase y Hillier redondean pasos intermedios (Lq = 7.47 con
+  P(j ≥ 3) = .83 de la tabla; el valor exacto es 7.35).
+- **Alternativas descartadas:** _Copiar los valores impresos sin revisarlos_: la calculadora
+  coincidiría con una errata. _Derivar simbólicamente la función barrera completa en cada r_:
+  tardaba casi 2 s con el ejemplo del libro. _Enumerar todas las rutas para elegir qué comprimir_:
+  crece exponencialmente con la red; la tabla de longitudes de rutas solo se muestra si son pocas.
+
+## ADR-032 — Teoría de Sobrevivencia: métodos publicados, sin la metodología de Bórean
+
+- **Fecha:** 2026-09-30
+- **Estado:** Aceptada
+- **Decisión:** De Teoría de Sobrevivencia se implementan el estimador de Kaplan-Meier (con el
+  error de Greenwood) y la tabla de sobrevivencia y fallas con los criterios de censura de Elisa
+  Lee (actuarial, n′ = n − w/2) y de Kaplan-Meier (n′ = n). Sus casos de prueba vienen de ejemplos
+  clásicos con resultados publicados: el grupo 6-MP de Freireich et al. (1963) y la tabla de vida
+  de Lee (1992) con la salida de PROC LIFETEST de la documentación de SAS. «Nivel crítico del
+  sistema» y «LED Markoviano» quedan en el roadmap, igual que el criterio de censura de Bórean.
+- **Contexto:** Toda la bibliografía de la materia son trabajos de ascenso y de grado de la UDO y
+  la UGMA (Bórean, Ganuza, Solórzano, Padra) que no están publicados en línea. Kaplan-Meier y la
+  tabla de vida son métodos estándar de la literatura; el nivel crítico, el factor α del LED
+  Markoviano y el criterio de Bórean son propios de esos trabajos.
+- **Alternativas descartadas:** _Reconstruir el nivel crítico o el LED Markoviano a partir del
+  nombre_: sería inventar un método (CLAUDE.md). _Citar la página de un trabajo no consultado_: se
+  cita la obra del pensum sin página, y los tests nombran la fuente real de los valores.
