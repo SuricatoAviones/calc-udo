@@ -119,42 +119,96 @@ function slacks(constraints: NlpConstraint[], x: number[], nonNegative: boolean)
   return values;
 }
 
-interface Barrier {
-  P: ParsedExpression;
+/** Una función con su gradiente y hessiana simbólicos (se derivan una sola vez). */
+interface Differentiable {
+  f: ParsedExpression;
   gradient: ParsedExpression[];
   hessian: ParsedExpression[][];
 }
 
-/** P(x; r) como expresión de mathjs, con su gradiente y hessiana simbólicos. */
+function differentiable(f: ParsedExpression, size: number): Differentiable | null {
+  const gradient = gradientOf(f, size);
+  const hessian = hessianOf(f, size);
+  return gradient && hessian ? { f, gradient, hessian } : null;
+}
+
+/**
+ * P(x; r) con su gradiente y hessiana, armados con las derivadas de f y de cada g:
+ * para un término 1/u con u = −g (≤), u = g (≥) o u = x_j, ∇(1/u) = −∇u/u² y
+ * ∇²(1/u) = 2∇u∇uᵀ/u³ − ∇²u/u²; para g²/√r, ∇ = 2g∇g/√r y ∇² = 2(∇g∇gᵀ + g∇²g)/√r.
+ */
+interface Barrier {
+  value: (x: number[]) => number;
+  gradient: (x: number[]) => number[];
+  hessian: (x: number[]) => number[][];
+}
+
 function buildBarrier(
   sense: 'max' | 'min',
-  objective: string,
-  constraints: NlpConstraint[],
+  objective: Differentiable,
+  constraints: { relation: NlpConstraint['relation']; d: Differentiable }[],
   nonNegative: boolean,
   r: number,
   size: number,
-): Barrier | null {
-  const terms: string[] = [];
-  for (const c of constraints) {
-    const g = c.g.node.toString();
-    if (c.relation === '<=') terms.push(`1 / (-(${g}))`);
-    else if (c.relation === '>=') terms.push(`1 / (${g})`);
-  }
-  if (nonNegative) for (let j = 1; j <= size; j++) terms.push(`1 / x${j}`);
-  const equalities = constraints
-    .filter((c) => c.relation === '=')
-    .map((c) => `(${c.g.node.toString()})^2 / ${Math.sqrt(r)}`);
-  const sign = sense === 'max' ? '-' : '+';
-  const barrier = terms.length > 0 ? ` ${sign} ${r} * (${terms.join(' + ')})` : '';
-  const penalty = equalities.length > 0 ? ` ${sign} (${equalities.join(' + ')})` : '';
-  // Las derivadas de `log` salen como log(...): se reconstruye el texto con ln para el lector.
-  const text = `(${objective})${barrier}${penalty}`.replace(/\blog\(/g, 'ln(');
-  const parsed = parseNlpExpression(text);
-  if (!parsed.ok) return null;
-  const gradient = gradientOf(parsed.expr, size);
-  const hessian = hessianOf(parsed.expr, size);
-  if (!gradient || !hessian) return null;
-  return { P: parsed.expr, gradient, hessian };
+): Barrier {
+  const sign = sense === 'max' ? -1 : 1;
+  const root = Math.sqrt(r);
+  const evaluate = (x: number[]) => {
+    let value = evaluateAt(objective.f, x);
+    const gradient = evaluateVector(objective.gradient, x);
+    const hessian = evaluateMatrix(objective.hessian, x);
+    const add = (u: number, du: number[], d2u: number[][], weight: number) => {
+      // weight · (1/u)
+      value += (weight * 1) / u;
+      du.forEach((d, j) => {
+        gradient[j]! += (weight * -d) / u ** 2;
+      });
+      for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+          hessian[i]![j]! += weight * ((2 * du[i]! * du[j]!) / u ** 3 - d2u[i]![j]! / u ** 2);
+        }
+      }
+    };
+    for (const c of constraints) {
+      const g = evaluateAt(c.d.f, x);
+      const dg = evaluateVector(c.d.gradient, x);
+      const d2g = evaluateMatrix(c.d.hessian, x);
+      if (c.relation === '<=') {
+        add(
+          -g,
+          dg.map((v) => -v),
+          d2g.map((row) => row.map((v) => -v)),
+          sign * r,
+        );
+      } else if (c.relation === '>=') {
+        add(g, dg, d2g, sign * r);
+      } else {
+        const weight = sign / root;
+        value += weight * g * g;
+        dg.forEach((d, j) => {
+          gradient[j]! += weight * 2 * g * d;
+        });
+        for (let i = 0; i < size; i++) {
+          for (let j = 0; j < size; j++) {
+            hessian[i]![j]! += weight * 2 * (dg[i]! * dg[j]! + g * d2g[i]![j]!);
+          }
+        }
+      }
+    }
+    if (nonNegative) {
+      for (let j = 0; j < size; j++) {
+        const unit = Array.from({ length: size }, (_, k) => (k === j ? 1 : 0));
+        const zero = Array.from({ length: size }, () => new Array<number>(size).fill(0));
+        add(x[j]!, unit, zero, sign * r);
+      }
+    }
+    return { value, gradient, hessian };
+  };
+  return {
+    value: (x) => evaluate(x).value,
+    gradient: (x) => evaluate(x).gradient,
+    hessian: (x) => evaluate(x).hessian,
+  };
 }
 
 /** Optimiza P desde x (Newton amortiguado con búsqueda en línea que respeta la región). */
@@ -166,13 +220,13 @@ function optimize(
 ): { point: number[]; iterations: number; converged: boolean } {
   const better = (a: number, b: number) => (sense === 'max' ? a > b : a < b);
   let x = [...x0];
-  let value = evaluateAt(barrier.P, x);
+  let value = barrier.value(x);
   for (let k = 0; k < 200; k++) {
-    const grad = evaluateVector(barrier.gradient, x);
+    const grad = barrier.gradient(x);
     const gnorm = Math.hypot(...grad);
     if (gnorm < 1e-10 * Math.max(1, Math.abs(value)))
       return { point: x, iterations: k, converged: true };
-    const H = evaluateMatrix(barrier.hessian, x);
+    const H = barrier.hessian(x);
     let direction = solveDense(
       H,
       grad.map((g) => -g),
@@ -187,7 +241,7 @@ function optimize(
     for (let s = 0; s < 60; s++) {
       const candidate = x.map((v, j) => v + t * direction[j]!);
       if (interior(candidate)) {
-        const candidateValue = evaluateAt(barrier.P, candidate);
+        const candidateValue = barrier.value(candidate);
         if (Number.isFinite(candidateValue) && better(candidateValue, value)) {
           const change = Math.hypot(...candidate.map((v, j) => v - x[j]!));
           x = candidate;
@@ -269,19 +323,26 @@ export function solvePenalty(input: PenaltyInput): Result {
     };
   }
 
+  const objectiveD = differentiable(parsedF.expr, size);
+  const constraintsD = constraints.map((c) => ({
+    relation: c.relation,
+    d: differentiable(c.g, size),
+  }));
+  if (!objectiveD || constraintsD.some((c) => !c.d)) {
+    return {
+      ok: false,
+      error: { code: 'invalid-expression', message: 'No se pudieron derivar las funciones.' },
+      ...emptyTrace(),
+      steps,
+    };
+  }
+  const pieces = constraintsD as { relation: NlpConstraint['relation']; d: Differentiable }[];
+
   const history: PenaltyRound[] = [];
   let x = start;
   let r = r0;
   for (let k = 0; k < count; k++) {
-    const barrier = buildBarrier(sense, objective, constraints, nonNegative, r, size);
-    if (!barrier) {
-      return {
-        ok: false,
-        error: { code: 'invalid-expression', message: 'No se pudo derivar la función barrera.' },
-        ...emptyTrace(),
-        steps,
-      };
-    }
+    const barrier = buildBarrier(sense, objectiveD, pieces, nonNegative, r, size);
     const result = optimize(barrier, sense, x, interior);
     if (!result.converged) {
       steps.push({
