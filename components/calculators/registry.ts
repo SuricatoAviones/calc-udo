@@ -89,11 +89,14 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Modelos de Operaciones I
   'ruta-critica': () => import('./modelos-de-operaciones-1/CriticalPath'),
   pert: () => import('./modelos-de-operaciones-1/Pert'),
+  'pert-costos': () => import('./modelos-de-operaciones-1/Crashing'),
   'estrategias-puras': () => import('./modelos-de-operaciones-1/PureStrategies'),
   'estrategias-mixtas': () => import('./modelos-de-operaciones-1/MixedStrategies'),
   'ruta-mas-corta-pd': () => import('./modelos-de-operaciones-1/ShortestRoute'),
   'fuerza-de-trabajo': () => import('./modelos-de-operaciones-1/Workforce'),
   mochila: () => import('./modelos-de-operaciones-1/Knapsack'),
+  'reemplazo-de-equipo': () => import('./modelos-de-operaciones-1/Replacement'),
+  convexidad: () => import('./modelos-de-operaciones-1/Convexity'),
   'juegos-programacion-lineal': () => import('./modelos-de-operaciones-1/GameLp'),
 
   // Modelos de Operaciones II

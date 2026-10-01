@@ -33,7 +33,7 @@ para que el mapa esté completo.
 | 071-3122 | [Inferencia y Diseño de Experimentos](#inferencia-y-diseno-de-experimentos) | Semestre V | Estadísticas I (062-3313) | 2 (1T-2P) | 1 | 0 | 0 |
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 9 | 0 | 0 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
-| 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 8 | 0 | 3 |
+| 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 11 | 0 | 0 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
@@ -321,15 +321,15 @@ de esta materia; solo aparece en la malla curricular.
 |---|---|---|---|
 | Unidad I — Análisis de redes: PERT-CPM | Ruta crítica (CPM) | ✅ Implementada | `/modelos-de-operaciones-1/pert-cpm/ruta-critica/` |
 | Unidad I — Análisis de redes: PERT-CPM | PERT con tres estimaciones de tiempo | ✅ Implementada | `/modelos-de-operaciones-1/pert-cpm/pert/` |
-| Unidad I — Análisis de redes: PERT-CPM | PERT-Costos (compresión del proyecto) | 🗺️ Roadmap | `/modelos-de-operaciones-1/pert-cpm/pert-costos/` |
+| Unidad I — Análisis de redes: PERT-CPM | PERT-Costos (compresión del proyecto) | ✅ Implementada | `/modelos-de-operaciones-1/pert-cpm/pert-costos/` |
 | Unidad II — Teoría de juegos | Estrategias puras y punto de silla | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-puras/` |
 | Unidad II — Teoría de juegos | Estrategias mixtas (método gráfico) | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/estrategias-mixtas/` |
 | Unidad II — Teoría de juegos | Juegos resueltos con programación lineal | ✅ Implementada | `/modelos-de-operaciones-1/teoria-de-juegos/juegos-programacion-lineal/` |
 | Unidad III — Programación dinámica | Ruta más corta por programación dinámica | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/ruta-mas-corta-pd/` |
 | Unidad III — Programación dinámica | Modelo del tamaño de la fuerza de trabajo | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/fuerza-de-trabajo/` |
 | Unidad III — Programación dinámica | Modelo de la mochila (carga) | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/mochila/` |
-| Unidad III — Programación dinámica | Modelo de reemplazo de equipo | 🗺️ Roadmap | `/modelos-de-operaciones-1/programacion-dinamica/reemplazo-de-equipo/` |
-| Unidad IV — Programación no lineal | Convexidad y concavidad de una función | 🗺️ Roadmap | `/modelos-de-operaciones-1/programacion-no-lineal/convexidad/` |
+| Unidad III — Programación dinámica | Modelo de reemplazo de equipo | ✅ Implementada | `/modelos-de-operaciones-1/programacion-dinamica/reemplazo-de-equipo/` |
+| Unidad IV — Programación no lineal | Convexidad y concavidad de una función | ✅ Implementada | `/modelos-de-operaciones-1/programacion-no-lineal/convexidad/` |
 | Unidad IV — Programación no lineal | ↪︎ Optimización no restringida de una variable | ✅ Implementada | `/programacion-no-lineal/optimizacion-clasica/optimizacion-una-variable/` |
 | Unidad IV — Programación no lineal | ↪︎ Optimización no restringida de varias variables | ✅ Implementada | `/programacion-no-lineal/optimizacion-clasica/optimizacion-varias-variables/` |
 | Unidad IV — Programación no lineal | ↪︎ Multiplicadores de Lagrange | ✅ Implementada | `/programacion-no-lineal/optimizacion-clasica/multiplicadores-de-lagrange/` |
