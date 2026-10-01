@@ -161,6 +161,10 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'cola-mg1': () => import('./teoria-de-colas/MG1'),
   'colas-en-serie': () => import('./teoria-de-colas/SeriesQueue'),
   'redes-de-jackson': () => import('./teoria-de-colas/Jackson'),
+
+  // Teoría de Sobrevivencia
+  'kaplan-meier': () => import('./teoria-de-sobrevivencia/KaplanMeier'),
+  'tabla-de-sobrevivencia': () => import('./teoria-de-sobrevivencia/LifeTable'),
 };
 
 export const implementedCalculatorIds: ReadonlySet<string> = new Set(

@@ -38,7 +38,7 @@ para que el mapa esté completo.
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
-| 071-4903 | [Teoría de Sobrevivencia](#teoria-de-sobrevivencia) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 0 | 0 | 4 |
+| 071-4903 | [Teoría de Sobrevivencia](#teoria-de-sobrevivencia) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 2 | 0 | 2 |
 
 ---
 
@@ -506,8 +506,8 @@ de esta materia; solo aparece en la malla curricular.
 |---|---|---|---|
 | Unidad I — Introducción a los modelos no paramétricos | _Tema conceptual, sin calculadora_ | — | — |
 | Unidad II — Generalidades del análisis de sobrevivencia | _Tema conceptual, sin calculadora_ | — | — |
-| Unidad III — El producto límite (Kaplan-Meier) | Estimador de Kaplan-Meier | 🗺️ Roadmap | `/teoria-de-sobrevivencia/producto-limite/kaplan-meier/` |
-| Unidad IV — Tabla de sobrevivencia y fallas | Tabla de sobrevivencia y fallas | 🗺️ Roadmap | `/teoria-de-sobrevivencia/tabla-de-sobrevivencia/tabla-de-sobrevivencia/` |
+| Unidad III — El producto límite (Kaplan-Meier) | Estimador de Kaplan-Meier | ✅ Implementada | `/teoria-de-sobrevivencia/producto-limite/kaplan-meier/` |
+| Unidad IV — Tabla de sobrevivencia y fallas | Tabla de sobrevivencia y fallas | ✅ Implementada | `/teoria-de-sobrevivencia/tabla-de-sobrevivencia/tabla-de-sobrevivencia/` |
 | Unidad V — Adaptación y análisis del modelo | Nivel crítico del sistema | 🗺️ Roadmap | `/teoria-de-sobrevivencia/adaptacion-del-modelo/nivel-critico/` |
 | Unidad VI — LED Markoviano | LED Markoviano | 🗺️ Roadmap | `/teoria-de-sobrevivencia/led-markoviano/led-markoviano/` |
 
