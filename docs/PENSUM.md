@@ -34,7 +34,7 @@ para que el mapa esté completo.
 | 062-4622 | [Estadísticas II](#estadistica-2) | Semestre V | Estadísticas I (062-3313) | 3 (2T-0P) | 9 | 0 | 0 |
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 11 | 0 | 0 |
-| 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 7 | 0 | 5 |
+| 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
@@ -366,7 +366,7 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad I — Pronósticos | Suavizamiento exponencial simple | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/suavizamiento-exponencial/` |
 | Unidad I — Pronósticos | ↪︎ Predicción con series de tiempo | ✅ Implementada | `/estadistica-2/series-de-tiempo/pronostico-de-series-de-tiempo/` |
 | Unidad I — Pronósticos | ↪︎ Regresión lineal simple | ✅ Implementada | `/estadistica-2/regresion-y-correlacion/regresion-lineal/` |
-| Unidad I — Pronósticos | Comparación de métodos de pronóstico | 🗺️ Roadmap | `/modelos-de-operaciones-2/pronosticos/seleccion-de-metodo-de-pronostico/` |
+| Unidad I — Pronósticos | Comparación de métodos de pronóstico | ✅ Implementada | `/modelos-de-operaciones-2/pronosticos/seleccion-de-metodo-de-pronostico/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/1 | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mm1/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/G/1 | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/cola-mg1/` |
 | Unidad II — Teoría de colas | ↪︎ Modelo M/M/s | ✅ Implementada | `/teoria-de-colas/modelos-exponenciales/cola-mms/` |
@@ -377,13 +377,13 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad II — Teoría de colas | ↪︎ Colas con prioridad | ✅ Implementada | `/teoria-de-colas/otras-aplicaciones/colas-con-prioridad/` |
 | Unidad III — Modelos de inventarios | Cantidad económica de pedido (EOQ) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq/` |
 | Unidad III — Modelos de inventarios | EOQ con faltantes planeados | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/eoq-con-faltantes/` |
-| Unidad III — Modelos de inventarios | Lote económico de producción | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/lote-economico-de-produccion/` |
+| Unidad III — Modelos de inventarios | Lote económico de producción | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/lote-economico-de-produccion/` |
 | Unidad III — Modelos de inventarios | EOQ con descuentos por cantidad | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/descuentos-por-cantidad/` |
 | Unidad III — Modelos de inventarios | Punto de reorden y stock de seguridad | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/punto-de-reorden/` |
 | Unidad III — Modelos de inventarios | Modelo de un periodo (vendedor de periódicos) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/modelo-de-un-periodo/` |
-| Unidad III — Modelos de inventarios | Modelo de periodo fijo (revisión periódica) | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/revision-periodica/` |
-| Unidad III — Modelos de inventarios | Planeación de requerimientos de materiales (MRP) | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/mrp/` |
-| Unidad III — Modelos de inventarios | Clasificación ABC | 🗺️ Roadmap | `/modelos-de-operaciones-2/inventarios/clasificacion-abc/` |
+| Unidad III — Modelos de inventarios | Modelo de periodo fijo (revisión periódica) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/revision-periodica/` |
+| Unidad III — Modelos de inventarios | Planeación de requerimientos de materiales (MRP) | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/mrp/` |
+| Unidad III — Modelos de inventarios | Clasificación ABC | ✅ Implementada | `/modelos-de-operaciones-2/inventarios/clasificacion-abc/` |
 
 **Bibliografía**
 

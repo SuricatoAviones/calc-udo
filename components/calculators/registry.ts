@@ -102,11 +102,16 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Modelos de Operaciones II
   'promedio-movil': () => import('./modelos-de-operaciones-2/MovingAverage'),
   'suavizamiento-exponencial': () => import('./modelos-de-operaciones-2/ExponentialSmoothing'),
+  'seleccion-de-metodo-de-pronostico': () => import('./modelos-de-operaciones-2/ForecastSelection'),
   eoq: () => import('./modelos-de-operaciones-2/Eoq'),
   'eoq-con-faltantes': () => import('./modelos-de-operaciones-2/EoqShortages'),
+  'lote-economico-de-produccion': () => import('./modelos-de-operaciones-2/ProductionLot'),
   'descuentos-por-cantidad': () => import('./modelos-de-operaciones-2/Discounts'),
   'punto-de-reorden': () => import('./modelos-de-operaciones-2/Reorder'),
   'modelo-de-un-periodo': () => import('./modelos-de-operaciones-2/SinglePeriod'),
+  'revision-periodica': () => import('./modelos-de-operaciones-2/PeriodicReview'),
+  mrp: () => import('./modelos-de-operaciones-2/Mrp'),
+  'clasificacion-abc': () => import('./modelos-de-operaciones-2/Abc'),
 
   // Optimización de Operaciones
   'metodo-grafico': () => import('./optimizacion-de-operaciones/Graphical'),
