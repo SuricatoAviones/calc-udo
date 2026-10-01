@@ -326,26 +326,21 @@ export function solveMrp(input: MrpInput): Result {
     };
   });
 
-  const releases = records.flatMap((r) =>
-    r.plannedReleases.flatMap((q, t) =>
-      q > 0 ? [`${r.item}: ${formatNumber(q)} en ${t + 1}`] : [],
-    ),
-  );
+  // Un renglón del resumen por pieza: sus expediciones planeadas (cantidad y periodo).
+  const releaseItems = records.flatMap((r) => {
+    const list = r.plannedReleases.flatMap((q, t) =>
+      q > 0 ? [`${n(q)} \\text{ en } t = ${t + 1}`] : [],
+    );
+    return list.length > 0 ? [{ label: `Expedir ${r.item}`, value: list.join(',\\ ') }] : [];
+  });
 
   return {
     ok: true,
     value: { records },
-    summary: [
-      {
-        label: 'Pedidos a expedir',
-        value:
-          releases.length > 0
-            ? `\\text{${releases.slice(0, 6).join('; ')}${releases.length > 6 ? '; …' : ''}}`
-            : '\\text{ninguno}',
-        emphasis: true,
-      },
-      { label: 'Piezas', value: `${records.length}` },
-    ],
+    summary:
+      releaseItems.length > 0
+        ? releaseItems.slice(0, 8).map((item, k) => ({ ...item, emphasis: k === 0 }))
+        : [{ label: 'Pedidos a expedir', value: '\\text{ninguno}', emphasis: true }],
     ...emptyTrace(),
     steps,
     tables,

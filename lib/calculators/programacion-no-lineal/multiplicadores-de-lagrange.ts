@@ -265,7 +265,7 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
     ok: true,
     value: { point, multipliers, value, borderedMinors, kind },
     summary: [
-      { label: 'Punto estacionario', value: `X_0 = ${pointTex(point, 8)}`, emphasis: true },
+      { label: 'Punto estacionario', value: `X_0 = ${pointTex(point, 6)}`, emphasis: true },
       {
         label: 'Multiplicadores',
         value: multipliers.map((l, i) => `${lambdaTex(i)} = ${n(l, 6)}`).join(',\\ '),

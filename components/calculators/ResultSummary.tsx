@@ -61,9 +61,15 @@ export function ResultSummary({ result }: { result: CalculatorResult<unknown> })
       </p>
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {result.summary.map((item) => (
-          <div key={item.label} className={cn(item.emphasis && 'sm:col-span-2')}>
+          <div key={item.label} className={cn('min-w-0', item.emphasis && 'sm:col-span-2')}>
             <dt className="text-muted-foreground text-xs tracking-wide uppercase">{item.label}</dt>
-            <dd className={cn(item.emphasis ? 'text-pencil text-2xl' : 'text-base')}>
+            {/* Una fórmula larga se desplaza dentro de la tarjeta en vez de ensanchar la página. */}
+            <dd
+              className={cn(
+                'overflow-x-auto overflow-y-hidden py-0.5',
+                item.emphasis ? 'text-pencil text-2xl' : 'text-base',
+              )}
+            >
               <Formula tex={item.value} />
             </dd>
           </div>
