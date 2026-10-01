@@ -7,6 +7,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [0.7.0] — 2026-09-30
+
 ### Agregado
 
 - **Teoría de Colas** completa:
@@ -205,7 +207,8 @@ Primera versión etiquetada.
   enlazadas desde el pie de página.
 - Versión de la aplicación visible en el pie de página.
 
-[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.6.0...HEAD
+[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.7.0
 [0.6.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.6.0
 [0.5.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.5.0
 [0.4.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.4.0
