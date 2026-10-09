@@ -37,6 +37,8 @@ para que el mapa esté completo.
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
 | 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 0 | 0 | 16 |
 | 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 0 | 0 | 6 |
+| 071-4643 | [Sistemas Dinámicos](#sistemas-dinamicos) | Semestre VII | Electrónica (072-3533) | 3 (2T-2P) | 0 | 0 | 13 |
+| 072-4641 | [Laboratorio de Circuitos y Electrónica](#laboratorio-de-circuitos-y-electronica) | Semestre VII | Electrónica (072-3533) | 1 (0T-3P) | 0 | 0 | 3 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
@@ -464,6 +466,70 @@ de esta materia; solo aparece en la malla curricular.
 - Neamen, Donald (1999). Análisis y Diseño de Circuitos Electrónicos. Editorial Mc Graw Hill. México. <sub>`neamen-1999`</sub>
 - Boylestad, Robert – Nashelsky, Louis (1997). Electrónica: Teoría de Circuitos. Sexta Edición Editorial Prentice Hall. México. <sub>`boylestad-nashelsky-1997`</sub>
 - Coughlin, R. – Driscoll, F. (1996). Análisis y Diseño de Circuitos Integrados Lineales. Cuarta Edición Editorial Prentice Hall. <sub>`coughlin-driscoll-1996`</sub>
+
+---
+
+<a id="sistemas-dinamicos"></a>
+
+## Sistemas Dinámicos
+
+**Código:** 071-4643 · **Ubicación:** Semestre VII · **Prelación:** Electrónica (072-3533) · **Créditos:** 3 (2T-2P)
+
+**Objetivo general:** Describir los métodos para el análisis, diseño y optimización de sistemas de control en tiempo continuo.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Unidad I — Diagramas de bloque y flujogramas | Reducción de diagramas de bloques | 🗺️ Roadmap | `/sistemas-dinamicos/diagramas-de-bloque/reduccion-de-diagramas-de-bloques/` |
+| Unidad I — Diagramas de bloque y flujogramas | Fórmula de ganancia de Mason | 🗺️ Roadmap | `/sistemas-dinamicos/diagramas-de-bloque/ganancia-de-mason/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Función de transferencia | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/funcion-de-transferencia/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Funciones de lazo abierto y lazo cerrado | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/lazo-abierto-y-cerrado/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Respuesta transitoria de primer y segundo orden | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/respuesta-transitoria/` |
+| Unidad III — Estabilidad y error en estado estacionario | Criterio de Routh-Hurwitz | 🗺️ Roadmap | `/sistemas-dinamicos/estabilidad-y-error/routh-hurwitz/` |
+| Unidad III — Estabilidad y error en estado estacionario | Error en estado estacionario | 🗺️ Roadmap | `/sistemas-dinamicos/estabilidad-y-error/error-en-estado-estacionario/` |
+| Unidad IV — Lugar geométrico de las raíces | Lugar geométrico de las raíces | 🗺️ Roadmap | `/sistemas-dinamicos/lugar-de-las-raices/lugar-geometrico-de-las-raices/` |
+| Unidad V — Análisis en el dominio de la frecuencia | Diagramas de Bode | 🗺️ Roadmap | `/sistemas-dinamicos/dominio-de-la-frecuencia/diagramas-de-bode/` |
+| Unidad VI — Diseño de controladores | Sintonizado de controladores PID | 🗺️ Roadmap | `/sistemas-dinamicos/diseno-de-controladores/sintonizacion-pid/` |
+| Unidad VI — Diseño de controladores | Compensador de adelanto o retraso de fase | 🗺️ Roadmap | `/sistemas-dinamicos/diseno-de-controladores/compensador-adelanto-retraso/` |
+| Unidad VII — Realimentación de estados | Controlabilidad y observabilidad | 🗺️ Roadmap | `/sistemas-dinamicos/realimentacion-de-estados/controlabilidad-y-observabilidad/` |
+| Unidad VII — Realimentación de estados | Control por realimentación de estados | 🗺️ Roadmap | `/sistemas-dinamicos/realimentacion-de-estados/realimentacion-de-estados/` |
+
+**Bibliografía**
+
+- Grantham, W. – Vincent, T. (1998). Sistemas de Control Moderno. Editorial Limusa. México. <sub>`grantham-vincent-1998`</sub>
+- Kuo, Benjamin (1996). Sistemas de Control Automáticos. Séptima Edición Editorial Prentice Hall Hispanoamericana. México. <sub>`kuo-1996`</sub>
+- D'azzo, J. (1995). Linear Control Systems Analysis and Design. Editorial Mc Graw Hill. <sub>`dazzo-1995`</sub>
+- Ogata, Katsuhiko (1993). Ingeniería de Control Moderna. Segunda Edición Editorial Prentice Hall. <sub>`ogata-1993`</sub>
+- Hostetter, G. – Savant, C. – Stefani, R. (1990). Sistemas de Control. Editorial Mc Graw Hill. <sub>`hostetter-1990`</sub>
+- Dorf, Richard (1990). Sistemas Modernos de Control, Teoría y Práctica. Addison Wesley Iberoamericana. México. <sub>`dorf-1990`</sub>
+- Ogata, Katsuhiko (1987). Dinámica de Sistemas. Tercera Edición Prentice Hall Hispanoamericana. México. <sub>`ogata-1987`</sub>
+- Paul H. Lewis. Chang, Yang (1999). Sistemas de Control en Ingeniería. Primera Edición Prentice Hall. México. <sub>`paul-lewis-chang-1999`</sub>
+- Phillips, Ch. & Harbor, R. (1996). Feedback Control Systems. Tercera Edición Prentice Hall Hispanoamericana. USA. <sub>`phillips-harbor-1996`</sub>
+- Ogata, Katsuhiko (1998). Ingeniería de Control Moderna. Tercera Edición Prentice Hall Hispanoamericana. México. <sub>`ogata-1998`</sub>
+- Ogata, Katsuhiko (1999). Problemas de Ingeniería de Control Utilizando Matlab®, Un Enfoque Práctico. Primera Edición Prentice Hall Iberia. Madrid. <sub>`ogata-1999`</sub>
+
+---
+
+<a id="laboratorio-de-circuitos-y-electronica"></a>
+
+## Laboratorio de Circuitos y Electrónica
+
+**Código:** 072-4641 · **Ubicación:** Semestre VII · **Prelación:** Electrónica (072-3533) · **Créditos:** 1 (0T-3P)
+
+**Objetivo general:** El estudiante estará en capacidad de aplicar los conocimientos teóricos adquiridos y comprobar experimentalmente las leyes, teoremas y métodos de análisis, mediante la utilización de instrumentos, técnicas y métodos para analizar circuitos lineales eléctricos y electrónicos en el laboratorio.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Leyes, teoremas e instrumentos | _Tema conceptual, sin calculadora_ | — | — |
+| Resonancia | Resonancia en circuitos RLC | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/resonancia/resonancia-rlc/` |
+| Diodos y fuentes de alimentación | Fuente de alimentación regulada por Zener | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/diodos-y-fuentes/fuente-regulada-por-zener/` |
+| Transistores y amplificadores | Amplificador emisor común | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/transistores/amplificador-emisor-comun/` |
+| Amplificadores operacionales | ↪︎ Amplificadores operacionales | 🗺️ Roadmap | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
+
+**Bibliografía**
+
+- Neamen, Donald (1999). Análisis y Diseño de Circuitos Electrónicos. Editorial Mc Graw Hill. México. <sub>`neamen-1999`</sub>
+- Cooper, William - Helfrick, A. (1991). Instrumentación Electrónica, Modernas y Técnicas de Medición. Editorial Prentice Hall Hispanoamericana, S.A.. México. <sub>`cooper-helfrick-1991`</sub>
+- Johnson, D. – Hilburn, Johnson (1991). Análisis Básico de Circuitos Eléctricos. Editorial Prentice Hall Hispanoamericana, S.A.. México. <sub>`johnson-hilburn-1991`</sub>
 
 ---
 

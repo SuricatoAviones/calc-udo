@@ -10,8 +10,9 @@
 > 2026-09-25. Se copian literalmente; solo se ajustaron los niveles de los títulos para que
 > encajen en este archivo.
 >
-> Los programas de **Circuitos y Sistemas** (completo) y de **Electrónica** (solo sinóptico) los
-> entregó el mantenedor el 2026-10-09, con la misma regla de transcripción literal.
+> Los programas de **Circuitos y Sistemas** (completo), de **Electrónica** (solo sinóptico), de
+> **Sistemas Dinámicos** (completo) y del **Laboratorio de Circuitos y Electrónica** (solo
+> sinóptico) los entregó el mantenedor el 2026-10-09, con la misma regla de transcripción literal.
 
 ## Matemáticas I
 
@@ -1011,6 +1012,391 @@ Teoría de semiconductores. El diodo. Modelo ideal. Modelo linealizado. Caracter
 - Neamen, Donald. 1999. *Análisis y Diseño de Circuitos Electrónicos*. Editorial Mc Graw Hill. México.
 - Boylestad, Robert – Nashelsky, Louis. 1997. *Electrónica: Teoría de Circuitos*. Sexta Edición. Editorial Prentice Hall. México.
 - Coughlin, R. – Driscoll, F. 1996. *Análisis y Diseño de Circuitos Integrados Lineales*. Cuarta Edición. Editorial Prentice Hall.
+
+> **Nota:** El pensum solo incluye el programa sinóptico de esta asignatura; no hay programa analítico con desglose por unidades.
+
+---
+
+## Sistemas Dinámicos
+
+**Código:** 071-4643 | **Semestre:** VII | **Prelación:** 072-3533 (Electrónica)
+**Créditos:** 3 | **Horas semanales:** 4 (2T-2P) | **Total horas semestre:** 64 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Circuitos eléctricos. Álgebra lineal. Ecuaciones diferenciales. Límites. Funciones de Transferencia. Variables de estado. Transformada de Laplace. Amplificadores. Ganancia de voltaje. Ganancia de Corriente.
+
+**Objetivo general:** Describir los métodos para el análisis, diseño y optimización de sistemas de control en tiempo continuo.
+
+**Sinopsis de contenido:**
+
+Introducción al análisis de los sistemas de control. Modelo matemático de los diferentes sistemas dinámicos. Acciones básicas de control y controladores automáticos. Análisis de la respuesta y los errores en estado estacionario. Análisis por medio del lugar geométrico de las raíces. Análisis de la respuesta en el dominio de la frecuencia. Técnicas de diseño y compensación. Análisis y diseño por medio de los espacios de estado.
+
+**Bibliografía general:**
+
+- Grantham, W. – Vincent, T. 1998. *Sistemas de Control Moderno*. Editorial Limusa. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automáticos*. Séptima Edición. Editorial Prentice Hall Hispanoamericana. México.
+- D'azzo, J. 1995. *Linear Control Systems Analysis and Design*. Editorial Mc Graw Hill.
+- Ogata, Katsuhiko. 1993. *Ingeniería de Control Moderna*. Segunda Edición. Editorial Prentice Hall.
+- Hostetter, G. – Savant, C. – Stefani, R. 1990. *Sistemas de Control*. Editorial Mc Graw Hill.
+
+### Unidad 1 — Diagramas de Bloque y Diagramas de Flujo de Señal (Flujogramas)
+
+**Horas:** 6
+
+**Objetivos específicos:**
+
+1. Identificar las descripciones de sistemas de control por medio de diagramas de bloques.
+2. Identificar las descripciones de sistemas de control por diagramas de flujo de señal.
+3. Aplicar la técnica de reducción de diagramas de bloques.
+4. Identificar los términos de la fórmula de ganancia de Mason.
+5. Aplicar la fórmula de ganancia de Mason en el cálculo de funciones de transferencias.
+6. Convertir diagramas de bloques a flujogramas y viceversa.
+
+**Contenidos:**
+
+- 1.1. Elementos de un diagrama de bloques.
+- 1.2. Ejemplos de diagramas de bloques.
+- 1.3. Elementos de un diagrama de flujo de señales o flujogramas.
+- 1.4. Ejemplos de diagramas de flujo de señal o flujogramas.
+- 1.5. Algebra de bloques
+- 1.6. Aplicación del algebra de bloques en la reducción de bloques
+- 1.7. Cálculo de funciones de transferencia por reducción de diagramas de bloques.
+- 1.8. Fórmula de ganancia de Mason.
+- 1.9. Elementos de la fórmula de ganancia de Mason.
+- 1.10. Definición de lazos individuales.
+- 1.11. Definición de lazos disjuntos.
+- 1.12. Definición de Trayectos directos.
+- 1.13. Cálculo de funciones de transferencia.
+- 1.14. Transformación de diagramas de bloques en flujogramas.
+- 1.15. Transformación de flujogramas en diagramas de bloques
+
+**Estrategias metodológicas:** Explicación del contenido del tema por parte del Profesor. Investigación bibliográfica sobre procesos industriales descritos por diagramas de bloques y diagramas de flujo de señal. Descripción de los componentes de los diagramas de bloques y flujogramas. Discusión Dirigida. Discusión en pequeños grupos y trabajo escrito grupal. Desarrollo de ejercicios en clase aplicando las dos representaciones (Diagramas de bloques y flujogramas).
+
+**Estrategias de evaluación:** Asignación para resolver en casa con entrega de informe. Examen escrito sobre el contenido teórico-práctico de la unidad. Taller en grupo en el aula de clase.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+
+### Unidad 2 — Funciones de Transferencia, Respuesta de Sistemas de Control de Modelo de Sistemas Dinámicos
+
+**Horas:** 6
+
+**Objetivos específicos:**
+
+1. Identificar una función de transferencia.
+2. Desarrollar analíticamente una función de trasferencia a partir de ecuaciones diferenciales.
+3. Identificar el polinomio característico o ecuación característica.
+4. Identificar los polos y ceros de una función de transferencia.
+5. Describir la forma polinomial y de polos y ceros de la función de transferencia
+6. Identificar las funciones de transferencia directa, de lazo abierto y de lazo cerrado de un sistema de control realimentado así como el cálculo de las mismas.
+7. Analizar las funciones de transferencia en sistemas con perturbaciones.
+8. Analizar las respuestas de sistemas de control de primero y segundo orden.
+9. Desarrollar modelos matemáticos de sistemas eléctricos, mecánicos, hidráulicos y sus combinaciones.
+
+**Contenidos:**
+
+- 2.1. Definición de función de transferencia.
+- 2.2. Desarrollo de funciones de transferencia a partir de ecuaciones diferenciales.
+- 2.3. Forma canónica polinomial de la función de transferencia.
+- 2.4. Forma canónica de polos y ceros de la función de transferencia.
+- 2.5. Polos y ceros de una función de transferencia.
+- 2.6. Desarrollo de las funciones de transferencia: directa, de lazo abierto y de lazo cerrado.
+- 2.7. Polinomio Característico.
+- 2.8. Estudio de salidas de sistemas con perturbaciones.
+- 2.9. Análisis de sistemas de primer orden.
+  - a. Respuesta ante una entrada Impulsiva.
+  - b. Respuesta ante una entrada tipo escalón.
+  - c. Respuesta ante una entrada tipo rampa.
+  - d. Respuesta ante una entrada tipo aceleración.
+- 2.10. Análisis de sistemas de segundo orden.
+  - a. Respuesta ante una entrada Impulsiva.
+  - b. Respuesta ante una entrada tipo escalón
+  - c. Respuesta ante una entrada tipo rampa.
+  - d. Respuesta ante una entrada tipo aceleración.
+- 2.11. Especificaciones de respuesta transitoria: tiempo de crecimiento, tiempo de estabilización, tiempo de pico, tiempo de retardo, máximo sobreimpulso, otros.
+- 2.12. Introducción a la descripción de sistemas eléctricos por medio de modelos matemáticos de ecuaciones diferenciales.
+- 2.13. Introducción a la descripción de sistemas mecánicos por medio de modelos matemáticos de ecuaciones diferenciales.
+- 2.14. Introducción a la descripción de sistemas electromecánicos por medio de modelos matemáticos de ecuaciones diferenciales.
+- 2.15. Convertir modelos matemáticos en ecuaciones diferenciales a diagramas de bloques y flujogramas.
+
+**Estrategias metodológicas:** Explicación del docente del desarrollo analítico de funciones de transferencia y modelo. Deducción de las funciones de transferencia: directa, de lazo abierto y de lazo cerrado. Discusión Dirigida. Discusión grupal.
+
+**Estrategias de evaluación:** Asignación para resolver en el hogar con entrega de informe. Resolver ejercicios de aplicación. Examen escrito del contenido teórico-práctico de la unidad. Discusión grupal del desarrollo de modelos matemáticos.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Hostetter G. Savant, C. & Stefani, R. 1990. *Sistemas de Control*. McGraw-Hill. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1987. *Dinámica de Sistemas*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall.
+
+### Unidad 3 — Pruebas de Estabilidad y Error de Estado Estacionario
+
+**Horas:** 6
+
+**Objetivos específicos:**
+
+1. Identificar los sistemas con estabilidad Bibo.
+2. Aplicar los diagramas de polos y ceros para establecer la estabilidad de un sistema de control.
+3. Describir el conjunto de coeficientes de la prueba de estabilidad de Routh – Hurwitz.
+4. Aplicar el criterio de estabilidad de Routh - Hurwitz en la inspección de la estabilidad de sistemas de control.
+5. Describir en forma analítica los conceptos de error de estado estacionario.
+
+**Contenidos:**
+
+- 3.1. Concepto de estabilidad BIBO.
+- 3.2. Diagramas de polos y ceros.
+- 3.3. Estabilidad absoluta.
+- 3.4. Estabilidad relativa.
+- 3.5. Prueba de Estabilidad de Routh – Hurwitz.
+- 3.6. Conjunto de coeficientes de la prueba de Routh – Hurwitz.
+- 3.7. Cálculo de los coeficientes del conjunto de coeficientes.
+- 3.8. Casos especiales del conjunto de coeficiente.
+  - a. Caso: primer elemento de una fila cero.
+  - b. Caso: todos los elementos de una fila iguales a cero.
+- 3.9. Polinomio auxiliar.
+- 3.10. Criterio de estabilidad de Routh- Hurwitz.
+- 3.11. Análisis de la función de transferencia del error respecto a la entrada en un sistema de control realimentado.
+- 3.12. Teorema del valor final.
+- 3.13. Definición de tipo de sistema.
+- 3.14. Análisis de Error de posición o error ante una entrada tipo escalón.
+- 3.15. Análisis de Error de velocidad o error ante una entrada tipo rampa.
+- 3.16. Análisis de Error de aceleración o error ante una entrada tipo aceleración.
+
+**Estrategias metodológicas:** Exposición del profesor del contenido de la unidad. Discusión en clase de cada concepto de estabilidad. Taller de desarrollo de ejemplos. Sesión de problemas.
+
+**Estrategias de evaluación:** Examen práctico escrito sobre los conceptos de estabilidad. Asignación para resolver en el hogar con entrega de informe. Examen escrito del contenido teórico-práctico de la unidad.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Hostetter G. Savant, C. & Stefani, R. 1990. *Sistemas de Control*. McGraw-Hill. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+
+### Unidad 4 — Análisis y Diseño del Lugar de las Raíces
+
+**Horas:** 12
+
+**Objetivos específicos:**
+
+1. Interpretar el significado del lugar geométrico de las raíces (LGR).
+2. Construir la gráfica del lugar geométrico de las raíces.
+3. Determinar parámetros sobre la gráfica del lugar geométrico de las raíces.
+4. Identificar el tipo de respuesta de un sistema de acuerdo al LGR.
+
+**Contenidos:**
+
+- 4.1. Definición y significado de lugar geométrico de las raíces (LGR).
+- 4.2. Importancia del lugar geométrico de las raíces.
+- 4.3. Pasos generales para construir la gráfica del lugar geométrico de las raíces.
+  - a. Polos y ceros de lazo abierto.
+  - b. Lugar geométrico sobre el eje real.
+  - c. Asíntotas.
+  - d. Ramas fuera del eje real.
+  - e. Ángulos de salida y llegada.
+  - f. Puntos de ruptura.
+  - g. Cortes con el eje real. Ganancia y frecuencia crítica.
+- 4.4. Cálculo de forma analítica.
+- 4.5. Cálculo por prueba de Routh-Hurwitz.
+- 4.6. Cálculo de la ganancia sobre la gráfica del lugar geométrico de las raíces.
+  - a. Método gráfico.
+  - b. Método analítico.
+- 4.7. Relación de amortiguamiento.
+- 4.8. Zona sub-amortiguada.
+- 4.9. Zona críticamente amortiguada.
+- 4.10. Zona sobre-amortiguada.
+- 4.11. Zona críticamente estable.
+- 4.12. Contorno de las raíces.
+  - a. Deducción de la gráfica del contorno de las raíces.
+- 4.13. Líneas de Relación de amortiguamiento constante.
+- 4.14. Líneas de frecuencia natural constante.
+
+**Estrategias metodológicas:** Exposición del profesor del contenido de la unidad. Exposición de los pasos generales para la construcción del LGR. Taller de desarrollo de ejemplos. Sesión de problemas.
+
+**Estrategias de evaluación:** Asignación para resolver en el hogar con entrega de informe. Resolver ejercicios de aplicación. Examen escrito del contenido teórico-práctico de la unidad.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Hostetter G. Savant, C. & Stefani, R. 1990. *Sistemas de Control*. McGraw-Hill. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+
+### Unidad 5 — Análisis y Diseño en el Dominio de la Frecuencia
+
+**Horas:** 12
+
+**Objetivos específicos:**
+
+1. Interpretar el significado de los diagramas de bode.
+2. Construir las Gráficas de diagramas de bode a partir de funciones de transferencia.
+3. Definir el concepto de margen de fase.
+4. Definir el concepto de margen de ganancia.
+5. Definir los conceptos de pico de resonancia, frecuencia de resonancia y ancho de banda.
+6. Aplicar los diagramas de bode en el diseño de controladores.
+
+**Contenidos:**
+
+- 5.1. Definición de diagramas de bode.
+- 5.2. Importancia de los diagramas de bode.
+- 5.3. Términos de una función de transferencia involucrados en la construcción de diagramas de bode.
+  - a. Términos derivativo e integral.
+  - b. Términos de primer orden.
+  - c. Términos cuadráticos.
+  - d. Términos constante.
+- 5.4. Pasos generales para construir la gráfica de diagrama de bode de magnitud.
+- 5.5. Procedimiento para la construcción de gráficas de bode.
+- 5.6. Definición de margen de fase y su significado.
+- 5.7. Definición de margen de ganancia y su significado.
+- 5.8. Definición de pico de resonancia.
+- 5.9. Frecuencia de resonancia.
+- 5.10. Definición de ancho de banda.
+
+**Estrategias metodológicas:** Exposición del profesor del contenido de la unidad. Discusión en clase de la construcción de la gráfica de Bode. Taller de desarrollo de ejemplos. Sesión de problemas.
+
+**Estrategias de evaluación:** Asignación para resolver en el hogar con entrega de informe. Resolver ejercicios de aplicación. Examen escrito del contenido teórico-práctico de la unidad.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Hostetter G. Savant, C. & Stefani, R. 1990. *Sistemas de Control*. McGraw-Hill. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+
+### Unidad 6 — Análisis y Diseño de Controladores
+
+**Horas:** 12
+
+**Objetivos específicos:**
+
+1. Describir las estructuras de controladores proporcional, Integral, Derivativo y sus Combinaciones (P, D, I, PI, PD, PID).
+2. Diseñar controladores proporcional, Integral, Derivativo y sus Combinaciones (P, D, I, PI, PD, PID).
+3. Describir los controladores de adelanto y retraso de fase.
+4. Aplicar el diagrama del lugar de las raíces el diseño de controladores.
+5. Aplicar los diagramas de bode en el diseño de controladores.
+
+**Contenidos:**
+
+- 6.1. Descripción de las estructuras de control retroalimentadas, en cascada, en prealimentación, otros.
+- 6.2. Descripción de las estructuras de control proporcional (P), integral (I) y derivativa (D).
+- 6.3. Descripción de los controladores PI, PD y PID
+- 6.4. Efectos principales de los controladores PD, PI y PID.
+- 6.5. Frecuencia de reposición
+- 6.6. Esquema básico de un sistema de control automático.
+- 6.7. Procedimiento general de diseño de controladores PI y PD
+- 6.8. Diseño de controladores PID.
+  - a. Reglas de sintonizado de Ziegler y Nichols (Lazo abierto y lazo cerrado)
+- 6.9. Controlador de adelanto de fase
+  - a. Definición.
+  - b. Característica de bode del controlador.
+  - c. Procedimiento de diseño.
+    - i. Procedimiento basado en el lugar de las raíces.
+    - ii. Procedimiento basado en el diagrama de bode.
+- 6.10. Controlador de retraso de fase.
+  - a. Definición.
+  - b. Característica de bode del controlador.
+  - c. Procedimientos de diseño.
+    - i. Procedimiento basado en el lugar de las raíces.
+    - ii. Procedimiento basado en el diagrama de bode.
+
+**Estrategias metodológicas:** Exposición del profesor del contenido de la unidad. Taller de desarrollo de ejemplos. Sesión de problemas. Simulación en computador de sistemas de control.
+
+**Estrategias de evaluación:** Asignación para resolver en el hogar con entrega de informe. Resolver ejercicios de aplicación. Examen escrito del contenido teórico-práctico de la unidad. Asignación de simulaciones en computador.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Hostetter G. Savant, C. & Stefani, R. 1990. *Sistemas de Control*. McGraw-Hill. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+
+### Unidad 7 — Análisis y Diseño de Controladores por Realimentación de Estados
+
+**Horas:** 10
+
+**Objetivos específicos:**
+
+1. Reconocer la representación de sistemas por medio de ecuaciones de estado.
+2. Identificar los elementos de las ecuaciones de estado.
+3. Determinar ecuaciones de estados de sistemas lineales.
+4. Construir diagramas de simulación de estados.
+5. Determinar la controlabilidad y observabilidad de sistemas de control.
+6. Diseñar controladores por realimentación de estados.
+
+**Contenidos:**
+
+- 7.1. Definición de estados.
+- 7.2. Definición de variables de estado.
+- 7.3. Vector de estados.
+- 7.4. Matriz de coeficientes de variables de estados.
+- 7.5. Matriz de coeficientes de entradas.
+- 7.6. Representación matricial de estados.
+- 7.7. Cálculo de ecuaciones de estado a partir de ecuaciones diferenciales.
+- 7.8. Definición de diagramas de simulación.
+- 7.9. Tipos de diagramas de simulación.
+- 7.10. Cálculo de diagramas de simulación.
+- 7.11. Por analogía con fórmula de ganancia de mason.
+- 7.12. Por expansión en fracciones parciales.
+- 7.13. Definición de controlabilidad.
+- 7.14. Definición de observabilidad.
+- 7.15. Forma de la matriz de controlabilidad.
+- 7.16. Forma de la matriz de observabilidad.
+- 7.17. Realimentación de estados.
+- 7.18. Control por realimentación de estados.
+- 7.19. Diseño de controladores por realimentación de estados.
+
+**Estrategias metodológicas:** Exposición del profesor del contenido de la unidad. Discusión en clase de los métodos de diseño de controladores. Taller de desarrollo de ejemplos. Sesión de problemas. Simulación en computador de sistemas de control.
+
+**Estrategias de evaluación:** Asignación para resolver en el hogar con entrega de informe. Resolver ejercicios de aplicación. Examen escrito del contenido teórico-práctico de la unidad. Asignación de simulaciones en computador.
+
+**Bibliografía:**
+
+- Dorf, Richard. 1990. *Sistemas Modernos de Control, Teoría y Práctica*. Addison Wesley Iberoamericana. México.
+- Kuo, Benjamin. 1996. *Sistemas de Control Automático*. Séptima Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1998. *Ingeniería de Control Moderna*. Tercera Edición. Prentice Hall Hispanoamericana. México.
+- Ogata, Katsuhiko. 1999. *Problemas de Ingeniería de Control Utilizando Matlab®, Un Enfoque Práctico*. Primera Edición. Prentice Hall Iberia. Madrid.
+- Phillips, Ch. & Harbor, R. 1996. *Feedback Control Systems*. Tercera Edición. Prentice Hall Hispanoamericana. USA.
+- Paul H. Lewis. Chang, Yang. 1999. *Sistemas de Control en Ingeniería*. Primera Edición. Prentice Hall. México.
+
+---
+
+## Laboratorio de Circuitos y Electrónica
+
+**Código:** 072-4641 | **Semestre:** VII | **Prelación:** 072-3533 (Electrónica)
+**Créditos:** 1 | **Horas semanales:** 3 (0T-3P) | **Total horas semestre:** 48 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Ley de Ohm. Leyes de Kirchoff. Teoremas para circuitos. Componentes eléctricos y electrónicos. Conocimientos básicos de electrónica. Manejo de amplificadores operacionales.
+
+**Objetivo general:** El estudiante estará en capacidad de aplicar los conocimientos teóricos adquiridos y comprobar experimentalmente las leyes, teoremas y métodos de análisis, mediante la utilización de instrumentos, técnicas y métodos para analizar circuitos lineales eléctricos y electrónicos en el laboratorio.
+
+**Sinopsis de contenido:**
+
+Circuitos lineales. Comprobación de las Leyes de Ohm y Kirchoff. Uso del multímetro. Teoremas circuitales. Comprobación de los teoremas de Thévenin y Norton. Teorema de máxima transferencia de potencia. Aplicación del principio de superposición. Resonancia. Fenómenos de resonancia en circuitos RLC serie y RLC paralelo. Diodos. Uso del ohmímetro. Funcionamiento de un diodo rectificador. Fuentes de alimentación reguladas. Diseño de una fuente de alimentación regulada por Zener. Funcionamiento de las secciones por fuente. Mediciones de voltaje rizado. Curvas características del transistor en el trazador de curvas. Diseño de un amplificador emisor común estable en DC. Punto de operación. Diseño de un amplificador de alta ganancia. Aplicación de amplificadores operacionales.
+
+**Bibliografía:**
+
+- Neamen, Donald. 1999. *Análisis y Diseño de Circuitos Electrónicos*. Editorial Mc Graw Hill. México.
+- Cooper, William - Helfrick, A. 1991. *Instrumentación Electrónica, Modernas y Técnicas de Medición*. Editorial Prentice Hall Hispanoamericana, S.A. México.
+- Johnson, D. – Hilburn, Johnson. 1991. *Análisis Básico de Circuitos Eléctricos*. Editorial Prentice Hall Hispanoamericana, S.A. México.
 
 > **Nota:** El pensum solo incluye el programa sinóptico de esta asignatura; no hay programa analítico con desglose por unidades.
 

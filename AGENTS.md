@@ -174,8 +174,9 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   Operaciones I y II completas (ADR-031); Teoría de Sobrevivencia con Kaplan-Meier y la tabla de
   vida. El nivel crítico y el LED Markoviano siguen en el roadmap: su método (trabajos de Bórean)
   no está publicado (ADR-032). Versión **v0.7.0** ✅
-- Tanda 11 (en curso, rama `feat/electronica`) — Circuitos y Sistemas y Electrónica agregadas a
-  la malla curricular (pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap).
+- Tanda 11 (en curso, rama `feat/electronica`) — Circuitos y Sistemas, Electrónica, Sistemas
+  Dinámicos y Laboratorio de Circuitos y Electrónica agregadas a la malla curricular (pensum
+  fuente, bibliografía y 38 calculadoras planificadas en el roadmap).
 
 ## Versiones
 

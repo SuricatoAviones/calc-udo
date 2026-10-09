@@ -1395,6 +1395,241 @@ export const subjects: Subject[] = [
   },
 
   // ════════════════════════════════════════════════════════════════════════
+  // Sistemas Dinámicos: programa completo por unidades. Laboratorio de Circuitos y Electrónica:
+  // solo sinóptico.
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'sistemas-dinamicos',
+    code: '071-4643',
+    name: 'Sistemas Dinámicos',
+    semester: 7,
+    kind: 'obligatoria',
+    prerequisites: ['072-3533'],
+    credits: { total: 3, theory: 2, practice: 2 },
+    creditsLabel: '3 (2T-2P)',
+    objective:
+      'Describir los métodos para el análisis, diseño y optimización de sistemas de control en tiempo continuo.',
+    content: 'definido',
+    bibliography: [
+      'grantham-vincent-1998',
+      'kuo-1996',
+      'dazzo-1995',
+      'ogata-1993',
+      'hostetter-1990',
+      'dorf-1990',
+      'ogata-1987',
+      'paul-lewis-chang-1999',
+      'phillips-harbor-1996',
+      'ogata-1998',
+      'ogata-1999',
+    ],
+    topics: [
+      {
+        slug: 'diagramas-de-bloque',
+        name: 'Diagramas de bloque y flujogramas',
+        unit: 'Unidad I',
+        description:
+          'Elementos de un diagrama de bloques y de un diagrama de flujo de señales (flujograma). Álgebra de bloques y reducción de diagramas de bloques. Fórmula de ganancia de Mason: lazos individuales, lazos disjuntos y trayectos directos. Transformación entre diagramas de bloques y flujogramas.',
+        calculators: [
+          {
+            id: 'reduccion-de-diagramas-de-bloques',
+            title: 'Reducción de diagramas de bloques',
+            summary: 'Simplifica un diagrama de bloques con el álgebra de bloques.',
+          },
+          {
+            id: 'ganancia-de-mason',
+            title: 'Fórmula de ganancia de Mason',
+            summary:
+              'Función de transferencia de un flujograma a partir de lazos y trayectos directos.',
+          },
+        ],
+      },
+      {
+        slug: 'funciones-de-transferencia',
+        name: 'Funciones de transferencia y modelos de sistemas',
+        unit: 'Unidad II',
+        description:
+          'Función de transferencia y su desarrollo a partir de ecuaciones diferenciales. Formas canónicas polinomial y de polos y ceros. Polinomio característico. Funciones de transferencia directa, de lazo abierto y de lazo cerrado; sistemas con perturbaciones. Respuestas de sistemas de primer y segundo orden y especificaciones de respuesta transitoria. Modelos matemáticos de sistemas eléctricos, mecánicos y electromecánicos.',
+        calculators: [
+          {
+            id: 'funcion-de-transferencia',
+            title: 'Función de transferencia',
+            summary:
+              'La obtiene de una ecuación diferencial y da polos, ceros y polinomio característico.',
+          },
+          {
+            id: 'lazo-abierto-y-cerrado',
+            title: 'Funciones de lazo abierto y lazo cerrado',
+            summary:
+              'Directa, de lazo abierto y de lazo cerrado de un sistema realimentado, con perturbaciones.',
+          },
+          {
+            id: 'respuesta-transitoria',
+            title: 'Respuesta transitoria de primer y segundo orden',
+            summary:
+              'Respuestas al escalón, la rampa y el impulso y especificaciones como el sobreimpulso.',
+          },
+        ],
+      },
+      {
+        slug: 'estabilidad-y-error',
+        name: 'Estabilidad y error en estado estacionario',
+        unit: 'Unidad III',
+        description:
+          'Estabilidad BIBO, estabilidad absoluta y relativa y diagramas de polos y ceros. Criterio de estabilidad de Routh-Hurwitz: conjunto de coeficientes, casos especiales y polinomio auxiliar. Error en estado estacionario: teorema del valor final, tipo de sistema y errores de posición, velocidad y aceleración.',
+        calculators: [
+          {
+            id: 'routh-hurwitz',
+            title: 'Criterio de Routh-Hurwitz',
+            summary: 'Tabla de Routh y número de raíces con parte real positiva.',
+          },
+          {
+            id: 'error-en-estado-estacionario',
+            title: 'Error en estado estacionario',
+            summary: 'Errores de posición, velocidad y aceleración según el tipo de sistema.',
+          },
+        ],
+      },
+      {
+        slug: 'lugar-de-las-raices',
+        name: 'Lugar geométrico de las raíces',
+        unit: 'Unidad IV',
+        description:
+          'Lugar geométrico de las raíces: polos y ceros de lazo abierto, lugar sobre el eje real, asíntotas, ángulos de salida y llegada, puntos de ruptura y cortes con el eje imaginario. Cálculo de la ganancia sobre el LGR (método gráfico y analítico). Relación de amortiguamiento y zonas de respuesta. Contorno de las raíces.',
+        calculators: [
+          {
+            id: 'lugar-geometrico-de-las-raices',
+            title: 'Lugar geométrico de las raíces',
+            summary: 'Construye el LGR y determina la ganancia y la frecuencia críticas.',
+          },
+        ],
+      },
+      {
+        slug: 'dominio-de-la-frecuencia',
+        name: 'Análisis en el dominio de la frecuencia',
+        unit: 'Unidad V',
+        description:
+          'Diagramas de Bode: términos de la función de transferencia y construcción de las gráficas de magnitud y fase. Márgenes de fase y de ganancia. Pico de resonancia, frecuencia de resonancia y ancho de banda.',
+        calculators: [
+          {
+            id: 'diagramas-de-bode',
+            title: 'Diagramas de Bode',
+            summary: 'Gráficas de magnitud y fase y márgenes de ganancia y de fase.',
+          },
+        ],
+      },
+      {
+        slug: 'diseno-de-controladores',
+        name: 'Diseño de controladores',
+        unit: 'Unidad VI',
+        description:
+          'Controladores P, I, D, PI, PD y PID: estructuras y efectos. Frecuencia de reposición. Procedimiento de diseño de controladores PI y PD. Sintonizado de PID con las reglas de Ziegler-Nichols (lazo abierto y cerrado). Controladores de adelanto y de retraso de fase: característica de Bode y procedimientos de diseño por el lugar de las raíces o por Bode.',
+        calculators: [
+          {
+            id: 'sintonizacion-pid',
+            title: 'Sintonizado de controladores PID',
+            summary: 'Parámetros PID con las reglas de Ziegler-Nichols.',
+          },
+          {
+            id: 'compensador-adelanto-retraso',
+            title: 'Compensador de adelanto o retraso de fase',
+            summary: 'Diseño por el lugar de las raíces o por el diagrama de Bode.',
+          },
+        ],
+      },
+      {
+        slug: 'realimentacion-de-estados',
+        name: 'Realimentación de estados',
+        unit: 'Unidad VII',
+        description:
+          'Representación por ecuaciones de estado: vector de estados, matrices de coeficientes y cálculo a partir de ecuaciones diferenciales. Diagramas de simulación por la fórmula de Mason y por fracciones parciales. Controlabilidad y observabilidad. Realimentación de estados y diseño de controladores.',
+        calculators: [
+          {
+            id: 'controlabilidad-y-observabilidad',
+            title: 'Controlabilidad y observabilidad',
+            summary: 'Rango de las matrices de controlabilidad y de observabilidad.',
+          },
+          {
+            id: 'realimentacion-de-estados',
+            title: 'Control por realimentación de estados',
+            summary: 'Diseña un controlador asignando los polos en lazo cerrado.',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'laboratorio-de-circuitos-y-electronica',
+    code: '072-4641',
+    name: 'Laboratorio de Circuitos y Electrónica',
+    semester: 7,
+    kind: 'obligatoria',
+    prerequisites: ['072-3533'],
+    credits: { total: 1, theory: 0, practice: 3 },
+    creditsLabel: '1 (0T-3P)',
+    objective:
+      'El estudiante estará en capacidad de aplicar los conocimientos teóricos adquiridos y comprobar experimentalmente las leyes, teoremas y métodos de análisis, mediante la utilización de instrumentos, técnicas y métodos para analizar circuitos lineales eléctricos y electrónicos en el laboratorio.',
+    content: 'definido',
+    bibliography: ['neamen-1999', 'cooper-helfrick-1991', 'johnson-hilburn-1991'],
+    topics: [
+      {
+        slug: 'leyes-y-teoremas',
+        name: 'Leyes, teoremas e instrumentos',
+        description:
+          'Circuitos lineales. Comprobación de las leyes de Ohm y Kirchoff. Uso del multímetro. Comprobación de los teoremas de Thévenin y Norton, de máxima transferencia de potencia y del principio de superposición.',
+        calculators: [],
+      },
+      {
+        slug: 'resonancia',
+        name: 'Resonancia',
+        description: 'Fenómenos de resonancia en circuitos RLC serie y RLC paralelo.',
+        calculators: [
+          {
+            id: 'resonancia-rlc',
+            title: 'Resonancia en circuitos RLC',
+            summary:
+              'Frecuencia de resonancia y factor de calidad de circuitos RLC serie y paralelo.',
+          },
+        ],
+      },
+      {
+        slug: 'diodos-y-fuentes',
+        name: 'Diodos y fuentes de alimentación',
+        description:
+          'Uso del ohmímetro y funcionamiento de un diodo rectificador. Fuentes de alimentación reguladas: diseño de una fuente regulada por Zener, secciones de la fuente y mediciones del voltaje rizado.',
+        calculators: [
+          {
+            id: 'fuente-regulada-por-zener',
+            title: 'Fuente de alimentación regulada por Zener',
+            summary: 'Diseño de una fuente con diodo Zener y su voltaje de rizado.',
+          },
+        ],
+      },
+      {
+        slug: 'transistores',
+        name: 'Transistores y amplificadores',
+        description:
+          'Curvas características del transistor en el trazador de curvas. Diseño de un amplificador emisor común estable en DC, punto de operación y diseño de un amplificador de alta ganancia.',
+        calculators: [
+          {
+            id: 'amplificador-emisor-comun',
+            title: 'Amplificador emisor común',
+            summary: 'Punto de operación y ganancia de un amplificador con transistor BJT.',
+          },
+        ],
+      },
+      {
+        slug: 'amplificadores-operacionales',
+        name: 'Amplificadores operacionales',
+        description: 'Aplicación de amplificadores operacionales.',
+        calculators: [{ ref: 'amplificadores-operacionales' }],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
   {
     slug: 'programacion-no-lineal',
     code: '071-4303',

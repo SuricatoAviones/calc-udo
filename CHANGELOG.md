@@ -15,6 +15,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   valor promedio y eficaz, primer y segundo orden, variables de estado, Laplace, convolución,
   transformada Z, diodos, rectificadores, filtrado y regulación, polarización y análisis AC de
   transistores, amplificadores operacionales).
+- **Sistemas Dinámicos** y **Laboratorio de Circuitos y Electrónica** en la malla curricular:
+  programas transcritos al pensum fuente, bibliografía y 16 calculadoras planificadas en el
+  roadmap (reducción de diagramas de bloques, ganancia de Mason, función de transferencia, lazo
+  abierto y cerrado, respuesta transitoria, Routh-Hurwitz, error en estado estacionario, LGR,
+  Bode, sintonizado PID, compensador de adelanto/retraso, controlabilidad y observabilidad,
+  realimentación de estados, resonancia RLC, fuente regulada por Zener, amplificador emisor
+  común).
 
 ## [0.7.0] — 2026-09-30
 
