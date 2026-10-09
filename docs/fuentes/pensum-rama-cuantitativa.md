@@ -9,6 +9,9 @@
 > sinóptico) e **Introducción a la Lógica Formal y Algoritmos** los entregó el mantenedor el
 > 2026-09-25. Se copian literalmente; solo se ajustaron los niveles de los títulos para que
 > encajen en este archivo.
+>
+> Los programas de **Circuitos y Sistemas** (completo) y de **Electrónica** (solo sinóptico) los
+> entregó el mantenedor el 2026-10-09, con la misma regla de transcripción literal.
 
 ## Matemáticas I
 
@@ -751,6 +754,265 @@ Curvas de regresión, regresión lineal, método de mínimos cuadrados, interval
 - Díaz Matalobos, Angel. (1998). *Gestión de Inventarios*. Ediciones IESA. Caracas.
 - Gould – Eppen - Schmidt. (2000). *Investigación de Operaciones en la Ciencia Administrativa*. Prentice Hall. México.
 - Handy, Taha. (2003). *Investigación de Operaciones. Una introducción*. PH. México.
+
+---
+
+## Circuitos y Sistemas
+
+**Código:** 071-3463 | **Semestre:** V | **Prelación:** 008-2824 (Matemáticas IV) / 005-2134
+**Créditos:** 3 | **Horas semanales:** 5 (2T-3P) | **Total horas semestre:** 80 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Álgebra. Cálculo diferencial e integral. Sistemas de Unidades. Nociones elementales de electricidad y magnetismo. Ecuaciones Diferenciales. Transformada de Laplace.
+
+**Objetivo general:** Al finalizar el curso el estudiante estará en capacidad de analizar circuitos eléctricos usando leyes, teoremas y técnicas para los circuitos lineales e invariantes en el tiempo (continuo y discreto) en el dominio del tiempo y en el dominio de la frecuencia.
+
+**Sinopsis de contenido:**
+
+Linealidad. Señales continuas y discretas. Funciones Escalón. Rampa. Impulso. Fuentes de corriente y de voltaje. Elementos circuitales. Resistencias. Condensadores. Inductores. Ley de Ohm. Relaciones de voltaje-corriente. Frecuencia. Impedancia. Análisis en el dominio del tiempo. Respuesta a funciones singulares y senoidales. Leyes de Kirchoff. Teorema de superposición. Teorema de Thévenin. Teorema de Norton. Teorema de máxima transferencia de potencia. Análisis de nodo. Análisis de malla. Valor promedio. Valor eficaz. Técnicas de análisis de circuitos en tiempo continuo y discreto. Solución por medio de ecuaciones diferenciales y de diferencia. Teorema de convolución. Análisis de circuitos por medio de las variables de estado. Transformada de Laplace. Transformada Z. Respuesta natural y forzada. Funciones de transferencia.
+
+**Bibliografía general:**
+
+- Bobrow, L. 1984. *Análisis de Circuitos Eléctricos*. Editorial Interamericana S. A. de C. V. México.
+- Coughlin, R. – Driscoll, F. 1996. *Análisis y Diseño de Circuitos Integrados Lineales*. Cuarta Edición. Editorial Prentice Hall.
+- Dorf, R. – Svoboda, J. 2000. *Circuitos Eléctricos Introducción al análisis y Diseño*. Tercera Edición. Editorial Alfaomega Grupo Editor S.A. México.
+- Fitzgerald, A. – Higginbotham, D. – Gravel, A. 1976. *Fundamentos de Ingeniería Eléctrica*. Cuarta Edición. Editorial McGraw-Hill. México.
+- Gupta, S. – Bayless, J. – Peikari, B. 1972. *Circuit Análisis with Computer Applications to Problem Solving*. Editorial Intext Educational Publishers. Scranton, PA.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Johnson, D. – Hilburn, Johnson. 1991. *Análisis Básico de Circuitos Eléctricos*. Editorial Prentice Hall Hispanoamericana, S.A. México.
+- Ryder J. D. 1973. *Introduction to Circuit Análisis*. Editorial Prentice-Hall, Inc. Englewood Cliffs, Nueva Jersey.
+- Valkenburg, Van. 1990. *Análisis de Redes*. Tercera Edición. Editorial Limusa, S.A. México.
+
+### Unidad 1 — Conceptos Básicos de Circuitos y Sistemas Eléctricos Lineales
+
+**Horas:** 8
+
+**Objetivos específicos:**
+
+1. Conocer el concepto de linealidad de una Red o Sistema a través de sus propiedades de aditividad, homogeneidad, diferenciabilidad, integrabilidad, causalidad e invariabilidad en el tiempo.
+2. Clasificar y reconocer los elementos de una Red o circuito lineal.
+3. Aplicar relaciones de voltaje, corriente y potencia elementales a los elementos o componentes circuitales.
+
+**Contenidos:**
+
+- 1.1. Concepto de Linealidad de una Red.
+- 2.1. Clasificación de los elementos lineales según su capacidad de suministrar, y consumir o almacenar energía.
+  - 2.1.1. Según su capacidad de suministrar energía, elementos activos: Fuentes de voltaje y corriente independientes, y Fuentes de voltaje y corriente dependientes.
+  - 2.1.2. Según su capacidad de consumir o almacenar energía: Resistencias, Capacitores, Inductores, Inductancias mutuas.
+- 3.1 Aplicación de relaciones de voltaje, corriente y potencia sencillas a los elementos circuitales.
+
+**Estrategias metodológicas:** Exposición oral del docente sobre la definición de Linealidad y descripción de las Redes y/o Sistemas lineales. Presentación y reproducción de diagramas y esquemas eléctricos asociados a las Redes lineales. Análisis y solución de problemas de ejemplo relacionados con el tópico. Asignación de conjuntos de problemas para su debida solución.
+
+**Estrategias de evaluación:** Examen práctico escrito de los contenidos de la unidad.
+
+**Bibliografía:**
+
+- Coughlin, R. – Driscoll, F. 1996. *Análisis y Diseño de Circuitos Integrados Lineales*. Cuarta Edición. Editorial Prentice Hall.
+- Dorf, R. – Svoboda, J. 2000. *Circuitos Eléctricos Introducción al análisis y Diseño*. Tercera Edición. Editorial Alfaomega Grupo Editor S.A. México.
+- Fitzgerald, A. – Higginbotham, D. – Gravel, A. 1976. *Fundamentos de Ingeniería Eléctrica*. Cuarta Edición. Editorial McGraw-Hill. México.
+- Gupta, S. – Bayless, J. – Peikari, B. 1972. *Circuit Análisis with Computer Applications to Problem Solving*. Editorial Intext Educational Publishers. Scranton, PA.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Ryder J. D. 1973. *Introduction to Circuit Análisis*. Editorial Prentice-Hall, Inc. Englewood Cliffs, Nueva Jersey.
+- Valkenburg, Van. 1990. *Análisis de Redes*. Tercera Edición. Editorial Limusa, S.A. México.
+
+### Unidad 2 — Leyes y Teoremas Fundamentales en Análisis Circuital
+
+**Horas:** 18
+
+**Objetivos específicos:**
+
+1. Aplicar las leyes de Ohm y de Kirchhoff en circuitos o redes de uno o más lazos.
+2. Aplicar las técnicas de solución por Análisis de Nodos y Análisis de Mallas.
+3. Estudiar y emplear los teoremas de Superposición, Thévenin y Norton como herramientas facilitadoras en el análisis circuital.
+4. Explicar y emplear el teorema de Máxima Transferencia de Potencia.
+
+**Contenidos:**
+
+- 1.1. Ley de Ohm. Enunciado.
+- 2.1. Leyes de Kirchhoff. Conceptos de nodo, rama y trayectoria cerrada o lazo.
+- 2.2. Análisis de Nodos. Aplicación a circuitos de un sólo par de nodos. Análisis de Mallas. Aplicación a circuitos de un sólo lazo.
+- 2.3. Análisis de circuitos con varios nodos. Análisis de circuitos con varias mallas.
+- 3.1. Linealidad y Superposición. Transformaciones de fuentes.
+- 3.2. Teoremas de Thévenin y Norton.
+- 4.1. Teorema de Máxima Transferencia de Potencia.
+
+**Estrategias metodológicas:** Enunciado y exposición oral del docente de las leyes de Ohm y Kirchhoff. Presentación, análisis y solución de problemas de ejemplo que ilustren la aplicabilidad de las leyes de Ohm y Kirchhoff y los teoremas de Superposición, Thévenin y Norton. Motivación mediante la discusión, dirigida hacia la introducción del estudiante en la comprensión de las leyes y teoremas mencionados y en el análisis de problemas propuestos. Asignación de conjuntos de problemas para su debida solución. Discusión en clase de problemas de ejemplo.
+
+**Estrategias de evaluación:** Examen Parcial escrito sumativo de los contenidos de la unidad.
+
+**Bibliografía:**
+
+- Bobrow, L. 1984. *Análisis de Circuitos Eléctricos*. Editorial Interamericana S. A. de C. V. México.
+- Coughlin, R. – Driscoll, F. 1996. *Análisis y Diseño de Circuitos Integrados Lineales*. Cuarta Edición. Editorial Prentice Hall.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Johnson, D. – Hilburn, Johnson. 1991. *Análisis Básico de Circuitos Eléctricos*. Editorial Prentice Hall Hispanoamericana, S.A. México.
+
+### Unidad 3 — Respuesta a Funciones Singulares y Senoidales
+
+**Horas:** 12
+
+**Objetivos específicos:**
+
+1. Definir Fasor.
+2. Estudiar y reconocer una función senoidal.
+3. Emplear las técnicas de Análisis de Nodos y de Mallas, y de los teoremas de Superposición, Thévenin y Norton en el análisis de circuitos y sistemas excitados por funciones senoidales.
+4. Calcular y determinar la potencia en circuitos con funciones senoidales.
+5. Determinar valores promedio y efectivo de voltaje, corriente y potencia en funciones variantes en el tiempo.
+
+**Contenidos:**
+
+- 1.1. Concepto de Fasor.
+- 2.1. Definición de Función de excitación Senoidal.
+- 2.2. Relaciones fasoriales para R, C y L.
+- 3.1. Aplicación de las técnicas de Análisis de Nodos y Mallas. Aplicación de los teoremas de Superposición, Thévenin y Norton en circuitos excitados por funciones senoidales.
+- 4.1. Potencia en circuitos y sistemas excitados por funciones senoidales.
+- 5.1. Definición de potencia instantánea.
+- 5.2. Potencia promedio de una función periódica. Potencia promedio de una función aperiódica.
+- 5.3. Valores promedio de la corriente y el voltaje.
+- 5.4. Valores efectivos de la corriente y el voltaje.
+
+> **Nota de transcripción:** en el programa original el primer ítem de los contenidos de esta
+> unidad aparece como «1.1. Generalidades: Distribuciones de Probabilidad.», seguido de «1.1.
+> Concepto de Fasor.». Es una errata evidente del documento (no hay otro contenido de
+> probabilidad en la materia); se omite la primera línea y se conserva la numeración original.
+
+**Estrategias metodológicas:** Definición y exposición oral del docente de los conceptos de Fasor y Función Senoidal. Análisis y solución de problemas de ejemplo empleando las técnicas de Análisis de Nodos y de Mallas, y los teoremas de Superposición, Thévenin y Norton. Motivación mediante la discusión, dirigida hacia la introducción del estudiante en la comprensión y la aplicación de las leyes y teoremas mencionados en el análisis de circuitos excitados por funciones senoidales. Encaminar al estudiante hacia el cálculo de los valores promedio y efectivo de la corriente, el voltaje y la potencia. Asignación de conjuntos de problemas para su debida solución. Discusión en clase de problemas de ejemplo.
+
+**Estrategias de evaluación:** Examen Parcial escrito sumativo de los contenidos de la unidad.
+
+**Bibliografía:**
+
+- Bobrow, L. 1984. *Análisis de Circuitos Eléctricos*. Editorial Interamericana S. A. de C. V. México.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Ryder J. D. 1973. *Introduction to Circuit Análisis*. Editorial Prentice-Hall, Inc. Englewood Cliffs, Nueva Jersey.
+
+### Unidad 4 — Solución de Circuitos y Sistemas Caracterizados por Ecuaciones Diferenciales
+
+**Horas:** 18
+
+**Objetivos específicos:**
+
+1. Reconocer y emplear las señales continuas y discretas.
+2. Identificar y resolver sistemas/circuitos de 1er Orden.
+3. Identificar y resolver sistemas/circuitos de 2do Orden.
+
+**Contenidos:**
+
+- 1.1. Señales Continuas y Discretas. Introducción.
+  - 1.1.1. Funciones Elementales: Función Rampa. Función Escalón. Función Impulso. Función Parábola.
+  - 1.1.2. Propiedades de las Funciones Elementales.
+  - 1.1.3. Algunas aplicaciones de las Funciones Elementales.
+- 2.1. Sistemas de 1er Orden.
+  - 2.1.1. Respuestas naturales de Circuitos RL y RC.
+  - 2.1.2. Constante de tiempo y respuesta exponencial.
+  - 2.1.3. Respuesta de estado cero de Circuitos RL y RC. Respuesta completa.
+- 3.1. Sistemas de 2do Orden.
+  - 3.1.1. Resolución general para casos Subamortiguado y Sobreamortiguado. Respuesta Completa.
+  - 3.1.2. Resolución para caso de Amortiguamiento Crítico. Respuesta completa.
+
+**Estrategias metodológicas:** Exposición y definición oral del docente de las Funciones Elementales. Presentación y definición por el docente de los Sistemas de 1er y 2do Orden. Resolución por el docente de problemas de ejemplo de los Sistemas de 1er y 2do Orden. Motivar y encaminar al estudiante hacia la resolución de problemas de aplicación relacionados con los contenidos expuestos. Asignación de conjuntos de problemas para su debida solución. Discusión en clase de problemas de ejemplo.
+
+**Estrategias de evaluación:** Examen Parcial escrito sumativo de los contenidos de la unidad.
+
+**Bibliografía:**
+
+- Dorf, R. – Svoboda, J. 2000. *Circuitos Eléctricos Introducción al análisis y Diseño*. Tercera Edición. Editorial Alfaomega Grupo Editor S.A. México.
+- Fitzgerald, A. – Higginbotham, D. – Gravel, A. 1976. *Fundamentos de Ingeniería Eléctrica*. Cuarta Edición. Editorial McGraw-Hill. México.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+
+### Unidad 5 — Análisis de Circuitos por Medio de las Variables de Estado
+
+**Horas:** 10
+
+**Objetivos específicos:**
+
+1. Definir Variables de estado y formular ecuaciones matriciales que describan el estado de un sistema o circuito.
+2. Conocer y emplear los conceptos de Grafo, Árbol, Ciclo fundamental, Conjunto de corte.
+3. Definir Redes Propias e Impropias y emplear procedimientos sistemáticos para resolver ambos casos.
+4. Resolver la Ecuación de Estado.
+
+**Contenidos:**
+
+- 1.1. Concepto de Variables de estado.
+  - 1.1.1. Redes de una, dos y tres mallas. Formulación de las Ecuaciones de estado.
+- 2.1. Definiciones de: Grafo, rama, nodo, lazo, árbol, coárbol, cuerda, ciclo fundamental, conjunto de corte.
+- 3.1. Definiciones de Redes Propias e Impropias.
+  - 3.1.1. Procedimiento para formulación de Ecuaciones de estado: Para Redes propias. Para Redes Impropias.
+- 4.1 Solución de la Ecuación de estado.
+
+**Estrategias metodológicas:** Exposición y definición oral del docente de las Variables de estado. Aplicación de los conceptos asociados. Solución general para redes de una, dos y tres mallas. Empleo del procedimiento para formulación de ecuaciones de estado en redes propias e impropias. Resolución presencial de la Ecuación de estado. Asignación de conjuntos de problemas para su debida solución. Discusión en clase de problemas de ejemplo.
+
+**Estrategias de evaluación:** Examen Parcial escrito sumativo de los contenidos de la unidad. Evaluación formativa de la Discusión en clase de problemas de ejemplo.
+
+**Bibliografía:**
+
+- Bobrow, L. 1984. *Análisis de Circuitos Eléctricos*. Editorial Interamericana S. A. de C. V. México.
+- Dorf, R. – Svoboda, J. 2000. *Circuitos Eléctricos Introducción al análisis y Diseño*. Tercera Edición. Editorial Alfaomega Grupo Editor S.A. México.
+- Gupta, S. – Bayless, J. – Peikari, B. 1972. *Circuit Análisis with Computer Applications to Problem Solving*. Editorial Intext Educational Publishers. Scranton, PA.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Johnson, D. – Hilburn, Johnson. 1991. *Análisis Básico de Circuitos Eléctricos*. Editorial Prentice Hall Hispanoamericana, S.A. México.
+
+### Unidad 6 — Transformada de Laplace
+
+**Horas:** 14
+
+**Objetivos específicos:**
+
+1. Conocer las transformadas de Laplace de diversas funciones del tiempo.
+2. Plantear la ecuación diferencial característica de un sistema o circuito, reemplazarla por la ecuación algebraica correspondiente y resolverla empleando las transformadas asociadas.
+3. Determinar y resolver funciones de transferencia mediante las transformadas de Laplace.
+4. Resolver el problema de respuestas natural y forzada mediante la transformada de Laplace.
+5. Conocer y evaluar la integral de Convolución.
+6. Conocer la transformada Z.
+
+**Contenidos:**
+
+- 1.1. Concepto de Transformada de Laplace.
+  - 1.1.1. Transformadas de funciones: Escalón, Rampa, Impulso unitario, Función exponencialmente amortiguada.
+- 2.1. Resolución de ecuaciones diferenciales mediante las transformadas de Laplace. Análisis de Redes. Transformada inversa.
+- 3.1. Determinación de la función de transferencia de algunas redes. Solución.
+- 4.1. Respuesta completa.
+- 5.1 Concepto y solución de la integral de convolución.
+- 6.1 Concepto de la transformada Z.
+
+**Estrategias metodológicas:** Exposición y definición oral del docente de las transformadas de Laplace y Z y de la integral de Convolución. Aplicación de las transformadas de las funciones y transformaciones de redes para su solución en el dominio de la frecuencia. Resolución presencial de diversos problemas usando las transformadas de Laplace y Z. Resolución presencial de la integral de Convolución. Asignación de conjuntos de problemas para su debida solución.
+
+**Estrategias de evaluación:** Evaluación formativa de la discusión en clase de problemas de ejemplo. Examen Parcial escrito sumativo de los contenidos de la unidad.
+
+**Bibliografía:**
+
+- Bobrow, L. 1984. *Análisis de Circuitos Eléctricos*. Editorial Interamericana S. A. de C. V. México.
+- Dorf, R. – Svoboda, J. 2000. *Circuitos Eléctricos Introducción al análisis y Diseño*. Tercera Edición. Editorial Alfaomega Grupo Editor S.A. México.
+- Gupta, S. – Bayless, J. – Peikari, B. 1972. *Circuit Análisis with Computer Applications to Problem Solving*. Editorial Intext Educational Publishers. Scranton, PA.
+- Hayt, W. – Kemmerly, J. 1993. *Análisis de Circuitos en Ingeniería*. Tercera Edición. Editorial McGraw Hill. México.
+- Johnson, D. – Hilburn, Johnson. 1991. *Análisis Básico de Circuitos Eléctricos*. Editorial Prentice Hall Hispanoamericana, S.A. México.
+
+---
+
+## Electrónica
+
+**Código:** 072-3533 | **Semestre:** VI | **Prelación:** 071-3463 (Circuitos y Sistemas)
+**Créditos:** 3 | **Horas semanales:** 5 (2T-3P) | **Total horas semestre:** 80 | **Vigencia:** 2004
+**Escuela:** Ingeniería y Ciencias Aplicadas | **Departamento:** Ingeniería de Sistemas
+**Elaborado por:** Profesores de los Núcleos Anzoátegui y Monagas
+
+**Síntesis de conocimientos previos:** Elementos de electricidad y magnetismo. Linealidad. Leyes de Kirchoff. Ley de Ohm. Teorema de Thévenin y Norton. Teorema de superposición.
+
+**Objetivo general:** Al finalizar el curso el estudiante estará en la capacidad de explicar el funcionamiento de los diodos, transistores y amplificadores operacionales, mediante el análisis y diseño de circuitos que utilizan estos dispositivos.
+
+**Sinopsis de contenido:**
+
+Teoría de semiconductores. El diodo. Modelo ideal. Modelo linealizado. Características reales. Circuitos prácticos con diodos. Tipos de diodos. Fuentes de alimentación. Rectificación. Filtrado. Regulación. Transistores. Transistores BJT, FET y MOSFET. Configuraciones básicas de amplificadores lineales transistorizados. Análisis DC y AC. Gráficos. Parámetros híbridos. Amplificadores operacionales. Características ideales. Características reales. Amplificadores operacionales lineales. Amplificadores operacionales no lineales.
+
+**Bibliografía:**
+
+- Malvino, Albert. 1999. *Principios de Electrónica*. Sexta Edición. Editorial Mc Graw Hill. Madrid.
+- Neamen, Donald. 1999. *Análisis y Diseño de Circuitos Electrónicos*. Editorial Mc Graw Hill. México.
+- Boylestad, Robert – Nashelsky, Louis. 1997. *Electrónica: Teoría de Circuitos*. Sexta Edición. Editorial Prentice Hall. México.
+- Coughlin, R. – Driscoll, F. 1996. *Análisis y Diseño de Circuitos Integrados Lineales*. Cuarta Edición. Editorial Prentice Hall.
+
+> **Nota:** El pensum solo incluye el programa sinóptico de esta asignatura; no hay programa analítico con desglose por unidades.
 
 ---
 

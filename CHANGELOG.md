@@ -7,6 +7,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
+  pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
+  superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,
+  valor promedio y eficaz, primer y segundo orden, variables de estado, Laplace, convolución,
+  transformada Z, diodos, rectificadores, filtrado y regulación, polarización y análisis AC de
+  transistores, amplificadores operacionales).
+
 ## [0.7.0] — 2026-09-30
 
 ### Agregado

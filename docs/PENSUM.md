@@ -35,6 +35,8 @@ para que el mapa esté completo.
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 11 | 0 | 0 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
+| 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 0 | 0 | 16 |
+| 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 0 | 0 | 6 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
 | 071-4393 | [Teoría de Colas](#teoria-de-colas) | Electiva técnica | Procesos Estocásticos (071-4383) | 3 (3T-0P) | 10 | 0 | 0 |
@@ -394,6 +396,74 @@ de esta materia; solo aparece en la malla curricular.
 - Gould – Eppen - Schmidt (1992/2000). Investigación de Operaciones en la Ciencia Administrativa. Prentice Hall. México. <sub>`gould-eppen-schmidt`</sub>
 - Hillier F. Lieberman G. (2002). Investigación de Operaciones. 7ma Ed. Mc Graw Hill. México. <sub>`hillier-lieberman-2002`</sub>
 - Díaz Matalobos, Angel (1998). Gestión de Inventarios. Ediciones IESA. Caracas. <sub>`diaz-matalobos-1998`</sub>
+
+---
+
+<a id="circuitos-y-sistemas"></a>
+
+## Circuitos y Sistemas
+
+**Código:** 071-3463 · **Ubicación:** Semestre V · **Prelación:** Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) · **Créditos:** 3 (2T-3P)
+
+**Objetivo general:** Al finalizar el curso el estudiante estará en capacidad de analizar circuitos eléctricos usando leyes, teoremas y técnicas para los circuitos lineales e invariantes en el tiempo (continuo y discreto) en el dominio del tiempo y en el dominio de la frecuencia.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Unidad I — Conceptos básicos de circuitos y sistemas lineales | Relaciones voltaje-corriente-potencia | 🗺️ Roadmap | `/circuitos-y-sistemas/conceptos-basicos/relaciones-v-i-p/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Análisis de nodos | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/analisis-de-nodos/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Análisis de mallas | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/analisis-de-mallas/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Teorema de superposición | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/superposicion/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Equivalentes de Thévenin y Norton | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/thevenin-norton/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Máxima transferencia de potencia | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/maxima-transferencia-de-potencia/` |
+| Unidad III — Respuesta a funciones singulares y senoidales | Fasores e impedancia | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/fasores-e-impedancia/` |
+| Unidad III — Respuesta a funciones singulares y senoidales | Potencia en circuitos senoidales | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/potencia-en-ca/` |
+| Unidad III — Respuesta a funciones singulares y senoidales | Valor promedio y valor eficaz | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/valor-promedio-y-eficaz/` |
+| Unidad IV — Circuitos de primer y segundo orden | Circuitos de primer orden (RC y RL) | 🗺️ Roadmap | `/circuitos-y-sistemas/primer-y-segundo-orden/respuesta-primer-orden/` |
+| Unidad IV — Circuitos de primer y segundo orden | Circuitos de segundo orden (RLC) | 🗺️ Roadmap | `/circuitos-y-sistemas/primer-y-segundo-orden/respuesta-segundo-orden/` |
+| Unidad V — Análisis por variables de estado | Ecuaciones de estado | 🗺️ Roadmap | `/circuitos-y-sistemas/variables-de-estado/ecuaciones-de-estado/` |
+| Unidad VI — Transformadas de Laplace y Z | Transformada de Laplace | 🗺️ Roadmap | `/circuitos-y-sistemas/transformada-de-laplace-y-z/transformada-de-laplace/` |
+| Unidad VI — Transformadas de Laplace y Z | Transformada inversa de Laplace | 🗺️ Roadmap | `/circuitos-y-sistemas/transformada-de-laplace-y-z/transformada-inversa-de-laplace/` |
+| Unidad VI — Transformadas de Laplace y Z | Integral de convolución | 🗺️ Roadmap | `/circuitos-y-sistemas/transformada-de-laplace-y-z/convolucion/` |
+| Unidad VI — Transformadas de Laplace y Z | Transformada Z | 🗺️ Roadmap | `/circuitos-y-sistemas/transformada-de-laplace-y-z/transformada-z/` |
+
+**Bibliografía**
+
+- Bobrow, L. (1984). Análisis de Circuitos Eléctricos. Editorial Interamericana S. A. de C. V.. México. <sub>`bobrow-1984`</sub>
+- Coughlin, R. – Driscoll, F. (1996). Análisis y Diseño de Circuitos Integrados Lineales. Cuarta Edición Editorial Prentice Hall. <sub>`coughlin-driscoll-1996`</sub>
+- Dorf, R. – Svoboda, J. (2000). Circuitos Eléctricos Introducción al análisis y Diseño. Tercera Edición Editorial Alfaomega Grupo Editor S.A.. México. <sub>`dorf-svoboda-2000`</sub>
+- Fitzgerald, A. – Higginbotham, D. – Gravel, A. (1976). Fundamentos de Ingeniería Eléctrica. Cuarta Edición Editorial McGraw-Hill. México. <sub>`fitzgerald-1976`</sub>
+- Gupta, S. – Bayless, J. – Peikari, B. (1972). Circuit Análisis with Computer Applications to Problem Solving. Editorial Intext Educational Publishers. Scranton, PA. <sub>`gupta-1972`</sub>
+- Hayt, W. – Kemmerly, J. (1993). Análisis de Circuitos en Ingeniería. Tercera Edición Editorial McGraw Hill. México. <sub>`hayt-kemmerly-1993`</sub>
+- Johnson, D. – Hilburn, Johnson (1991). Análisis Básico de Circuitos Eléctricos. Editorial Prentice Hall Hispanoamericana, S.A.. México. <sub>`johnson-hilburn-1991`</sub>
+- Ryder J. D. (1973). Introduction to Circuit Análisis. Editorial Prentice-Hall, Inc.. Englewood Cliffs, Nueva Jersey. <sub>`ryder-1973`</sub>
+- Valkenburg, Van (1990). Análisis de Redes. Tercera Edición Editorial Limusa, S.A.. México. <sub>`valkenburg-1990`</sub>
+
+---
+
+<a id="electronica"></a>
+
+## Electrónica
+
+**Código:** 072-3533 · **Ubicación:** Semestre VI · **Prelación:** Circuitos y Sistemas (071-3463) · **Créditos:** 3 (2T-3P)
+
+**Objetivo general:** Al finalizar el curso el estudiante estará en la capacidad de explicar el funcionamiento de los diodos, transistores y amplificadores operacionales, mediante el análisis y diseño de circuitos que utilizan estos dispositivos.
+
+| Tema | Calculadora | Estado | Ruta |
+|---|---|---|---|
+| Teoría de semiconductores | _Tema conceptual, sin calculadora_ | — | — |
+| El diodo | Circuitos con diodos | 🗺️ Roadmap | `/electronica/el-diodo/circuitos-con-diodos/` |
+| Fuentes de alimentación | Rectificadores | 🗺️ Roadmap | `/electronica/fuentes-de-alimentacion/rectificadores/` |
+| Fuentes de alimentación | Filtrado y regulación | 🗺️ Roadmap | `/electronica/fuentes-de-alimentacion/filtro-y-regulacion/` |
+| Transistores | Polarización de transistores (análisis DC) | 🗺️ Roadmap | `/electronica/transistores/polarizacion-de-transistores/` |
+| Transistores | Análisis AC con parámetros híbridos | 🗺️ Roadmap | `/electronica/transistores/analisis-ac-de-transistores/` |
+| Amplificadores operacionales | Amplificadores operacionales | 🗺️ Roadmap | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
+
+**Bibliografía**
+
+- Malvino, Albert (1999). Principios de Electrónica. Sexta Edición Editorial Mc Graw Hill. Madrid. <sub>`malvino-1999`</sub>
+- Neamen, Donald (1999). Análisis y Diseño de Circuitos Electrónicos. Editorial Mc Graw Hill. México. <sub>`neamen-1999`</sub>
+- Boylestad, Robert – Nashelsky, Louis (1997). Electrónica: Teoría de Circuitos. Sexta Edición Editorial Prentice Hall. México. <sub>`boylestad-nashelsky-1997`</sub>
+- Coughlin, R. – Driscoll, F. (1996). Análisis y Diseño de Circuitos Integrados Lineales. Cuarta Edición Editorial Prentice Hall. <sub>`coughlin-driscoll-1996`</sub>
 
 ---
 

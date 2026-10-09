@@ -1139,6 +1139,262 @@ export const subjects: Subject[] = [
   },
 
   // ════════════════════════════════════════════════════════════════════════
+  // Circuitos y Sistemas y Electrónica: el pensum trae el programa completo de la primera
+  // (por unidades) y solo el sinóptico de la segunda.
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'circuitos-y-sistemas',
+    code: '071-3463',
+    name: 'Circuitos y Sistemas',
+    semester: 5,
+    kind: 'obligatoria',
+    prerequisites: ['008-2824', '005-2134'],
+    credits: { total: 3, theory: 2, practice: 3 },
+    creditsLabel: '3 (2T-3P)',
+    objective:
+      'Al finalizar el curso el estudiante estará en capacidad de analizar circuitos eléctricos usando leyes, teoremas y técnicas para los circuitos lineales e invariantes en el tiempo (continuo y discreto) en el dominio del tiempo y en el dominio de la frecuencia.',
+    content: 'definido',
+    bibliography: [
+      'bobrow-1984',
+      'coughlin-driscoll-1996',
+      'dorf-svoboda-2000',
+      'fitzgerald-1976',
+      'gupta-1972',
+      'hayt-kemmerly-1993',
+      'johnson-hilburn-1991',
+      'ryder-1973',
+      'valkenburg-1990',
+    ],
+    topics: [
+      {
+        slug: 'conceptos-basicos',
+        name: 'Conceptos básicos de circuitos y sistemas lineales',
+        unit: 'Unidad I',
+        description:
+          'Concepto de linealidad de una red. Clasificación de los elementos lineales según su capacidad de suministrar y de consumir o almacenar energía: fuentes de voltaje y de corriente, independientes y dependientes; resistencias, capacitores, inductores e inductancias mutuas. Relaciones de voltaje, corriente y potencia en los elementos circuitales.',
+        calculators: [
+          {
+            id: 'relaciones-v-i-p',
+            title: 'Relaciones voltaje-corriente-potencia',
+            summary: 'Calcula v, i y p en una resistencia, un capacitor o un inductor.',
+          },
+        ],
+      },
+      {
+        slug: 'leyes-y-teoremas',
+        name: 'Leyes y teoremas fundamentales del análisis circuital',
+        unit: 'Unidad II',
+        description:
+          'Ley de Ohm. Leyes de Kirchhoff: nodo, rama y trayectoria cerrada o lazo. Análisis de nodos y análisis de mallas, de uno y de varios. Linealidad y superposición; transformaciones de fuentes. Teoremas de Thévenin y Norton. Teorema de máxima transferencia de potencia.',
+        calculators: [
+          {
+            id: 'analisis-de-nodos',
+            title: 'Análisis de nodos',
+            summary: 'Voltajes de nodo de un circuito resistivo con fuentes.',
+          },
+          {
+            id: 'analisis-de-mallas',
+            title: 'Análisis de mallas',
+            summary: 'Corrientes de malla de un circuito resistivo con fuentes.',
+          },
+          {
+            id: 'superposicion',
+            title: 'Teorema de superposición',
+            summary: 'Respuesta de un circuito sumando el aporte de cada fuente por separado.',
+          },
+          {
+            id: 'thevenin-norton',
+            title: 'Equivalentes de Thévenin y Norton',
+            summary:
+              'Voltaje de Thévenin y corriente de Norton de una red vista desde dos terminales.',
+          },
+          {
+            id: 'maxima-transferencia-de-potencia',
+            title: 'Máxima transferencia de potencia',
+            summary: 'Carga que extrae la máxima potencia de una red y el valor de esa potencia.',
+          },
+        ],
+      },
+      {
+        slug: 'respuesta-senoidal',
+        name: 'Respuesta a funciones singulares y senoidales',
+        unit: 'Unidad III',
+        description:
+          'El fasor y la función de excitación senoidal. Relaciones fasoriales para R, C y L. Análisis de nodos y de mallas y teoremas de superposición, Thévenin y Norton en circuitos excitados por funciones senoidales. Potencia instantánea y potencia promedio de funciones periódicas y aperiódicas; valores promedio y efectivos de la corriente y el voltaje.',
+        calculators: [
+          {
+            id: 'fasores-e-impedancia',
+            title: 'Fasores e impedancia',
+            summary: 'Pasa una senoide a fasor y calcula la impedancia de R, L y C.',
+          },
+          {
+            id: 'potencia-en-ca',
+            title: 'Potencia en circuitos senoidales',
+            summary: 'Potencia instantánea, promedio, reactiva, aparente y factor de potencia.',
+          },
+          {
+            id: 'valor-promedio-y-eficaz',
+            title: 'Valor promedio y valor eficaz',
+            summary: 'Promedio y valor eficaz (RMS) de señales periódicas.',
+          },
+        ],
+      },
+      {
+        slug: 'primer-y-segundo-orden',
+        name: 'Circuitos de primer y segundo orden',
+        unit: 'Unidad IV',
+        description:
+          'Señales continuas y discretas. Funciones elementales: rampa, escalón, impulso y parábola. Sistemas de primer orden: respuestas naturales de circuitos RL y RC, constante de tiempo y respuesta exponencial, respuesta de estado cero y respuesta completa. Sistemas de segundo orden: subamortiguado, sobreamortiguado y amortiguamiento crítico.',
+        calculators: [
+          {
+            id: 'respuesta-primer-orden',
+            title: 'Circuitos de primer orden (RC y RL)',
+            summary: 'Constante de tiempo, respuesta natural y respuesta completa.',
+          },
+          {
+            id: 'respuesta-segundo-orden',
+            title: 'Circuitos de segundo orden (RLC)',
+            summary: 'Respuesta sobreamortiguada, críticamente amortiguada y subamortiguada.',
+          },
+        ],
+      },
+      {
+        slug: 'variables-de-estado',
+        name: 'Análisis por variables de estado',
+        unit: 'Unidad V',
+        description:
+          'Variables de estado y formulación de las ecuaciones de estado en redes de una, dos y tres mallas. Grafo, árbol, ciclo fundamental y conjunto de corte. Redes propias e impropias. Solución de la ecuación de estado.',
+        calculators: [
+          {
+            id: 'ecuaciones-de-estado',
+            title: 'Ecuaciones de estado',
+            summary: 'Formula y resuelve la ecuación de estado de una red.',
+          },
+        ],
+      },
+      {
+        slug: 'transformada-de-laplace-y-z',
+        name: 'Transformadas de Laplace y Z',
+        unit: 'Unidad VI',
+        description:
+          'Transformada de Laplace del escalón, la rampa, el impulso unitario y la función exponencialmente amortiguada. Resolución de ecuaciones diferenciales y transformada inversa. Función de transferencia y respuesta completa, natural y forzada. Integral de convolución. Transformada Z.',
+        calculators: [
+          {
+            id: 'transformada-de-laplace',
+            title: 'Transformada de Laplace',
+            summary: 'Transforma funciones del tiempo y resuelve ecuaciones diferenciales.',
+          },
+          {
+            id: 'transformada-inversa-de-laplace',
+            title: 'Transformada inversa de Laplace',
+            summary: 'Vuelve al dominio del tiempo con fracciones parciales.',
+          },
+          {
+            id: 'convolucion',
+            title: 'Integral de convolución',
+            summary: 'Respuesta de un sistema a partir de su respuesta al impulso.',
+          },
+          {
+            id: 'transformada-z',
+            title: 'Transformada Z',
+            summary: 'Transforma sucesiones y resuelve ecuaciones en diferencias.',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  {
+    slug: 'electronica',
+    code: '072-3533',
+    name: 'Electrónica',
+    semester: 6,
+    kind: 'obligatoria',
+    prerequisites: ['071-3463'],
+    credits: { total: 3, theory: 2, practice: 3 },
+    creditsLabel: '3 (2T-3P)',
+    objective:
+      'Al finalizar el curso el estudiante estará en la capacidad de explicar el funcionamiento de los diodos, transistores y amplificadores operacionales, mediante el análisis y diseño de circuitos que utilizan estos dispositivos.',
+    content: 'definido',
+    bibliography: [
+      'malvino-1999',
+      'neamen-1999',
+      'boylestad-nashelsky-1997',
+      'coughlin-driscoll-1996',
+    ],
+    topics: [
+      {
+        slug: 'teoria-de-semiconductores',
+        name: 'Teoría de semiconductores',
+        description: 'Teoría de semiconductores.',
+        calculators: [],
+      },
+      {
+        slug: 'el-diodo',
+        name: 'El diodo',
+        description:
+          'El diodo: modelo ideal, modelo linealizado y características reales. Circuitos prácticos con diodos. Tipos de diodos.',
+        calculators: [
+          {
+            id: 'circuitos-con-diodos',
+            title: 'Circuitos con diodos',
+            summary: 'Análisis con el modelo ideal y el modelo linealizado.',
+          },
+        ],
+      },
+      {
+        slug: 'fuentes-de-alimentacion',
+        name: 'Fuentes de alimentación',
+        description: 'Fuentes de alimentación. Rectificación. Filtrado. Regulación.',
+        calculators: [
+          {
+            id: 'rectificadores',
+            title: 'Rectificadores',
+            summary: 'Media onda y onda completa: valores promedio, eficaz y del rizado.',
+          },
+          {
+            id: 'filtro-y-regulacion',
+            title: 'Filtrado y regulación',
+            summary: 'Rizado del capacitor de filtro y regulación con diodo Zener.',
+          },
+        ],
+      },
+      {
+        slug: 'transistores',
+        name: 'Transistores',
+        description:
+          'Transistores BJT, FET y MOSFET. Configuraciones básicas de amplificadores lineales transistorizados. Análisis DC y AC. Gráficos. Parámetros híbridos.',
+        calculators: [
+          {
+            id: 'polarizacion-de-transistores',
+            title: 'Polarización de transistores (análisis DC)',
+            summary: 'Punto de operación Q de BJT, FET y MOSFET.',
+          },
+          {
+            id: 'analisis-ac-de-transistores',
+            title: 'Análisis AC con parámetros híbridos',
+            summary: 'Ganancia e impedancias de un amplificador transistorizado.',
+          },
+        ],
+      },
+      {
+        slug: 'amplificadores-operacionales',
+        name: 'Amplificadores operacionales',
+        description:
+          'Amplificadores operacionales: características ideales y características reales. Amplificadores operacionales lineales y no lineales.',
+        calculators: [
+          {
+            id: 'amplificadores-operacionales',
+            title: 'Amplificadores operacionales',
+            summary: 'Inversor, no inversor, sumador, seguidor y comparador.',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
   {
     slug: 'programacion-no-lineal',
     code: '071-4303',
