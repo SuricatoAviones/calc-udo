@@ -11,6 +11,10 @@ import type { ComponentType } from 'react';
  * empaqueta únicamente su propio componente.
  */
 export const calculatorRegistry: Record<string, () => Promise<{ default: ComponentType }>> = {
+  // Circuitos y Sistemas
+  'relaciones-v-i-p': () => import('./circuitos-y-sistemas/RelacionesVIP'),
+  'analisis-de-nodos': () => import('./circuitos-y-sistemas/AnalisisDeNodos'),
+
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),
   'equivalencia-logica': () => import('./logica-formal-y-algoritmos/Equivalence'),

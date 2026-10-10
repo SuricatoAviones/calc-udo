@@ -565,3 +565,28 @@ Plantilla:
 - **Alternativas descartadas:** _Reconstruir el nivel crítico o el LED Markoviano a partir del
   nombre_: sería inventar un método (CLAUDE.md). _Citar la página de un trabajo no consultado_: se
   cita la obra del pensum sin página, y los tests nombran la fuente real de los valores.
+
+## ADR-033 — Circuitos y Sistemas: motor MNA y constructor interactivo por tema
+
+- **Fecha:** 2026-10-09
+- **Estado:** Aceptada
+- **Decisión:** El análisis de circuitos se resuelve con **Análisis de Nodos Modificado (MNA)**
+  presentado como el método de inspección KCL que enseñan Hayt y Dorf. El constructor SVG emite un
+  `CircuitDocument` serializable (netlist) que es la entrada `TInput` de cada calculadora. Las
+  mallas se obtienen como las **caras acotadas del embebido planar** del dibujo (recorrido de
+  half-edges con adyacencias ordenadas por ángulo), por lo que el análisis de mallas solo está
+  disponible cuando el circuito se dibuja sin cruces. El constructor se embebe como campo
+  personalizado por materia (`CircuitBuilderField`) dentro de cada página de calculadora, con un
+  ejemplo precargado por tema.
+- **Contexto:** Se necesita una UI interactiva para armar circuitos y calcular por tema (Unidad II
+  del pensum). MNA es el método de todos los simuladores tipo SPICE, extiende fácilmente a fuentes
+  dependientes y permite presentar la matriz de nodos "por inspección" que coincide con el
+  procedimiento en cuaderno. La eliminación de esa matriz reutiliza el núcleo
+  `metodos-numericos/matrix.ts`, que ya muestra cada operación de fila. Resolver el sistema con MNA
+  mantiene `solve()` pura y total, y devuelve la traza completa (`steps`, `tables`, `series`).
+- **Alternativas descartadas:** _Simulación numérica tipo Falstad_: es un simulador, no muestra el
+  procedimiento paso a paso. _Análisis de mallas general sin planaridad_: requiere bases de ciclos
+  del grafo, no corresponde a las "ventanas abiertas" del libro. _Una sola página de "laboratorio
+  de circuitos"_: rompe la estructura de rutas generadas desde el currículum y dificulta buscar
+  cada tema. _Sparse Tableau Analysis_: más general que MNA pero produce sistemas más grandes y
+  una traza menos directa para el estudiante.
