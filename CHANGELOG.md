@@ -11,10 +11,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - **Circuitos y Sistemas** (piloto): motor de análisis nodal modificado (MNA) con traza de KCL,
   sistema aumentado y eliminación con operaciones de fila; constructor interactivo de circuitos
-  (`CircuitBuilderField`) con paleta, colocación por clic, arrastre de componentes y extremos,
-  paneo/zoom, cables ortogonales, selección múltiple, validación de topología y simulación con
-  animación de corriente; y las calculadoras **Relaciones v-i-p** (R, C y L en el dominio del
-  tiempo con potencia instantánea) y **Análisis de nodos**.
+  (`CircuitBuilderField`) con paleta, colocación por clic con imán a nodos, arrastre de componentes
+  y extremos, codos, paneo/zoom, selección múltiple, volteo de polaridad, duplicado, validación de
+  topología, simulación con animación de corriente y tabla de resultados en vivo, e instrucciones
+  detalladas; y las calculadoras **Relaciones v-i-p** (R, C y L en el dominio del tiempo con
+  potencia instantánea) y **Análisis de nodos**.
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,

@@ -2,9 +2,28 @@
 
 import { useController, useFormContext } from 'react-hook-form';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BoxSelect, Pause, Play, Redo2, RotateCw, Trash2, Undo2 } from 'lucide-react';
+import {
+  BoxSelect,
+  Copy,
+  FlipHorizontal2,
+  Maximize2,
+  Pause,
+  Play,
+  Redo2,
+  RotateCw,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import {
   buildTopology,
@@ -42,6 +61,25 @@ const DEFAULT_VALUE: Record<ComponentKind, number> = {
   'current-source': 0.001,
 };
 
+const SHORTCUTS: { keys: string; action: string }[] = [
+  { keys: 'S', action: 'Herramienta de selección' },
+  { keys: 'W', action: 'Trazar un cable' },
+  { keys: 'R', action: 'Girar la colocación o los componentes seleccionados' },
+  { keys: 'G', action: 'Colocar la tierra (referencia)' },
+  { keys: 'K', action: 'Iniciar o detener la simulación' },
+  { keys: 'F', action: 'Voltear la polaridad de las fuentes seleccionadas' },
+  { keys: 'Ctrl + A', action: 'Seleccionar todo' },
+  { keys: 'Ctrl + D', action: 'Duplicar la selección' },
+  { keys: 'Ctrl + Z / Ctrl + Y', action: 'Deshacer / rehacer' },
+  { keys: 'Supr', action: 'Eliminar la selección' },
+  { keys: 'Esc', action: 'Cancelar la herramienta y limpiar la selección' },
+  { keys: 'Flechas', action: 'Mover la selección una celda' },
+  { keys: 'Rueda', action: 'Zoom sobre el puntero' },
+  { keys: 'Botón central/derecho', action: 'Desplazar el lienzo (o dos dedos en táctil)' },
+  { keys: 'Espacio + arrastrar', action: 'Desplazar el lienzo' },
+  { keys: 'Doble clic en un cable', action: 'Agregar un codo; sobre un codo, quitarlo' },
+];
+
 type Tool = 'select' | 'wire' | ComponentKind | 'ground';
 
 interface ViewState {
@@ -50,10 +88,10 @@ interface ViewState {
   ty: number;
 }
 
-/** Punto agarrable: terminal de componente, extremo de cable o tierra. */
+/** Punto agarrable: terminal de componente, vértice de cable o tierra. */
 type Handle =
   | { kind: 'terminal'; id: string; terminal: 'a' | 'b' }
-  | { kind: 'wire-end'; id: string; index: number }
+  | { kind: 'wire-vertex'; id: string; index: number }
   | { kind: 'ground' };
 
 type MoveItem =
@@ -62,14 +100,14 @@ type MoveItem =
 
 type Drag =
   | { kind: 'pan'; last: { x: number; y: number }; moved: boolean }
+  | { kind: 'move'; grab: GridPoint; items: MoveItem[]; moved: boolean; historyPushed: boolean }
   | {
-      kind: 'move';
-      grab: GridPoint;
-      items: MoveItem[];
+      kind: 'endpoint';
+      handle: Handle;
+      basePoints: GridPoint[] | null;
       moved: boolean;
       historyPushed: boolean;
     }
-  | { kind: 'endpoint'; handle: Handle; moved: boolean; historyPushed: boolean }
   | { kind: 'select-box'; start: GridPoint; current: GridPoint };
 
 function keyOf(p: GridPoint) {
@@ -86,6 +124,12 @@ function snapWorld(p: GridPoint): GridPoint {
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** Formatea con notación de ingeniería, mostrando 0 cuando el valor es un residuo numérico. */
+function fmtNumber(value: number, unit: string): string {
+  if (Math.abs(value) < 1e-12) return `0 ${unit}`;
+  return formatEngineering(value, unit);
 }
 
 /** ¿Dos segmentos ortogonales se solapan en un tramo (no solo en un punto)? */
@@ -130,13 +174,19 @@ function segmentConflicts(doc: CircuitDocument, a: GridPoint, b: GridPoint): boo
 }
 
 /** Punto del circuito (terminal o nodo de cable) más cercano dentro de una tolerancia. */
-function nearestAnchor(doc: CircuitDocument, p: GridPoint, tol: number): GridPoint {
+function nearestAnchor(
+  doc: CircuitDocument,
+  p: GridPoint,
+  tol: number,
+  exclude?: GridPoint,
+): GridPoint {
   const anchors: GridPoint[] = [];
   for (const c of doc.components) anchors.push(c.a, c.b);
   for (const w of doc.wires) anchors.push(...w.points);
   let best = p;
   let bestDist = tol;
   for (const q of anchors) {
+    if (exclude && samePoint(q, exclude)) continue;
     const d = Math.hypot(q.x - p.x, q.y - p.y);
     if (d <= bestDist) {
       bestDist = d;
@@ -144,6 +194,20 @@ function nearestAnchor(doc: CircuitDocument, p: GridPoint, tol: number): GridPoi
     }
   }
   return best;
+}
+
+/** Reconstruye una polilínea ortogonal insertando codos donde haga falta. */
+function orthogonalize(points: GridPoint[]): GridPoint[] {
+  const out: GridPoint[] = [];
+  for (const p of points) {
+    const prev = out[out.length - 1];
+    if (prev) {
+      if (prev.x !== p.x && prev.y !== p.y) out.push({ x: p.x, y: prev.y });
+      if (samePoint(out[out.length - 1]!, p)) continue;
+    }
+    out.push(p);
+  }
+  return out;
 }
 
 function boxIntersects(
@@ -158,26 +222,6 @@ function boxIntersects(
   return segMaxX >= box.minX && segMinX <= box.maxX && segMaxY >= box.minY && segMinY <= box.maxY;
 }
 
-/** Añade un codo para mantener ortogonal el tramo que llega a un extremo de cable. */
-function withElbow(points: GridPoint[], snapped: GridPoint, end: 'start' | 'end'): GridPoint[] {
-  const next = points.map((p) => ({ ...p }));
-  if (next.length < 2) return [...next, { ...snapped }];
-  if (end === 'start') {
-    const neighbor = next[1]!;
-    if (snapped.x !== neighbor.x && snapped.y !== neighbor.y) {
-      next.splice(1, 0, { x: snapped.x, y: neighbor.y });
-    }
-    next[0] = { ...snapped };
-  } else {
-    const neighbor = next[next.length - 2]!;
-    if (snapped.x !== neighbor.x && snapped.y !== neighbor.y) {
-      next.push({ x: neighbor.x, y: snapped.y });
-    }
-    next[next.length - 1] = { ...snapped };
-  }
-  return next;
-}
-
 export function CircuitBuilderField({ name }: { name: string }) {
   const { control } = useFormContext();
   const { field } = useController({ name, control, defaultValue: emptyCircuit() });
@@ -189,6 +233,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ dist: number; mid: { x: number; y: number } } | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spaceRef = useRef(false);
 
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<ViewState>({ scale: DEFAULT_SCALE, tx: 24, ty: 24 });
@@ -212,22 +257,28 @@ export function CircuitBuilderField({ name }: { name: string }) {
   );
   const groundSelected = Boolean(doc.ground && selectedIds.includes(keyOf(doc.ground)));
 
-  // ── Simulación (MNA) para animar la corriente ──────────────────────────────
+  // ── Simulación (MNA) para animar la corriente y mostrar resultados ─────────
   const sim = useMemo(() => {
     if (!simulating) return null;
     const topology = buildTopology(doc);
     const structural = validateTopology(topology);
-    if (structural) return { error: structural.message, currents: null, maxAbs: 0 };
+    if (structural) return { error: structural.message, currents: null, branches: [], maxAbs: 0 };
     const mna = solveMna(topology);
-    if (!mna.ok) return { error: mna.message, currents: null, maxAbs: 0 };
+    if (!mna.ok) return { error: mna.message, currents: null, branches: [], maxAbs: 0 };
     const currents = new Map<string, number>();
     let maxAbs = 0;
     for (const b of mna.result.branchResults) {
       currents.set(b.id, b.i);
       maxAbs = Math.max(maxAbs, Math.abs(b.i));
     }
-    return { error: null, currents, maxAbs };
+    return {
+      error: null,
+      currents,
+      branches: mna.result.branchResults.map((b) => ({ id: b.id, label: b.label, i: b.i, p: b.p })),
+      maxAbs,
+    };
   }, [simulating, doc]);
+  const powerBalance = sim?.branches?.reduce((s, b) => s + b.p, 0) ?? 0;
 
   // ── Medición del contenedor ────────────────────────────────────────────────
   useEffect(() => {
@@ -253,6 +304,9 @@ export function CircuitBuilderField({ name }: { name: string }) {
 
   // ── Atajos de teclado ──────────────────────────────────────────────────────
   useEffect(() => {
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === ' ') spaceRef.current = false;
+    }
     function onKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (
@@ -262,6 +316,11 @@ export function CircuitBuilderField({ name }: { name: string }) {
         return;
       }
       const mod = e.ctrlKey || e.metaKey;
+      if (e.key === ' ') {
+        e.preventDefault();
+        spaceRef.current = true;
+        return;
+      }
       if (mod && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -276,6 +335,11 @@ export function CircuitBuilderField({ name }: { name: string }) {
       if (mod && (e.key === 'a' || e.key === 'A')) {
         e.preventDefault();
         selectAll();
+        return;
+      }
+      if (mod && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        duplicateSelected();
         return;
       }
       if (e.key === 'Escape') {
@@ -295,6 +359,10 @@ export function CircuitBuilderField({ name }: { name: string }) {
         else setOrientation((o) => (o + 1) % 4);
         return;
       }
+      if (e.key === 'f' || e.key === 'F') {
+        flipSelected();
+        return;
+      }
       if (e.key === 'w' || e.key === 'W') {
         setTool('wire');
         setWireDraft([]);
@@ -304,10 +372,24 @@ export function CircuitBuilderField({ name }: { name: string }) {
         setTool('select');
       } else if (e.key === 'k' || e.key === 'K') {
         setSimulating((s) => !s);
+      } else if (e.key.startsWith('Arrow') && selectedIds.length > 0) {
+        e.preventDefault();
+        const step: Record<string, [number, number]> = {
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 1],
+          ArrowLeft: [-1, 0],
+          ArrowRight: [1, 0],
+        };
+        const d = step[e.key];
+        if (d) nudge(d[0], d[1]);
       }
     }
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   });
 
   function flashMessage(message: string) {
@@ -352,6 +434,31 @@ export function CircuitBuilderField({ name }: { name: string }) {
 
   function resetView() {
     setView({ scale: DEFAULT_SCALE, tx: 24, ty: 24 });
+  }
+
+  function fitView() {
+    const pts: GridPoint[] = [];
+    for (const c of doc.components) pts.push(c.a, c.b);
+    for (const w of doc.wires) pts.push(...w.points);
+    if (doc.ground) pts.push(doc.ground);
+    if (pts.length === 0 || !size.w || !size.h) {
+      resetView();
+      return;
+    }
+    const minX = Math.min(...pts.map((p) => p.x));
+    const maxX = Math.max(...pts.map((p) => p.x));
+    const minY = Math.min(...pts.map((p) => p.y));
+    const maxY = Math.max(...pts.map((p) => p.y));
+    const pad = 2;
+    const width = maxX - minX + 2 * pad;
+    const height = maxY - minY + 2 * pad;
+    const scale = Math.min(
+      MAX_SCALE,
+      Math.max(MIN_SCALE, Math.min(size.w / width, size.h / height)),
+    );
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setView({ scale, tx: size.w / 2 - cx * scale, ty: size.h / 2 - cy * scale });
   }
 
   function toWorld(clientX: number, clientY: number): GridPoint {
@@ -407,12 +514,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
       consider({ kind: 'terminal', id: c.id, terminal: 'b' }, c.b);
     }
     for (const w of doc.wires) {
-      if (w.points.length === 0) continue;
-      consider({ kind: 'wire-end', id: w.id, index: 0 }, w.points[0]!);
-      consider(
-        { kind: 'wire-end', id: w.id, index: w.points.length - 1 },
-        w.points[w.points.length - 1]!,
-      );
+      w.points.forEach((p, index) => consider({ kind: 'wire-vertex', id: w.id, index }, p));
     }
     if (doc.ground) consider({ kind: 'ground' }, doc.ground);
     return best;
@@ -423,18 +525,30 @@ export function CircuitBuilderField({ name }: { name: string }) {
   }
 
   function selectAll() {
-    const ids = [
+    setSelectedIds([
       ...doc.components.map((c) => c.id),
       ...doc.wires.map((w) => w.id),
       ...(doc.ground ? [keyOf(doc.ground)] : []),
-    ];
-    setSelectedIds(ids);
+    ]);
+  }
+
+  function snapshotIds(ids: string[]): MoveItem[] {
+    const items: MoveItem[] = [];
+    for (const c of doc.components) {
+      if (ids.includes(c.id))
+        items.push({ kind: 'component', id: c.id, a: { ...c.a }, b: { ...c.b } });
+    }
+    for (const w of doc.wires) {
+      if (ids.includes(w.id))
+        items.push({ kind: 'wire', id: w.id, points: w.points.map((p) => ({ ...p })) });
+    }
+    return items;
   }
 
   function applyMove(items: MoveItem[], grab: GridPoint, snapped: GridPoint) {
     const dx = snapped.x - grab.x;
     const dy = snapped.y - grab.y;
-    const next: CircuitDocument = {
+    field.onChange({
       ...doc,
       components: doc.components.map((c) => {
         const item = items.find((i) => i.kind === 'component' && i.id === c.id);
@@ -450,11 +564,10 @@ export function CircuitBuilderField({ name }: { name: string }) {
         if (!item || item.kind !== 'wire') return w;
         return { ...w, points: item.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
       }),
-    };
-    field.onChange(next);
+    });
   }
 
-  function applyEndpoint(handle: Handle, snapped: GridPoint) {
+  function applyEndpoint(handle: Handle, snapped: GridPoint, basePoints: GridPoint[] | null) {
     if (handle.kind === 'ground') {
       field.onChange({ ...doc, ground: snapped });
       return;
@@ -463,18 +576,22 @@ export function CircuitBuilderField({ name }: { name: string }) {
       const c = doc.components.find((x) => x.id === handle.id);
       if (!c) return;
       const other = handle.terminal === 'a' ? c.b : c.a;
-      if (samePoint(snapped, other)) return;
+      const target = nearestAnchor(doc, snapped, 0.6, other);
+      if (samePoint(target, other)) return;
       field.onChange({
         ...doc,
         components: doc.components.map((x) =>
-          x.id === handle.id ? { ...x, [handle.terminal]: snapped } : x,
+          x.id === handle.id ? { ...x, [handle.terminal]: target } : x,
         ),
       });
       return;
     }
     const w = doc.wires.find((x) => x.id === handle.id);
     if (!w) return;
-    const points = withElbow(w.points, snapped, handle.index === 0 ? 'start' : 'end');
+    const base = basePoints ?? w.points;
+    const target = nearestAnchor(doc, snapped, 0.6, base[handle.index]);
+    const points = orthogonalize(base.map((p, i) => (i === handle.index ? target : p)));
+    if (points.length < 2) return;
     field.onChange({
       ...doc,
       wires: doc.wires.map((x) => (x.id === handle.id ? { ...x, points } : x)),
@@ -482,9 +599,10 @@ export function CircuitBuilderField({ name }: { name: string }) {
   }
 
   function placeComponent(kind: ComponentKind, at: GridPoint) {
+    const start = nearestAnchor(doc, at, 0.75);
     const dir = ORIENTATIONS[orientation]!;
-    const a = at;
-    const b = { x: at.x + dir.x * COMP_LEN, y: at.y + dir.y * COMP_LEN };
+    const a = start;
+    const b = { x: start.x + dir.x * COMP_LEN, y: start.y + dir.y * COMP_LEN };
     if (segmentConflicts(doc, a, b)) {
       flashMessage('Ya hay un componente en esa posición. Gíralo con R o elige otro punto.');
       return;
@@ -502,18 +620,19 @@ export function CircuitBuilderField({ name }: { name: string }) {
   }
 
   function addWirePoint(p: GridPoint) {
+    const at = nearestAnchor(doc, p, 0.6);
     setWireDraft((points) => {
-      if (points.length === 0) return [p];
+      if (points.length === 0) return [at];
       const last = points[points.length - 1]!;
-      if (samePoint(last, p)) return points;
+      if (samePoint(last, at)) return points;
       const next = [...points];
-      if (p.x !== last.x && p.y !== last.y) next.push({ x: p.x, y: last.y });
+      if (at.x !== last.x && at.y !== last.y) next.push({ x: at.x, y: last.y });
       const from = next[next.length - 1]!;
-      if (segmentConflicts(doc, from, p)) {
+      if (segmentConflicts(doc, from, at)) {
         flashMessage('Ese tramo se solapa con un componente existente.');
         return points;
       }
-      next.push(p);
+      next.push(at);
       return next;
     });
   }
@@ -531,7 +650,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
   }
 
   function placeGround(at: GridPoint) {
-    const anchor = nearestAnchor(doc, at, 0.6);
+    const anchor = nearestAnchor(doc, at, 0.75);
     commit({ ...doc, ground: anchor });
     setSelectedIds([keyOf(anchor)]);
     setTool('select');
@@ -561,6 +680,82 @@ export function CircuitBuilderField({ name }: { name: string }) {
     commit({ ...doc, components: doc.components.map((x) => (x.id === id ? { ...x, b } : x)) });
   }
 
+  function flipSelected() {
+    const sources = doc.components.filter(
+      (c) => selectedIds.includes(c.id) && c.kind !== 'resistor',
+    );
+    if (sources.length === 0) {
+      flashMessage('Selecciona una fuente de voltaje o de corriente para voltear su polaridad.');
+      return;
+    }
+    commit({
+      ...doc,
+      components: doc.components.map((c) =>
+        selectedIds.includes(c.id) ? { ...c, a: c.b, b: c.a } : c,
+      ),
+    });
+  }
+
+  function duplicateSelected() {
+    if (selectedIds.length === 0) return;
+    const components = doc.components.filter((c) => selectedIds.includes(c.id));
+    const wires = doc.wires.filter((w) => selectedIds.includes(w.id));
+    const pts: GridPoint[] = [];
+    for (const c of components) pts.push(c.a, c.b);
+    for (const w of wires) pts.push(...w.points);
+    const maxX = pts.length ? Math.max(...pts.map((p) => p.x)) : 0;
+    const minX = pts.length ? Math.min(...pts.map((p) => p.x)) : 0;
+    const dx = maxX - minX + COMP_LEN + 1;
+    const next: CircuitDocument = {
+      components: [...doc.components],
+      wires: [...doc.wires],
+      ground: doc.ground,
+    };
+    const newIds: string[] = [];
+    for (const c of components) {
+      const id = uid(c.kind);
+      next.components.push({
+        ...c,
+        id,
+        a: { x: c.a.x + dx, y: c.a.y },
+        b: { x: c.b.x + dx, y: c.b.y },
+        label: nextLabel(next, c.kind),
+      });
+      newIds.push(id);
+    }
+    for (const w of wires) {
+      const id = uid('w');
+      next.wires.push({ id, points: w.points.map((p) => ({ x: p.x + dx, y: p.y })) });
+      newIds.push(id);
+    }
+    if (doc.ground && selectedIds.includes(keyOf(doc.ground))) {
+      next.ground = { x: doc.ground.x + dx, y: doc.ground.y };
+      newIds.push(keyOf(next.ground));
+    }
+    commit(next);
+    setSelectedIds(newIds);
+  }
+
+  function nudge(dx: number, dy: number) {
+    commit({
+      ...doc,
+      components: doc.components.map((c) =>
+        selectedIds.includes(c.id)
+          ? { ...c, a: { x: c.a.x + dx, y: c.a.y + dy }, b: { x: c.b.x + dx, y: c.b.y + dy } }
+          : c,
+      ),
+      wires: doc.wires.map((w) =>
+        selectedIds.includes(w.id)
+          ? { ...w, points: w.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) }
+          : w,
+      ),
+      ground:
+        doc.ground && selectedIds.includes(keyOf(doc.ground))
+          ? { x: doc.ground.x + dx, y: doc.ground.y + dy }
+          : doc.ground,
+    });
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   }
@@ -580,6 +775,12 @@ export function CircuitBuilderField({ name }: { name: string }) {
     }
     if (e.button !== 0) return;
 
+    if (spaceRef.current) {
+      dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      return;
+    }
+
     if (tool === 'resistor' || tool === 'voltage-source' || tool === 'current-source') {
       placeComponent(tool, snapped);
       return;
@@ -593,14 +794,23 @@ export function CircuitBuilderField({ name }: { name: string }) {
       return;
     }
 
-    // Herramienta de selección: primero puntos agarrables, luego cuerpos.
     const handle = hitHandle(world, tol);
     if (handle) {
       const owner = handleOwnerId(handle);
       setSelectedIds(
         additive ? (selectedIds.includes(owner) ? selectedIds : [...selectedIds, owner]) : [owner],
       );
-      dragRef.current = { kind: 'endpoint', handle, moved: false, historyPushed: false };
+      const basePoints =
+        handle.kind === 'wire-vertex'
+          ? (doc.wires.find((w) => w.id === handle.id)?.points.map((p) => ({ ...p })) ?? null)
+          : null;
+      dragRef.current = {
+        kind: 'endpoint',
+        handle,
+        basePoints,
+        moved: false,
+        historyPushed: false,
+      };
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
@@ -626,29 +836,14 @@ export function CircuitBuilderField({ name }: { name: string }) {
       return;
     }
 
-    // Fondo: con Shift se selecciona por recuadro; sin Shift se desplaza el lienzo.
     if (additive) {
       dragRef.current = { kind: 'select-box', start: world, current: world };
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
-    if (!additive) setSelectedIds([]);
+    setSelectedIds([]);
     dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
-  }
-
-  /** Instantánea de las entidades seleccionadas para moverlas juntas. */
-  function snapshotIds(ids: string[]): MoveItem[] {
-    const items: MoveItem[] = [];
-    for (const c of doc.components) {
-      if (ids.includes(c.id))
-        items.push({ kind: 'component', id: c.id, a: { ...c.a }, b: { ...c.b } });
-    }
-    for (const w of doc.wires) {
-      if (ids.includes(w.id))
-        items.push({ kind: 'wire', id: w.id, points: w.points.map((p) => ({ ...p })) });
-    }
-    return items;
   }
 
   function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
@@ -698,25 +893,18 @@ export function CircuitBuilderField({ name }: { name: string }) {
       return;
     }
 
-    if (drag.kind === 'move') {
-      if (!drag.historyPushed) {
-        drag.historyPushed = true;
-        setPast((p) => [...p.slice(-49), doc]);
-        setFuture([]);
-      }
-      drag.moved = true;
-      applyMove(drag.items, drag.grab, snapped);
-      return;
-    }
-
-    // Arrastre de un punto agarrable.
     if (!drag.historyPushed) {
       drag.historyPushed = true;
       setPast((p) => [...p.slice(-49), doc]);
       setFuture([]);
     }
     drag.moved = true;
-    applyEndpoint(drag.handle, snapped);
+
+    if (drag.kind === 'move') {
+      applyMove(drag.items, drag.grab, snapped);
+      return;
+    }
+    applyEndpoint(drag.handle, snapped, drag.basePoints);
   }
 
   function onPointerUp(e: React.PointerEvent<SVGSVGElement>) {
@@ -746,8 +934,71 @@ export function CircuitBuilderField({ name }: { name: string }) {
     }
   }
 
-  function onDoubleClick() {
-    if (tool === 'wire' && wireDraft.length >= 2) finishWire();
+  function onDoubleClick(e: React.MouseEvent<SVGSVGElement>) {
+    if (tool === 'wire') {
+      finishWire();
+      return;
+    }
+    if (tool !== 'select') return;
+    const world = toWorld(e.clientX, e.clientY);
+    const tol = 9 / view.scale;
+
+    // Quitar un codo interior si se hace doble clic sobre él.
+    let vertex: { id: string; index: number } | null = null;
+    let vertexDist = tol;
+    for (const w of doc.wires) {
+      for (let k = 1; k < w.points.length - 1; k++) {
+        const p = w.points[k]!;
+        const d = Math.hypot(world.x - p.x, world.y - p.y);
+        if (d < vertexDist) {
+          vertexDist = d;
+          vertex = { id: w.id, index: k };
+        }
+      }
+    }
+    if (vertex) {
+      const w = doc.wires.find((x) => x.id === vertex!.id)!;
+      const prev = w.points[vertex.index - 1]!;
+      const next = w.points[vertex.index + 1]!;
+      if (prev.x === next.x || prev.y === next.y) {
+        const points = w.points.filter((_, k) => k !== vertex!.index);
+        commit({ ...doc, wires: doc.wires.map((x) => (x.id === w.id ? { ...x, points } : x)) });
+        flashMessage('Codo eliminado.');
+      } else {
+        flashMessage('No se puede quitar el codo: el tramo quedaría en diagonal.');
+      }
+      return;
+    }
+
+    // Agregar un codo en el tramo de cable más cercano.
+    let segment: { id: string; index: number } | null = null;
+    let segmentDist = tol;
+    for (const w of doc.wires) {
+      for (let i = 0; i < w.points.length - 1; i++) {
+        const d = distToSegment(world, w.points[i]!, w.points[i + 1]!);
+        if (d < segmentDist) {
+          segmentDist = d;
+          segment = { id: w.id, index: i };
+        }
+      }
+    }
+    if (!segment) return;
+    const w = doc.wires.find((x) => x.id === segment!.id)!;
+    const a = w.points[segment.index]!;
+    const b = w.points[segment.index + 1]!;
+    const p = a.x === b.x ? { x: a.x, y: Math.round(world.y) } : { x: Math.round(world.x), y: a.y };
+    const between =
+      a.x === b.x
+        ? p.y > Math.min(a.y, b.y) && p.y < Math.max(a.y, b.y)
+        : p.x > Math.min(a.x, b.x) && p.x < Math.max(a.x, b.x);
+    if (!between) return;
+    const points = [
+      ...w.points.slice(0, segment.index + 1),
+      p,
+      ...w.points.slice(segment.index + 1),
+    ];
+    commit({ ...doc, wires: doc.wires.map((x) => (x.id === w.id ? { ...x, points } : x)) });
+    flashMessage('Codo agregado. Arrástralo para ajustarlo.');
   }
 
   // ── Rejilla visible ────────────────────────────────────────────────────────
@@ -763,9 +1014,10 @@ export function CircuitBuilderField({ name }: { name: string }) {
 
   const previewComponent = useMemo(() => {
     if (tool === 'select' || tool === 'wire' || tool === 'ground' || !pointer) return null;
+    const start = nearestAnchor(doc, pointer.snapped, 0.75);
     const dir = ORIENTATIONS[orientation]!;
-    const a = pointer.snapped;
-    const b = { x: a.x + dir.x * COMP_LEN, y: a.y + dir.y * COMP_LEN };
+    const a = start;
+    const b = { x: start.x + dir.x * COMP_LEN, y: start.y + dir.y * COMP_LEN };
     return { a, b, conflict: segmentConflicts(doc, a, b) };
   }, [tool, pointer, orientation, doc]);
 
@@ -797,7 +1049,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
 
   const statusHint =
     tool === 'select'
-      ? 'Arrastra para mover o desplazar • clic en un extremo para ajustarlo • Shift+arrastrar selecciona varios'
+      ? 'Arrastra para mover o desplazar • los puntos se agarran a los nodos • Shift+arrastrar selecciona varios'
       : tool === 'wire'
         ? 'Clic para trazar el cable • doble clic o Esc para terminar'
         : tool === 'ground'
@@ -854,8 +1106,22 @@ export function CircuitBuilderField({ name }: { name: string }) {
         </ToolButton>
 
         <div className="bg-border mx-1 h-6 w-px" />
-        <ToolButton onClick={() => setOrientation((o) => (o + 1) % 4)} title="Girar (R)">
+        <ToolButton onClick={() => setOrientation((o) => (o + 1) % 4)} title="Girar colocación (R)">
           <RotateCw className="size-4" />
+        </ToolButton>
+        <ToolButton
+          onClick={flipSelected}
+          disabled={selectedIds.length === 0}
+          title="Voltear polaridad (F)"
+        >
+          <FlipHorizontal2 className="size-4" />
+        </ToolButton>
+        <ToolButton
+          onClick={duplicateSelected}
+          disabled={selectedIds.length === 0}
+          title="Duplicar (Ctrl+D)"
+        >
+          <Copy className="size-4" />
         </ToolButton>
         <ToolButton onClick={selectAll} title="Seleccionar todo (Ctrl+A)">
           <BoxSelect className="size-4" />
@@ -876,7 +1142,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
         <ToolButton
           active={simulating}
           onClick={() => setSimulating((s) => !s)}
-          title={simulating ? 'Detener simulación' : 'Simular corriente'}
+          title={simulating ? 'Detener simulación (K)' : 'Simular corriente (K)'}
         >
           {simulating ? <Pause className="size-4" /> : <Play className="size-4" />}
         </ToolButton>
@@ -987,7 +1253,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
                       x2={c.b.x}
                       y2={c.b.y}
                       stroke="currentColor"
-                      strokeWidth={8}
+                      strokeWidth={7}
                       strokeLinecap="round"
                       vectorEffect="non-scaling-stroke"
                       className="text-primary/25"
@@ -1041,70 +1307,48 @@ export function CircuitBuilderField({ name }: { name: string }) {
               </g>
             )}
 
-            {/* Puntos agarrables */}
-            {(tool === 'select' || activeHandle) &&
-              doc.components.flatMap((c) => [
-                <circle
-                  key={`${c.id}-a`}
-                  cx={c.a.x}
-                  cy={c.a.y}
-                  r={
-                    activeHandle?.kind === 'terminal' &&
-                    activeHandle.id === c.id &&
-                    activeHandle.terminal === 'a'
-                      ? 0.22
-                      : 0.12
-                  }
-                  className={cn(
-                    activeHandle?.kind === 'terminal' &&
-                      activeHandle.id === c.id &&
-                      activeHandle.terminal === 'a'
-                      ? 'fill-primary'
-                      : 'fill-foreground',
-                  )}
-                />,
-                <circle
-                  key={`${c.id}-b`}
-                  cx={c.b.x}
-                  cy={c.b.y}
-                  r={
-                    activeHandle?.kind === 'terminal' &&
-                    activeHandle.id === c.id &&
-                    activeHandle.terminal === 'b'
-                      ? 0.22
-                      : 0.12
-                  }
-                  className={cn(
-                    activeHandle?.kind === 'terminal' &&
-                      activeHandle.id === c.id &&
-                      activeHandle.terminal === 'b'
-                      ? 'fill-primary'
-                      : 'fill-foreground',
-                  )}
-                />,
-              ])}
-            {tool === 'select' &&
-              doc.wires.flatMap((w) =>
-                [0, w.points.length - 1]
-                  .filter((v, idx) => idx === 0 || v !== 0)
-                  .map((index) => {
-                    const p = w.points[index];
-                    if (!p) return null;
-                    const active =
-                      activeHandle?.kind === 'wire-end' &&
-                      activeHandle.id === w.id &&
-                      activeHandle.index === index;
-                    return (
-                      <circle
-                        key={`${w.id}-${index}`}
-                        cx={p.x}
-                        cy={p.y}
-                        r={active ? 0.22 : 0.12}
-                        className={active ? 'fill-primary' : 'fill-muted-foreground'}
-                      />
-                    );
-                  }),
-              )}
+            {/* Puntos agarrables: terminales */}
+            {doc.components.flatMap((c) => [
+              <circle
+                key={`${c.id}-a`}
+                cx={c.a.x}
+                cy={c.a.y}
+                r={handleRadius(activeHandle, { kind: 'terminal', id: c.id, terminal: 'a' })}
+                className={
+                  isActiveHandle(activeHandle, { kind: 'terminal', id: c.id, terminal: 'a' })
+                    ? 'fill-primary'
+                    : 'fill-foreground'
+                }
+              />,
+              <circle
+                key={`${c.id}-b`}
+                cx={c.b.x}
+                cy={c.b.y}
+                r={handleRadius(activeHandle, { kind: 'terminal', id: c.id, terminal: 'b' })}
+                className={
+                  isActiveHandle(activeHandle, { kind: 'terminal', id: c.id, terminal: 'b' })
+                    ? 'fill-primary'
+                    : 'fill-foreground'
+                }
+              />,
+            ])}
+
+            {/* Puntos agarrables: vértices de cable */}
+            {doc.wires.flatMap((w) =>
+              w.points.map((p, index) => {
+                const handle: Handle = { kind: 'wire-vertex', id: w.id, index };
+                const active = isActiveHandle(activeHandle, handle);
+                return (
+                  <circle
+                    key={`${w.id}-${index}`}
+                    cx={p.x}
+                    cy={p.y}
+                    r={handleRadius(activeHandle, handle)}
+                    className={active ? 'fill-primary' : 'fill-muted-foreground'}
+                  />
+                );
+              }),
+            )}
 
             {/* Recuadro de selección */}
             {selectBox && (
@@ -1158,8 +1402,16 @@ export function CircuitBuilderField({ name }: { name: string }) {
           <button
             type="button"
             className="hover:bg-accent border-y px-2 py-1 text-xs"
+            onClick={fitView}
+            title="Ajustar al circuito"
+          >
+            <Maximize2 className="mx-auto size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="hover:bg-accent border-b px-2 py-1 text-xs"
             onClick={resetView}
-            title="Restablecer vista"
+            title="Restablecer vista (100 %)"
           >
             ⌂
           </button>
@@ -1196,6 +1448,40 @@ export function CircuitBuilderField({ name }: { name: string }) {
         </span>
       </div>
 
+      {/* Resultados de la simulación */}
+      {sim && !sim.error && sim.branches.length > 0 && (
+        <div className="rounded-md border p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium">Resultados de la simulación</span>
+            <span className="text-muted-foreground text-xs">
+              balance de potencias: {fmtNumber(powerBalance, 'W')}
+            </span>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rama</TableHead>
+                <TableHead className="text-right">Corriente</TableHead>
+                <TableHead className="text-right">Potencia</TableHead>
+                <TableHead className="text-right">Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sim.branches.map((b) => (
+                <TableRow key={b.id}>
+                  <TableCell className="font-mono">{b.label}</TableCell>
+                  <TableCell className="text-right font-mono">{fmtNumber(b.i, 'A')}</TableCell>
+                  <TableCell className="text-right font-mono">{fmtNumber(b.p, 'W')}</TableCell>
+                  <TableCell className="text-right">
+                    {Math.abs(b.p) < 1e-12 ? '—' : b.p > 0 ? 'absorbe' : 'entrega'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
       {/* Propiedades */}
       <PropertiesPanel
         doc={doc}
@@ -1206,8 +1492,137 @@ export function CircuitBuilderField({ name }: { name: string }) {
         onRotate={rotateComponent}
         onChange={(next) => field.onChange(next)}
       />
+
+      {/* Instrucciones */}
+      <details open className="rounded-md border p-3 text-sm">
+        <summary className="cursor-pointer font-medium">Cómo usar el constructor</summary>
+        <div className="mt-3 flex flex-col gap-4">
+          <Instruction title="1. Colocar componentes">
+            <li>
+              Elige <strong>Resistencia</strong>, <strong>Fuente de voltaje</strong> o{' '}
+              <strong>Fuente de corriente</strong> en la paleta.
+            </li>
+            <li>
+              Mueve el puntero: verás una vista previa que se <em>imanta</em> a los nodos cercanos.
+              Haz clic para colocar. Con <kbd>R</kbd> cambias la orientación y con <kbd>Esc</kbd>{' '}
+              cancelas.
+            </li>
+            <li>
+              Los componentes nuevos reciben su etiqueta (R1, V1, I1…) y un valor por defecto que
+              puedes editar abajo.
+            </li>
+          </Instruction>
+
+          <Instruction title="2. Conectar con cables">
+            <li>
+              Elige <strong>Cable</strong> y haz clic en los puntos de la cuadrícula. Los tramos se
+              trazan ortogonales; si el punto no está alineado, se inserta un codo automáticamente.
+            </li>
+            <li>
+              Un cable se conecta cuando su extremo cae sobre un terminal o sobre otro cable. Los
+              puntos se agarran a los nodos existentes para que la unión sea exacta.
+            </li>
+            <li>
+              Termina con <kbd>doble clic</kbd> o <kbd>Esc</kbd>.
+            </li>
+          </Instruction>
+
+          <Instruction title="3. Editar">
+            <li>
+              En modo <strong>Seleccionar</strong>, arrastra el cuerpo de un componente para
+              moverlo, o un <strong>punto</strong> (terminal o vértice del cable) para ajustarlo.
+            </li>
+            <li>
+              <kbd>doble clic</kbd> sobre un cable agrega un codo; sobre un codo lo elimina.
+            </li>
+            <li>
+              <kbd>R</kbd> gira, <kbd>F</kbd> voltea la polaridad de las fuentes, <kbd>Ctrl+D</kbd>{' '}
+              duplica y las <kbd>flechas</kbd> mueven la selección una celda.
+            </li>
+          </Instruction>
+
+          <Instruction title="4. Seleccionar">
+            <li>
+              Clic: selecciona un elemento. <kbd>Shift</kbd>+clic: agrega o quita.
+            </li>
+            <li>
+              <kbd>Shift</kbd>+arrastrar en el fondo: recuadro de selección. <kbd>Ctrl+A</kbd>:{' '}
+              todo; <kbd>Esc</kbd>: nada.
+            </li>
+            <li>
+              Al arrastrar uno de los seleccionados, se mueve todo el grupo. <kbd>Supr</kbd> borra.
+            </li>
+          </Instruction>
+
+          <Instruction title="5. La referencia (tierra)">
+            <li>
+              Elige <strong>Tierra</strong> y haz clic sobre un nodo. Ese nodo es el de referencia
+              (0 V) para el análisis. Si no marcas ninguno, se usa el nodo con más conexiones.
+            </li>
+          </Instruction>
+
+          <Instruction title="6. Simular y ver resultados">
+            <li>
+              Pulsa <strong>Simular</strong> (o <kbd>K</kbd>): el editor resuelve el circuito por
+              análisis nodal y anima la corriente por cada rama.
+            </li>
+            <li>
+              Debajo aparece la tabla con la corriente y la potencia de cada rama, y el balance de
+              potencias (debe ser 0 W).
+            </li>
+            <li>
+              Si el circuito no se puede resolver, verás el motivo: vacío, con partes desconectadas,
+              lazo de fuentes de voltaje o nodo con solo fuentes de corriente.
+            </li>
+          </Instruction>
+
+          <Instruction title="7. Moverte por el lienzo">
+            <li>Rueda del ratón: zoom sobre el puntero. Dos dedos en táctil.</li>
+            <li>
+              Botón central o derecho y arrastrar (o <kbd>Espacio</kbd>+arrastrar): desplazar. Botón
+              ⤢: ajustar al circuito. Botón ⌂: restablecer.
+            </li>
+          </Instruction>
+
+          <div>
+            <h4 className="mb-1 font-medium">Atajos de teclado</h4>
+            <ul className="grid gap-1 sm:grid-cols-2">
+              {SHORTCUTS.map((s) => (
+                <li key={s.keys} className="flex items-start gap-2">
+                  <kbd className="bg-muted shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs">
+                    {s.keys}
+                  </kbd>
+                  <span className="text-muted-foreground">{s.action}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </details>
     </div>
   );
+}
+
+function Instruction({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h4 className="mb-1 font-medium">{title}</h4>
+      <ul className="text-muted-foreground list-disc space-y-1 pl-5">{children}</ul>
+    </section>
+  );
+}
+
+function isActiveHandle(a: Handle | null, b: Handle): boolean {
+  if (!a || a.kind !== b.kind) return false;
+  if (a.kind === 'terminal' && b.kind === 'terminal')
+    return a.id === b.id && a.terminal === b.terminal;
+  if (a.kind === 'wire-vertex' && b.kind === 'wire-vertex')
+    return a.id === b.id && a.index === b.index;
+  return a.kind === 'ground' && b.kind === 'ground';
+}
+
+function handleRadius(active: Handle | null, handle: Handle): number {
+  return isActiveHandle(active, handle) ? 0.22 : 0.12;
 }
 
 function ComponentLabel({ component }: { component: CircuitComponent }) {
@@ -1330,9 +1745,8 @@ function PropertiesPanel({
 
   return (
     <p className="text-muted-foreground text-sm">
-      Elige una herramienta y haz clic en la cuadrícula. En modo selección puedes arrastrar
-      componentes y extremos, con <kbd>Shift</kbd>+clic (o un recuadro con <kbd>Shift</kbd>) eliges
-      varios, <kbd>R</kbd> gira, <kbd>Supr</kbd> elimina y <kbd>K</kbd> simula la corriente.
+      Elige una herramienta y haz clic en la cuadrícula. Lee las instrucciones de abajo para el
+      detalle de cada acción y los atajos.
     </p>
   );
 }

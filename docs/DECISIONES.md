@@ -593,15 +593,19 @@ Plantilla:
 - **Actualización (2026-10-12):** se afinó el editor tras contrastar su interacción con el
   simulador CRF (`crf-circuit-simulator.vercel.app`, HTML + canvas + jQuery). El
   `CircuitBuilderField` ahora ofrece una paleta de herramientas con **colocación por clic** (previa
-  fantasma que sigue al puntero, `R` para girar, `Esc` para cancelar), **arrastre** de componentes y
-  de **extremos** (terminales y nodos de cable, con inserción de codos para mantener los cables
-  ortogonales), **paneo/zoom** (rueda sobre el cursor, botón central/derecho, pinza táctil y botones
-  de zoom), **selección múltiple** (`Shift`+clic para alternar, recuadro con `Shift`+arrastrar en el
-  fondo, `Ctrl+A` para todo) con **borrado y arrastre en grupo**, **deshacer/rehacer**, dibujo de
-  cables ortogonales con vista previa, **prevención de solapes** y un **modo de simulación** que
-  resuelve el circuito por MNA y **anima la corriente** por cada rama (`K` para alternarlo). Los
-  símbolos se dibujan con trazo `non-scaling-stroke` y las etiquetas se rotan a lo largo de los
-  componentes verticales. La entrada de la calculadora es un único campo `circuit`
-  (`z.object({ circuit: circuitDocumentSchema })`) para que el editor sea un campo del formulario y
-  comparta estado con el ejemplo precargado; el ejemplo de Análisis de nodos es un divisor de
-  corriente (1 mA sobre 1 kΩ ∥ 2 kΩ) verificado por balance de potencias.
+  fantasma que sigue al puntero y se **imanta** a los nodos, `R` para girar, `Esc` para cancelar),
+  **arrastre** de componentes y de **extremos** (terminales y vértices de cable, con
+  `orthogonalize` para mantener los cables ortogonales), **codos** que se agregan y quitan con doble
+  clic, **paneo/zoom** (rueda sobre el cursor, botón central/derecho, `Espacio`+arrastrar, pinza
+  táctil, botones de zoom y **ajustar al circuito**), **selección múltiple** (`Shift`+clic para
+  alternar, recuadro con `Shift`+arrastrar, `Ctrl+A`) con **borrado, duplicado (`Ctrl+D`) y arrastre
+  en grupo**, **voltear polaridad** (`F`), **mover con flechas**, **deshacer/rehacer**, **prevención
+  de solapes** y un **modo de simulación** (`K`) que resuelve el circuito por MNA, **anima la
+  corriente** por cada rama y muestra una **tabla de resultados en vivo** (corriente, potencia,
+  absorbe/entrega y balance de potencias). Bajo el lienzo hay un panel de **instrucciones
+  detalladas** con secciones y la lista de atajos. Los símbolos se dibujan con trazo
+  `non-scaling-stroke` y las etiquetas se rotan a lo largo de los componentes verticales. La entrada
+  de la calculadora es un único campo `circuit` (`z.object({ circuit: circuitDocumentSchema })`) para
+  que el editor sea un campo del formulario y comparta estado con el ejemplo precargado; el ejemplo
+  de Análisis de nodos es un divisor de corriente (1 mA sobre 1 kΩ ∥ 2 kΩ) verificado por balance de
+  potencias.
