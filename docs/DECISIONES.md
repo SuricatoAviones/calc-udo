@@ -590,3 +590,14 @@ Plantilla:
   de circuitos"_: rompe la estructura de rutas generadas desde el currículum y dificulta buscar
   cada tema. _Sparse Tableau Analysis_: más general que MNA pero produce sistemas más grandes y
   una traza menos directa para el estudiante.
+- **Actualización (2026-10-12):** se afinó el editor tras contrastar su interacción con el
+  simulador CRF (`crf-circuit-simulator.vercel.app`, HTML + canvas + jQuery). El
+  `CircuitBuilderField` ahora ofrece una paleta de herramientas con **colocación por clic** (previa
+  fantasma que sigue al puntero, `R` para girar, `Esc` para cancelar), **arrastre** de componentes
+  y **paneo/zoom** (rueda sobre el cursor, botón central/derecho, pinza táctil y botones de zoom),
+  **deshacer/rehacer**, dibujo de cables ortogonales con vista previa y **prevención de solapes**.
+  Los símbolos se dibujan con trazo `non-scaling-stroke` y las etiquetas se rotan a lo largo de los
+  componentes verticales. La entrada de la calculadora es un único campo `circuit`
+  (`z.object({ circuit: circuitDocumentSchema })`) para que el editor sea un campo del formulario y
+  comparta estado con el ejemplo precargado; el ejemplo de Análisis de nodos es un divisor de
+  corriente (1 mA sobre 1 kΩ ∥ 2 kΩ) verificado por balance de potencias.

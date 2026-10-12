@@ -14,7 +14,11 @@ import { circuitDocumentSchema, buildTopology, validateTopology } from './circui
 import type { MnaErrorCode } from './mna';
 import { solveMna, type MnaResult } from './mna';
 
-export const nodalInputSchema = circuitDocumentSchema;
+/**
+ * La entrada es un único campo `circuit` para que el constructor interactivo sea un campo del
+ * formulario (y no tres campos sueltos). Así el ejemplo precargado y el editor comparten estado.
+ */
+export const nodalInputSchema = z.object({ circuit: circuitDocumentSchema });
 
 export type NodalInput = z.infer<typeof nodalInputSchema>;
 export type NodalValue = MnaResult;
@@ -27,7 +31,7 @@ export type NodalErrorCode =
   | 'nodo-sin-referencia';
 
 export function solveNodal(input: NodalInput): CalculatorResult<NodalValue, NodalErrorCode> {
-  const topology = buildTopology(input);
+  const topology = buildTopology(input.circuit);
   const structural = validateTopology(topology);
   if (structural) {
     return {
@@ -82,19 +86,53 @@ export const analisisDeNodos: Calculator<NodalInput, NodalValue, NodalErrorCode>
   },
   inputSchema: nodalInputSchema,
   example: {
-    components: [
-      {
-        id: 'v1',
-        kind: 'voltage-source',
-        a: { x: 0, y: 0 },
-        b: { x: 0, y: 4 },
-        value: 10,
-        label: 'V1',
-      },
-      { id: 'r1', kind: 'resistor', a: { x: 0, y: 0 }, b: { x: 0, y: 4 }, value: 5, label: 'R1' },
-    ],
-    wires: [],
-    ground: { x: 0, y: 4 },
+    circuit: {
+      // Divisor de corriente: una fuente de 1 mA y dos resistencias en paralelo (ejemplo clásico
+      // de análisis nodal). V_superior = 1 mA · (1 kΩ ∥ 2 kΩ) = 0.667 V.
+      components: [
+        {
+          id: 'i1',
+          kind: 'current-source',
+          a: { x: 0, y: 4 },
+          b: { x: 0, y: 0 },
+          value: 0.001,
+          label: 'I1',
+        },
+        {
+          id: 'r1',
+          kind: 'resistor',
+          a: { x: 2, y: 0 },
+          b: { x: 2, y: 4 },
+          value: 1000,
+          label: 'R1',
+        },
+        {
+          id: 'r2',
+          kind: 'resistor',
+          a: { x: 4, y: 0 },
+          b: { x: 4, y: 4 },
+          value: 2000,
+          label: 'R2',
+        },
+      ],
+      wires: [
+        {
+          id: 'w-top',
+          points: [
+            { x: 0, y: 0 },
+            { x: 4, y: 0 },
+          ],
+        },
+        {
+          id: 'w-bottom',
+          points: [
+            { x: 0, y: 4 },
+            { x: 4, y: 4 },
+          ],
+        },
+      ],
+      ground: { x: 0, y: 4 },
+    },
   },
   solve: solveNodal,
 };

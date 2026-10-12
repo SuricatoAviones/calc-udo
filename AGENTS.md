@@ -124,9 +124,10 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   `TransportTableField.tsx`, `logica-formal-y-algoritmos/FormulaField.tsx`,
   `metodos-numericos/LinearSystemField.tsx` ([A | b]) y `PointsFields.tsx` (listas x, y),
   `estadistica-2/TestFields.tsx` (H₁ y α), `programacion-no-lineal/NlpFields.tsx` (objetivo,
-  restricciones y punto) y `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
-  matriz de rutas sigue su tamaño). Buscador: `components/search/`
-  (`CalculatorSearch`, `SearchDialog`).
+  restricciones y punto), `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
+  matriz de rutas sigue su tamaño) y `circuitos-y-sistemas/CircuitBuilderField.tsx` (editor de
+  circuitos con `circuit-symbols.tsx`; la entrada es un único campo `circuit`). Buscador:
+  `components/search/` (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
 lo cierra antes de tiempo; escribe `Q* / D`.
@@ -176,7 +177,10 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   no está publicado (ADR-032). Versión **v0.7.0** ✅
 - Tanda 11 (en curso, rama `feat/electronica`) — Circuitos y Sistemas, Electrónica, Sistemas
   Dinámicos y Laboratorio de Circuitos y Electrónica agregadas a la malla curricular (pensum
-  fuente, bibliografía y 38 calculadoras planificadas en el roadmap).
+  fuente, bibliografía y 38 calculadoras planificadas en el roadmap). Piloto de Circuitos y
+  Sistemas: motor MNA (`lib/calculators/circuitos-y-sistemas/`) y constructor interactivo
+  (`components/calculators/circuitos-y-sistemas/CircuitBuilderField.tsx` y `circuit-symbols.tsx`),
+  con las calculadoras **Relaciones v-i-p** y **Análisis de nodos** (ADR-033).
 
 ## Versiones
 
