@@ -593,10 +593,14 @@ Plantilla:
 - **Actualización (2026-10-12):** se afinó el editor tras contrastar su interacción con el
   simulador CRF (`crf-circuit-simulator.vercel.app`, HTML + canvas + jQuery). El
   `CircuitBuilderField` ahora ofrece una paleta de herramientas con **colocación por clic** (previa
-  fantasma que sigue al puntero, `R` para girar, `Esc` para cancelar), **arrastre** de componentes
-  y **paneo/zoom** (rueda sobre el cursor, botón central/derecho, pinza táctil y botones de zoom),
-  **deshacer/rehacer**, dibujo de cables ortogonales con vista previa y **prevención de solapes**.
-  Los símbolos se dibujan con trazo `non-scaling-stroke` y las etiquetas se rotan a lo largo de los
+  fantasma que sigue al puntero, `R` para girar, `Esc` para cancelar), **arrastre** de componentes y
+  de **extremos** (terminales y nodos de cable, con inserción de codos para mantener los cables
+  ortogonales), **paneo/zoom** (rueda sobre el cursor, botón central/derecho, pinza táctil y botones
+  de zoom), **selección múltiple** (`Shift`+clic para alternar, recuadro con `Shift`+arrastrar en el
+  fondo, `Ctrl+A` para todo) con **borrado y arrastre en grupo**, **deshacer/rehacer**, dibujo de
+  cables ortogonales con vista previa, **prevención de solapes** y un **modo de simulación** que
+  resuelve el circuito por MNA y **anima la corriente** por cada rama (`K` para alternarlo). Los
+  símbolos se dibujan con trazo `non-scaling-stroke` y las etiquetas se rotan a lo largo de los
   componentes verticales. La entrada de la calculadora es un único campo `circuit`
   (`z.object({ circuit: circuitDocumentSchema })`) para que el editor sea un campo del formulario y
   comparta estado con el ejemplo precargado; el ejemplo de Análisis de nodos es un divisor de

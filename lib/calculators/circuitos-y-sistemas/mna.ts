@@ -29,6 +29,8 @@ function setAt(m: number[][], r: number, c: number, v: number) {
 }
 
 export interface BranchResult {
+  /** Id del componente en el documento; permite mapear el resultado al dibujo. */
+  id: string;
   label: string;
   kind: 'resistor' | 'voltage-source' | 'current-source';
   nodeA: number;
@@ -267,6 +269,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     }
     const p = v * i;
     branchResults.push({
+      id: component.id,
       label: componentLabel(component),
       kind: component.kind,
       nodeA,
