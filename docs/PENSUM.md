@@ -35,7 +35,7 @@ para que el mapa esté completo.
 | 071-3663 | [Optimización de Operaciones](#optimizacion-de-operaciones) | Semestre VI | Métodos Numéricos (072-3913) | 3 (2T-3P) | 16 | 0 | 0 |
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 11 | 0 | 0 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
-| 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 3 | 0 | 13 |
+| 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 6 | 0 | 10 |
 | 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 0 | 0 | 6 |
 | 071-4643 | [Sistemas Dinámicos](#sistemas-dinamicos) | Semestre VII | Electrónica (072-3533) | 3 (2T-2P) | 0 | 0 | 13 |
 | 072-4641 | [Laboratorio de Circuitos y Electrónica](#laboratorio-de-circuitos-y-electronica) | Semestre VII | Electrónica (072-3533) | 1 (0T-3P) | 0 | 0 | 3 |
@@ -414,9 +414,9 @@ de esta materia; solo aparece en la malla curricular.
 | Unidad I — Conceptos básicos de circuitos y sistemas lineales | Relaciones voltaje-corriente-potencia | ✅ Implementada | `/circuitos-y-sistemas/conceptos-basicos/relaciones-v-i-p/` |
 | Unidad II — Leyes y teoremas fundamentales del análisis circuital | Análisis de nodos | ✅ Implementada | `/circuitos-y-sistemas/leyes-y-teoremas/analisis-de-nodos/` |
 | Unidad II — Leyes y teoremas fundamentales del análisis circuital | Análisis de mallas | ✅ Implementada | `/circuitos-y-sistemas/leyes-y-teoremas/analisis-de-mallas/` |
-| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Teorema de superposición | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/superposicion/` |
-| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Equivalentes de Thévenin y Norton | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/thevenin-norton/` |
-| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Máxima transferencia de potencia | 🗺️ Roadmap | `/circuitos-y-sistemas/leyes-y-teoremas/maxima-transferencia-de-potencia/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Teorema de superposición | ✅ Implementada | `/circuitos-y-sistemas/leyes-y-teoremas/superposicion/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Equivalentes de Thévenin y Norton | ✅ Implementada | `/circuitos-y-sistemas/leyes-y-teoremas/thevenin-norton/` |
+| Unidad II — Leyes y teoremas fundamentales del análisis circuital | Máxima transferencia de potencia | ✅ Implementada | `/circuitos-y-sistemas/leyes-y-teoremas/maxima-transferencia-de-potencia/` |
 | Unidad III — Respuesta a funciones singulares y senoidales | Fasores e impedancia | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/fasores-e-impedancia/` |
 | Unidad III — Respuesta a funciones singulares y senoidales | Potencia en circuitos senoidales | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/potencia-en-ca/` |
 | Unidad III — Respuesta a funciones singulares y senoidales | Valor promedio y valor eficaz | 🗺️ Roadmap | `/circuitos-y-sistemas/respuesta-senoidal/valor-promedio-y-eficaz/` |

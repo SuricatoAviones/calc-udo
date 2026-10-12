@@ -15,6 +15,10 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'relaciones-v-i-p': () => import('./circuitos-y-sistemas/RelacionesVIP'),
   'analisis-de-nodos': () => import('./circuitos-y-sistemas/AnalisisDeNodos'),
   'analisis-de-mallas': () => import('./circuitos-y-sistemas/AnalisisDeMallas'),
+  superposicion: () => import('./circuitos-y-sistemas/Superposicion'),
+  'thevenin-norton': () => import('./circuitos-y-sistemas/TheveninNorton'),
+  'maxima-transferencia-de-potencia': () =>
+    import('./circuitos-y-sistemas/MaximaTransferenciaDePotencia'),
 
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),

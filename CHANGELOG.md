@@ -15,8 +15,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   y extremos, codos, paneo/zoom, selección múltiple, volteo de polaridad, duplicado, validación de
   topología, simulación con animación de corriente y tabla de resultados en vivo, e instrucciones
   detalladas; y las calculadoras **Relaciones v-i-p** (R, C y L en el dominio del tiempo con
-  potencia instantánea), **Análisis de nodos** y **Análisis de mallas** (caras del embebido planar,
-  KVL por malla y supermalla con fuentes de corriente).
+  potencia instantánea), **Análisis de nodos**, **Análisis de mallas** (caras del embebido planar,
+  KVL por malla y supermalla con fuentes de corriente), **Superposición**, **Equivalentes de
+  Thévenin y Norton** y **Máxima transferencia de potencia** (con la curva `P_L(R_L)`).
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,

@@ -617,3 +617,10 @@ Plantilla:
   supermalla), de modo que el sistema sigue siendo cuadrado. Se validan los casos no aplicables:
   circuito vacío o desconexo, sin mallas, rama colgante (puente) y malla formada solo por cables.
   Los tests contrastan las corrientes de rama con las del análisis nodal del mismo circuito.
+- **Teoremas (2026-10-12):** tres calculadoras más sobre el motor MNA. **Superposición** resuelve el
+  circuito una vez por fuente (las demás en 0 V/0 A, sin cambiar la topología) y suma rama por rama;
+  se advierte que no aplica a la potencia. **Thévenin/Norton** elige una resistencia de carga, mide
+  `V_th` en circuito abierto (quitando la carga) y `R_th` con las fuentes apagadas y una fuente de
+  prueba de 1 A; de ahí `I_N = V_th/R_th`. **Máxima transferencia de potencia** reutiliza el
+  equivalente y muestra `R_L = R_th`, `P_máx = V_th²/(4R_th)` y la curva `P_L(R_L)`. El selector de
+  carga (`LoadSelectField`) lee el circuito del formulario y lista sus componentes.
