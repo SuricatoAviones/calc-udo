@@ -609,3 +609,11 @@ Plantilla:
   que el editor sea un campo del formulario y comparta estado con el ejemplo precargado; el ejemplo
   de Análisis de nodos es un divisor de corriente (1 mA sobre 1 kΩ ∥ 2 kΩ) verificado por balance de
   potencias.
+- **Análisis de mallas (2026-10-12):** implementado sobre el mismo editor. Las mallas son las caras
+  acotadas del embebido planar (recorrido de semiaristas con las aristas ordenadas por ángulo en
+  cada vértice). Cada malla recibe una corriente en el sentido de su recorrido y se escribe su KVL;
+  las resistencias compartidas usan la diferencia de corrientes. Las **fuentes de corriente** se
+  tratan agregando su tensión como incógnita y su ecuación de corriente (equivalente a la
+  supermalla), de modo que el sistema sigue siendo cuadrado. Se validan los casos no aplicables:
+  circuito vacío o desconexo, sin mallas, rama colgante (puente) y malla formada solo por cables.
+  Los tests contrastan las corrientes de rama con las del análisis nodal del mismo circuito.

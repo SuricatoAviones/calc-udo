@@ -14,6 +14,7 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   // Circuitos y Sistemas
   'relaciones-v-i-p': () => import('./circuitos-y-sistemas/RelacionesVIP'),
   'analisis-de-nodos': () => import('./circuitos-y-sistemas/AnalisisDeNodos'),
+  'analisis-de-mallas': () => import('./circuitos-y-sistemas/AnalisisDeMallas'),
 
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),

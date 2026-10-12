@@ -81,6 +81,9 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   formulario, eliminación con traza, sustitución hacia atrás, determinante), `polynomial.ts`
   (coeficientes, división sintética, Ruffini) y `differences.ts` (listas x, y; diferencias hacia
   adelante y divididas) (ADR-028).
+- `lib/calculators/circuitos-y-sistemas/`: `circuit.ts` (modelo, topología con union-find,
+  validación y notación de ingeniería), `mna.ts` (análisis nodal modificado con traza) y `mesh.ts`
+  (análisis de mallas: caras del embebido planar y KVL por malla) (ADR-033).
 - `lib/calculators/estadistica-2/`: `hypothesis.ts` (región crítica, valor P, decisión y gráfica
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
@@ -180,7 +183,8 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   fuente, bibliografía y 38 calculadoras planificadas en el roadmap). Piloto de Circuitos y
   Sistemas: motor MNA (`lib/calculators/circuitos-y-sistemas/`) y constructor interactivo
   (`components/calculators/circuitos-y-sistemas/CircuitBuilderField.tsx` y `circuit-symbols.tsx`),
-  con las calculadoras **Relaciones v-i-p** y **Análisis de nodos** (ADR-033).
+  con las calculadoras **Relaciones v-i-p**, **Análisis de nodos** y **Análisis de mallas**
+  (ADR-033).
 
 ## Versiones
 
