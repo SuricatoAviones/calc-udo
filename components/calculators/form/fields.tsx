@@ -103,16 +103,29 @@ export function ExpressionField({
   variables = ['x'],
   previewPrefix,
   optional = false,
+  toTex,
 }: BaseFieldProps & {
   variables?: string[];
   /** LaTeX antes de la expresión en la vista previa, p. ej. `f(x) =`. */
   previewPrefix: string;
   optional?: boolean;
+  /**
+   * Vista previa propia, para expresiones que el lector general no admite (p. ej. señales con
+   * u(t) y δ(t)). Devuelve `null` si no se puede mostrar.
+   */
+  toTex?: (source: string) => string | null;
 }) {
   const { register, control } = useFormContext();
   const error = useFieldError(name);
   const source = useWatch({ control, name }) as string | undefined;
-  const parsed = source ? parseFunction(source, variables) : null;
+  const tex = !source
+    ? null
+    : toTex
+      ? toTex(source)
+      : (() => {
+          const parsed = parseFunction(source, variables);
+          return parsed.ok ? parsed.expr.tex : null;
+        })();
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <Field id={name} label={label} hint={hint} error={error}>
@@ -129,9 +142,9 @@ export function ExpressionField({
           })}
         />
       </Field>
-      {parsed?.ok && (
+      {tex && (
         <div className="bg-muted/60 overflow-x-auto rounded-md px-3 py-1.5 text-sm">
-          <Formula tex={`${previewPrefix} ${parsed.expr.tex}`} />
+          <Formula tex={`${previewPrefix} ${tex}`} />
         </div>
       )}
     </div>

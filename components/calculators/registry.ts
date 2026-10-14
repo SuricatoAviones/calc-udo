@@ -19,6 +19,17 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'thevenin-norton': () => import('./circuitos-y-sistemas/TheveninNorton'),
   'maxima-transferencia-de-potencia': () =>
     import('./circuitos-y-sistemas/MaximaTransferenciaDePotencia'),
+  'fasores-e-impedancia': () => import('./circuitos-y-sistemas/FasoresEImpedancia'),
+  'potencia-en-ca': () => import('./circuitos-y-sistemas/PotenciaEnCa'),
+  'valor-promedio-y-eficaz': () => import('./circuitos-y-sistemas/ValorPromedioYEficaz'),
+  'respuesta-primer-orden': () => import('./circuitos-y-sistemas/RespuestaPrimerOrden'),
+  'respuesta-segundo-orden': () => import('./circuitos-y-sistemas/RespuestaSegundoOrden'),
+  'ecuaciones-de-estado': () => import('./circuitos-y-sistemas/EcuacionesDeEstado'),
+  'transformada-de-laplace': () => import('./circuitos-y-sistemas/TransformadaDeLaplace'),
+  'transformada-inversa-de-laplace': () =>
+    import('./circuitos-y-sistemas/TransformadaInversaDeLaplace'),
+  convolucion: () => import('./circuitos-y-sistemas/Convolucion'),
+  'transformada-z': () => import('./circuitos-y-sistemas/TransformadaZ'),
 
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),
