@@ -20,6 +20,7 @@ import type { Notice, ResultTable, Step } from '../types';
 import {
   componentLabel,
   componentUnit,
+  storageElementsError,
   type CircuitComponent,
   type CircuitDocument,
   type GridPoint,
@@ -64,6 +65,7 @@ export type MeshErrorCode =
   | 'sin-mallas'
   | 'rama-colgante'
   | 'malla-sin-componentes'
+  | 'elementos-almacenadores'
   | 'singular';
 
 export interface MeshSolve {
@@ -195,6 +197,8 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
   if (doc.components.length === 0) {
     return { ok: false, code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
   }
+  const storage = storageElementsError(doc.components);
+  if (storage) return { ok: false, code: 'elementos-almacenadores', message: storage.message };
   const planar = buildPlanarFaces(doc);
   const { edges, faceOfHalf, faces, boundedFaces, meshOfFace } = planar;
 

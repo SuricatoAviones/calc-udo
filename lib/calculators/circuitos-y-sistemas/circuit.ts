@@ -15,7 +15,18 @@ export interface GridPoint {
   y: number;
 }
 
-export type ComponentKind = 'resistor' | 'voltage-source' | 'current-source';
+export type ComponentKind =
+  'resistor' | 'voltage-source' | 'current-source' | 'capacitor' | 'inductor';
+
+/** Elementos que almacenan energía: sus variables (v_C, i_L) son las variables de estado. */
+export const STORAGE_KINDS: readonly ComponentKind[] = ['capacitor', 'inductor'];
+
+/** Los tipos del constructor en las calculadoras de circuitos resistivos. */
+export const RESISTIVE_KINDS: readonly ComponentKind[] = [
+  'resistor',
+  'voltage-source',
+  'current-source',
+];
 
 export interface CircuitComponent {
   id: string;
@@ -24,9 +35,14 @@ export interface CircuitComponent {
   a: GridPoint;
   /** Terminal negativo/2. */
   b: GridPoint;
-  /** Valor numérico: Ω, V o A según el tipo. */
+  /** Valor numérico: Ω, V, A, F o H según el tipo. */
   value: number;
   label?: string;
+  /**
+   * Solo capacitores e inductores: v_C(0) en V (con + en `a`) o i_L(0) en A (de `a` a `b`).
+   * Si falta, se toma 0.
+   */
+  initial?: number;
 }
 
 export interface CircuitWire {
@@ -49,11 +65,12 @@ const gridPointSchema = z.object({
 
 const componentSchema = z.object({
   id: z.string().min(1),
-  kind: z.enum(['resistor', 'voltage-source', 'current-source']),
+  kind: z.enum(['resistor', 'voltage-source', 'current-source', 'capacitor', 'inductor']),
   a: gridPointSchema,
   b: gridPointSchema,
   value: z.number().finite(),
   label: z.string().optional(),
+  initial: z.number().finite().optional(),
 });
 
 const wireSchema = z.object({
@@ -73,6 +90,7 @@ export type CircuitErrorCode =
   | 'lazo-de-fuentes-de-voltaje'
   | 'corte-de-fuentes-de-corriente'
   | 'nodo-sin-referencia'
+  | 'elementos-almacenadores'
   | 'singular';
 
 export interface CircuitError {
@@ -95,12 +113,19 @@ const ENG_SUFFIX: Record<string, number> = {
 };
 
 export function parseEngineering(text: string): number | null {
-  const s = text.trim().replace(',', '.').replace(/\s+/g, '');
+  // Acepta la unidad al final ("2.2 kΩ", "10 µF", "−0,3 A"), como la muestra el editor.
+  const s = text
+    .trim()
+    .replace(',', '.')
+    .replace(/\s+/g, '')
+    .replace(/^−/, '-')
+    .replace(/(Ω|ohms?|[VAFH])$/, '');
   const m = /^([+-]?\d+\.?\d*|\.\d+)([pnumµukKMG]?)$/.exec(s);
   if (!m) return null;
   const val = Number(m[1]);
   const mult = ENG_SUFFIX[m[2]!] ?? 1;
-  return val * mult;
+  // Dividir entre 10⁶ redondea mejor que multiplicar por 1e-6 (10µ da 1e-5 exacto).
+  return mult < 1 ? val / Math.round(1 / mult) : val * mult;
 }
 
 const ENG_UNITS = [
@@ -133,12 +158,16 @@ const KIND_LABEL: Record<ComponentKind, string> = {
   resistor: 'R',
   'voltage-source': 'V',
   'current-source': 'I',
+  capacitor: 'C',
+  inductor: 'L',
 };
 
 const UNIT_LABEL: Record<ComponentKind, string> = {
   resistor: 'Ω',
   'voltage-source': 'V',
   'current-source': 'A',
+  capacitor: 'F',
+  inductor: 'H',
 };
 
 export function componentLabel(c: CircuitComponent): string {
@@ -408,6 +437,8 @@ export function validateTopology(topology: CircuitTopology): CircuitError | null
   if (components.length === 0) {
     return { code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
   }
+  const storage = storageElementsError(components.map((c) => c.component));
+  if (storage) return storage;
 
   // Cada nodo con componentes debe estar conectado a la referencia.
   const uf = new UnionFind();
@@ -446,6 +477,19 @@ export function validateTopology(topology: CircuitTopology): CircuitError | null
   }
 
   return null;
+}
+
+/**
+ * Las calculadoras de cd (nodos, mallas, teoremas) trabajan con resistencias y fuentes; los
+ * capacitores e inductores son de la calculadora de ecuaciones de estado.
+ */
+export function storageElementsError(components: CircuitComponent[]): CircuitError | null {
+  if (!components.some((c) => STORAGE_KINDS.includes(c.kind))) return null;
+  return {
+    code: 'elementos-almacenadores',
+    message:
+      'El circuito tiene capacitores o inductores: este análisis es de circuitos resistivos de cd. Usa la calculadora de ecuaciones de estado para circuitos con elementos que almacenan energía.',
+  };
 }
 
 /**

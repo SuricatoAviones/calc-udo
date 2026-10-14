@@ -4,6 +4,7 @@ import { useController, useFormContext } from 'react-hook-form';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BoxSelect,
+  Check,
   Copy,
   FlipHorizontal2,
   Maximize2,
@@ -13,6 +14,7 @@ import {
   RotateCw,
   Trash2,
   Undo2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +35,8 @@ import {
   formatEngineering,
   nextLabel,
   parseEngineering,
+  RESISTIVE_KINDS,
+  STORAGE_KINDS,
   validateTopology,
   type CircuitComponent,
   type CircuitDocument,
@@ -41,6 +45,7 @@ import {
   type GridPoint,
 } from '@/lib/calculators/circuitos-y-sistemas/circuit';
 import { solveMna } from '@/lib/calculators/circuitos-y-sistemas/mna';
+import { BuilderGuide } from './BuilderGuide';
 import { ComponentShape, GroundSymbol, PaletteIcon, midpoint } from './circuit-symbols';
 
 const DEFAULT_SCALE = 26;
@@ -59,28 +64,56 @@ const DEFAULT_VALUE: Record<ComponentKind, number> = {
   resistor: 1000,
   'voltage-source': 10,
   'current-source': 0.001,
+  capacitor: 1e-6,
+  inductor: 1e-3,
 };
 
-const SHORTCUTS: { keys: string; action: string }[] = [
-  { keys: 'S', action: 'Herramienta de selección' },
-  { keys: 'W', action: 'Trazar un cable' },
-  { keys: 'R', action: 'Girar la colocación o los componentes seleccionados' },
-  { keys: 'G', action: 'Colocar la tierra (referencia)' },
-  { keys: 'K', action: 'Iniciar o detener la simulación' },
-  { keys: 'F', action: 'Voltear la polaridad de las fuentes seleccionadas' },
-  { keys: 'Ctrl + A', action: 'Seleccionar todo' },
-  { keys: 'Ctrl + D', action: 'Duplicar la selección' },
-  { keys: 'Ctrl + Z / Ctrl + Y', action: 'Deshacer / rehacer' },
-  { keys: 'Supr', action: 'Eliminar la selección' },
-  { keys: 'Esc', action: 'Cancelar la herramienta y limpiar la selección' },
-  { keys: 'Flechas', action: 'Mover la selección una celda' },
-  { keys: 'Rueda', action: 'Zoom sobre el puntero' },
-  { keys: 'Botón central/derecho', action: 'Desplazar el lienzo (o dos dedos en táctil)' },
-  { keys: 'Espacio + arrastrar', action: 'Desplazar el lienzo' },
-  { keys: 'Doble clic en un cable', action: 'Agregar un codo; sobre un codo, quitarlo' },
-];
+const KIND_TITLE: Record<ComponentKind, string> = {
+  resistor: 'Resistencia',
+  'voltage-source': 'Fuente de voltaje',
+  'current-source': 'Fuente de corriente',
+  capacitor: 'Capacitor',
+  inductor: 'Inductor',
+};
 
 type Tool = 'select' | 'wire' | ComponentKind | 'ground';
+
+/**
+ * Vista que encuadra todo el circuito en un lienzo de w × h píxeles. Con `shrinkOnly` solo aleja
+ * (no agranda un circuito pequeño) y deja el circuito arriba a la izquierda si ya cabe.
+ */
+function fitTransform(
+  doc: CircuitDocument,
+  w: number,
+  h: number,
+  shrinkOnly = false,
+): ViewState | null {
+  const pts: GridPoint[] = [];
+  for (const c of doc.components) pts.push(c.a, c.b);
+  for (const wire of doc.wires) pts.push(...wire.points);
+  if (doc.ground) pts.push(doc.ground);
+  if (pts.length === 0 || !w || !h) return null;
+  const minX = Math.min(...pts.map((p) => p.x));
+  const maxX = Math.max(...pts.map((p) => p.x));
+  const minY = Math.min(...pts.map((p) => p.y));
+  const maxY = Math.max(...pts.map((p) => p.y));
+  const pad = 2;
+  const width = maxX - minX + 2 * pad;
+  const height = maxY - minY + 2 * pad;
+  const fit = Math.min(w / width, h / height);
+  if (shrinkOnly && fit >= DEFAULT_SCALE) return null;
+  const scale = Math.min(
+    MAX_SCALE,
+    Math.max(MIN_SCALE, shrinkOnly ? Math.min(fit, DEFAULT_SCALE) : fit),
+  );
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return { scale, tx: w / 2 - cx * scale, ty: h / 2 - cy * scale };
+}
+
+function isComponentTool(tool: Tool): tool is ComponentKind {
+  return tool !== 'select' && tool !== 'wire' && tool !== 'ground';
+}
 
 interface ViewState {
   scale: number;
@@ -222,8 +255,17 @@ function boxIntersects(
   return segMaxX >= box.minX && segMinX <= box.maxX && segMaxY >= box.minY && segMinY <= box.maxY;
 }
 
-export function CircuitBuilderField({ name }: { name: string }) {
-  const { control } = useFormContext();
+export function CircuitBuilderField({
+  name,
+  kinds = RESISTIVE_KINDS,
+}: {
+  name: string;
+  /** Componentes de la paleta (por defecto, los de los circuitos resistivos de cd). */
+  kinds?: readonly ComponentKind[];
+}) {
+  // La simulación en vivo es de cd resistiva: con capacitores o inductores no aplica.
+  const canSimulate = !kinds.some((k) => STORAGE_KINDS.includes(k));
+  const { control, getValues } = useFormContext();
   const { field } = useController({ name, control, defaultValue: emptyCircuit() });
   const doc: CircuitDocument = (field.value as CircuitDocument | undefined) ?? emptyCircuit();
 
@@ -234,6 +276,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
   const pinchRef = useRef<{ dist: number; mid: { x: number; y: number } } | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spaceRef = useRef(false);
+  const autoFittedRef = useRef(false);
 
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<ViewState>({ scale: DEFAULT_SCALE, tx: 24, ty: 24 });
@@ -284,10 +327,20 @@ export function CircuitBuilderField({ name }: { name: string }) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const observer = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
+    const observer = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setSize({ w, h });
+      // La primera vez, si el ejemplo no cabe en el lienzo (p. ej. en un celular), se aleja.
+      if (!autoFittedRef.current && w > 0 && h > 0) {
+        autoFittedRef.current = true;
+        const fitted = fitTransform(getValues(name) as CircuitDocument, w, h, true);
+        if (fitted) setView(fitted);
+      }
+    });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [getValues, name]);
 
   // ── Rueda del ratón (zoom sobre el cursor) ─────────────────────────────────
   useEffect(() => {
@@ -370,7 +423,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
         setTool('ground');
       } else if (e.key === 's' || e.key === 'S') {
         setTool('select');
-      } else if (e.key === 'k' || e.key === 'K') {
+      } else if ((e.key === 'k' || e.key === 'K') && canSimulate) {
         setSimulating((s) => !s);
       } else if (e.key.startsWith('Arrow') && selectedIds.length > 0) {
         e.preventDefault();
@@ -437,28 +490,9 @@ export function CircuitBuilderField({ name }: { name: string }) {
   }
 
   function fitView() {
-    const pts: GridPoint[] = [];
-    for (const c of doc.components) pts.push(c.a, c.b);
-    for (const w of doc.wires) pts.push(...w.points);
-    if (doc.ground) pts.push(doc.ground);
-    if (pts.length === 0 || !size.w || !size.h) {
-      resetView();
-      return;
-    }
-    const minX = Math.min(...pts.map((p) => p.x));
-    const maxX = Math.max(...pts.map((p) => p.x));
-    const minY = Math.min(...pts.map((p) => p.y));
-    const maxY = Math.max(...pts.map((p) => p.y));
-    const pad = 2;
-    const width = maxX - minX + 2 * pad;
-    const height = maxY - minY + 2 * pad;
-    const scale = Math.min(
-      MAX_SCALE,
-      Math.max(MIN_SCALE, Math.min(size.w / width, size.h / height)),
-    );
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    setView({ scale, tx: size.w / 2 - cx * scale, ty: size.h / 2 - cy * scale });
+    const fitted = fitTransform(doc, size.w, size.h);
+    if (fitted) setView(fitted);
+    else resetView();
   }
 
   function toWorld(clientX: number, clientY: number): GridPoint {
@@ -685,7 +719,11 @@ export function CircuitBuilderField({ name }: { name: string }) {
       (c) => selectedIds.includes(c.id) && c.kind !== 'resistor',
     );
     if (sources.length === 0) {
-      flashMessage('Selecciona una fuente de voltaje o de corriente para voltear su polaridad.');
+      flashMessage(
+        canSimulate
+          ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
+          : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
+      );
       return;
     }
     commit({
@@ -781,7 +819,7 @@ export function CircuitBuilderField({ name }: { name: string }) {
       return;
     }
 
-    if (tool === 'resistor' || tool === 'voltage-source' || tool === 'current-source') {
+    if (isComponentTool(tool)) {
       placeComponent(tool, snapped);
       return;
     }
@@ -1080,27 +1118,16 @@ export function CircuitBuilderField({ name }: { name: string }) {
         >
           <PaletteIcon kind="wire" />
         </ToolButton>
-        <ToolButton
-          active={tool === 'resistor'}
-          onClick={() => setTool('resistor')}
-          title="Resistencia"
-        >
-          <PaletteIcon kind="resistor" />
-        </ToolButton>
-        <ToolButton
-          active={tool === 'voltage-source'}
-          onClick={() => setTool('voltage-source')}
-          title="Fuente de voltaje"
-        >
-          <PaletteIcon kind="voltage-source" />
-        </ToolButton>
-        <ToolButton
-          active={tool === 'current-source'}
-          onClick={() => setTool('current-source')}
-          title="Fuente de corriente"
-        >
-          <PaletteIcon kind="current-source" />
-        </ToolButton>
+        {kinds.map((kind) => (
+          <ToolButton
+            key={kind}
+            active={tool === kind}
+            onClick={() => setTool(kind)}
+            title={KIND_TITLE[kind]}
+          >
+            <PaletteIcon kind={kind} />
+          </ToolButton>
+        ))}
         <ToolButton active={tool === 'ground'} onClick={() => setTool('ground')} title="Tierra (G)">
           <PaletteIcon kind="ground" />
         </ToolButton>
@@ -1139,13 +1166,15 @@ export function CircuitBuilderField({ name }: { name: string }) {
         >
           <Trash2 className="size-4" />
         </ToolButton>
-        <ToolButton
-          active={simulating}
-          onClick={() => setSimulating((s) => !s)}
-          title={simulating ? 'Detener simulación (K)' : 'Simular corriente (K)'}
-        >
-          {simulating ? <Pause className="size-4" /> : <Play className="size-4" />}
-        </ToolButton>
+        {canSimulate && (
+          <ToolButton
+            active={simulating}
+            onClick={() => setSimulating((s) => !s)}
+            title={simulating ? 'Detener simulación (K)' : 'Simular corriente (K)'}
+          >
+            {simulating ? <Pause className="size-4" /> : <Play className="size-4" />}
+          </ToolButton>
+        )}
       </div>
 
       {/* Lienzo */}
@@ -1425,6 +1454,28 @@ export function CircuitBuilderField({ name }: { name: string }) {
           </button>
         </div>
 
+        {/* Terminar el cable (útil en pantallas táctiles, sin doble clic) */}
+        {tool === 'wire' && wireDraft.length > 0 && (
+          <div className="absolute top-2 right-2 flex gap-1.5">
+            {wireDraft.length >= 2 && (
+              <Button type="button" size="sm" onClick={finishWire} className="shadow-sm">
+                <Check className="size-4" aria-hidden />
+                Terminar cable
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="bg-card/90 shadow-sm"
+              onClick={() => setWireDraft([])}
+            >
+              <X className="size-4" aria-hidden />
+              Cancelar
+            </Button>
+          </div>
+        )}
+
         {/* Aviso flotante */}
         {flash && (
           <div className="bg-destructive text-destructive-foreground absolute bottom-2 left-2 max-w-[80%] rounded-md px-3 py-1.5 text-xs shadow-md">
@@ -1493,122 +1544,9 @@ export function CircuitBuilderField({ name }: { name: string }) {
         onChange={(next) => field.onChange(next)}
       />
 
-      {/* Instrucciones */}
-      <details open className="rounded-md border p-3 text-sm">
-        <summary className="cursor-pointer font-medium">Cómo usar el constructor</summary>
-        <div className="mt-3 flex flex-col gap-4">
-          <Instruction title="1. Colocar componentes">
-            <li>
-              Elige <strong>Resistencia</strong>, <strong>Fuente de voltaje</strong> o{' '}
-              <strong>Fuente de corriente</strong> en la paleta.
-            </li>
-            <li>
-              Mueve el puntero: verás una vista previa que se <em>imanta</em> a los nodos cercanos.
-              Haz clic para colocar. Con <kbd>R</kbd> cambias la orientación y con <kbd>Esc</kbd>{' '}
-              cancelas.
-            </li>
-            <li>
-              Los componentes nuevos reciben su etiqueta (R1, V1, I1…) y un valor por defecto que
-              puedes editar abajo.
-            </li>
-          </Instruction>
-
-          <Instruction title="2. Conectar con cables">
-            <li>
-              Elige <strong>Cable</strong> y haz clic en los puntos de la cuadrícula. Los tramos se
-              trazan ortogonales; si el punto no está alineado, se inserta un codo automáticamente.
-            </li>
-            <li>
-              Un cable se conecta cuando su extremo cae sobre un terminal o sobre otro cable. Los
-              puntos se agarran a los nodos existentes para que la unión sea exacta.
-            </li>
-            <li>
-              Termina con <kbd>doble clic</kbd> o <kbd>Esc</kbd>.
-            </li>
-          </Instruction>
-
-          <Instruction title="3. Editar">
-            <li>
-              En modo <strong>Seleccionar</strong>, arrastra el cuerpo de un componente para
-              moverlo, o un <strong>punto</strong> (terminal o vértice del cable) para ajustarlo.
-            </li>
-            <li>
-              <kbd>doble clic</kbd> sobre un cable agrega un codo; sobre un codo lo elimina.
-            </li>
-            <li>
-              <kbd>R</kbd> gira, <kbd>F</kbd> voltea la polaridad de las fuentes, <kbd>Ctrl+D</kbd>{' '}
-              duplica y las <kbd>flechas</kbd> mueven la selección una celda.
-            </li>
-          </Instruction>
-
-          <Instruction title="4. Seleccionar">
-            <li>
-              Clic: selecciona un elemento. <kbd>Shift</kbd>+clic: agrega o quita.
-            </li>
-            <li>
-              <kbd>Shift</kbd>+arrastrar en el fondo: recuadro de selección. <kbd>Ctrl+A</kbd>:{' '}
-              todo; <kbd>Esc</kbd>: nada.
-            </li>
-            <li>
-              Al arrastrar uno de los seleccionados, se mueve todo el grupo. <kbd>Supr</kbd> borra.
-            </li>
-          </Instruction>
-
-          <Instruction title="5. La referencia (tierra)">
-            <li>
-              Elige <strong>Tierra</strong> y haz clic sobre un nodo. Ese nodo es el de referencia
-              (0 V) para el análisis. Si no marcas ninguno, se usa el nodo con más conexiones.
-            </li>
-          </Instruction>
-
-          <Instruction title="6. Simular y ver resultados">
-            <li>
-              Pulsa <strong>Simular</strong> (o <kbd>K</kbd>): el editor resuelve el circuito por
-              análisis nodal y anima la corriente por cada rama.
-            </li>
-            <li>
-              Debajo aparece la tabla con la corriente y la potencia de cada rama, y el balance de
-              potencias (debe ser 0 W).
-            </li>
-            <li>
-              Si el circuito no se puede resolver, verás el motivo: vacío, con partes desconectadas,
-              lazo de fuentes de voltaje o nodo con solo fuentes de corriente.
-            </li>
-          </Instruction>
-
-          <Instruction title="7. Moverte por el lienzo">
-            <li>Rueda del ratón: zoom sobre el puntero. Dos dedos en táctil.</li>
-            <li>
-              Botón central o derecho y arrastrar (o <kbd>Espacio</kbd>+arrastrar): desplazar. Botón
-              ⤢: ajustar al circuito. Botón ⌂: restablecer.
-            </li>
-          </Instruction>
-
-          <div>
-            <h4 className="mb-1 font-medium">Atajos de teclado</h4>
-            <ul className="grid gap-1 sm:grid-cols-2">
-              {SHORTCUTS.map((s) => (
-                <li key={s.keys} className="flex items-start gap-2">
-                  <kbd className="bg-muted shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs">
-                    {s.keys}
-                  </kbd>
-                  <span className="text-muted-foreground">{s.action}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </details>
+      {/* Guía del tablero */}
+      <BuilderGuide kinds={kinds} canSimulate={canSimulate} />
     </div>
-  );
-}
-
-function Instruction({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h4 className="mb-1 font-medium">{title}</h4>
-      <ul className="text-muted-foreground list-disc space-y-1 pl-5">{children}</ul>
-    </section>
   );
 }
 
@@ -1745,8 +1683,8 @@ function PropertiesPanel({
 
   return (
     <p className="text-muted-foreground text-sm">
-      Elige una herramienta y haz clic en la cuadrícula. Lee las instrucciones de abajo para el
-      detalle de cada acción y los atajos.
+      Selecciona un componente para editar su valor y su etiqueta. La guía del tablero, abajo,
+      explica cada acción y sus atajos.
     </p>
   );
 }
@@ -1760,48 +1698,97 @@ function ValueAndLabelEditor({
   component: CircuitComponent;
   onChange: (doc: CircuitDocument) => void;
 }) {
-  const [textValue, setTextValue] = useState(() =>
-    formatEngineering(component.value, componentUnit(component.kind)),
+  const unit = componentUnit(component.kind);
+  const storage = component.kind === 'capacitor' || component.kind === 'inductor';
+  const initialUnit = component.kind === 'capacitor' ? 'V' : 'A';
+  const [textValue, setTextValue] = useState(() => formatEngineering(component.value, unit));
+  const [textInitial, setTextInitial] = useState(() =>
+    formatEngineering(component.initial ?? 0, initialUnit),
   );
+  const [invalid, setInvalid] = useState<'valor' | 'inicial' | null>(null);
 
-  function updateValue(raw: string) {
-    const parsed = parseEngineering(raw);
-    if (parsed === null || parsed <= 0) return;
+  function update(patch: Partial<CircuitComponent>) {
     onChange({
       ...doc,
-      components: doc.components.map((c) => (c.id === component.id ? { ...c, value: parsed } : c)),
+      components: doc.components.map((c) => (c.id === component.id ? { ...c, ...patch } : c)),
     });
   }
 
+  function updateValue(raw: string) {
+    const parsed = parseEngineering(raw);
+    if (parsed === null || parsed <= 0) {
+      setInvalid('valor');
+      return;
+    }
+    setInvalid(null);
+    update({ value: parsed });
+  }
+
+  function updateInitial(raw: string) {
+    const parsed = parseEngineering(raw);
+    if (parsed === null) {
+      setInvalid('inicial');
+      return;
+    }
+    setInvalid(null);
+    update({ initial: parsed });
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className="text-muted-foreground text-xs">Valor</label>
-        <Input
-          type="text"
-          inputMode="decimal"
-          className="font-mono"
-          value={textValue}
-          onChange={(e) => setTextValue(e.target.value)}
-          onBlur={(e) => updateValue(e.target.value)}
-        />
+    <div className="flex flex-col gap-2">
+      <div className={cn('grid grid-cols-2 gap-3', storage && 'sm:grid-cols-3')}>
+        <div>
+          <label htmlFor={`${component.id}-valor`} className="text-muted-foreground text-xs">
+            Valor ({unit})
+          </label>
+          <Input
+            id={`${component.id}-valor`}
+            type="text"
+            inputMode="decimal"
+            className="font-mono"
+            aria-invalid={invalid === 'valor'}
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+            onBlur={(e) => updateValue(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${component.id}-etiqueta`} className="text-muted-foreground text-xs">
+            Etiqueta
+          </label>
+          <Input
+            id={`${component.id}-etiqueta`}
+            type="text"
+            className="font-mono"
+            value={component.label ?? ''}
+            onChange={(e) => update({ label: e.target.value })}
+          />
+        </div>
+        {storage && (
+          <div className="col-span-2 sm:col-span-1">
+            <label htmlFor={`${component.id}-inicial`} className="text-muted-foreground text-xs">
+              {component.kind === 'capacitor' ? 'v_C(0) (V)' : 'i_L(0) (A)'}
+            </label>
+            <Input
+              id={`${component.id}-inicial`}
+              type="text"
+              inputMode="decimal"
+              className="font-mono"
+              aria-invalid={invalid === 'inicial'}
+              value={textInitial}
+              onChange={(e) => setTextInitial(e.target.value)}
+              onBlur={(e) => updateInitial(e.target.value)}
+            />
+          </div>
+        )}
       </div>
-      <div>
-        <label className="text-muted-foreground text-xs">Etiqueta</label>
-        <Input
-          type="text"
-          className="font-mono"
-          value={component.label ?? ''}
-          onChange={(e) =>
-            onChange({
-              ...doc,
-              components: doc.components.map((c) =>
-                c.id === component.id ? { ...c, label: e.target.value } : c,
-              ),
-            })
-          }
-        />
-      </div>
+      {invalid && (
+        <p className="text-destructive text-xs" role="alert">
+          {invalid === 'valor'
+            ? 'Escribe un número positivo, p. ej. 2.2k, 470m o 10µ.'
+            : 'Escribe un número, p. ej. 5, −0.3 o 150m.'}
+        </p>
+      )}
     </div>
   );
 }

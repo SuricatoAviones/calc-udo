@@ -54,6 +54,11 @@ describe('notación de ingeniería', () => {
     ['5', 5],
     ['3,3k', 3300],
     ['1.5M', 1.5e6],
+    // Con la unidad, como la muestra el editor de propiedades.
+    ['2.2 kΩ', 2200],
+    ['10 µF', 1e-5],
+    ['−0,3 A', -0.3],
+    ['150 mV', 0.15],
     ['bad', null],
   ])('parseEngineering(%s) → %s', (text, expected) => {
     expect(parseEngineering(text)).toBe(expected);

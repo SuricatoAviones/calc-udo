@@ -76,6 +76,45 @@ export function CurrentSourceSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
   );
 }
 
+/** Capacitor: dos placas; el + marca el terminal `a`, referencia de v_C. */
+export function CapacitorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+  const m = midpoint(a, b);
+  const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
+  const gap = 0.12;
+  return (
+    <g transform={`translate(${m.x} ${m.y}) rotate(${angleOf(a, b)})`}>
+      <line x1={-half} y1={0} x2={-gap} y2={0} {...stroke} />
+      <line x1={gap} y1={0} x2={half} y2={0} {...stroke} />
+      <line x1={-gap} y1={-0.34} x2={-gap} y2={0.34} {...stroke} strokeWidth={2.4} />
+      <line x1={gap} y1={-0.34} x2={gap} y2={0.34} {...stroke} strokeWidth={2.4} />
+      <line x1={-0.44} y1={-0.3} x2={-0.28} y2={-0.3} {...stroke} strokeWidth={1.4} />
+      <line x1={-0.36} y1={-0.38} x2={-0.36} y2={-0.22} {...stroke} strokeWidth={1.4} />
+    </g>
+  );
+}
+
+/** Inductor: bobina de cuatro espiras; la flecha marca el sentido de i_L (de `a` a `b`). */
+export function InductorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+  const m = midpoint(a, b);
+  const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
+  const w = Math.min(0.6, half - 0.1);
+  const r = w / 4;
+  let d = `M ${-w} 0`;
+  for (let k = 0; k < 4; k++) d += ` a ${r} ${r} 0 0 1 ${2 * r} 0`;
+  return (
+    <g transform={`translate(${m.x} ${m.y}) rotate(${angleOf(a, b)})`}>
+      <line x1={-half} y1={0} x2={-w} y2={0} {...stroke} />
+      <line x1={w} y1={0} x2={half} y2={0} {...stroke} />
+      <path d={d} {...stroke} />
+      <path
+        d="M -0.22 0.3 L 0.2 0.3 M 0.11 0.23 L 0.2 0.3 L 0.11 0.37"
+        {...stroke}
+        strokeWidth={1.3}
+      />
+    </g>
+  );
+}
+
 export function GroundSymbol({ p }: { p: GridPoint }) {
   return (
     <g transform={`translate(${p.x} ${p.y})`}>
@@ -87,12 +126,16 @@ export function GroundSymbol({ p }: { p: GridPoint }) {
 }
 
 export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?: boolean }) {
+  // Capacitor e inductor dibujan sus propios terminales (la línea no debe cruzar las placas).
+  const drawsLeads = c.kind === 'capacitor' || c.kind === 'inductor';
   return (
     <g className={selected ? 'text-primary' : 'text-foreground'}>
-      <line x1={c.a.x} y1={c.a.y} x2={c.b.x} y2={c.b.y} {...stroke} />
+      {!drawsLeads && <line x1={c.a.x} y1={c.a.y} x2={c.b.x} y2={c.b.y} {...stroke} />}
       {c.kind === 'resistor' && <ResistorSymbol a={c.a} b={c.b} />}
       {c.kind === 'voltage-source' && <VoltageSourceSymbol a={c.a} b={c.b} />}
       {c.kind === 'current-source' && <CurrentSourceSymbol a={c.a} b={c.b} />}
+      {c.kind === 'capacitor' && <CapacitorSymbol a={c.a} b={c.b} />}
+      {c.kind === 'inductor' && <InductorSymbol a={c.a} b={c.b} />}
     </g>
   );
 }
@@ -137,6 +180,24 @@ export function PaletteIcon({
     return (
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
         <path d="M2 12 L6 12 L8.5 7 L11 17 L13.5 7 L16 17 L18 12 L22 12" {...common} />
+      </svg>
+    );
+  if (kind === 'capacitor')
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <line x1="2" y1="12" x2="10" y2="12" {...common} />
+        <line x1="14" y1="12" x2="22" y2="12" {...common} />
+        <line x1="10" y1="5" x2="10" y2="19" {...common} strokeWidth={2.2} />
+        <line x1="14" y1="5" x2="14" y2="19" {...common} strokeWidth={2.2} />
+      </svg>
+    );
+  if (kind === 'inductor')
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path
+          d="M2 14 L4 14 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 L22 14"
+          {...common}
+        />
       </svg>
     );
   if (kind === 'voltage-source')

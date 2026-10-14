@@ -15,7 +15,7 @@ import {
 } from '@/lib/calculators/metodos-numericos/matrix';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import type { Notice, ResultTable, Step } from '../types';
-import { componentLabel, componentUnit, type CircuitTopology } from './circuit';
+import { componentLabel, componentUnit, type CircuitTopology, type ComponentKind } from './circuit';
 
 const DIGITS = 6;
 const n = (v: number) => toLatexNumber(v, DIGITS);
@@ -32,7 +32,7 @@ export interface BranchResult {
   /** Id del componente en el documento; permite mapear el resultado al dibujo. */
   id: string;
   label: string;
-  kind: 'resistor' | 'voltage-source' | 'current-source';
+  kind: ComponentKind;
   nodeA: number;
   nodeB: number;
   v: number; // voltaje a - b
