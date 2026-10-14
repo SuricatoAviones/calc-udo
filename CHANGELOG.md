@@ -18,6 +18,28 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   potencia instantánea), **Análisis de nodos**, **Análisis de mallas** (caras del embebido planar,
   KVL por malla y supermalla con fuentes de corriente), **Superposición**, **Equivalentes de
   Thévenin y Norton** y **Máxima transferencia de potencia** (con la curva `P_L(R_L)`).
+- **Circuitos y Sistemas** completa (ADR-034):
+  - **Fasores e impedancia** (senoide a fasor, Z de R, L y C en serie o en paralelo, corriente y
+    fasores por elemento), **Potencia en circuitos senoidales** (instantánea, promedio, reactiva,
+    aparente, compleja y factor de potencia) y **Valor promedio y valor eficaz** de señales
+    periódicas por tramos, con la potencia en una resistencia;
+  - **Circuitos de primer orden** (RC y RL: constante de tiempo, respuesta natural, forzada y
+    completa, tabla en múltiplos de τ) y **de segundo orden** (RLC serie y paralelo,
+    sobreamortiguado, crítico y subamortiguado, con condiciones iniciales de los elementos o
+    generales);
+  - **Ecuaciones de estado** sobre el constructor, que ahora admite capacitores e inductores con
+    valor inicial: árbol normal, cortes y lazos fundamentales, redes propias e impropias,
+    formulación de A y B y solución con Laplace (Faddeev-LeVerrier);
+  - **Transformada de Laplace** (tabla de pares por término, pulsos con retardo y solución de
+    ecuaciones diferenciales), **Transformada inversa** (fracciones parciales con polos reales,
+    complejos y repetidos, funciones impropias y retardos), **Integral de convolución** (teorema
+    de convolución, respuesta por intervalos y verificación numérica) y **Transformada Z**
+    (sucesiones, inversa por X(z)/z contrastada con la división larga y ecuaciones en diferencias
+    contrastadas con la recursión).
+  - Núcleos nuevos: `lib/math/complex.ts`, `lib/math/polynomials.ts` (raíces con multiplicidad
+    exacta) y, en `circuitos-y-sistemas/`, `signal.ts`, `laplace.ts`, `partial-fractions.ts`,
+    `laplace-inverse.ts`, `z-transform.ts` y `state-space.ts`. Casos de prueba de Hayt 8.ª ed.,
+    Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed.
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,
@@ -31,6 +53,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   Bode, sintonizado PID, compensador de adelanto/retraso, controlabilidad y observabilidad,
   realimentación de estados, resonancia RLC, fuente regulada por Zener, amplificador emisor
   común).
+
+### Cambiado
+
+- **Guía del tablero de circuitos** rediseñada (`BuilderGuide.tsx`): primeros pasos en tarjetas,
+  leyenda de los elementos con su convención de polaridad y pestañas Ratón / Táctil / Atajos, que
+  se adaptan al ancho del panel (en escritorio la columna del formulario es angosta). El
+  constructor suma el botón «Terminar cable» para pantallas táctiles, encuadra solo el ejemplo
+  cuando no cabe en el lienzo, avisa si un valor no es válido y acepta la unidad al escribirlo
+  («2.2 kΩ», «10 µF»).
 
 ## [0.7.0] — 2026-09-30
 

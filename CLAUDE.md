@@ -80,7 +80,13 @@ Consúltalas al escribir UI o rutas.
   validación y notación de ingeniería), `mna.ts` (análisis nodal modificado con traza), `mesh.ts`
   (análisis de mallas: caras del embebido planar y KVL por malla), `superposition.ts` (una solución
   por fuente y suma de aportes) y `thevenin.ts` (equivalente de Thévenin/Norton y máxima
-  transferencia) (ADR-033).
+  transferencia) (ADR-033); `signal.ts` (señales de la tabla en t o k: sumas de c·tⁿ·e^{αt}·u(t−a)
+  e impulsos, leídas de mathjs), `laplace.ts` (transformada por grupos de retardo, lectura de F(s)
+  con e^{−as}, LaTeX de racionales y piezas en el tiempo), `partial-fractions.ts` (residuos de
+  polos reales, complejos y repetidos), `laplace-inverse.ts` (traza de la inversa: la usan la
+  inversa, las EDO, la convolución y las ecuaciones de estado), `z-transform.ts` (pares Z e
+  inversa por X(z)/z) y `state-space.ts` (árbol normal, cortes y lazos, A y B por sustitución
+  sobre MNA, Faddeev-LeVerrier) (ADR-034).
 - `lib/calculators/estadistica-2/`: `hypothesis.ts` (región crítica, valor P, decisión y gráfica
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
@@ -116,7 +122,9 @@ Consúltalas al escribir UI o rutas.
   `special.ts` (Γ, ln Γ, gamma y beta incompletas),
   `quadrature.ts` (integral adaptativa con límites infinitos y detección de divergencia),
   `rational.ts` (fracciones exactas con `bigint`), `linear-algebra.ts`, `data-list.ts`,
-  `error-metrics.ts`.
+  `error-metrics.ts`, `complex.ts` (complejos con `j`, forma rectangular y polar) y
+  `polynomials.ts` (aritmética, Taylor alrededor de un complejo, raíces con multiplicidad exacta
+  por Yun + Aberth, `reduceRational`).
 - UI: `components/calculators/form/` (`CalculatorForm`, `fields.tsx`, `MatrixField.tsx` con la
   matriz rectangular, `TableField.tsx` para listas de filas). `Series.others` agrega líneas a
   una gráfica (ADR-018), `Series.region` sombrea una región (ADR-021) y `Series.scatter` dibuja
@@ -126,8 +134,9 @@ Consúltalas al escribir UI o rutas.
   `estadistica-2/TestFields.tsx` (H₁ y α), `programacion-no-lineal/NlpFields.tsx` (objetivo,
   restricciones y punto), `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
   matriz de rutas sigue su tamaño) y `circuitos-y-sistemas/CircuitBuilderField.tsx` (editor de
-  circuitos con `circuit-symbols.tsx`; la entrada es un único campo `circuit`). Buscador:
-  `components/search/` (`CalculatorSearch`, `SearchDialog`).
+  circuitos con `circuit-symbols.tsx`; la entrada es un único campo `circuit`; `kinds` elige la
+  paleta, con C y L solo en ecuaciones de estado; la guía bajo el lienzo es `BuilderGuide.tsx`).
+  Buscador: `components/search/` (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
 lo cierra antes de tiempo; escribe `Q* / D`.
@@ -182,6 +191,11 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   (`components/calculators/circuitos-y-sistemas/CircuitBuilderField.tsx` y `circuit-symbols.tsx`),
   con las calculadoras **Relaciones v-i-p**, **Análisis de nodos**, **Análisis de mallas**,
   **Superposición**, **Thévenin/Norton** y **Máxima transferencia de potencia** (ADR-033).
+  **Circuitos y Sistemas completa** (ADR-034): fasores e impedancia, potencia en CA, valor
+  promedio y eficaz, primer y segundo orden, ecuaciones de estado (constructor con C y L),
+  Laplace, inversa, convolución y transformada Z; guía del tablero rediseñada. Tests contra
+  Hayt 8.ª ed., Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed. Faltan Electrónica, Sistemas Dinámicos y el
+  Laboratorio.
 
 ## Versiones
 

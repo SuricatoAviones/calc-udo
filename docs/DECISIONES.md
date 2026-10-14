@@ -624,3 +624,59 @@ Plantilla:
   prueba de 1 A; de ahí `I_N = V_th/R_th`. **Máxima transferencia de potencia** reutiliza el
   equivalente y muestra `R_L = R_th`, `P_máx = V_th²/(4R_th)` y la curva `P_L(R_L)`. El selector de
   carga (`LoadSelectField`) lee el circuito del formulario y lista sus componentes.
+
+## ADR-034 — Circuitos y Sistemas completo: núcleo de señales y transformadas, y C/L en el constructor
+
+- **Fecha:** 2026-10-14
+- **Estado:** Aceptada
+- **Decisión:** Las diez calculadoras que faltaban de Circuitos y Sistemas (Unidades III a VI) se
+  apoyan en núcleos nuevos, en vez de resolver cada una por su lado:
+  - `lib/math/complex.ts` (complejos con la unidad `j` de los libros de circuitos, forma
+    rectangular y polar) y `lib/math/polynomials.ts` (aritmética, división larga, desarrollo de
+    Taylor alrededor de un punto complejo, raíces con multiplicidad y simplificación de N/D).
+    Las raíces separan primero los factores repetidos con el algoritmo de Yun en aritmética
+    racional exacta cuando los coeficientes son decimales limpios (la multiplicidad sale exacta)
+    y resuelven cada factor con Aberth-Ehrlich; si hay ruido de coma flotante, agrupan raíces
+    casi iguales y las pulen con Newton sobre la derivada correspondiente.
+  - `circuitos-y-sistemas/signal.ts`: las señales de la tabla (constantes, tⁿ, exponenciales,
+    senos y cosenos, senos hiperbólicos, aᵗ, escalones u(t − a) e impulsos δ(t − a)) se leen del
+    árbol de mathjs como sumas de términos c·tⁿ·e^{αt}·u(t − a) con c y α complejos. La familia es
+    cerrada bajo suma, producto y desplazamiento, así que Laplace (variable t) y Z (variable k)
+    transforman término a término sin un motor simbólico general.
+  - `laplace.ts` (transformada por grupos de retardo e^{−as}·F_a(s), lectura de F(s) con
+    polinomios, cocientes, potencias y retardos), `partial-fractions.ts` (residuos por división
+    de series de Taylor: polos reales, complejos y repetidos), `laplace-inverse.ts` (la traza del
+    método de residuos, compartida por la inversa, las EDO, la convolución y las ecuaciones de
+    estado) y `z-transform.ts` (pares Z con números de Stirling y la inversa por X(z)/z, como Kuo).
+  - `state-space.ts`: árbol normal (V, C, R, L, I), cortes y lazos fundamentales, detección de
+    redes impropias y formulación de A y B **sustituyendo** cada capacitor por una fuente de
+    voltaje y cada inductor por una fuente de corriente sobre el motor MNA (superposición con una
+    variable en 1 y las demás en 0). La solución usa Laplace con Faddeev-LeVerrier para
+    adj(sI − A) y det(sI − A).
+- **Constructor:** `CircuitBuilderField` recibe `kinds` (la paleta de cada calculadora); los
+  capacitores e inductores solo aparecen en **Ecuaciones de estado**, con símbolo propio (+ en el
+  terminal de referencia de v_C y flecha del sentido de i_L) y **valor inicial** editable
+  (`CircuitComponent.initial`). Las calculadoras de cd rechazan C y L con el código
+  `elementos-almacenadores`, y la simulación en vivo se oculta cuando la paleta los incluye. Las
+  instrucciones bajo el lienzo pasaron a `BuilderGuide.tsx`: primeros pasos, leyenda de los
+  elementos con su convención de polaridad y pestañas Ratón / Táctil / Atajos, maquetadas con
+  _container queries_ porque la columna del formulario es angosta en escritorio. Se agregó el
+  botón «Terminar cable» (en pantallas táctiles no hay doble clic), el encuadre automático del
+  ejemplo cuando no cabe en el lienzo y la lectura de valores con su unidad («2.2 kΩ»).
+- **Fuentes de los tests:** Hayt, Kemmerly y Durbin, 8.ª ed. en inglés (2012), y Dorf y Svoboda,
+  9.ª ed. en inglés (2014), que son las ediciones que se pudieron consultar (la bibliografía del
+  pensum lista la 3.ª en español de cada uno); los `locator` lo dicen. La transformada Z se
+  verificó contra Kuo, 7.ª ed. en español (`kuo-1996`, sec. 2-11 y 2-12), porque ni Hayt ni Dorf
+  la tratan. Erratas encontradas y documentadas en los tests: Dorf 14.4-4 (el numerador debe
+  terminar en −30 para la división que muestra), Dorf 14.4-2 (el signo del término en seno sale
+  de la «solución alterna» del libro), Hayt 10.2 (escribe 29.85 mV donde 3/√101 = 0.2985 V; no se
+  usó) y Kuo 2-222 (2.072 viene de redondear |K| a 1.036; el valor exacto es 2.0684). Hayt usa en
+  algunas figuras polaridades opuestas a la convención pasiva (fig. 9.2 y 9.22); los tests
+  traducen los datos a la convención de la calculadora y lo explican.
+- **Alternativas descartadas:** _Un CAS completo (álgebra simbólica general)_: pesado y con
+  resultados difíciles de mostrar como en el cuaderno; la familia de exponenciales complejas
+  cubre la tabla de pares de los libros. _Raíces solo numéricas con tolerancia fija_: confunde
+  raíces dobles con dos raíces cercanas y estropea los residuos. _Fórmulas cerradas por caso
+  (2 × 2, 3 × 3) para las ecuaciones de estado_: no escala; Faddeev-LeVerrier sirve para cualquier
+  orden y da la adjunta que se muestra. _Persistir en `localStorage` si la guía está plegada_:
+  obligaría a declararlo en la página de cookies por una comodidad menor.
