@@ -98,7 +98,9 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   (polarización de BJT y FET; `solveFetBias` para la intersección con la curva de transferencia) y
   `small-signal.ts` (modelo híbrido aproximado y completo, conversión EC → BC). El Laboratorio
   los reutiliza (ADR-035). `diode-network.ts`: redes con diodos dibujadas en el constructor, por
-  estados supuestos sobre el MNA (ADR-036).
+  estados supuestos sobre el MNA (ADR-036). `opamp-network.ts`: circuitos con amplificadores
+  operacionales ideales (verificación de la realimentación, saturación) sobre el MNA, que ya
+  estampa el amplificador como nulador (ADR-037).
 - `lib/calculators/estadistica-2/`: `hypothesis.ts` (región crítica, valor P, decisión y gráfica
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
@@ -147,7 +149,8 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   restricciones y punto), `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
   matriz de rutas sigue su tamaño) y `circuitos-y-sistemas/CircuitBuilderField.tsx` (editor de
   circuitos con `circuit-symbols.tsx`; la entrada es un único campo `circuit`; `kinds` elige la
-  paleta, con C y L solo en ecuaciones de estado y diodos solo en circuitos con diodos; la guía
+  paleta, con C y L solo en ecuaciones de estado, diodos solo en circuitos con diodos y
+  amplificadores operacionales, de tres terminales (`c` es la salida), solo en su calculadora; la guía
   bajo el lienzo es `BuilderGuide.tsx`) y
   `electronica/QuantityField.tsx` (número con prefijos `2.2k`, `100µ`; lo usa también el
   Laboratorio).

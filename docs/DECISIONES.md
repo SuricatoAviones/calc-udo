@@ -764,3 +764,35 @@ Plantilla:
   serie. _Probar siempre las 2ⁿ combinaciones_: da el resultado, pero no la secuencia «supón,
   verifica, corrige» que enseña el libro. _Modelar los apagados con una resistencia grande también
   en la traza final_: el libro los trata como circuitos abiertos y la traza debe coincidir.
+
+## ADR-037 — Amplificadores operacionales en el constructor: componentes de tres terminales
+
+- **Fecha:** 2026-10-16
+- **Estado:** Aceptada
+- **Decisión:** el constructor admite el componente `opamp`, el primero de tres terminales.
+  `CircuitComponent` gana un tercer punto opcional `c`; en el amplificador, `a` es la entrada
+  inversora (−), `b` la no inversora (+) y `c` la salida. `componentTerminals`, `opAmpPlacement`
+  (entradas a dos celdas y salida a cuatro, hacia la orientación elegida) y `MappedComponent.nodeC`
+  extienden el modelo sin tocar los componentes de dos terminales.
+  - **Tablero:** el amplificador es una pieza rígida: arrastrar uno de sus terminales mueve las
+    tres patas, R lo gira 90° alrededor de la entrada − y F intercambia − y +. Su cuerpo
+    (`opAmpBody`) cuenta para los choques con cables y componentes. Solo tiene etiqueta; el
+    amplificador es ideal y no tiene valor. Paleta `OPAMP_KINDS`, solo en Amplificadores
+    operacionales; las demás calculadoras lo rechazan con `elementos-no-admitidos`
+    (`validateTopology(…, { allow })` reemplaza la opción de los diodos).
+  - **MNA** (`solveMna`): estampa del amplificador ideal (nulador): la corriente de su salida es
+    una incógnita en la KCL de ese nodo y su fila es v₊ − v₋ = 0. En la tabla de ramas la salida
+    aparece como rama a tierra, así el balance de potencias se cumple (la potencia sale de la
+    alimentación).
+  - **Calculadora** (`opamp-network.ts`): antes de resolver se verifica la realimentación de cada
+    amplificador. Con las fuentes independientes anuladas se aplica 1 V a su salida y se mide
+    v₊ − v₋: si es negativo hay realimentación negativa y el cortocircuito virtual vale. Si es
+    cero (lazo abierto) o positivo (disparador de Schmitt), se rechaza y se remite al modo
+    «configuración», que ya trata comparadores y Schmitt. Con V_sat, una salida que pida más se
+    fija en ±V_sat como fuente y se vuelve a resolver. Con una sola fuente de voltaje se informa
+    la ganancia v_o/V_s de cada amplificador.
+- **Alternativas descartadas:** _Derivar la salida de la posición de las entradas_: obliga a una
+  orientación fija y complica voltear. _Modelo de ganancia finita_: los libros del curso resuelven
+  con el ideal y la traza sería menos clara. _Resolver Schmitt y comparadores en el tablero con
+  estados de saturación_: posible, pero la histéresis depende de la historia de la entrada; el
+  modo configuración ya lo explica como el libro.

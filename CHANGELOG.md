@@ -73,6 +73,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   tercera aproximación; diodos iguales en paralelo se reparten la corriente. El diodo en serie
   con recta de carga sigue como segundo modo. Tests con los ejemplos 2.7 a 2.15 de Boylestad
   (serie, paralelo, serie-paralelo y compuertas AND y OR).
+- **Amplificadores operacionales en el tablero interactivo** (ADR-037): el constructor admite
+  amplificadores operacionales ideales (el primer componente de tres terminales: entradas − y + y
+  salida; se gira con R y F intercambia las entradas). La calculadora resuelve cualquier circuito
+  dibujado por análisis de nodos con el cortocircuito virtual: verifica antes que cada
+  amplificador tenga realimentación negativa (rechaza comparadores y disparadores de Schmitt),
+  recorta las salidas en ±V_sat y da la ganancia cuando hay una sola fuente. Las configuraciones
+  con fórmulas siguen como segundo modo. Tests con los ejemplos 10.5 a 10.7 y 11.3, 11.7 y 11.8
+  de Boylestad (sumador, varias etapas y restadores).
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,
