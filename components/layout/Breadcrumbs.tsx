@@ -16,7 +16,9 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
           </Link>
         </li>
         {items.map((item) => (
-          <li key={item.label} className="flex items-center gap-1">
+          // El tema y la calculadora pueden llamarse igual («Amplificadores operacionales»): la
+          // clave es el enlace, único en la ruta (solo la página actual no tiene).
+          <li key={item.href ?? item.label} className="flex items-center gap-1">
             <ChevronRight className="size-3.5" aria-hidden />
             {item.href ? (
               <Link
