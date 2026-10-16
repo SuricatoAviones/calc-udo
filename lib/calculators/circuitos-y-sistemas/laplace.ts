@@ -303,6 +303,13 @@ function toTransform(node: MathNode, variable: string): Transform {
       const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
       const name = fn.fn.name;
       if (fn.args.length !== 1) throw new TransformError(`«${name}» recibe un solo argumento.`);
+      // mathjs lee «s(s + 1)» como una llamada a función: es el producto s·(s + 1).
+      if (name === variable) {
+        return multiplyTransforms(
+          [{ delay: 0, num: [1, 0], den: [1] }],
+          toTransform(fn.args[0]!, variable),
+        );
+      }
       if (name === 'exp') return exponential(toTransform(fn.args[0]!, variable), variable);
       if (name === 'sqrt') {
         const value = constantOf(toTransform(fn.args[0]!, variable));

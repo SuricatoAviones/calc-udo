@@ -196,6 +196,47 @@ function equationTex(name: string, row: number[], vars: string[]): string {
   return `${name} = ${terms || '0'}`;
 }
 
+/**
+ * Sustitución: cada capacitor pasa a ser una fuente de voltaje y cada inductor una fuente de
+ * corriente. La variable o fuente `active` vale 1 y las demás 0 (superposición).
+ */
+function substituteStorage(doc: CircuitDocument, active: string | null): CircuitDocument {
+  return {
+    ...doc,
+    components: doc.components.map((c) => {
+      const value = c.id === active ? 1 : 0;
+      if (c.kind === 'capacitor') return { ...c, kind: 'voltage-source' as const, value };
+      if (c.kind === 'inductor') return { ...c, kind: 'current-source' as const, value };
+      if (c.kind === 'voltage-source' || c.kind === 'current-source') return { ...c, value };
+      return c;
+    }),
+  };
+}
+
+/**
+ * Ecuación de salida y = Cx + Du para el voltaje (v_a − v_b) o la corriente (de a hacia b) de un
+ * componente, con la misma sustitución y superposición que la formulación de A y B.
+ */
+export function outputEquation(
+  doc: CircuitDocument,
+  model: StateSpaceModel,
+  componentId: string,
+  quantity: 'v' | 'i',
+): { ok: true; C: number[]; D: number[] } | { ok: false; message: string } {
+  const columns = [...model.states.map((s) => s.id), ...model.inputs.map((u) => u.id)];
+  const row: number[] = [];
+  for (const id of columns) {
+    const outcome = solveMna(buildTopology(substituteStorage(doc, id)));
+    if (!outcome.ok) return { ok: false, message: outcome.message };
+    const branch = outcome.result.branchResults.find((b) => b.id === componentId);
+    if (!branch) return { ok: false, message: 'El componente de salida no está en el circuito.' };
+    row.push(quantity === 'v' ? branch.v : branch.i);
+  }
+  const scale = Math.max(1e-300, ...row.map(Math.abs));
+  const clean = row.map((v) => tidy(v, scale));
+  return { ok: true, C: clean.slice(0, model.states.length), D: clean.slice(model.states.length) };
+}
+
 /** Formula ẋ = Ax + Bu a partir del circuito dibujado. */
 export function formulateStateEquations(doc: CircuitDocument): FormulationOutcome {
   const steps: Step[] = [];
@@ -340,17 +381,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     steps.push({ title: 'Lazos fundamentales de los inductores (LVK)', children: loopSteps });
   }
 
-  // Sustitución: C → fuente de voltaje, L → fuente de corriente.
-  const substitute = (active: string | null): CircuitDocument => ({
-    ...doc,
-    components: doc.components.map((c) => {
-      const value = c.id === active ? 1 : 0;
-      if (c.kind === 'capacitor') return { ...c, kind: 'voltage-source' as const, value };
-      if (c.kind === 'inductor') return { ...c, kind: 'current-source' as const, value };
-      if (c.kind === 'voltage-source' || c.kind === 'current-source') return { ...c, value };
-      return c;
-    }),
-  });
+  const substitute = (active: string | null) => substituteStorage(doc, active);
   const structural = validateTopology(buildTopology(substitute(null)));
   if (structural) {
     if (

@@ -78,11 +78,20 @@ export interface Series {
   yLabel: string;
   points: Point[];
   yScale?: 'linear' | 'log';
+  /** Escala del eje x; `log` para la frecuencia de los diagramas de Bode. */
+  xScale?: 'linear' | 'log';
   /**
    * Cómo dibujar los puntos: `line` (por defecto), `area` (línea con el área bajo la curva, p. ej.
-   * una integral) o `bar` (valores discretos, p. ej. una distribución de probabilidad).
+   * una integral), `bar` (valores discretos, p. ej. una distribución de probabilidad) o `plane`
+   * (el plano complejo: curvas en el orden de sus puntos, no funciones de x, con la misma escala
+   * en los dos ejes, p. ej. el lugar geométrico de las raíces). En `plane` los datos van en
+   * `curves` y `markers`, y `points` puede quedar vacío.
    */
-  kind?: 'line' | 'area' | 'bar';
+  kind?: 'line' | 'area' | 'bar' | 'plane';
+  /** Solo `kind: 'plane'`: curvas que se unen en el orden de sus puntos. */
+  curves?: { label: string; points: Point[]; dashed?: boolean }[];
+  /** Solo `kind: 'plane'`: puntos marcados (polos ×, ceros ○, puntos destacados •). */
+  markers?: { label: string; shape: 'cross' | 'circle' | 'dot'; points: Point[] }[];
   /** Nombre de la serie principal en la leyenda, cuando hay `reference`. */
   label?: string;
   /** Segunda serie en la misma escala para comparar (p. ej. la solución exacta), punteada. */
