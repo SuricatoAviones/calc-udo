@@ -35,7 +35,7 @@ Toda la documentación está en [`docs/`](docs/README.md), en español:
 - [Arquitectura](docs/ARQUITECTURA.md): cómo está construido y por qué.
 - [Cómo contribuir](docs/CONTRIBUTING.md).
 - [**Cómo agregar una calculadora**](docs/NUEVA-CALCULADORA.md): la guía más importante.
-- [Pensum y estado de las calculadoras](docs/PENSUM.md).
+- [Pensum y estado de las calculadoras](docs/PENSUM.md) y [roadmap](docs/ROADMAP.md).
 - [Decisiones de diseño](docs/DECISIONES.md) y [glosario](docs/GLOSARIO.md).
 
 Los cambios de cada versión están en el [CHANGELOG](CHANGELOG.md).

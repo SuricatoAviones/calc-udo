@@ -796,3 +796,23 @@ Plantilla:
   con el ideal y la traza sería menos clara. _Resolver Schmitt y comparadores en el tablero con
   estados de saturación_: posible, pero la histéresis depende de la historia de la entrada; el
   modo configuración ya lo explica como el libro.
+
+## ADR-038 — Versión 1.0.0 y roadmap explícito
+
+- **Fecha:** 2026-10-16
+- **Estado:** Aceptada
+- **Decisión:** Se publica la **1.0.0** con lo que está terminado: todas las materias con
+  programa salvo Sistemas Dinámicos, más Circuitos y Sistemas, Electrónica y el Laboratorio de
+  Circuitos y Electrónica completos, y el tablero interactivo con diodos y amplificadores
+  operacionales. Lo que falta queda en [ROADMAP.md](ROADMAP.md): las 13 calculadoras de
+  Sistemas Dinámicos (ya en el currículum con estado 🗺️), lo bloqueado por falta de fuentes
+  (Matemáticas I a IV y dos calculadoras de Teoría de Sobrevivencia) y las mejoras del tablero.
+- **Qué promete la 1.0.0** (complementa ADR-015): las URL `/[materia]/[tema]/[calculadora]/`
+  son estables y el contrato `Calculator` no cambia de forma incompatible sin subir el _major_.
+  Desde ahora, una calculadora o una funcionalidad nueva sube el _minor_ (así llegará Sistemas
+  Dinámicos) y una corrección, el _patch_.
+- **Contexto:** El usuario prefirió publicar lo hecho en vez de esperar a Sistemas Dinámicos. El
+  sitio ya es útil para casi todo el pensum y el roadmap visible deja claro lo que no está.
+- **Alternativas descartadas:** _Publicar como 0.8.0_: no refleja que el sitio está completo
+  para casi todas las materias. _Esperar a Sistemas Dinámicos para la 1.0.0_: retrasa el uso de
+  lo terminado sin necesidad.

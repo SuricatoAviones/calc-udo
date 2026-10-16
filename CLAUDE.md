@@ -197,7 +197,7 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   Operaciones I y II completas (ADR-031); Teoría de Sobrevivencia con Kaplan-Meier y la tabla de
   vida. El nivel crítico y el LED Markoviano siguen en el roadmap: su método (trabajos de Bórean)
   no está publicado (ADR-032). Versión **v0.7.0** ✅
-- Tanda 11 (en curso, rama `feat/electronica`) — Circuitos y Sistemas, Electrónica, Sistemas
+- Tanda 11 — Circuitos y Sistemas, Electrónica, Sistemas
   Dinámicos y Laboratorio de Circuitos y Electrónica agregadas a la malla curricular (pensum
   fuente, bibliografía y 38 calculadoras planificadas en el roadmap). Piloto de Circuitos y
   Sistemas: motor MNA (`lib/calculators/circuitos-y-sistemas/`) y constructor interactivo
@@ -210,8 +210,12 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   Hayt 8.ª ed., Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed. **Electrónica y Laboratorio completos**
   (ADR-035): diodos, rectificadores, filtrado y regulación, polarización y análisis AC de
   transistores, amplificadores operacionales; resonancia RLC, fuente regulada por Zener y
-  amplificador emisor común. Tests contra Boylestad 10.ª ed. y Malvino 6.ª ed. Falta Sistemas
-  Dinámicos.
+  amplificador emisor común. Tests contra Boylestad 10.ª ed. y Malvino 6.ª ed. Tablero con
+  diodos (estados supuestos, ADR-036) y amplificadores operacionales (ADR-037). Versión
+  **v1.0.0** ✅ (ADR-038).
+- **Roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)): Sistemas Dinámicos (13 calculadoras, ya en
+  el currículum con estado 🗺️), Matemáticas I–IV y dos de Teoría de Sobrevivencia (sin fuente) y
+  mejoras del tablero (Schmitt y comparadores dibujados, diodo real, Zener y transistores).
 
 ## Versiones
 

@@ -36,6 +36,7 @@ otras ramas sin refactorizar.
 | [CONTRIBUTING.md](CONTRIBUTING.md)                                         | Setup local, estándares de código, tests, convención de commits y proceso de PR.                           |
 | [NUEVA-CALCULADORA.md](NUEVA-CALCULADORA.md)                               | **Checklist paso a paso para implementar una calculadora**, con Newton-Raphson como ejemplo completo.      |
 | [PENSUM.md](PENSUM.md)                                                     | Mapa materia → tema → calculadora con el estado de cada una. Se genera automáticamente.                    |
+| [ROADMAP.md](ROADMAP.md)                                                   | Lo que falta después de la 1.0.0: Sistemas Dinámicos, lo bloqueado y las mejoras del tablero.              |
 | [DECISIONES.md](DECISIONES.md)                                             | Registro de decisiones de arquitectura (ADRs): qué se decidió, por qué y qué se descartó.                  |
 | [GLOSARIO.md](GLOSARIO.md)                                                 | Términos matemáticos que aparecen en el código y en la UI, para contribuir a un tema que no dominas.       |
 | [fuentes/pensum-rama-cuantitativa.md](fuentes/pensum-rama-cuantitativa.md) | Copia literal del pensum. **Fuente de verdad** del currículum.                                             |
