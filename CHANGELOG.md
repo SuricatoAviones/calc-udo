@@ -66,6 +66,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   parcialmente puenteada, rectas de carga de cd y ca y máxima salida sin recorte). Sus temas
   enlazan además las calculadoras de Circuitos y Sistemas y de Electrónica que el programa
   comprueba en el laboratorio.
+- **Circuitos con diodos en el tablero interactivo** (ADR-036): el constructor admite diodos (con
+  su umbral V_K, para mezclar silicio, germanio y LED) y la calculadora resuelve cualquier red con
+  el método de los estados supuestos de Boylestad: cada suposición con su verificación, el
+  circuito equivalente por análisis de nodos y la tabla de diodos. Modelos ideal, segunda y
+  tercera aproximación; diodos iguales en paralelo se reparten la corriente. El diodo en serie
+  con recta de carga sigue como segundo modo. Tests con los ejemplos 2.7 a 2.15 de Boylestad
+  (serie, paralelo, serie-paralelo y compuertas AND y OR).
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,

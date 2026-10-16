@@ -729,3 +729,38 @@ Plantilla:
   el sitio_: cambiaría campos de otras materias donde `m` o `M` no tienen ese sentido.
   _Resolver los FET solo por el método gráfico_: la intersección exacta es más útil y la gráfica
   se muestra igual.
+
+## ADR-036 — Diodos en el constructor de circuitos: método de los estados supuestos
+
+- **Fecha:** 2026-10-16
+- **Estado:** Aceptada
+- **Decisión:** **Circuitos con diodos** tiene dos modos: el diodo en serie de siempre (con recta
+  de carga y la característica real) y un **circuito dibujado** en el constructor de Circuitos y
+  Sistemas, que ahora admite el componente `diode` (del ánodo `a` al cátodo `b`, con su umbral
+  V_K como valor). La paleta `DIODE_KINDS` lo agrega solo en esta calculadora; las demás
+  calculadoras de circuitos rechazan los diodos con el código `elementos-no-lineales`
+  (`validateTopology` acepta `{ allowDiodes: true }`).
+- **Motor** (`lib/calculators/electronica/diode-network.ts`): el método de Boylestad (sec. 2.3 a
+  2.5). Se supone un estado por diodo (encendido = fuente de V_K, 0 V en el ideal, o V_K + r_B en
+  la tercera aproximación; apagado = abierto), se resuelve el circuito lineal y se verifica
+  (I_D ≥ 0 en los encendidos, V_AK ≤ V_K en los apagados). Se parte de todos apagados y se cambia
+  el diodo que más se aleja de su suposición: primero los encendidos con corriente al revés y
+  luego el apagado con más sobretensión (el que «enciende primero», como explica el ejemplo 2.12).
+  Si una suposición deja un lazo de fuentes (diodos de distinto V_K en paralelo) se descarta; si
+  el recorrido no converge, se prueban las combinaciones restantes (hasta 12 diodos).
+  - Para verificar, un diodo apagado se modela con una conductancia despreciable (10⁻⁹ veces la
+    menor de la red) y el sistema se resuelve con equilibrado de filas, así un nodo que solo une
+    diodos apagados sigue teniendo voltaje.
+  - Diodos iguales en paralelo (mismos nodos y V_K) se analizan juntos y se reparten la corriente
+    (ejemplo 2.10).
+  - Un diodo «encendido» sin corriente (en serie con uno apagado) se informa apagado con V_D = 0,
+    como en el ejemplo 2.8 («cuando I_D = 0, V_D = 0»).
+  - El circuito equivalente final se resuelve con `solveMna` para mostrar la traza de nodos de
+    siempre; las ecuaciones de los diodos se titulan «Diodo D1 encendido: v_a − v_b = V_K».
+- **UI:** símbolo propio (triángulo y barra) y entrada en la guía del tablero; el panel edita
+  «V_K, umbral (V)» y admite 0; F voltea el diodo. La simulación en vivo se oculta, como con C y L.
+- **Alternativas descartadas:** _Newton sobre toda la red con la ecuación de Shockley_: no es el
+  procedimiento del curso y pide control de convergencia; la característica real sigue en el modo
+  serie. _Probar siempre las 2ⁿ combinaciones_: da el resultado, pero no la secuencia «supón,
+  verifica, corrige» que enseña el libro. _Modelar los apagados con una resistencia grande también
+  en la traza final_: el libro los trata como circuitos abiertos y la traza debe coincidir.
