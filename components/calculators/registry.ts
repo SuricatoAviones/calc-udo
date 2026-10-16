@@ -39,6 +39,13 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'analisis-ac-de-transistores': () => import('./electronica/AnalisisAcDeTransistores'),
   'amplificadores-operacionales': () => import('./electronica/AmplificadoresOperacionales'),
 
+  // Laboratorio de Circuitos y Electrónica
+  'resonancia-rlc': () => import('./laboratorio-de-circuitos-y-electronica/ResonanciaRlc'),
+  'fuente-regulada-por-zener': () =>
+    import('./laboratorio-de-circuitos-y-electronica/FuenteReguladaPorZener'),
+  'amplificador-emisor-comun': () =>
+    import('./laboratorio-de-circuitos-y-electronica/AmplificadorEmisorComun'),
+
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),
   'equivalencia-logica': () => import('./logica-formal-y-algoritmos/Equivalence'),

@@ -1579,7 +1579,14 @@ export const subjects: Subject[] = [
         name: 'Leyes, teoremas e instrumentos',
         description:
           'Circuitos lineales. Comprobación de las leyes de Ohm y Kirchoff. Uso del multímetro. Comprobación de los teoremas de Thévenin y Norton, de máxima transferencia de potencia y del principio de superposición.',
-        calculators: [],
+        calculators: [
+          { ref: 'relaciones-v-i-p' },
+          { ref: 'analisis-de-nodos' },
+          { ref: 'analisis-de-mallas' },
+          { ref: 'thevenin-norton' },
+          { ref: 'maxima-transferencia-de-potencia' },
+          { ref: 'superposicion' },
+        ],
       },
       {
         slug: 'resonancia',
@@ -1605,6 +1612,9 @@ export const subjects: Subject[] = [
             title: 'Fuente de alimentación regulada por Zener',
             summary: 'Diseño de una fuente con diodo Zener y su voltaje de rizado.',
           },
+          { ref: 'circuitos-con-diodos' },
+          { ref: 'rectificadores' },
+          { ref: 'filtro-y-regulacion' },
         ],
       },
       {
@@ -1618,6 +1628,8 @@ export const subjects: Subject[] = [
             title: 'Amplificador emisor común',
             summary: 'Punto de operación y ganancia de un amplificador con transistor BJT.',
           },
+          { ref: 'polarizacion-de-transistores' },
+          { ref: 'analisis-ac-de-transistores' },
         ],
       },
       {
