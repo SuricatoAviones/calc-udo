@@ -3,6 +3,10 @@
  * voltaje y corriente. Produce la traza del procedimiento: identificación de nodos, KCL por nodo,
  * sistema aumentado, eliminación gaussiana paso a paso y sustitución hacia atrás.
  *
+ * También admite amplificadores operacionales ideales (calculadora de Electrónica): no entra
+ * corriente por sus entradas, la corriente de la salida es una incógnita más (va a tierra por la
+ * alimentación) y su ecuación es el cortocircuito virtual v₊ − v₋ = 0.
+ *
  * Fuentes:
  * - Hayt, Kemmerly & Durbin, *Análisis de Circuitos en Ingeniería*, 7.ª ed., cap. 4 (análisis de
  *   nodos y supernodos).
@@ -15,7 +19,13 @@ import {
 } from '@/lib/calculators/metodos-numericos/matrix';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import type { Notice, ResultTable, Step } from '../types';
-import { componentLabel, componentUnit, type CircuitTopology, type ComponentKind } from './circuit';
+import {
+  componentLabel,
+  componentUnit,
+  type CircuitTopology,
+  type ComponentKind,
+  type TerminalName,
+} from './circuit';
 
 const DIGITS = 6;
 const n = (v: number) => toLatexNumber(v, DIGITS);
@@ -67,6 +77,13 @@ export interface MnaFailure {
 
 export type MnaOutcome = MnaSolve | MnaFailure;
 
+/** Nombre del terminal en la tabla de nodos: (+)/(−), o las entradas y la salida del amplificador. */
+function terminalText(kind: ComponentKind, terminal: TerminalName): string {
+  if (kind === 'opamp')
+    return terminal === 'a' ? 'entrada −' : terminal === 'b' ? 'entrada +' : 'salida';
+  return terminal === 'a' ? '+' : '-';
+}
+
 function voltageSourceIndex(topology: CircuitTopology): Map<string, number> {
   const map = new Map<string, number>();
   let idx = 0;
@@ -94,7 +111,8 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
   const nUnknowns = rows.length;
   const vsrcIndex = voltageSourceIndex(topology);
   const nVsrc = vsrcIndex.size;
-  const size = nUnknowns + nVsrc;
+  const opamps = components.filter((c) => c.component.kind === 'opamp' && c.nodeC !== undefined);
+  const size = nUnknowns + nVsrc + opamps.length;
 
   const a: number[][] = Array.from({ length: size }, () => Array(size + 1).fill(0));
 
@@ -131,13 +149,24 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
       setAt(a, k, size, component.value);
     }
   }
+  opamps.forEach(({ nodeA, nodeB, nodeC }, idx) => {
+    const k = nUnknowns + nVsrc + idx;
+    // KCL en la salida: la corriente que entra al amplificador por su salida es la incógnita.
+    const out = nodeToRow.get(nodeC!);
+    if (out !== undefined) addAt(a, out, k, 1);
+    // Cortocircuito virtual: v₊ − v₋ = 0 (a es la entrada −; b, la +).
+    const minus = nodeToRow.get(nodeA);
+    const plus = nodeToRow.get(nodeB);
+    if (plus !== undefined) addAt(a, k, plus, 1);
+    if (minus !== undefined) addAt(a, k, minus, -1);
+  });
 
   // Identificación de nodos.
   const nodeRows = rows.map((nodeIdx, row) => ({
     nodo: nodeIdx,
     fila: row,
     componentes: nodes[nodeIdx]!.terminals.map(
-      (t) => `${componentLabel(t.component)} (${t.terminal === 'a' ? '+' : '-'})`,
+      (t) => `${componentLabel(t.component)} (${terminalText(t.component.kind, t.terminal)})`,
     ).join(', '),
   }));
 
@@ -178,6 +207,12 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
         }
       }
     }
+    // Corriente que entra a la salida de un amplificador operacional conectado aquí.
+    for (const { component, nodeC } of opamps) {
+      if (nodeC !== nodeIdx) continue;
+      terms.push(`i_{${componentLabel(component)}}`);
+      subs.push(`i_{${componentLabel(component)}}`);
+    }
     // Fuentes de corriente incidentes.
     const currents: string[] = [];
     for (const { component, nodeA, nodeB } of components) {
@@ -204,6 +239,17 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
       title: `Fuente de voltaje ${label}`,
       formula: `v_${nodeA + 1} - v_${nodeB + 1} = E`,
       substitution: `v_${nodeA + 1} - v_${nodeB + 1} = ${n(component.value)}\\text{ V}`,
+    });
+  }
+  // Ecuaciones de los amplificadores operacionales.
+  for (const { component, nodeA, nodeB } of opamps) {
+    const v = (node: number) => (node === referenceNode ? '0' : `v_${node + 1}`);
+    kclSteps.push({
+      title: `Amplificador ${componentLabel(component)}`,
+      explanation:
+        'Ideal y con realimentación negativa: no entra corriente por sus entradas y ambas quedan al mismo voltaje (cortocircuito virtual).',
+      formula: 'v_{+} - v_{-} = 0',
+      substitution: `${v(nodeB)} - ${v(nodeA)} = 0`,
     });
   }
 
@@ -255,10 +301,19 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     rows: [],
   };
 
-  for (const { component, nodeA, nodeB } of components) {
+  for (const mapped of components) {
+    const { component } = mapped;
+    // La salida de un amplificador operacional es una rama de la salida a tierra: la potencia
+    // que entrega sale de su alimentación.
+    const opamp = component.kind === 'opamp' ? opamps.indexOf(mapped) : -1;
+    if (component.kind === 'opamp' && opamp < 0) continue;
+    const nodeA = opamp >= 0 ? mapped.nodeC! : mapped.nodeA;
+    const nodeB = opamp >= 0 ? referenceNode : mapped.nodeB;
     const v = nodeVoltages[nodeA]! - nodeVoltages[nodeB]!;
     let i = 0;
-    if (component.kind === 'resistor') {
+    if (opamp >= 0) {
+      i = x[nUnknowns + nVsrc + opamp]!;
+    } else if (component.kind === 'resistor') {
       i = v / component.value;
     } else if (component.kind === 'voltage-source') {
       const idx = vsrcIndex.get(component.id)!;
@@ -279,7 +334,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
       p,
     });
     branchTable.rows.push({
-      rama: `${componentLabel(component)} (${componentUnit(component.kind)})`,
+      rama: `${componentLabel(component)} (${opamp >= 0 ? 'salida' : componentUnit(component.kind)})`,
       v: formatNumber(v, DIGITS),
       i: formatNumber(i, DIGITS),
       p: formatNumber(p, DIGITS),
@@ -304,8 +359,9 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     ...kclSteps,
     {
       title: 'Sistema de ecuaciones aumentado',
-      explanation:
-        'Las primeras filas son KCL en cada nodo desconocido; las últimas filas son las ecuaciones de las fuentes de voltaje. La última columna es el lado derecho.',
+      explanation: `Las primeras filas son KCL en cada nodo desconocido; las últimas filas son las ecuaciones de las fuentes de voltaje${
+        opamps.length ? ' y de los amplificadores operacionales' : ''
+      }. La última columna es el lado derecho.`,
       result: texAugmented(a, 1, DIGITS),
     },
     ...elim.steps,

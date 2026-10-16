@@ -16,7 +16,7 @@ export interface GridPoint {
 }
 
 export type ComponentKind =
-  'resistor' | 'voltage-source' | 'current-source' | 'capacitor' | 'inductor' | 'diode';
+  'resistor' | 'voltage-source' | 'current-source' | 'capacitor' | 'inductor' | 'diode' | 'opamp';
 
 /** Elementos que almacenan energía: sus variables (v_C, i_L) son las variables de estado. */
 export const STORAGE_KINDS: readonly ComponentKind[] = ['capacitor', 'inductor'];
@@ -34,13 +34,21 @@ export const RESISTIVE_KINDS: readonly ComponentKind[] = [
  */
 export const DIODE_KINDS: readonly ComponentKind[] = [...RESISTIVE_KINDS, 'diode'];
 
+/**
+ * Paleta de la calculadora de amplificadores operacionales (Electrónica). El amplificador tiene
+ * tres terminales: `a` es la entrada inversora (−), `b` la no inversora (+) y `c` la salida.
+ */
+export const OPAMP_KINDS: readonly ComponentKind[] = [...RESISTIVE_KINDS, 'opamp'];
+
 export interface CircuitComponent {
   id: string;
   kind: ComponentKind;
-  /** Terminal positivo/1. */
+  /** Terminal positivo/1 (en un amplificador operacional, la entrada inversora −). */
   a: GridPoint;
-  /** Terminal negativo/2. */
+  /** Terminal negativo/2 (en un amplificador operacional, la entrada no inversora +). */
   b: GridPoint;
+  /** Solo amplificadores operacionales: la salida. */
+  c?: GridPoint;
   /** Valor numérico: Ω, V, A, F o H según el tipo (en un diodo, su V_K en V). */
   value: number;
   label?: string;
@@ -71,9 +79,18 @@ const gridPointSchema = z.object({
 
 const componentSchema = z.object({
   id: z.string().min(1),
-  kind: z.enum(['resistor', 'voltage-source', 'current-source', 'capacitor', 'inductor', 'diode']),
+  kind: z.enum([
+    'resistor',
+    'voltage-source',
+    'current-source',
+    'capacitor',
+    'inductor',
+    'diode',
+    'opamp',
+  ]),
   a: gridPointSchema,
   b: gridPointSchema,
+  c: gridPointSchema.optional(),
   value: z.number().finite(),
   label: z.string().optional(),
   initial: z.number().finite().optional(),
@@ -98,6 +115,7 @@ export type CircuitErrorCode =
   | 'nodo-sin-referencia'
   | 'elementos-almacenadores'
   | 'elementos-no-lineales'
+  | 'elementos-no-admitidos'
   | 'singular';
 
 export interface CircuitError {
@@ -168,6 +186,7 @@ const KIND_LABEL: Record<ComponentKind, string> = {
   capacitor: 'C',
   inductor: 'L',
   diode: 'D',
+  opamp: 'U',
 };
 
 const UNIT_LABEL: Record<ComponentKind, string> = {
@@ -177,6 +196,7 @@ const UNIT_LABEL: Record<ComponentKind, string> = {
   capacitor: 'F',
   inductor: 'H',
   diode: 'V',
+  opamp: '',
 };
 
 export function componentLabel(c: CircuitComponent): string {
@@ -191,11 +211,42 @@ export function emptyCircuit(): CircuitDocument {
   return { components: [], wires: [] };
 }
 
+export type TerminalName = 'a' | 'b' | 'c';
+
+/** Terminales de un componente: dos, o tres en el amplificador operacional. */
+export function componentTerminals(
+  c: CircuitComponent,
+): { terminal: TerminalName; point: GridPoint }[] {
+  const terminals: { terminal: TerminalName; point: GridPoint }[] = [
+    { terminal: 'a', point: c.a },
+    { terminal: 'b', point: c.b },
+  ];
+  if (c.c) terminals.push({ terminal: 'c', point: c.c });
+  return terminals;
+}
+
+/**
+ * Terminales de un amplificador operacional recién colocado, con la salida hacia `dir`: la entrada
+ * inversora en `at`, la no inversora dos celdas más abajo (respecto de la salida) y la salida a
+ * cuatro celdas, a media altura.
+ */
+export function opAmpPlacement(
+  at: GridPoint,
+  dir: GridPoint,
+): { a: GridPoint; b: GridPoint; c: GridPoint } {
+  const normal = { x: -dir.y, y: dir.x };
+  return {
+    a: at,
+    b: { x: at.x + 2 * normal.x, y: at.y + 2 * normal.y },
+    c: { x: at.x + 4 * dir.x + normal.x, y: at.y + 4 * dir.y + normal.y },
+  };
+}
+
 // ─── Topología ──────────────────────────────────────────────────────────────
 
 export interface NodeTerminal {
   component: CircuitComponent;
-  terminal: 'a' | 'b';
+  terminal: TerminalName;
 }
 
 export interface CircuitNode {
@@ -209,6 +260,8 @@ export interface MappedComponent {
   component: CircuitComponent;
   nodeA: number;
   nodeB: number;
+  /** Nodo de la salida de un amplificador operacional. */
+  nodeC?: number;
 }
 
 export interface CircuitTopology {
@@ -306,14 +359,13 @@ export function buildTopology(doc: CircuitDocument): CircuitTopology {
     }
   }
   for (const c of doc.components) {
-    uf.add(c.a);
-    uf.add(c.b);
+    for (const { point } of componentTerminals(c)) uf.add(point);
   }
   if (doc.ground) uf.add(doc.ground);
 
   // Unir terminales que caigan sobre un cable o que coincidan con otro terminal.
   for (const c of doc.components) {
-    for (const t of [c.a, c.b]) {
+    for (const { point: t } of componentTerminals(c)) {
       for (const wire of doc.wires) {
         if (pointOnWire(t, wire)) {
           // Unir con un punto del cable (el primero del segmento que lo contiene).
@@ -346,8 +398,7 @@ export function buildTopology(doc: CircuitDocument): CircuitTopology {
     rootToPoints.get(root)!.push(p);
   };
   for (const c of doc.components) {
-    collect(c.a);
-    collect(c.b);
+    for (const { point } of componentTerminals(c)) collect(point);
   }
   for (const wire of doc.wires) {
     for (const p of wire.points) collect(p);
@@ -377,7 +428,13 @@ export function buildTopology(doc: CircuitDocument): CircuitTopology {
     const nodeB = nodeOf.get(key(c.b))!;
     nodes[nodeA]!.terminals.push({ component: c, terminal: 'a' });
     nodes[nodeB]!.terminals.push({ component: c, terminal: 'b' });
-    mapped.push({ component: c, nodeA, nodeB });
+    if (c.c) {
+      const nodeC = nodeOf.get(key(c.c))!;
+      nodes[nodeC]!.terminals.push({ component: c, terminal: 'c' });
+      mapped.push({ component: c, nodeA, nodeB, nodeC });
+    } else {
+      mapped.push({ component: c, nodeA, nodeB });
+    }
   }
 
   // Referencia: nodo con tierra, o el que tenga más terminales.
@@ -443,7 +500,7 @@ function hasCurrentSourceCut(topology: CircuitTopology): boolean {
  */
 export function validateTopology(
   topology: CircuitTopology,
-  options: { allowDiodes?: boolean } = {},
+  options: { allow?: readonly ComponentKind[] } = {},
 ): CircuitError | null {
   const { nodes, components, referenceNode } = topology;
   if (components.length === 0) {
@@ -451,18 +508,28 @@ export function validateTopology(
   }
   const storage = storageElementsError(components.map((c) => c.component));
   if (storage) return storage;
-  if (!options.allowDiodes) {
-    const diodes = diodeElementsError(components.map((c) => c.component));
-    if (diodes) return diodes;
+  const electronic = electronicElementsError(
+    components.map((c) => c.component),
+    options.allow ?? [],
+  );
+  if (electronic) return electronic;
+  const broken = components.find((c) => c.component.kind === 'opamp' && c.nodeC === undefined);
+  if (broken) {
+    return {
+      code: 'singular',
+      message: `${componentLabel(broken.component)} no tiene salida: bórralo y vuelve a colocarlo.`,
+    };
   }
 
-  // Cada nodo con componentes debe estar conectado a la referencia.
+  // Cada nodo con componentes debe estar conectado a la referencia. Un amplificador operacional
+  // liga sus entradas (v₊ = v₋) y su salida queda referida a tierra.
   const uf = new UnionFind();
   for (const n of nodes) {
     for (const p of n.points) uf.add(p);
   }
-  for (const { nodeA, nodeB } of components) {
+  for (const { nodeA, nodeB, nodeC } of components) {
     uf.union(nodes[nodeA]!.points[0]!, nodes[nodeB]!.points[0]!);
+    if (nodeC !== undefined) uf.union(nodes[nodeC]!.points[0]!, nodes[referenceNode]!.points[0]!);
   }
   const refRoot = uf.find(nodes[referenceNode]!.points[0]!);
   for (let i = 0; i < nodes.length; i++) {
@@ -508,14 +575,29 @@ export function storageElementsError(components: CircuitComponent[]): CircuitErr
   };
 }
 
-/** Los diodos no son lineales: solo los resuelve la calculadora de circuitos con diodos. */
-export function diodeElementsError(components: CircuitComponent[]): CircuitError | null {
-  if (!components.some((c) => c.kind === 'diode')) return null;
-  return {
-    code: 'elementos-no-lineales',
-    message:
-      'El circuito tiene diodos: este análisis es de circuitos lineales. Usa la calculadora de circuitos con diodos (Electrónica).',
-  };
+/**
+ * Diodos y amplificadores operacionales solo los resuelven sus calculadoras de Electrónica; las
+ * demás los rechazan (`allow` dice cuáles admite la que llama).
+ */
+export function electronicElementsError(
+  components: CircuitComponent[],
+  allow: readonly ComponentKind[] = [],
+): CircuitError | null {
+  if (!allow.includes('diode') && components.some((c) => c.kind === 'diode')) {
+    return {
+      code: 'elementos-no-lineales',
+      message:
+        'El circuito tiene diodos: este análisis es de circuitos lineales. Usa la calculadora de circuitos con diodos (Electrónica).',
+    };
+  }
+  if (!allow.includes('opamp') && components.some((c) => c.kind === 'opamp')) {
+    return {
+      code: 'elementos-no-admitidos',
+      message:
+        'El circuito tiene amplificadores operacionales: resuélvelo en la calculadora de amplificadores operacionales (Electrónica).',
+    };
+  }
+  return null;
 }
 
 /**
@@ -535,7 +617,7 @@ export function validateCircuit(doc: CircuitDocument): CircuitError | null {
 /** Indica si un punto pertenece a algún nodo (terminal o cable) del circuito. */
 export function isOccupied(doc: CircuitDocument, p: GridPoint): boolean {
   for (const c of doc.components) {
-    if (pointsEqual(c.a, p) || pointsEqual(c.b, p)) return true;
+    if (componentTerminals(c).some(({ point }) => pointsEqual(point, p))) return true;
   }
   for (const w of doc.wires) {
     if (pointOnWire(p, w)) return true;

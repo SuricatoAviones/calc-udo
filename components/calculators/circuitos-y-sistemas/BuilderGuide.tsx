@@ -45,6 +45,12 @@ const ELEMENTS: Record<ComponentKind, { name: string; unit: string; convention: 
     convention:
       'Conduce en el sentido del triángulo, del ánodo a la barra (cátodo). Su valor es el umbral V_K: 0.7 V silicio, 0.3 V germanio, ~2 V un LED.',
   },
+  opamp: {
+    name: 'Amplificador operacional',
+    unit: 'ideal',
+    convention:
+      'Tres terminales: entrada inversora (−), no inversora (+) y salida en el vértice. Se mueve como una pieza; F intercambia las entradas.',
+  },
 };
 
 /** Tecla o combinación: `Ctrl + Z` se dibuja como dos teclas. */
@@ -134,6 +140,7 @@ export function BuilderGuide({
   const tab: Tab = chosenTab ?? (coarse ? 'tactil' : 'raton');
   const hasStorage = kinds.includes('capacitor') || kinds.includes('inductor');
   const hasDiodes = kinds.includes('diode');
+  const hasOpAmps = kinds.includes('opamp');
 
   function toggle() {
     setOpen((current) => !current);
@@ -161,7 +168,9 @@ export function BuilderGuide({
         ? 'Pulsa Calcular para ver el procedimiento paso a paso. Simular (K) anima la corriente en el lienzo.'
         : hasDiodes
           ? 'Pulsa Calcular: se supone el estado de cada diodo, se resuelve el circuito y se verifica cada suposición.'
-          : 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.',
+          : hasOpAmps
+            ? 'Pulsa Calcular: se verifica la realimentación de cada amplificador y se resuelve por nodos con el cortocircuito virtual.'
+            : 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.',
       icon: <Calculator className="size-5" aria-hidden />,
     },
   ];
@@ -308,7 +317,8 @@ export function BuilderGuide({
                     R gira la pieza que vas a colocar o la selección; F voltea la polaridad de
                     fuentes
                     {hasStorage ? ', capacitores e inductores' : ''}
-                    {hasDiodes ? ' y diodos (cambia el ánodo por el cátodo)' : ''}.
+                    {hasDiodes ? ' y diodos (cambia el ánodo por el cátodo)' : ''}
+                    {hasOpAmps ? ' y amplificadores (intercambia las entradas − y +)' : ''}.
                   </Tip>
                   <Tip title="Valores y etiquetas">
                     Selecciona un componente y edita su valor y su etiqueta en el panel que aparece

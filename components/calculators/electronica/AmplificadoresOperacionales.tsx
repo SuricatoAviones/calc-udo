@@ -2,8 +2,10 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { Formula } from '@/components/calculators/Formula';
+import { CircuitBuilderField } from '@/components/calculators/circuitos-y-sistemas/CircuitBuilderField';
 import { CalculatorForm } from '@/components/calculators/form/CalculatorForm';
 import { NumberField, SelectField } from '@/components/calculators/form/fields';
+import { OPAMP_KINDS } from '@/lib/calculators/circuitos-y-sistemas/circuit';
 import {
   amplificadoresOperacionales,
   type OpAmpInput,
@@ -120,9 +122,30 @@ function CircuitFields() {
   );
 }
 
-export default function AmplificadoresOperacionales() {
+/** Modo circuito: la red se dibuja en el tablero. */
+function NetworkFields() {
   return (
-    <CalculatorForm calculator={amplificadoresOperacionales}>
+    <>
+      <p className="text-muted-foreground text-xs">
+        Dibuja el circuito con fuentes, resistencias y amplificadores operacionales ideales. Cada
+        amplificador tiene la entrada inversora (−), la no inversora (+) y la salida en el vértice;
+        necesita realimentación negativa (de la salida a la entrada −).
+      </p>
+      <NumberField
+        name="vsat"
+        optional
+        label={tex('V_{sat}', 'V')}
+        hint="Opcional: las salidas que pidan más de ±V_sat quedan saturadas."
+      />
+      <CircuitBuilderField name="network" kinds={OPAMP_KINDS} />
+    </>
+  );
+}
+
+/** Modo configuración: los circuitos de los libros con sus fórmulas. */
+function ConfigurationFields() {
+  return (
+    <>
       <SelectField
         name="circuit"
         label="Circuito"
@@ -137,6 +160,31 @@ export default function AmplificadoresOperacionales() {
         ]}
       />
       <CircuitFields />
+    </>
+  );
+}
+
+function AnalysisFields() {
+  const { control } = useFormContext();
+  return useWatch({ control, name: 'analysis' }) === 'circuito' ? (
+    <NetworkFields />
+  ) : (
+    <ConfigurationFields />
+  );
+}
+
+export default function AmplificadoresOperacionales() {
+  return (
+    <CalculatorForm calculator={amplificadoresOperacionales}>
+      <SelectField
+        name="analysis"
+        label="Tipo de análisis"
+        options={[
+          { value: 'circuito', label: 'Circuito dibujado (análisis de nodos)' },
+          { value: 'configuracion', label: 'Configuración del libro (fórmulas)' },
+        ]}
+      />
+      <AnalysisFields />
       <QuantityHint />
     </CalculatorForm>
   );

@@ -138,6 +138,87 @@ export function DiodeSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
   );
 }
 
+/**
+ * Marco local de un amplificador operacional: `e1` apunta de las entradas a la salida y `e2` de la
+ * entrada − (`a`) a la + (`b`). `at(s, t)` es el punto a + s·e1 + t·e2 (las entradas están en t = 0
+ * y t = 2, la salida en s = 4, t = 1).
+ */
+export function opAmpFrame(a: GridPoint, b: GridPoint, c: GridPoint) {
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const e2 = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+  const mid = midpoint(a, b);
+  const out = Math.hypot(c.x - mid.x, c.y - mid.y) || 1;
+  const e1 = { x: (c.x - mid.x) / out, y: (c.y - mid.y) / out };
+  const at = (s: number, t: number): GridPoint => ({
+    x: a.x + s * e1.x + t * e2.x,
+    y: a.y + s * e1.y + t * e2.y,
+  });
+  return { e1, e2, at };
+}
+
+/** Cuerpo del amplificador (sin los terminales), para detectar choques y clics. */
+export function opAmpBody(a: GridPoint, b: GridPoint, c: GridPoint, margin = 0) {
+  const { at } = opAmpFrame(a, b, c);
+  const corners = [at(0.4, -0.4), at(3.3, -0.4), at(0.4, 2.4), at(3.3, 2.4)];
+  return {
+    minX: Math.min(...corners.map((p) => p.x)) - margin,
+    maxX: Math.max(...corners.map((p) => p.x)) + margin,
+    minY: Math.min(...corners.map((p) => p.y)) - margin,
+    maxY: Math.max(...corners.map((p) => p.y)) + margin,
+  };
+}
+
+/**
+ * Amplificador operacional: triángulo con la entrada inversora (−, terminal `a`) y la no
+ * inversora (+, terminal `b`) en la base y la salida (`c`) en el vértice.
+ */
+export function OpAmpSymbol({ a, b, c }: { a: GridPoint; b: GridPoint; c: GridPoint }) {
+  const { at } = opAmpFrame(a, b, c);
+  const pts = (list: GridPoint[]) => list.map((p) => `${p.x},${p.y}`).join(' ');
+  const back1 = at(0.5, -0.5);
+  const back2 = at(0.5, 2.5);
+  const apex = at(3.3, 1);
+  const minus = [at(0.75, 0), at(1.05, 0)];
+  const plus = [at(0.75, 2), at(1.05, 2), at(0.9, 1.85), at(0.9, 2.15)];
+  return (
+    <g>
+      <polyline points={pts([a, at(0.5, 0)])} {...stroke} />
+      <polyline points={pts([b, at(0.5, 2)])} {...stroke} />
+      <polyline points={pts([apex, c])} {...stroke} />
+      <polygon
+        points={pts([back1, apex, back2])}
+        {...stroke}
+        fill="currentColor"
+        fillOpacity={0.06}
+      />
+      <line
+        x1={minus[0]!.x}
+        y1={minus[0]!.y}
+        x2={minus[1]!.x}
+        y2={minus[1]!.y}
+        {...stroke}
+        strokeWidth={1.4}
+      />
+      <line
+        x1={plus[0]!.x}
+        y1={plus[0]!.y}
+        x2={plus[1]!.x}
+        y2={plus[1]!.y}
+        {...stroke}
+        strokeWidth={1.4}
+      />
+      <line
+        x1={plus[2]!.x}
+        y1={plus[2]!.y}
+        x2={plus[3]!.x}
+        y2={plus[3]!.y}
+        {...stroke}
+        strokeWidth={1.4}
+      />
+    </g>
+  );
+}
+
 export function GroundSymbol({ p }: { p: GridPoint }) {
   return (
     <g transform={`translate(${p.x} ${p.y})`}>
@@ -149,8 +230,10 @@ export function GroundSymbol({ p }: { p: GridPoint }) {
 }
 
 export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?: boolean }) {
-  // Capacitor, inductor y diodo dibujan sus propios terminales (la línea no debe cruzar el cuerpo).
-  const drawsLeads = c.kind === 'capacitor' || c.kind === 'inductor' || c.kind === 'diode';
+  // Capacitor, inductor, diodo y amplificador dibujan sus propios terminales (la línea no debe
+  // cruzar el cuerpo).
+  const drawsLeads =
+    c.kind === 'capacitor' || c.kind === 'inductor' || c.kind === 'diode' || c.kind === 'opamp';
   return (
     <g className={selected ? 'text-primary' : 'text-foreground'}>
       {!drawsLeads && <line x1={c.a.x} y1={c.a.y} x2={c.b.x} y2={c.b.y} {...stroke} />}
@@ -160,6 +243,7 @@ export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?
       {c.kind === 'capacitor' && <CapacitorSymbol a={c.a} b={c.b} />}
       {c.kind === 'inductor' && <InductorSymbol a={c.a} b={c.b} />}
       {c.kind === 'diode' && <DiodeSymbol a={c.a} b={c.b} />}
+      {c.kind === 'opamp' && c.c && <OpAmpSymbol a={c.a} b={c.b} c={c.c} />}
     </g>
   );
 }
@@ -222,6 +306,18 @@ export function PaletteIcon({
           d="M2 14 L4 14 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 L22 14"
           {...common}
         />
+      </svg>
+    );
+  if (kind === 'opamp')
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path d="M6 4 L20 12 L6 20 Z" {...common} />
+        <line x1="2" y1="8" x2="6" y2="8" {...common} />
+        <line x1="2" y1="16" x2="6" y2="16" {...common} />
+        <line x1="20" y1="12" x2="23" y2="12" {...common} />
+        <line x1="8" y1="8" x2="10.5" y2="8" {...common} strokeWidth={1.4} />
+        <line x1="8" y1="16" x2="10.5" y2="16" {...common} strokeWidth={1.4} />
+        <line x1="9.25" y1="14.75" x2="9.25" y2="17.25" {...common} strokeWidth={1.4} />
       </svg>
     );
   if (kind === 'diode')

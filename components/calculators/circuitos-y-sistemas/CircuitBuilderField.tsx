@@ -30,10 +30,12 @@ import { cn } from '@/lib/utils';
 import {
   buildTopology,
   componentLabel,
+  componentTerminals,
   componentUnit,
   emptyCircuit,
   formatEngineering,
   nextLabel,
+  opAmpPlacement,
   parseEngineering,
   RESISTIVE_KINDS,
   validateTopology,
@@ -42,10 +44,18 @@ import {
   type CircuitWire,
   type ComponentKind,
   type GridPoint,
+  type TerminalName,
 } from '@/lib/calculators/circuitos-y-sistemas/circuit';
 import { solveMna } from '@/lib/calculators/circuitos-y-sistemas/mna';
 import { BuilderGuide } from './BuilderGuide';
-import { ComponentShape, GroundSymbol, PaletteIcon, midpoint } from './circuit-symbols';
+import {
+  ComponentShape,
+  GroundSymbol,
+  PaletteIcon,
+  midpoint,
+  opAmpBody,
+  opAmpFrame,
+} from './circuit-symbols';
 
 const DEFAULT_SCALE = 26;
 const MIN_SCALE = 12;
@@ -66,6 +76,7 @@ const DEFAULT_VALUE: Record<ComponentKind, number> = {
   capacitor: 1e-6,
   inductor: 1e-3,
   diode: 0.7,
+  opamp: 0,
 };
 
 const KIND_TITLE: Record<ComponentKind, string> = {
@@ -75,7 +86,36 @@ const KIND_TITLE: Record<ComponentKind, string> = {
   capacitor: 'Capacitor',
   inductor: 'Inductor',
   diode: 'Diodo',
+  opamp: 'Amplificador operacional',
 };
+
+/** Puntos de un componente: sus dos terminales, o los tres del amplificador operacional. */
+function pointsOf(c: Pick<CircuitComponent, 'a' | 'b' | 'c'>): GridPoint[] {
+  return c.c ? [c.a, c.b, c.c] : [c.a, c.b];
+}
+
+/** Componente desplazado (dx, dy), con su tercer terminal si lo tiene. */
+function shifted<T extends Pick<CircuitComponent, 'a' | 'b' | 'c'>>(
+  c: T,
+  dx: number,
+  dy: number,
+): T {
+  const move = (p: GridPoint) => ({ x: p.x + dx, y: p.y + dy });
+  return { ...c, a: move(c.a), b: move(c.b), ...(c.c ? { c: move(c.c) } : {}) };
+}
+
+/** ¿Un tramo ortogonal entra al recuadro (abierto)? */
+function segmentCrossesBox(
+  p: GridPoint,
+  q: GridPoint,
+  box: { minX: number; maxX: number; minY: number; maxY: number },
+): boolean {
+  const minX = Math.min(p.x, q.x);
+  const maxX = Math.max(p.x, q.x);
+  const minY = Math.min(p.y, q.y);
+  const maxY = Math.max(p.y, q.y);
+  return maxX > box.minX && minX < box.maxX && maxY > box.minY && minY < box.maxY;
+}
 
 type Tool = 'select' | 'wire' | ComponentKind | 'ground';
 
@@ -90,7 +130,7 @@ function fitTransform(
   shrinkOnly = false,
 ): ViewState | null {
   const pts: GridPoint[] = [];
-  for (const c of doc.components) pts.push(c.a, c.b);
+  for (const c of doc.components) pts.push(...pointsOf(c));
   for (const wire of doc.wires) pts.push(...wire.points);
   if (doc.ground) pts.push(doc.ground);
   if (pts.length === 0 || !w || !h) return null;
@@ -124,12 +164,12 @@ interface ViewState {
 
 /** Punto agarrable: terminal de componente, vértice de cable o tierra. */
 type Handle =
-  | { kind: 'terminal'; id: string; terminal: 'a' | 'b' }
+  | { kind: 'terminal'; id: string; terminal: TerminalName }
   | { kind: 'wire-vertex'; id: string; index: number }
   | { kind: 'ground' };
 
 type MoveItem =
-  | { kind: 'component'; id: string; a: GridPoint; b: GridPoint }
+  | { kind: 'component'; id: string; a: GridPoint; b: GridPoint; c?: GridPoint }
   | { kind: 'wire'; id: string; points: GridPoint[] };
 
 type Drag =
@@ -195,13 +235,54 @@ function distToSegment(p: GridPoint, a: GridPoint, b: GridPoint): number {
   return Math.hypot(p.x - (a.x + t * vx), p.y - (a.y + t * vy));
 }
 
-function segmentConflicts(doc: CircuitDocument, a: GridPoint, b: GridPoint): boolean {
+function segmentConflicts(
+  doc: CircuitDocument,
+  a: GridPoint,
+  b: GridPoint,
+  ignoreId?: string,
+): boolean {
   for (const c of doc.components) {
+    if (c.id === ignoreId) continue;
+    if (c.kind === 'opamp' && c.c) {
+      if (segmentCrossesBox(a, b, opAmpBody(c.a, c.b, c.c))) return true;
+      continue;
+    }
     if (collinearOverlap(a, b, c.a, c.b)) return true;
   }
   for (const w of doc.wires) {
     for (let i = 0; i < w.points.length - 1; i++) {
       if (collinearOverlap(a, b, w.points[i]!, w.points[i + 1]!)) return true;
+    }
+  }
+  return false;
+}
+
+/** ¿Un amplificador operacional en esa posición se cruza con otro elemento? */
+function opAmpConflicts(
+  doc: CircuitDocument,
+  pts: { a: GridPoint; b: GridPoint; c: GridPoint },
+  ignoreId?: string,
+): boolean {
+  const body = opAmpBody(pts.a, pts.b, pts.c);
+  for (const comp of doc.components) {
+    if (comp.id === ignoreId) continue;
+    if (comp.kind === 'opamp' && comp.c) {
+      const other = opAmpBody(comp.a, comp.b, comp.c);
+      if (
+        other.maxX > body.minX &&
+        other.minX < body.maxX &&
+        other.maxY > body.minY &&
+        other.minY < body.maxY
+      ) {
+        return true;
+      }
+      continue;
+    }
+    if (segmentCrossesBox(comp.a, comp.b, body)) return true;
+  }
+  for (const w of doc.wires) {
+    for (let i = 0; i < w.points.length - 1; i++) {
+      if (segmentCrossesBox(w.points[i]!, w.points[i + 1]!, body)) return true;
     }
   }
   return false;
@@ -215,7 +296,7 @@ function nearestAnchor(
   exclude?: GridPoint,
 ): GridPoint {
   const anchors: GridPoint[] = [];
-  for (const c of doc.components) anchors.push(c.a, c.b);
+  for (const c of doc.components) anchors.push(...pointsOf(c));
   for (const w of doc.wires) anchors.push(...w.points);
   let best = p;
   let bestDist = tol;
@@ -510,6 +591,24 @@ export function CircuitBuilderField({
     let best: CircuitComponent | undefined;
     let bestDist = tol;
     for (const c of doc.components) {
+      if (c.kind === 'opamp' && c.c) {
+        // El amplificador se agarra por su cuerpo o por sus terminales.
+        const box = opAmpBody(c.a, c.b, c.c, tol);
+        const { at } = opAmpFrame(c.a, c.b, c.c);
+        const inside =
+          world.x >= box.minX && world.x <= box.maxX && world.y >= box.minY && world.y <= box.maxY;
+        const lead = Math.min(
+          distToSegment(world, c.a, at(0.5, 0)),
+          distToSegment(world, c.b, at(0.5, 2)),
+          distToSegment(world, at(3.3, 1), c.c),
+        );
+        const d = inside ? 0 : lead;
+        if (d < bestDist) {
+          bestDist = d;
+          best = c;
+        }
+        continue;
+      }
       const d = distToSegment(world, c.a, c.b);
       if (d < bestDist) {
         bestDist = d;
@@ -545,8 +644,9 @@ export function CircuitBuilderField({
       }
     };
     for (const c of doc.components) {
-      consider({ kind: 'terminal', id: c.id, terminal: 'a' }, c.a);
-      consider({ kind: 'terminal', id: c.id, terminal: 'b' }, c.b);
+      for (const { terminal, point } of componentTerminals(c)) {
+        consider({ kind: 'terminal', id: c.id, terminal }, point);
+      }
     }
     for (const w of doc.wires) {
       w.points.forEach((p, index) => consider({ kind: 'wire-vertex', id: w.id, index }, p));
@@ -571,7 +671,13 @@ export function CircuitBuilderField({
     const items: MoveItem[] = [];
     for (const c of doc.components) {
       if (ids.includes(c.id))
-        items.push({ kind: 'component', id: c.id, a: { ...c.a }, b: { ...c.b } });
+        items.push({
+          kind: 'component',
+          id: c.id,
+          a: { ...c.a },
+          b: { ...c.b },
+          ...(c.c ? { c: { ...c.c } } : {}),
+        });
     }
     for (const w of doc.wires) {
       if (ids.includes(w.id))
@@ -588,11 +694,7 @@ export function CircuitBuilderField({
       components: doc.components.map((c) => {
         const item = items.find((i) => i.kind === 'component' && i.id === c.id);
         if (!item || item.kind !== 'component') return c;
-        return {
-          ...c,
-          a: { x: item.a.x + dx, y: item.a.y + dy },
-          b: { x: item.b.x + dx, y: item.b.y + dy },
-        };
+        return shifted({ ...c, a: item.a, b: item.b, ...(item.c ? { c: item.c } : {}) }, dx, dy);
       }),
       wires: doc.wires.map((w) => {
         const item = items.find((i) => i.kind === 'wire' && i.id === w.id);
@@ -610,6 +712,21 @@ export function CircuitBuilderField({
     if (handle.kind === 'terminal') {
       const c = doc.components.find((x) => x.id === handle.id);
       if (!c) return;
+      if (c.kind === 'opamp' && c.c) {
+        // El amplificador es rígido: arrastrar un terminal mueve la pieza entera.
+        const from = c[handle.terminal]!;
+        const target = nearestAnchor(doc, snapped, 0.6, from);
+        const dx = target.x - from.x;
+        const dy = target.y - from.y;
+        if (dx === 0 && dy === 0) return;
+        const next = shifted(c, dx, dy);
+        if (opAmpConflicts(doc, { a: next.a, b: next.b, c: next.c! }, c.id)) return;
+        field.onChange({
+          ...doc,
+          components: doc.components.map((x) => (x.id === c.id ? next : x)),
+        });
+        return;
+      }
       const other = handle.terminal === 'a' ? c.b : c.a;
       const target = nearestAnchor(doc, snapped, 0.6, other);
       if (samePoint(target, other)) return;
@@ -636,17 +753,22 @@ export function CircuitBuilderField({
   function placeComponent(kind: ComponentKind, at: GridPoint) {
     const start = nearestAnchor(doc, at, 0.75);
     const dir = ORIENTATIONS[orientation]!;
-    const a = start;
-    const b = { x: start.x + dir.x * COMP_LEN, y: start.y + dir.y * COMP_LEN };
-    if (segmentConflicts(doc, a, b)) {
+    const geometry =
+      kind === 'opamp'
+        ? opAmpPlacement(start, dir)
+        : { a: start, b: { x: start.x + dir.x * COMP_LEN, y: start.y + dir.y * COMP_LEN } };
+    const conflict =
+      'c' in geometry
+        ? opAmpConflicts(doc, geometry)
+        : segmentConflicts(doc, geometry.a, geometry.b);
+    if (conflict) {
       flashMessage('Ya hay un componente en esa posición. Gíralo con R o elige otro punto.');
       return;
     }
     const component: CircuitComponent = {
       id: uid(kind),
       kind,
-      a,
-      b,
+      ...geometry,
       value: DEFAULT_VALUE[kind],
       label: nextLabel(doc, kind),
     };
@@ -705,6 +827,17 @@ export function CircuitBuilderField({
   function rotateComponent(id: string) {
     const c = doc.components.find((x) => x.id === id);
     if (!c) return;
+    if (c.kind === 'opamp' && c.c) {
+      // Giro de 90° de las tres patas alrededor de la entrada −.
+      const turn = (p: GridPoint) => ({ x: c.a.x - (p.y - c.a.y), y: c.a.y + (p.x - c.a.x) });
+      const next = { ...c, b: turn(c.b), c: turn(c.c) };
+      if (opAmpConflicts(doc, { a: next.a, b: next.b, c: next.c }, c.id)) {
+        flashMessage('No se puede girar: choca con otro componente.');
+        return;
+      }
+      commit({ ...doc, components: doc.components.map((x) => (x.id === id ? next : x)) });
+      return;
+    }
     const dx = c.b.x - c.a.x;
     const dy = c.b.y - c.a.y;
     const b = { x: c.a.x - dy, y: c.a.y + dx };
@@ -721,11 +854,13 @@ export function CircuitBuilderField({
     );
     if (sources.length === 0) {
       flashMessage(
-        kinds.includes('diode')
-          ? 'Selecciona una fuente o un diodo para voltear su polaridad.'
-          : canSimulate
-            ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
-            : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
+        kinds.includes('opamp')
+          ? 'Selecciona una fuente o un amplificador (intercambia sus entradas − y +).'
+          : kinds.includes('diode')
+            ? 'Selecciona una fuente o un diodo para voltear su polaridad.'
+            : canSimulate
+              ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
+              : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
       );
       return;
     }
@@ -742,7 +877,7 @@ export function CircuitBuilderField({
     const components = doc.components.filter((c) => selectedIds.includes(c.id));
     const wires = doc.wires.filter((w) => selectedIds.includes(w.id));
     const pts: GridPoint[] = [];
-    for (const c of components) pts.push(c.a, c.b);
+    for (const c of components) pts.push(...pointsOf(c));
     for (const w of wires) pts.push(...w.points);
     const maxX = pts.length ? Math.max(...pts.map((p) => p.x)) : 0;
     const minX = pts.length ? Math.min(...pts.map((p) => p.x)) : 0;
@@ -755,13 +890,7 @@ export function CircuitBuilderField({
     const newIds: string[] = [];
     for (const c of components) {
       const id = uid(c.kind);
-      next.components.push({
-        ...c,
-        id,
-        a: { x: c.a.x + dx, y: c.a.y },
-        b: { x: c.b.x + dx, y: c.b.y },
-        label: nextLabel(next, c.kind),
-      });
+      next.components.push({ ...shifted(c, dx, 0), id, label: nextLabel(next, c.kind) });
       newIds.push(id);
     }
     for (const w of wires) {
@@ -780,11 +909,7 @@ export function CircuitBuilderField({
   function nudge(dx: number, dy: number) {
     commit({
       ...doc,
-      components: doc.components.map((c) =>
-        selectedIds.includes(c.id)
-          ? { ...c, a: { x: c.a.x + dx, y: c.a.y + dy }, b: { x: c.b.x + dx, y: c.b.y + dy } }
-          : c,
-      ),
+      components: doc.components.map((c) => (selectedIds.includes(c.id) ? shifted(c, dx, dy) : c)),
       wires: doc.wires.map((w) =>
         selectedIds.includes(w.id)
           ? { ...w, points: w.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) }
@@ -961,7 +1086,10 @@ export function CircuitBuilderField({
       if (maxX - minX > 0.2 || maxY - minY > 0.2) {
         const box = { minX, minY, maxX, maxY };
         const ids: string[] = [];
-        for (const c of doc.components) if (boxIntersects(box, c.a, c.b)) ids.push(c.id);
+        for (const c of doc.components) {
+          const pts = pointsOf(c);
+          if (pts.some((p, i) => boxIntersects(box, p, pts[(i + 1) % pts.length]!))) ids.push(c.id);
+        }
         for (const w of doc.wires) {
           for (let i = 0; i < w.points.length - 1; i++) {
             if (boxIntersects(box, w.points[i]!, w.points[i + 1]!)) {
@@ -1057,9 +1185,13 @@ export function CircuitBuilderField({
     if (tool === 'select' || tool === 'wire' || tool === 'ground' || !pointer) return null;
     const start = nearestAnchor(doc, pointer.snapped, 0.75);
     const dir = ORIENTATIONS[orientation]!;
+    if (tool === 'opamp') {
+      const pts = opAmpPlacement(start, dir);
+      return { ...pts, conflict: opAmpConflicts(doc, pts) };
+    }
     const a = start;
     const b = { x: start.x + dir.x * COMP_LEN, y: start.y + dir.y * COMP_LEN };
-    return { a, b, conflict: segmentConflicts(doc, a, b) };
+    return { a, b, c: undefined, conflict: segmentConflicts(doc, a, b) };
   }, [tool, pointer, orientation, doc]);
 
   const previewWire = useMemo(() => {
@@ -1278,19 +1410,36 @@ export function CircuitBuilderField({
               const selected = selectedIds.includes(c.id);
               return (
                 <g key={c.id}>
-                  {selected && (
-                    <line
-                      x1={c.a.x}
-                      y1={c.a.y}
-                      x2={c.b.x}
-                      y2={c.b.y}
-                      stroke="currentColor"
-                      strokeWidth={7}
-                      strokeLinecap="round"
-                      vectorEffect="non-scaling-stroke"
-                      className="text-primary/25"
-                    />
-                  )}
+                  {selected &&
+                    (c.kind === 'opamp' && c.c ? (
+                      <polygon
+                        points={[
+                          opAmpFrame(c.a, c.b, c.c).at(0.5, -0.5),
+                          opAmpFrame(c.a, c.b, c.c).at(3.3, 1),
+                          opAmpFrame(c.a, c.b, c.c).at(0.5, 2.5),
+                        ]
+                          .map((p) => `${p.x},${p.y}`)
+                          .join(' ')}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={7}
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                        className="text-primary/25"
+                      />
+                    ) : (
+                      <line
+                        x1={c.a.x}
+                        y1={c.a.y}
+                        x2={c.b.x}
+                        y2={c.b.y}
+                        stroke="currentColor"
+                        strokeWidth={7}
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                        className="text-primary/25"
+                      />
+                    ))}
                   <ComponentShape c={c} selected={selected} />
                   <ComponentLabel component={c} />
                 </g>
@@ -1340,30 +1489,22 @@ export function CircuitBuilderField({
             )}
 
             {/* Puntos agarrables: terminales */}
-            {doc.components.flatMap((c) => [
-              <circle
-                key={`${c.id}-a`}
-                cx={c.a.x}
-                cy={c.a.y}
-                r={handleRadius(activeHandle, { kind: 'terminal', id: c.id, terminal: 'a' })}
-                className={
-                  isActiveHandle(activeHandle, { kind: 'terminal', id: c.id, terminal: 'a' })
-                    ? 'fill-primary'
-                    : 'fill-foreground'
-                }
-              />,
-              <circle
-                key={`${c.id}-b`}
-                cx={c.b.x}
-                cy={c.b.y}
-                r={handleRadius(activeHandle, { kind: 'terminal', id: c.id, terminal: 'b' })}
-                className={
-                  isActiveHandle(activeHandle, { kind: 'terminal', id: c.id, terminal: 'b' })
-                    ? 'fill-primary'
-                    : 'fill-foreground'
-                }
-              />,
-            ])}
+            {doc.components.flatMap((c) =>
+              componentTerminals(c).map(({ terminal, point }) => {
+                const handle: Handle = { kind: 'terminal', id: c.id, terminal };
+                return (
+                  <circle
+                    key={`${c.id}-${terminal}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r={handleRadius(activeHandle, handle)}
+                    className={
+                      isActiveHandle(activeHandle, handle) ? 'fill-primary' : 'fill-foreground'
+                    }
+                  />
+                );
+              }),
+            )}
 
             {/* Puntos agarrables: vértices de cable */}
             {doc.wires.flatMap((w) =>
@@ -1413,6 +1554,7 @@ export function CircuitBuilderField({
                     kind: tool as ComponentKind,
                     a: previewComponent.a,
                     b: previewComponent.b,
+                    c: previewComponent.c,
                     value: DEFAULT_VALUE[tool as ComponentKind],
                   }}
                 />
@@ -1567,6 +1709,22 @@ function handleRadius(active: Handle | null, handle: Handle): number {
 }
 
 function ComponentLabel({ component }: { component: CircuitComponent }) {
+  if (component.kind === 'opamp' && component.c) {
+    // La etiqueta del amplificador va dentro del triángulo, cerca de la base.
+    const p = opAmpFrame(component.a, component.b, component.c).at(1.7, 1);
+    return (
+      <text
+        x={p.x}
+        y={p.y}
+        fontSize={0.42}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className="fill-current select-none"
+      >
+        {componentLabel(component)}
+      </text>
+    );
+  }
   const m = midpoint(component.a, component.b);
   const vertical =
     Math.abs(component.b.y - component.a.y) > Math.abs(component.b.x - component.a.x);
@@ -1656,7 +1814,11 @@ function PropertiesPanel({
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">
             {componentLabel(single)} ·{' '}
-            {single.kind === 'diode' ? 'diodo (ánodo → cátodo)' : componentUnit(single.kind)}
+            {single.kind === 'diode'
+              ? 'diodo (ánodo → cátodo)'
+              : single.kind === 'opamp'
+                ? 'amplificador operacional ideal'
+                : componentUnit(single.kind)}
           </span>
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onRotate(single.id)}>
@@ -1749,21 +1911,24 @@ function ValueAndLabelEditor({
   return (
     <div className="flex flex-col gap-2">
       <div className={cn('grid grid-cols-2 gap-3', storage && 'sm:grid-cols-3')}>
-        <div>
-          <label htmlFor={`${component.id}-valor`} className="text-muted-foreground text-xs">
-            {diode ? 'V_K, umbral (V)' : `Valor (${unit})`}
-          </label>
-          <Input
-            id={`${component.id}-valor`}
-            type="text"
-            inputMode="decimal"
-            className="font-mono"
-            aria-invalid={invalid === 'valor'}
-            value={textValue}
-            onChange={(e) => setTextValue(e.target.value)}
-            onBlur={(e) => updateValue(e.target.value)}
-          />
-        </div>
+        {/* El amplificador ideal no tiene valor: solo etiqueta. */}
+        {component.kind !== 'opamp' && (
+          <div>
+            <label htmlFor={`${component.id}-valor`} className="text-muted-foreground text-xs">
+              {diode ? 'V_K, umbral (V)' : `Valor (${unit})`}
+            </label>
+            <Input
+              id={`${component.id}-valor`}
+              type="text"
+              inputMode="decimal"
+              className="font-mono"
+              aria-invalid={invalid === 'valor'}
+              value={textValue}
+              onChange={(e) => setTextValue(e.target.value)}
+              onBlur={(e) => updateValue(e.target.value)}
+            />
+          </div>
+        )}
         <div>
           <label htmlFor={`${component.id}-etiqueta`} className="text-muted-foreground text-xs">
             Etiqueta

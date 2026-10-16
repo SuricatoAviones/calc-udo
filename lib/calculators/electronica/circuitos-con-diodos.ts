@@ -158,7 +158,7 @@ function solveNetwork(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErro
     notices: [{ level: 'error' as const, message }],
   });
   const topology = buildTopology(input.circuit);
-  const structural = validateTopology(topology, { allowDiodes: true });
+  const structural = validateTopology(topology, { allow: ['diode'] });
   if (structural) return fail(structural.code, structural.message);
   let model = input.model;
   if (model === 'real') {

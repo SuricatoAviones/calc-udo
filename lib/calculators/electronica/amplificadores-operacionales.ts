@@ -1,5 +1,10 @@
 /**
- * Circuitos con amplificador operacional ideal (tierra virtual, I de entrada nula).
+ * Circuitos con amplificador operacional ideal (tierra virtual, I de entrada nula), en dos modos:
+ *
+ * - Circuito: la red se dibuja en el constructor (resistencias, fuentes y amplificadores) y se
+ *   resuelve por análisis de nodos con el cortocircuito virtual (`opamp-network.ts`), después de
+ *   verificar que cada amplificador tenga realimentación negativa.
+ * - Configuración: las configuraciones de los libros con sus fórmulas, descritas abajo.
  *
  * Lineales (Boylestad y Nashelsky, 10.ª ed. en español, sec. 10.5, 11.1 a 11.3):
  *   Inversor:      V_o = −(R_f/R₁)V₁                        (ec. 10.8)
@@ -17,7 +22,18 @@
  */
 import { z } from 'zod';
 import { toLatexNumber } from '@/lib/math/format';
+import {
+  buildTopology,
+  circuitDocumentSchema,
+  validateTopology,
+  type CircuitErrorCode,
+} from '../circuitos-y-sistemas/circuit';
 import type { Calculator, CalculatorResult, Notice, Series, Step, SummaryItem } from '../types';
+import {
+  solveOpAmpNetwork,
+  type OpAmpNetworkErrorCode,
+  type OpAmpNetworkValue,
+} from './opamp-network';
 import { engText } from './units';
 
 const n = (v: number, d = 6) => toLatexNumber(v, d);
@@ -36,6 +52,8 @@ const LINEAR = ['inversor', 'no-inversor', 'seguidor', 'sumador', 'diferencial']
 
 const inputSchema = z
   .object({
+    analysis: z.enum(['circuito', 'configuracion']),
+    network: circuitDocumentSchema,
     circuit: z.enum([...LINEAR, 'comparador', 'schmitt']),
     v1: finite('V₁'),
     v2: finite('V₂'),
@@ -54,6 +72,7 @@ const inputSchema = z
     vp: optionalPositive('el pico de la senoidal'),
   })
   .superRefine((v, ctx) => {
+    if (v.analysis === 'circuito') return;
     if ((v.circuit === 'comparador' || v.circuit === 'schmitt') && v.vsat === undefined) {
       ctx.addIssue({
         code: 'custom',
@@ -78,9 +97,10 @@ export type OpAmpInput = z.infer<typeof inputSchema>;
 export type OpAmpValue =
   | { kind: 'lineal'; vo: number; gain?: number; saturated: boolean }
   | { kind: 'comparador'; vo: number; vref: number; duty?: number }
-  | { kind: 'schmitt'; b?: number; pcs: number; pci: number; h: number };
+  | { kind: 'schmitt'; b?: number; pcs: number; pci: number; h: number }
+  | ({ kind: 'red' } & OpAmpNetworkValue);
 
-export type OpAmpErrorCode = never;
+export type OpAmpErrorCode = OpAmpNetworkErrorCode | CircuitErrorCode;
 
 const NAMES: Record<OpAmpInput['circuit'], string> = {
   inversor: 'Amplificador inversor',
@@ -403,7 +423,50 @@ function solveSchmitt(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
   };
 }
 
+function solveNetwork(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErrorCode> {
+  const fail = (code: OpAmpErrorCode, message: string, steps: Step[] = []) => ({
+    ok: false as const,
+    error: { code, message },
+    steps,
+    tables: [],
+    series: [],
+    notices: [{ level: 'error' as const, message }],
+  });
+  const topology = buildTopology(input.network);
+  const structural = validateTopology(topology, { allow: ['opamp'] });
+  if (structural) return fail(structural.code, structural.message);
+  const notices: Notice[] = [];
+  if (!input.network.components.some((c) => c.kind === 'opamp')) {
+    notices.push({
+      level: 'info',
+      message: 'El circuito no tiene amplificadores: se resuelve como un análisis de nodos común.',
+    });
+  }
+  const outcome = solveOpAmpNetwork(topology, input.vsat);
+  if (!outcome.ok) return fail(outcome.code, outcome.message, outcome.steps);
+  const summary: SummaryItem[] = outcome.value.opamps.flatMap((op) => [
+    {
+      label: `${op.label}: salida`,
+      value: `v_o = ${volts(op.vout)}${op.saturated ? '\\ (\\text{saturado})' : ''}`,
+      emphasis: true,
+    },
+    ...(op.gain !== undefined
+      ? [{ label: `${op.label}: ganancia`, value: `A_v = ${n(op.gain)}` }]
+      : []),
+  ]);
+  return {
+    ok: true,
+    value: { kind: 'red', ...outcome.value },
+    summary,
+    steps: outcome.steps,
+    tables: outcome.tables,
+    series: [],
+    notices: [...notices, ...outcome.notices],
+  };
+}
+
 export function solveOpAmp(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErrorCode> {
+  if (input.analysis === 'circuito') return solveNetwork(input);
   if (input.circuit === 'comparador') return solveComparator(input);
   if (input.circuit === 'schmitt') return solveSchmitt(input);
   return solveLinear(input);
@@ -426,6 +489,77 @@ export const amplificadoresOperacionales: Calculator<OpAmpInput, OpAmpValue, OpA
   inputSchema,
   // Boylestad, ejemplo 10.5: inversor con R₁ = 100 kΩ, R_f = 500 kΩ y V₁ = 2 V.
   example: {
+    analysis: 'circuito',
+    // Inversor dibujado en el tablero: V1 = 2 V, R1 = 100 kΩ, Rf = 500 kΩ (ejemplo 10.5).
+    network: {
+      components: [
+        {
+          id: 'v1',
+          kind: 'voltage-source',
+          a: { x: 0, y: 0 },
+          b: { x: 0, y: 4 },
+          value: 2,
+          label: 'V1',
+        },
+        {
+          id: 'r1',
+          kind: 'resistor',
+          a: { x: 0, y: 0 },
+          b: { x: 4, y: 0 },
+          value: 100e3,
+          label: 'R1',
+        },
+        {
+          id: 'rf',
+          kind: 'resistor',
+          a: { x: 4, y: -2 },
+          b: { x: 8, y: -2 },
+          value: 500e3,
+          label: 'Rf',
+        },
+        {
+          id: 'u1',
+          kind: 'opamp',
+          a: { x: 4, y: 0 },
+          b: { x: 4, y: 2 },
+          c: { x: 8, y: 1 },
+          value: 0,
+          label: 'U1',
+        },
+      ],
+      wires: [
+        {
+          id: 'w1',
+          points: [
+            { x: 4, y: 0 },
+            { x: 4, y: -2 },
+          ],
+        },
+        {
+          id: 'w2',
+          points: [
+            { x: 8, y: -2 },
+            { x: 8, y: 1 },
+          ],
+        },
+        {
+          id: 'w3',
+          points: [
+            { x: 4, y: 2 },
+            { x: 4, y: 4 },
+          ],
+        },
+        {
+          id: 'w4',
+          points: [
+            { x: 0, y: 4 },
+            { x: 4, y: 4 },
+          ],
+        },
+      ],
+      ground: { x: 0, y: 4 },
+    },
+    // Configuración: el mismo inversor con sus fórmulas.
     circuit: 'inversor',
     v1: 2,
     v2: 1,
