@@ -16,7 +16,7 @@ export interface GridPoint {
 }
 
 export type ComponentKind =
-  'resistor' | 'voltage-source' | 'current-source' | 'capacitor' | 'inductor';
+  'resistor' | 'voltage-source' | 'current-source' | 'capacitor' | 'inductor' | 'diode';
 
 /** Elementos que almacenan energía: sus variables (v_C, i_L) son las variables de estado. */
 export const STORAGE_KINDS: readonly ComponentKind[] = ['capacitor', 'inductor'];
@@ -28,6 +28,12 @@ export const RESISTIVE_KINDS: readonly ComponentKind[] = [
   'current-source',
 ];
 
+/**
+ * Paleta de la calculadora de circuitos con diodos (Electrónica). El diodo va del ánodo (`a`) al
+ * cátodo (`b`) y su valor es el voltaje de umbral V_K.
+ */
+export const DIODE_KINDS: readonly ComponentKind[] = [...RESISTIVE_KINDS, 'diode'];
+
 export interface CircuitComponent {
   id: string;
   kind: ComponentKind;
@@ -35,7 +41,7 @@ export interface CircuitComponent {
   a: GridPoint;
   /** Terminal negativo/2. */
   b: GridPoint;
-  /** Valor numérico: Ω, V, A, F o H según el tipo. */
+  /** Valor numérico: Ω, V, A, F o H según el tipo (en un diodo, su V_K en V). */
   value: number;
   label?: string;
   /**
@@ -65,7 +71,7 @@ const gridPointSchema = z.object({
 
 const componentSchema = z.object({
   id: z.string().min(1),
-  kind: z.enum(['resistor', 'voltage-source', 'current-source', 'capacitor', 'inductor']),
+  kind: z.enum(['resistor', 'voltage-source', 'current-source', 'capacitor', 'inductor', 'diode']),
   a: gridPointSchema,
   b: gridPointSchema,
   value: z.number().finite(),
@@ -91,6 +97,7 @@ export type CircuitErrorCode =
   | 'corte-de-fuentes-de-corriente'
   | 'nodo-sin-referencia'
   | 'elementos-almacenadores'
+  | 'elementos-no-lineales'
   | 'singular';
 
 export interface CircuitError {
@@ -160,6 +167,7 @@ const KIND_LABEL: Record<ComponentKind, string> = {
   'current-source': 'I',
   capacitor: 'C',
   inductor: 'L',
+  diode: 'D',
 };
 
 const UNIT_LABEL: Record<ComponentKind, string> = {
@@ -168,6 +176,7 @@ const UNIT_LABEL: Record<ComponentKind, string> = {
   'current-source': 'A',
   capacitor: 'F',
   inductor: 'H',
+  diode: 'V',
 };
 
 export function componentLabel(c: CircuitComponent): string {
@@ -432,13 +441,20 @@ function hasCurrentSourceCut(topology: CircuitTopology): boolean {
 /**
  * Valida un circuito construido. Devuelve `null` si no hay problema estructural.
  */
-export function validateTopology(topology: CircuitTopology): CircuitError | null {
+export function validateTopology(
+  topology: CircuitTopology,
+  options: { allowDiodes?: boolean } = {},
+): CircuitError | null {
   const { nodes, components, referenceNode } = topology;
   if (components.length === 0) {
     return { code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
   }
   const storage = storageElementsError(components.map((c) => c.component));
   if (storage) return storage;
+  if (!options.allowDiodes) {
+    const diodes = diodeElementsError(components.map((c) => c.component));
+    if (diodes) return diodes;
+  }
 
   // Cada nodo con componentes debe estar conectado a la referencia.
   const uf = new UnionFind();
@@ -489,6 +505,16 @@ export function storageElementsError(components: CircuitComponent[]): CircuitErr
     code: 'elementos-almacenadores',
     message:
       'El circuito tiene capacitores o inductores: este análisis es de circuitos resistivos de cd. Usa la calculadora de ecuaciones de estado para circuitos con elementos que almacenan energía.',
+  };
+}
+
+/** Los diodos no son lineales: solo los resuelve la calculadora de circuitos con diodos. */
+export function diodeElementsError(components: CircuitComponent[]): CircuitError | null {
+  if (!components.some((c) => c.kind === 'diode')) return null;
+  return {
+    code: 'elementos-no-lineales',
+    message:
+      'El circuito tiene diodos: este análisis es de circuitos lineales. Usa la calculadora de circuitos con diodos (Electrónica).',
   };
 }
 

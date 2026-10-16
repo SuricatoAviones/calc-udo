@@ -1,6 +1,11 @@
 /**
- * Diodo en serie con una resistencia y una fuente de cd: estado del diodo, recta de carga, punto
- * de operación y potencias, con los modelos de los libros.
+ * Circuitos con diodos, en dos modos:
+ *
+ * - Circuito: el estudiante dibuja la red en el constructor (resistencias, fuentes y diodos con
+ *   su V_K) y se resuelve con el método de los estados supuestos (`diode-network.ts`), con los
+ *   modelos ideal, segunda y tercera aproximación (Boylestad, sec. 2.3 a 2.5, ejemplos 2.7 a 2.15).
+ * - Serie: un diodo en serie con una resistencia y una fuente de cd, con su recta de carga y punto
+ *   de operación; admite además la característica real del diodo.
  *
  *   Ideal:              V_D = 0 al conducir (interruptor cerrado).
  *   Segunda aproximación: V_D = V_K (0.7 V el silicio, 0.3 V el germanio).
@@ -15,7 +20,26 @@
  */
 import { z } from 'zod';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
-import type { Calculator, CalculatorResult, ResultTable, Series, Step } from '../types';
+import {
+  buildTopology,
+  circuitDocumentSchema,
+  validateTopology,
+  type CircuitErrorCode,
+} from '../circuitos-y-sistemas/circuit';
+import type {
+  Calculator,
+  CalculatorResult,
+  Notice,
+  ResultTable,
+  Series,
+  Step,
+  SummaryItem,
+} from '../types';
+import {
+  solveDiodeNetwork,
+  type DiodeNetworkErrorCode,
+  type DiodeNetworkValue,
+} from './diode-network';
 import { engTex, engText } from './units';
 
 const n = (v: number, d = 6) => toLatexNumber(v, d);
@@ -27,24 +51,40 @@ const positive = (what: string) =>
 const nonNegative = (what: string) =>
   finite(what).refine((v) => v >= 0, `${what} no puede ser negativo.`);
 
-const inputSchema = z.object({
-  source: finite('E'),
-  resistance: positive('R'),
-  orientation: z.enum(['directa', 'inversa']),
-  model: z.enum(['ideal', 'segunda', 'tercera', 'real']),
-  vk: nonNegative('V_K'),
-  rb: nonNegative('r_B'),
-  is: positive('I_S'),
-  n: finite('n').refine(
-    (v) => v >= 1 && v <= 3,
-    'n debe estar entre 1 y 3 (suele estar entre 1 y 2).',
-  ),
-  vt: positive('V_T'),
-});
+const inputSchema = z
+  .object({
+    mode: z.enum(['circuito', 'serie']),
+    circuit: circuitDocumentSchema,
+    source: finite('E'),
+    resistance: positive('R'),
+    orientation: z.enum(['directa', 'inversa']),
+    model: z.enum(['ideal', 'segunda', 'tercera', 'real']),
+    vk: nonNegative('V_K'),
+    rb: nonNegative('r_B'),
+    is: positive('I_S'),
+    n: finite('n').refine(
+      (v) => v >= 1 && v <= 3,
+      'n debe estar entre 1 y 3 (suele estar entre 1 y 2).',
+    ),
+    vt: positive('V_T'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.mode === 'circuito' && v.model === 'real') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['model'],
+        message:
+          'En el circuito dibujado se usan los modelos ideal, segunda o tercera aproximación; la característica real es para el diodo en serie.',
+      });
+    }
+  });
 
 export type DiodeInput = z.infer<typeof inputSchema>;
 
-export interface DiodeValue {
+export type DiodeValue = DiodeSeriesValue | (DiodeNetworkValue & { mode: 'circuito' });
+
+export interface DiodeSeriesValue {
+  mode: 'serie';
   conducting: boolean;
   /** Corriente en el sentido de la flecha del diodo. */
   id: number;
@@ -56,7 +96,7 @@ export interface DiodeValue {
   iterations?: number;
 }
 
-export type DiodeErrorCode = 'no-converge';
+export type DiodeErrorCode = 'no-converge' | DiodeNetworkErrorCode | CircuitErrorCode;
 
 const MODEL_NAME: Record<DiodeInput['model'], string> = {
   ideal: 'modelo ideal',
@@ -99,6 +139,66 @@ function solveShockley(input: DiodeInput, e: number) {
 }
 
 export function solveDiode(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErrorCode> {
+  return input.mode === 'circuito' ? solveNetwork(input) : solveSeries(input);
+}
+
+function solveNetwork(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErrorCode> {
+  const notices: Notice[] = [];
+  const fail = (
+    code: DiodeErrorCode,
+    message: string,
+    steps: Step[] = [],
+    tables: ResultTable[] = [],
+  ) => ({
+    ok: false as const,
+    error: { code, message },
+    steps,
+    tables,
+    series: [],
+    notices: [{ level: 'error' as const, message }],
+  });
+  const topology = buildTopology(input.circuit);
+  const structural = validateTopology(topology, { allowDiodes: true });
+  if (structural) return fail(structural.code, structural.message);
+  let model = input.model;
+  if (model === 'real') {
+    // El schema lo impide; si llega, se usa la segunda aproximación.
+    model = 'segunda';
+    notices.push({
+      level: 'warning',
+      message: 'En el circuito dibujado se usa la segunda aproximación.',
+    });
+  }
+  if (!input.circuit.components.some((c) => c.kind === 'diode')) {
+    notices.push({
+      level: 'info',
+      message: 'El circuito no tiene diodos: se resuelve como un análisis de nodos común.',
+    });
+  }
+  const outcome = solveDiodeNetwork(topology, model, model === 'tercera' ? input.rb : 0);
+  if (!outcome.ok) return fail(outcome.code, outcome.message, outcome.steps, outcome.tables);
+
+  const { diodes } = outcome.value;
+  const summary: SummaryItem[] = diodes.slice(0, 8).map((d) => ({
+    label: d.label,
+    value: d.on
+      ? `\\text{encendido},\\ I_D = ${engTex(d.current, 'A', 5)}`
+      : `\\text{apagado},\\ V_D = ${Number.isFinite(d.vd) ? `${n(d.vd, 5)}\\ \\text{V}` : '\\text{indeterminado}'}`,
+    emphasis: d.on,
+  }));
+  summary.push({ label: 'Suposiciones', value: String(outcome.value.assumptions) });
+  return {
+    ok: true,
+    value: { mode: 'circuito', ...outcome.value },
+    summary,
+    steps: outcome.steps,
+    tables: outcome.tables,
+    series: [],
+    notices: [...notices, ...outcome.notices],
+  };
+}
+
+function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErrorCode> {
   const { resistance: R, model } = input;
   // Voltaje que polariza el diodo en directa (con la orientación elegida).
   const e = input.orientation === 'directa' ? input.source : -input.source;
@@ -294,7 +394,7 @@ export function solveDiode(input: DiodeInput): CalculatorResult<DiodeValue, Diod
 
   return {
     ok: true,
-    value: { conducting, id, vd, vr, pd, pr, iterations },
+    value: { mode: 'serie', conducting, id, vd, vr, pd, pr, iterations },
     summary: [
       { label: 'Estado', value: conducting ? '\\text{encendido}' : '\\text{apagado}' },
       { label: 'I_D', value: engTex(id, 'A', 5), emphasis: true },
@@ -314,18 +414,81 @@ export const circuitosConDiodos: Calculator<DiodeInput, DiodeValue, DiodeErrorCo
     id: 'circuitos-con-diodos',
     title: 'Circuitos con diodos',
     summary:
-      'Diodo en serie: estado, recta de carga y punto Q con el modelo ideal, las aproximaciones y la ecuación de Shockley.',
+      'Dibuja una red con diodos y resuélvela por estados supuestos, o analiza un diodo en serie con su recta de carga, con el modelo ideal, las aproximaciones y la ecuación de Shockley.',
     citations: [
       {
         sourceId: 'boylestad-nashelsky-1997',
-        locator: '10.ª ed. en español, sec. 2.2 y 2.3, ejemplos 2.1 a 2.7',
+        locator: '10.ª ed. en español, sec. 2.2 a 2.5, ejemplos 2.1 a 2.15',
       },
       { sourceId: 'malvino-1999', locator: 'Sec. 3-2 a 3-4, ejemplos 3-6, 3-8 y 3-9' },
     ],
   },
   inputSchema,
-  // Boylestad, ejemplo 2.4: E = 8 V, R = 2.2 kΩ y un diodo de silicio.
+  // Circuito: Boylestad, ejemplo 2.13 (E = 20 V, D1 y D2 de silicio, R1 = 3.3 kΩ en paralelo con
+  // D2 y R2 = 5.6 kΩ). Serie: ejemplo 2.4 (E = 8 V, R = 2.2 kΩ y un diodo de silicio).
   example: {
+    mode: 'circuito',
+    circuit: {
+      components: [
+        {
+          id: 'e',
+          kind: 'voltage-source',
+          a: { x: 0, y: 0 },
+          b: { x: 0, y: 6 },
+          value: 20,
+          label: 'E',
+        },
+        { id: 'd1', kind: 'diode', a: { x: 2, y: 0 }, b: { x: 4, y: 0 }, value: 0.7, label: 'D1' },
+        { id: 'd2', kind: 'diode', a: { x: 6, y: 0 }, b: { x: 6, y: 3 }, value: 0.7, label: 'D2' },
+        {
+          id: 'r1',
+          kind: 'resistor',
+          a: { x: 10, y: 0 },
+          b: { x: 10, y: 3 },
+          value: 3300,
+          label: 'R1',
+        },
+        {
+          id: 'r2',
+          kind: 'resistor',
+          a: { x: 6, y: 3 },
+          b: { x: 6, y: 6 },
+          value: 5600,
+          label: 'R2',
+        },
+      ],
+      wires: [
+        {
+          id: 'w1',
+          points: [
+            { x: 0, y: 0 },
+            { x: 2, y: 0 },
+          ],
+        },
+        {
+          id: 'w2',
+          points: [
+            { x: 4, y: 0 },
+            { x: 10, y: 0 },
+          ],
+        },
+        {
+          id: 'w3',
+          points: [
+            { x: 6, y: 3 },
+            { x: 10, y: 3 },
+          ],
+        },
+        {
+          id: 'w4',
+          points: [
+            { x: 0, y: 6 },
+            { x: 6, y: 6 },
+          ],
+        },
+      ],
+      ground: { x: 0, y: 6 },
+    },
     source: 8,
     resistance: 2200,
     orientation: 'directa',

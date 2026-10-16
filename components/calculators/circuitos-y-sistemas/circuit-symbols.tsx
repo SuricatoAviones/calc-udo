@@ -115,6 +115,29 @@ export function InductorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
   );
 }
 
+/**
+ * Diodo: triángulo que apunta del ánodo (`a`) al cátodo (`b`), con la barra en el cátodo. La
+ * flecha es el sentido en que conduce.
+ */
+export function DiodeSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+  const m = midpoint(a, b);
+  const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
+  const w = 0.26;
+  return (
+    <g transform={`translate(${m.x} ${m.y}) rotate(${angleOf(a, b)})`}>
+      <line x1={-half} y1={0} x2={-w} y2={0} {...stroke} />
+      <line x1={w} y1={0} x2={half} y2={0} {...stroke} />
+      <path
+        d={`M ${-w} -0.3 L ${w} 0 L ${-w} 0.3 Z`}
+        {...stroke}
+        fill="currentColor"
+        fillOpacity={0.15}
+      />
+      <line x1={w} y1={-0.3} x2={w} y2={0.3} {...stroke} strokeWidth={2.4} />
+    </g>
+  );
+}
+
 export function GroundSymbol({ p }: { p: GridPoint }) {
   return (
     <g transform={`translate(${p.x} ${p.y})`}>
@@ -126,8 +149,8 @@ export function GroundSymbol({ p }: { p: GridPoint }) {
 }
 
 export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?: boolean }) {
-  // Capacitor e inductor dibujan sus propios terminales (la línea no debe cruzar las placas).
-  const drawsLeads = c.kind === 'capacitor' || c.kind === 'inductor';
+  // Capacitor, inductor y diodo dibujan sus propios terminales (la línea no debe cruzar el cuerpo).
+  const drawsLeads = c.kind === 'capacitor' || c.kind === 'inductor' || c.kind === 'diode';
   return (
     <g className={selected ? 'text-primary' : 'text-foreground'}>
       {!drawsLeads && <line x1={c.a.x} y1={c.a.y} x2={c.b.x} y2={c.b.y} {...stroke} />}
@@ -136,6 +159,7 @@ export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?
       {c.kind === 'current-source' && <CurrentSourceSymbol a={c.a} b={c.b} />}
       {c.kind === 'capacitor' && <CapacitorSymbol a={c.a} b={c.b} />}
       {c.kind === 'inductor' && <InductorSymbol a={c.a} b={c.b} />}
+      {c.kind === 'diode' && <DiodeSymbol a={c.a} b={c.b} />}
     </g>
   );
 }
@@ -198,6 +222,15 @@ export function PaletteIcon({
           d="M2 14 L4 14 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 a2 2 0 0 1 4 0 L22 14"
           {...common}
         />
+      </svg>
+    );
+  if (kind === 'diode')
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <line x1="2" y1="12" x2="8" y2="12" {...common} />
+        <line x1="16" y1="12" x2="22" y2="12" {...common} />
+        <path d="M8 6 L16 12 L8 18 Z" {...common} />
+        <line x1="16" y1="6" x2="16" y2="18" {...common} strokeWidth={2.2} />
       </svg>
     );
   if (kind === 'voltage-source')

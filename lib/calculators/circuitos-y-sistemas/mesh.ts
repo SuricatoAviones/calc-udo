@@ -21,6 +21,7 @@ import {
   componentLabel,
   componentUnit,
   storageElementsError,
+  diodeElementsError,
   type CircuitComponent,
   type CircuitDocument,
   type GridPoint,
@@ -66,6 +67,7 @@ export type MeshErrorCode =
   | 'rama-colgante'
   | 'malla-sin-componentes'
   | 'elementos-almacenadores'
+  | 'elementos-no-lineales'
   | 'singular';
 
 export interface MeshSolve {
@@ -199,6 +201,8 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
   }
   const storage = storageElementsError(doc.components);
   if (storage) return { ok: false, code: 'elementos-almacenadores', message: storage.message };
+  const diodes = diodeElementsError(doc.components);
+  if (diodes) return { ok: false, code: 'elementos-no-lineales', message: diodes.message };
   const planar = buildPlanarFaces(doc);
   const { edges, faceOfHalf, faces, boundedFaces, meshOfFace } = planar;
 

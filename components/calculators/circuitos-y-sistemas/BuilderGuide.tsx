@@ -39,6 +39,12 @@ const ELEMENTS: Record<ComponentKind, { name: string; unit: string; convention: 
     unit: 'H',
     convention: 'La flecha es el sentido de i_L; su valor inicial es i_L(0).',
   },
+  diode: {
+    name: 'Diodo',
+    unit: 'V',
+    convention:
+      'Conduce en el sentido del triángulo, del ánodo a la barra (cátodo). Su valor es el umbral V_K: 0.7 V silicio, 0.3 V germanio, ~2 V un LED.',
+  },
 };
 
 /** Tecla o combinación: `Ctrl + Z` se dibuja como dos teclas. */
@@ -127,6 +133,7 @@ export function BuilderGuide({
   const coarse = useCoarsePointer();
   const tab: Tab = chosenTab ?? (coarse ? 'tactil' : 'raton');
   const hasStorage = kinds.includes('capacitor') || kinds.includes('inductor');
+  const hasDiodes = kinds.includes('diode');
 
   function toggle() {
     setOpen((current) => !current);
@@ -152,7 +159,9 @@ export function BuilderGuide({
       title: 'Calcula',
       text: canSimulate
         ? 'Pulsa Calcular para ver el procedimiento paso a paso. Simular (K) anima la corriente en el lienzo.'
-        : 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.',
+        : hasDiodes
+          ? 'Pulsa Calcular: se supone el estado de cada diodo, se resuelve el circuito y se verifica cada suposición.'
+          : 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.',
       icon: <Calculator className="size-5" aria-hidden />,
     },
   ];
@@ -240,6 +249,8 @@ export function BuilderGuide({
                 Los valores admiten notación de ingeniería: 2.2k, 470m, 10µ (o 10u).
                 {hasStorage &&
                   ' Al seleccionar un capacitor o un inductor también puedes escribir su valor inicial.'}
+                {hasDiodes &&
+                  ' Cada diodo tiene su propio umbral V_K, así puedes mezclar silicio, germanio y LED.'}
               </span>
             </p>
           </div>
@@ -296,7 +307,8 @@ export function BuilderGuide({
                   <Tip title="Girar y voltear">
                     R gira la pieza que vas a colocar o la selección; F voltea la polaridad de
                     fuentes
-                    {hasStorage ? ', capacitores e inductores' : ''}.
+                    {hasStorage ? ', capacitores e inductores' : ''}
+                    {hasDiodes ? ' y diodos (cambia el ánodo por el cátodo)' : ''}.
                   </Tip>
                   <Tip title="Valores y etiquetas">
                     Selecciona un componente y edita su valor y su etiqueta en el panel que aparece

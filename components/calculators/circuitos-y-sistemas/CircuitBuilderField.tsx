@@ -36,7 +36,6 @@ import {
   nextLabel,
   parseEngineering,
   RESISTIVE_KINDS,
-  STORAGE_KINDS,
   validateTopology,
   type CircuitComponent,
   type CircuitDocument,
@@ -66,6 +65,7 @@ const DEFAULT_VALUE: Record<ComponentKind, number> = {
   'current-source': 0.001,
   capacitor: 1e-6,
   inductor: 1e-3,
+  diode: 0.7,
 };
 
 const KIND_TITLE: Record<ComponentKind, string> = {
@@ -74,6 +74,7 @@ const KIND_TITLE: Record<ComponentKind, string> = {
   'current-source': 'Fuente de corriente',
   capacitor: 'Capacitor',
   inductor: 'Inductor',
+  diode: 'Diodo',
 };
 
 type Tool = 'select' | 'wire' | ComponentKind | 'ground';
@@ -263,8 +264,8 @@ export function CircuitBuilderField({
   /** Componentes de la paleta (por defecto, los de los circuitos resistivos de cd). */
   kinds?: readonly ComponentKind[];
 }) {
-  // La simulación en vivo es de cd resistiva: con capacitores o inductores no aplica.
-  const canSimulate = !kinds.some((k) => STORAGE_KINDS.includes(k));
+  // La simulación en vivo es de cd resistiva: con capacitores, inductores o diodos no aplica.
+  const canSimulate = kinds.every((k) => RESISTIVE_KINDS.includes(k));
   const { control, getValues } = useFormContext();
   const { field } = useController({ name, control, defaultValue: emptyCircuit() });
   const doc: CircuitDocument = (field.value as CircuitDocument | undefined) ?? emptyCircuit();
@@ -720,9 +721,11 @@ export function CircuitBuilderField({
     );
     if (sources.length === 0) {
       flashMessage(
-        canSimulate
-          ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
-          : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
+        kinds.includes('diode')
+          ? 'Selecciona una fuente o un diodo para voltear su polaridad.'
+          : canSimulate
+            ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
+            : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
       );
       return;
     }
@@ -1567,7 +1570,11 @@ function ComponentLabel({ component }: { component: CircuitComponent }) {
   const m = midpoint(component.a, component.b);
   const vertical =
     Math.abs(component.b.y - component.a.y) > Math.abs(component.b.x - component.a.x);
-  const text = `${componentLabel(component)} = ${formatEngineering(component.value, componentUnit(component.kind))}`;
+  // En un diodo el valor es su V_K: se escribe «D1 · 0.7 V», como en los libros.
+  const text =
+    component.kind === 'diode'
+      ? `${componentLabel(component)} · ${Number(component.value.toFixed(3))} V`
+      : `${componentLabel(component)} = ${formatEngineering(component.value, componentUnit(component.kind))}`;
   if (vertical) {
     return (
       <text
@@ -1648,7 +1655,8 @@ function PropertiesPanel({
       <div className="flex flex-col gap-3 rounded-md border p-3" key={single.id}>
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">
-            {componentLabel(single)} · {componentUnit(single.kind)}
+            {componentLabel(single)} ·{' '}
+            {single.kind === 'diode' ? 'diodo (ánodo → cátodo)' : componentUnit(single.kind)}
           </span>
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onRotate(single.id)}>
@@ -1700,8 +1708,11 @@ function ValueAndLabelEditor({
 }) {
   const unit = componentUnit(component.kind);
   const storage = component.kind === 'capacitor' || component.kind === 'inductor';
+  const diode = component.kind === 'diode';
   const initialUnit = component.kind === 'capacitor' ? 'V' : 'A';
-  const [textValue, setTextValue] = useState(() => formatEngineering(component.value, unit));
+  const [textValue, setTextValue] = useState(() =>
+    diode ? `${Number(component.value.toFixed(4))} V` : formatEngineering(component.value, unit),
+  );
   const [textInitial, setTextInitial] = useState(() =>
     formatEngineering(component.initial ?? 0, initialUnit),
   );
@@ -1716,7 +1727,8 @@ function ValueAndLabelEditor({
 
   function updateValue(raw: string) {
     const parsed = parseEngineering(raw);
-    if (parsed === null || parsed <= 0) {
+    // V_K puede ser 0 (diodo ideal); los demás valores deben ser positivos.
+    if (parsed === null || parsed < 0 || (parsed === 0 && !diode)) {
       setInvalid('valor');
       return;
     }
@@ -1739,7 +1751,7 @@ function ValueAndLabelEditor({
       <div className={cn('grid grid-cols-2 gap-3', storage && 'sm:grid-cols-3')}>
         <div>
           <label htmlFor={`${component.id}-valor`} className="text-muted-foreground text-xs">
-            Valor ({unit})
+            {diode ? 'V_K, umbral (V)' : `Valor (${unit})`}
           </label>
           <Input
             id={`${component.id}-valor`}
@@ -1785,7 +1797,9 @@ function ValueAndLabelEditor({
       {invalid && (
         <p className="text-destructive text-xs" role="alert">
           {invalid === 'valor'
-            ? 'Escribe un número positivo, p. ej. 2.2k, 470m o 10µ.'
+            ? diode
+              ? 'Escribe el umbral en voltios: 0.7 (silicio), 0.3 (germanio), 1.8 (LED rojo).'
+              : 'Escribe un número positivo, p. ej. 2.2k, 470m o 10µ.'
             : 'Escribe un número, p. ej. 5, −0.3 o 150m.'}
         </p>
       )}
