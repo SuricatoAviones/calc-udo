@@ -31,6 +31,14 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   convolucion: () => import('./circuitos-y-sistemas/Convolucion'),
   'transformada-z': () => import('./circuitos-y-sistemas/TransformadaZ'),
 
+  // Electrónica
+  'circuitos-con-diodos': () => import('./electronica/CircuitosConDiodos'),
+  rectificadores: () => import('./electronica/Rectificadores'),
+  'filtro-y-regulacion': () => import('./electronica/FiltroYRegulacion'),
+  'polarizacion-de-transistores': () => import('./electronica/PolarizacionDeTransistores'),
+  'analisis-ac-de-transistores': () => import('./electronica/AnalisisAcDeTransistores'),
+  'amplificadores-operacionales': () => import('./electronica/AmplificadoresOperacionales'),
+
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),
   'equivalencia-logica': () => import('./logica-formal-y-algoritmos/Equivalence'),

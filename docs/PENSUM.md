@@ -36,7 +36,7 @@ para que el mapa esté completo.
 | 071-4633 | [Modelos de Operaciones I](#modelos-de-operaciones-1) | Semestre VII | Optimización de Operaciones (071-3663) | 3 (2T-2P) | 11 | 0 | 0 |
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
 | 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 16 | 0 | 0 |
-| 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 0 | 0 | 6 |
+| 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 6 | 0 | 0 |
 | 071-4643 | [Sistemas Dinámicos](#sistemas-dinamicos) | Semestre VII | Electrónica (072-3533) | 3 (2T-2P) | 0 | 0 | 13 |
 | 072-4641 | [Laboratorio de Circuitos y Electrónica](#laboratorio-de-circuitos-y-electronica) | Semestre VII | Electrónica (072-3533) | 1 (0T-3P) | 0 | 0 | 3 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
@@ -453,12 +453,12 @@ de esta materia; solo aparece en la malla curricular.
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
 | Teoría de semiconductores | _Tema conceptual, sin calculadora_ | — | — |
-| El diodo | Circuitos con diodos | 🗺️ Roadmap | `/electronica/el-diodo/circuitos-con-diodos/` |
-| Fuentes de alimentación | Rectificadores | 🗺️ Roadmap | `/electronica/fuentes-de-alimentacion/rectificadores/` |
-| Fuentes de alimentación | Filtrado y regulación | 🗺️ Roadmap | `/electronica/fuentes-de-alimentacion/filtro-y-regulacion/` |
-| Transistores | Polarización de transistores (análisis DC) | 🗺️ Roadmap | `/electronica/transistores/polarizacion-de-transistores/` |
-| Transistores | Análisis AC con parámetros híbridos | 🗺️ Roadmap | `/electronica/transistores/analisis-ac-de-transistores/` |
-| Amplificadores operacionales | Amplificadores operacionales | 🗺️ Roadmap | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
+| El diodo | Circuitos con diodos | ✅ Implementada | `/electronica/el-diodo/circuitos-con-diodos/` |
+| Fuentes de alimentación | Rectificadores | ✅ Implementada | `/electronica/fuentes-de-alimentacion/rectificadores/` |
+| Fuentes de alimentación | Filtrado y regulación | ✅ Implementada | `/electronica/fuentes-de-alimentacion/filtro-y-regulacion/` |
+| Transistores | Polarización de transistores (análisis DC) | ✅ Implementada | `/electronica/transistores/polarizacion-de-transistores/` |
+| Transistores | Análisis AC con parámetros híbridos | ✅ Implementada | `/electronica/transistores/analisis-ac-de-transistores/` |
+| Amplificadores operacionales | Amplificadores operacionales | ✅ Implementada | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
 
 **Bibliografía**
 
@@ -523,7 +523,7 @@ de esta materia; solo aparece en la malla curricular.
 | Resonancia | Resonancia en circuitos RLC | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/resonancia/resonancia-rlc/` |
 | Diodos y fuentes de alimentación | Fuente de alimentación regulada por Zener | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/diodos-y-fuentes/fuente-regulada-por-zener/` |
 | Transistores y amplificadores | Amplificador emisor común | 🗺️ Roadmap | `/laboratorio-de-circuitos-y-electronica/transistores/amplificador-emisor-comun/` |
-| Amplificadores operacionales | ↪︎ Amplificadores operacionales | 🗺️ Roadmap | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
+| Amplificadores operacionales | ↪︎ Amplificadores operacionales | ✅ Implementada | `/electronica/amplificadores-operacionales/amplificadores-operacionales/` |
 
 **Bibliografía**
 
