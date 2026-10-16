@@ -92,6 +92,12 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   inversa, las EDO, la convolución y las ecuaciones de estado), `z-transform.ts` (pares Z e
   inversa por X(z)/z) y `state-space.ts` (árbol normal, cortes y lazos, A y B por sustitución
   sobre MNA, Faddeev-LeVerrier) (ADR-034).
+- `lib/calculators/electronica/`: `units.ts` (prefijos de ingeniería: `engTex`, `engText`,
+  `parseQuantity`, `parallel`), `rectifier.ts` (transformador y rectificadores), `filter.ts`
+  (filtro con condensador), `zener.ts` (regulador Zener, rizado de salida, R_S máxima), `bias.ts`
+  (polarización de BJT y FET; `solveFetBias` para la intersección con la curva de transferencia) y
+  `small-signal.ts` (modelo híbrido aproximado y completo, conversión EC → BC). El Laboratorio
+  los reutiliza (ADR-035).
 - `lib/calculators/estadistica-2/`: `hypothesis.ts` (región crítica, valor P, decisión y gráfica
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
@@ -140,7 +146,9 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   restricciones y punto), `teoria-de-colas/StationsField.tsx` (estaciones de una red; en Jackson la
   matriz de rutas sigue su tamaño) y `circuitos-y-sistemas/CircuitBuilderField.tsx` (editor de
   circuitos con `circuit-symbols.tsx`; la entrada es un único campo `circuit`; `kinds` elige la
-  paleta, con C y L solo en ecuaciones de estado; la guía bajo el lienzo es `BuilderGuide.tsx`).
+  paleta, con C y L solo en ecuaciones de estado; la guía bajo el lienzo es `BuilderGuide.tsx`) y
+  `electronica/QuantityField.tsx` (número con prefijos `2.2k`, `100µ`; lo usa también el
+  Laboratorio).
   Buscador: `components/search/` (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
@@ -199,8 +207,11 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   **Circuitos y Sistemas completa** (ADR-034): fasores e impedancia, potencia en CA, valor
   promedio y eficaz, primer y segundo orden, ecuaciones de estado (constructor con C y L),
   Laplace, inversa, convolución y transformada Z; guía del tablero rediseñada. Tests contra
-  Hayt 8.ª ed., Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed. Faltan Electrónica, Sistemas Dinámicos y el
-  Laboratorio.
+  Hayt 8.ª ed., Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed. **Electrónica y Laboratorio completos**
+  (ADR-035): diodos, rectificadores, filtrado y regulación, polarización y análisis AC de
+  transistores, amplificadores operacionales; resonancia RLC, fuente regulada por Zener y
+  amplificador emisor común. Tests contra Boylestad 10.ª ed. y Malvino 6.ª ed. Falta Sistemas
+  Dinámicos.
 
 ## Versiones
 

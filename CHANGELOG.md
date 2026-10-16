@@ -40,6 +40,32 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
     exacta) y, en `circuitos-y-sistemas/`, `signal.ts`, `laplace.ts`, `partial-fractions.ts`,
     `laplace-inverse.ts`, `z-transform.ts` y `state-space.ts`. Casos de prueba de Hayt 8.ª ed.,
     Dorf y Svoboda 9.ª ed. y Kuo 7.ª ed.
+- **Electrónica** completa (ADR-035):
+  - **Circuitos con diodos** (modelo ideal, segunda y tercera aproximación y ecuación de Shockley
+    por Newton, con recta de carga y punto Q), **Rectificadores** (media onda, derivación central
+    y puente: valores de pico, promedio, eficaz, rizado, frecuencia y PIV) y **Filtrado y
+    regulación** (filtro con condensador y regulador Zener en sus tres casos, con R_Z y el rizado
+    de salida);
+  - **Polarización de transistores**: BJT con polarización fija, de emisor, divisor de voltaje
+    (exacto y aproximado) y realimentación del colector, con la región de trabajo y la recta de
+    carga; JFET y MOSFET de empobrecimiento (fija, autopolarización, divisor) y de enriquecimiento
+    (realimentación, divisor), con la curva de transferencia, la recta de polarización y la
+    comprobación de la región de saturación;
+  - **Análisis AC con parámetros híbridos**: modelo aproximado (emisor común, R_E sin puentear,
+    seguidor de emisor, base común) y completo, con carga y resistencia de fuente;
+  - **Amplificadores operacionales**: inversor, no inversor, seguidor, sumador y restador con
+    recorte en ±V_sat; comparador con ciclo de trabajo y disparador de Schmitt con histéresis.
+  - Núcleos en `lib/calculators/electronica/` (`units.ts`, `rectifier.ts`, `filter.ts`,
+    `zener.ts`, `bias.ts`, `small-signal.ts`) y el campo `QuantityField`, que acepta prefijos
+    (`2.2k`, `100µ`, `47n`). Casos de prueba de Boylestad 10.ª ed. y Malvino 6.ª ed.
+- **Laboratorio de Circuitos y Electrónica** completo: **Resonancia en circuitos RLC** (serie,
+  paralelo y paralelo con bobina real: ω₀, Q₀, ancho de banda, frecuencias de media potencia y
+  respuesta cerca de resonancia; Hayt 8.ª ed., cap. 16), **Fuente regulada por Zener**
+  (transformador, rectificador, filtro y regulador sección por sección, rizado antes y después del
+  regulador y R_S máxima) y **Amplificador emisor común** (punto Q, r_e, Z_i, Z_o y A_v con R_E
+  parcialmente puenteada, rectas de carga de cd y ca y máxima salida sin recorte). Sus temas
+  enlazan además las calculadoras de Circuitos y Sistemas y de Electrónica que el programa
+  comprueba en el laboratorio.
 - **Circuitos y Sistemas** y **Electrónica** en la malla curricular: programas transcritos al
   pensum fuente, bibliografía y 22 calculadoras planificadas en el roadmap (nodos, mallas,
   superposición, Thévenin-Norton, máxima transferencia de potencia, fasores, potencia en CA,
@@ -62,6 +88,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   constructor suma el botón «Terminar cable» para pantallas táctiles, encuadra solo el ejemplo
   cuando no cabe en el lienzo, avisa si un valor no es válido y acepta la unidad al escribirlo
   («2.2 kΩ», «10 µF»).
+
+### Corregido
+
+- La forma polar en LaTeX ya no produce un doble superíndice cuando el ángulo sale en notación
+  científica (p. ej. un residuo de redondeo de 10⁻¹³ °).
+- Las migas de pan ya no repiten claves de React cuando el tema y la calculadora se llaman igual
+  («Amplificadores operacionales»).
 
 ## [0.7.0] — 2026-09-30
 

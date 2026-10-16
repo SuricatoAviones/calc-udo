@@ -680,3 +680,52 @@ Plantilla:
   (2 × 2, 3 × 3) para las ecuaciones de estado_: no escala; Faddeev-LeVerrier sirve para cualquier
   orden y da la adjunta que se muestra. _Persistir en `localStorage` si la guía está plegada_:
   obligaría a declararlo en la página de cookies por una comodidad menor.
+
+## ADR-035 — Electrónica y Laboratorio de Circuitos y Electrónica: núcleos de dispositivos y campo con prefijos
+
+- **Fecha:** 2026-10-15
+- **Estado:** Aceptada
+- **Decisión:** Las seis calculadoras de Electrónica y las tres propias del Laboratorio se apoyan
+  en núcleos de `lib/calculators/electronica/`, sin el constructor de circuitos: los circuitos de
+  los libros de electrónica son configuraciones fijas (polarización fija, divisor de voltaje,
+  emisor común…) y el estudiante solo cambia sus valores.
+  - `units.ts`: magnitudes con prefijo de ingeniería (`engTex`, `engText`), resistencias en
+    paralelo y `parseQuantity`, que lee lo que escribe un estudiante (`2.2k`, `100µ`, `100u`,
+    `47 nF`, `1e-6`).
+  - `rectifier.ts` (transformador y tabla 4-1 de Malvino), `filter.ts` (filtro con condensador:
+    V_r(pp) = I/(f_r·C)), `zener.ts` (los tres casos de Boylestad, la segunda aproximación,
+    el rizado de salida y la R_S máxima del punto límite).
+  - `bias.ts`: polarización de BJT (fija, emisor, divisor exacto y aproximado, realimentación) y
+    de FET con la intersección de la recta de polarización y la curva de transferencia resuelta
+    como ecuación de segundo grado (`solveFetBias`), que reemplaza el método gráfico del libro.
+  - `small-signal.ts`: modelo híbrido aproximado (emisor común, R_E sin puentear, seguidor, base
+    común) y completo (ecs. 5.158 a 5.161 de Boylestad), con la conversión de parámetros de
+    emisor común a base común del apéndice A. El modelo r_e es el híbrido con h_ie = βr_e.
+  - El Laboratorio reutiliza esos núcleos: la **fuente regulada por Zener** encadena
+    transformador → rectificador → filtro → regulador (ejemplo 5-9 de Malvino) y el **amplificador
+    emisor común** combina `bjtBias` y `approxAmplifier` con R_E1 sin puentear y R_E2 puenteada, y
+    agrega la recta de carga de ca y el MPP de Malvino (sec. 11-2). La **resonancia RLC** es
+    independiente (Hayt, cap. 16).
+- **UI:** `components/calculators/electronica/QuantityField.tsx` es un campo numérico que acepta
+  prefijos y muestra el valor inicial con prefijo (`270 µF` y no `0.00027`); guarda el texto
+  escrito en un estado local y el formulario recibe el número ya leído. Lo usan Electrónica y el
+  Laboratorio para resistencias, capacitancias, inductancias, corrientes y conductancias; los
+  voltajes y las cantidades adimensionales siguen con `NumberField`.
+- **Currículum:** los temas del Laboratorio apuntan con `{ ref }` a las calculadoras de Circuitos
+  y Sistemas y de Electrónica que su programa comprueba (leyes y teoremas, diodos y fuentes,
+  transistores), además de las tres propias.
+- **Fuentes de los tests:** Boylestad y Nashelsky, 10.ª ed. en español, y Malvino, 6.ª ed. en
+  español (la del pensum); la resonancia, con Hayt, Kemmerly y Durbin, 8.ª ed. en inglés. Los
+  ejemplos de FET que el libro resuelve por el método gráfico se comparan con la precisión de la
+  lectura de la gráfica (una cifra decimal). Erratas documentadas en los tests: Boylestad 4.11
+  (imprime V_CE = 3.88 V; su sustitución da 0.39 V), 5.20 y 5.21 (dividen entre Z_i en vez de h_ie
+  o h_ib), 11.2 (12.12 mV por 12.12 V) y 15.5 (enunciado con 50 µF y solución con 100 µF);
+  Malvino 22-6 (escribe 40 kΩ por 48 kΩ). En el ejemplo 7.1 de Boylestad el punto Q queda en la
+  región óhmica (V_DS = 4.75 V < V_GS − V_P = 6 V); la calculadora lo avisa aunque el libro no lo
+  comprueba.
+- **Alternativas descartadas:** _Usar el constructor de circuitos y resolver con MNA los
+  transistores_: exigiría modelos no lineales y un método de Newton sobre toda la red, y el
+  procedimiento dejaría de parecerse al del libro. _Aceptar prefijos en `NumberField` para todo
+  el sitio_: cambiaría campos de otras materias donde `m` o `M` no tienen ese sentido.
+  _Resolver los FET solo por el método gráfico_: la intersección exacta es más útil y la gráfica
+  se muestra igual.
