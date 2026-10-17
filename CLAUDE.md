@@ -224,12 +224,12 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   amplificador emisor común. Tests contra Boylestad 10.ª ed. y Malvino 6.ª ed. Tablero con
   diodos (estados supuestos, ADR-036) y amplificadores operacionales (ADR-037). Versión
   **v1.0.0** ✅ (ADR-038).
-- Tanda 12 — **Sistemas Dinámicos completa** (ADR-039), en la rama `feat/sistemas-dinamicos`
-  (sin publicar): reducción de diagramas de bloques y Mason sobre un constructor de diagramas de
-  bloques, función de transferencia (también de un circuito dibujado), lazo abierto y cerrado,
-  respuesta transitoria, Routh-Hurwitz, error en estado estacionario, LGR, Bode, Ziegler-Nichols,
-  compensadores, controlabilidad y observabilidad, y ubicación de polos. Tests contra Ogata 3.ª y
-  5.ª ed. y Kuo 7.ª ed. en español.
+- Tanda 12 — **Sistemas Dinámicos completa** (ADR-039): reducción de diagramas de bloques y
+  Mason sobre un constructor de diagramas de bloques, función de transferencia (también de un
+  circuito dibujado), lazo abierto y cerrado, respuesta transitoria, Routh-Hurwitz, error en
+  estado estacionario, LGR, Bode, Ziegler-Nichols, compensadores, controlabilidad y
+  observabilidad, y ubicación de polos. Tests contra Ogata 3.ª y 5.ª ed. y Kuo 7.ª ed. en
+  español. Versión **v1.1.0** ✅
 - **Roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)): Matemáticas I–IV y dos de Teoría de
   Sobrevivencia (sin fuente) y mejoras de los constructores (Schmitt y comparadores dibujados,
   diodo real, Zener, transistores y más edición en el de diagramas de bloques).

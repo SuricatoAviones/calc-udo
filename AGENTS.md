@@ -105,6 +105,14 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   de la región de rechazo para z, t, χ² y F), `samples.ts` (muestras, varianza, rangos promedio),
   `probability.ts` (binomial y Poisson), `regression.ts` (Sxx, Sxy, Syy) y `time-series.ts`
   (descomposición, índices estacionales, tendencia) (ADR-029).
+- `lib/calculators/sistemas-dinamicos/` (ADR-039): `transfer-function.ts` (G(s): lectura, serie,
+  realimentación, polos y ceros, tipo) y `tf-analysis.ts`, `symbolic.ts` (ganancias simbólicas G1,
+  H2, K como cocientes factorizados con división exacta; `gainPreviewTex`), `signal-flow.ts`
+  (Mason), `block-diagram.ts` (documento del constructor y su flujograma), `reduction.ts`
+  (reducción por eliminación de nodos), `urat.ts` + `routh.ts` (Routh con fracciones exactas, ε,
+  auxiliar y `parameterStability`), `root-locus.ts`, `frequency.ts` (Bode y márgenes),
+  `time-response.ts` (respuesta y especificaciones), `state-space-tf.ts` y `state-design.ts`
+  (controlabilidad, rango exacto, Ackermann, polos complejos escritos).
 - `lib/calculators/teoria-de-colas/queueing.ts` (L, Lq, W, Wq, tabla de pₙ, `mmsMeasures` para
   cualquier estación M/M/s) y `networks.ts` (tabla de estaciones de las redes de colas).
 - `lib/calculators/procesos-estocasticos/markov.ts` (validación de matrices de transición).
@@ -153,7 +161,10 @@ scripts/             generate-pensum.ts (pnpm docs:pensum)
   amplificadores operacionales, de tres terminales (`c` es la salida), solo en su calculadora; la guía
   bajo el lienzo es `BuilderGuide.tsx`) y
   `electronica/QuantityField.tsx` (número con prefijos `2.2k`, `100µ`; lo usa también el
-  Laboratorio).
+  Laboratorio) y `sistemas-dinamicos/BlockDiagramField.tsx` (constructor de diagramas de bloques),
+  `SignalFlowField.tsx` (flujograma como tabla con dibujo) y `fields.tsx` (`TransferField`,
+  `GridField` que sigue el tamaño de A). `Series.kind: 'plane'` (curvas y marcadores en el plano s,
+  `charts/PlaneChart.tsx`) y `Series.xScale: 'log'` (Bode).
   Buscador: `components/search/` (`CalculatorSearch`, `SearchDialog`).
 
 **Cuidado con `*/` en comentarios.** Una fórmula como `Q*/D` dentro de un comentario `/** … */`
@@ -218,9 +229,15 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   amplificador emisor común. Tests contra Boylestad 10.ª ed. y Malvino 6.ª ed. Tablero con
   diodos (estados supuestos, ADR-036) y amplificadores operacionales (ADR-037). Versión
   **v1.0.0** ✅ (ADR-038).
-- **Roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)): Sistemas Dinámicos (13 calculadoras, ya en
-  el currículum con estado 🗺️), Matemáticas I–IV y dos de Teoría de Sobrevivencia (sin fuente) y
-  mejoras del tablero (Schmitt y comparadores dibujados, diodo real, Zener y transistores).
+- Tanda 12 — **Sistemas Dinámicos completa** (ADR-039): reducción de diagramas de bloques y
+  Mason sobre un constructor de diagramas de bloques, función de transferencia (también de un
+  circuito dibujado), lazo abierto y cerrado, respuesta transitoria, Routh-Hurwitz, error en
+  estado estacionario, LGR, Bode, Ziegler-Nichols, compensadores, controlabilidad y
+  observabilidad, y ubicación de polos. Tests contra Ogata 3.ª y 5.ª ed. y Kuo 7.ª ed. en
+  español. Versión **v1.1.0** ✅
+- **Roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)): Matemáticas I–IV y dos de Teoría de
+  Sobrevivencia (sin fuente) y mejoras de los constructores (Schmitt y comparadores dibujados,
+  diodo real, Zener, transistores y más edición en el de diagramas de bloques).
 
 ## Versiones
 

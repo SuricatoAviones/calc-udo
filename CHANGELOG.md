@@ -7,6 +7,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.1.0] — 2026-10-16
+
+Sistemas Dinámicos completa (ADR-039). Del pensum solo quedan las materias y calculadoras sin
+programa o sin fuente, y las mejoras de los constructores, en [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ### Agregado
 
 - **Sistemas Dinámicos** completa (ADR-039), con las 13 calculadoras del programa:
@@ -352,7 +357,8 @@ Primera versión etiquetada.
   enlazadas desde el pie de página.
 - Versión de la aplicación visible en el pie de página.
 
-[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v1.0.0...HEAD
+[Sin publicar]: https://github.com/SuricatoAviones/calc-udo/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v1.1.0
 [1.0.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v1.0.0
 [0.7.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.7.0
 [0.6.0]: https://github.com/SuricatoAviones/calc-udo/releases/tag/v0.6.0

@@ -1,8 +1,7 @@
 # Roadmap
 
-Lo que falta después de la versión **1.0.0** (ADR-038). Sistemas Dinámicos ya está completo
-(ADR-039): sus 13 calculadoras están implementadas, con el constructor de diagramas de bloques.
-Las calculadoras previstas que quedan existen en `data/curriculum.ts` sin implementación: el sitio
+Lo que falta después de la versión **1.1.0**, que completó Sistemas Dinámicos (ADR-039) con sus
+13 calculadoras y el constructor de diagramas de bloques. Las calculadoras previstas que quedan existen en `data/curriculum.ts` sin implementación: el sitio
 y [PENSUM.md](PENSUM.md) las muestran con estado 🗺️ Roadmap. Para tomar una, sigue
 [NUEVA-CALCULADORA.md](NUEVA-CALCULADORA.md).
 
