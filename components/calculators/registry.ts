@@ -46,6 +46,23 @@ export const calculatorRegistry: Record<string, () => Promise<{ default: Compone
   'amplificador-emisor-comun': () =>
     import('./laboratorio-de-circuitos-y-electronica/AmplificadorEmisorComun'),
 
+  // Sistemas Dinámicos
+  'reduccion-de-diagramas-de-bloques': () =>
+    import('./sistemas-dinamicos/ReduccionDeDiagramasDeBloques'),
+  'ganancia-de-mason': () => import('./sistemas-dinamicos/GananciaDeMason'),
+  'funcion-de-transferencia': () => import('./sistemas-dinamicos/FuncionDeTransferencia'),
+  'lazo-abierto-y-cerrado': () => import('./sistemas-dinamicos/LazoAbiertoYCerrado'),
+  'respuesta-transitoria': () => import('./sistemas-dinamicos/RespuestaTransitoria'),
+  'routh-hurwitz': () => import('./sistemas-dinamicos/RouthHurwitz'),
+  'error-en-estado-estacionario': () => import('./sistemas-dinamicos/ErrorEnEstadoEstacionario'),
+  'lugar-geometrico-de-las-raices': () => import('./sistemas-dinamicos/LugarGeometricoDeLasRaices'),
+  'diagramas-de-bode': () => import('./sistemas-dinamicos/DiagramasDeBode'),
+  'sintonizacion-pid': () => import('./sistemas-dinamicos/SintonizacionPid'),
+  'compensador-adelanto-retraso': () => import('./sistemas-dinamicos/CompensadorAdelantoRetraso'),
+  'controlabilidad-y-observabilidad': () =>
+    import('./sistemas-dinamicos/ControlabilidadYObservabilidad'),
+  'realimentacion-de-estados': () => import('./sistemas-dinamicos/RealimentacionDeEstados'),
+
   // Introducción a la Lógica Formal y Algoritmos
   'tablas-de-verdad': () => import('./logica-formal-y-algoritmos/TruthTable'),
   'equivalencia-logica': () => import('./logica-formal-y-algoritmos/Equivalence'),

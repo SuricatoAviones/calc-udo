@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import type { Series } from '@/lib/calculators/types';
 import { formatNumber } from '@/lib/math/format';
+import { PlaneChart } from './PlaneChart';
 
 interface Row {
   x: number;
@@ -202,9 +203,15 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
  * la nombra. La tabla de resultados es la vista alternativa accesible.
  */
 export function SeriesChart({ series }: { series: Series }) {
+  if (series.kind === 'plane') return <PlaneChart series={series} />;
+  return <CartesianChart series={series} />;
+}
+
+function CartesianChart({ series }: { series: Series }) {
   const kind = series.kind ?? 'line';
   const isLog = series.yScale === 'log';
-  const rows = mergeRows(series, isLog);
+  const xLog = series.xScale === 'log';
+  const rows = mergeRows(series, isLog).filter((r) => !xLog || r.x > 0);
   const mainCount = rows.filter((r) => r.y !== undefined).length;
   if (mainCount < 2 && !(kind === 'bar' && mainCount >= 1)) return null;
 
@@ -217,6 +224,7 @@ export function SeriesChart({ series }: { series: Series }) {
   // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
   // se fija en potencias de 10 que envuelven los datos, con una marca por década.
   const logTicks = isLog ? decadeTicks(yValues) : undefined;
+  const xTicks = xLog ? decadeTicks(rows.map((r) => r.x)) : undefined;
   const digits = isLog ? 2 : tickDigits(yValues);
   const allIntegers = rows.every((r) => Number.isInteger(r.x));
   const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
@@ -242,7 +250,10 @@ export function SeriesChart({ series }: { series: Series }) {
             <XAxis
               dataKey="x"
               type={kind === 'bar' ? 'category' : 'number'}
-              domain={['dataMin', 'dataMax']}
+              scale={xLog ? 'log' : 'auto'}
+              domain={xTicks ? [xTicks[0]!, xTicks.at(-1)!] : ['dataMin', 'dataMax']}
+              ticks={xTicks}
+              allowDataOverflow={xLog}
               allowDecimals={!allIntegers}
               tickFormatter={(v: number) => formatNumber(v, 4)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}

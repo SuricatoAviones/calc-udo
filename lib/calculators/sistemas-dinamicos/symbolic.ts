@@ -706,6 +706,12 @@ export function parseGain(source: string): GainResult {
   }
 }
 
+/** Vista previa en LaTeX de una ganancia o función escrita por el estudiante (null si no se lee). */
+export function gainPreviewTex(source: string): string | null {
+  const parsed = parseGain(source);
+  return parsed.ok ? frTex(parsed.value) : null;
+}
+
 /** Polinomio en varias variables escrito por el estudiante (p. ej. s³ + 3s² + 2s + K). */
 export function parsePolynomial(
   source: string,

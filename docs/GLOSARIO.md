@@ -289,3 +289,26 @@ Convención: **término (en UI)** · `nombreEnCódigo` · símbolo, cuando aplic
 | **Realimentación negativa (prueba del lazo)** | `loop`                | v₊ − v₋            | Con las fuentes anuladas y 1 V en la salida, v₊ − v₋ debe salir negativo; si no, el amplificador se satura (comparador o Schmitt).    |
 | **Disparador de Schmitt**                     | `schmitt`             | PCS, PCI, H        | Comparador con realimentación positiva: dos puntos de conmutación separados por la histéresis H.                                      |
 | **Factor de calidad / ancho de banda**        | `q0` / `bw`           | Q₀, B              | En resonancia, Q₀ = ω₀L/R (serie) u ω₀RC (paralelo) y B = ω₀/Q₀ separa las frecuencias de media potencia.                             |
+
+## Sistemas dinámicos
+
+| Término                                  | Código                         | Símbolo        | Significado                                                                                                      |
+| ---------------------------------------- | ------------------------------ | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Función de transferencia**             | `TransferFunction`             | G(s)           | Cociente de las transformadas de la salida y la entrada con condiciones iniciales cero.                          |
+| **Lazo abierto / lazo cerrado**          | `openLoop` / `closedLoop`      | GH, G/(1 + GH) | G(s)H(s) relaciona la realimentación con el error; C/R = G/(1 + GH) con realimentación negativa.                 |
+| **Tipo del sistema**                     | `systemType`                   | N              | Número de polos en el origen de la función de transferencia en lazo abierto.                                     |
+| **Constantes de error estático**         | `kp`, `kv`, `ka`               | K_p, K_v, K_a  | Límites de G(s), sG(s) y s²G(s) en s → 0; dan los errores ante el escalón, la rampa y la parábola.               |
+| **Flujograma**                           | `Sfg`                          | —              | Gráfica de flujo de señal: nodos (señales) unidos por ramas con ganancia.                                        |
+| **Fórmula de Mason**                     | `mason`                        | Δ, Δ_k, P_k    | M = ΣP_kΔ_k/Δ con Δ = 1 − ΣL + ΣLL − …; Δ_k usa solo los lazos que no tocan la trayectoria k.                    |
+| **Lazos que no se tocan**                | `nonTouchingCombinations`      | L_iL_j         | Lazos sin ningún nodo en común; sus productos entran en Δ con signos alternados.                                 |
+| **Arreglo de Routh**                     | `routhArray`                   | —              | Tabla de coeficientes cuya primera columna cuenta, por sus cambios de signo, las raíces con parte real positiva. |
+| **Polinomio auxiliar**                   | `auxiliary`                    | P(s)           | Se forma con el renglón anterior a un renglón de ceros; sus raíces son simétricas respecto al origen.            |
+| **Lugar geométrico de las raíces (LGR)** | `locusBranches`                | —              | Recorrido de los polos en lazo cerrado cuando K va de 0 a ∞; cumple ∠G(s)H(s) = ±180°(2k + 1).                   |
+| **Asíntotas / centroide**                | `asymptotes`                   | σ_a            | Rectas a las que tienden las n − m ramas que van al infinito; se cruzan en σ_a = (Σpolos − Σceros)/(n − m).      |
+| **Punto de ruptura**                     | `breakPoints`                  | dK/ds = 0      | Donde dos ramas se juntan o se separan del eje real (raíz múltiple de la ecuación característica).               |
+| **Margen de fase / de ganancia**         | `margins`                      | γ, K_g         | γ = 180° + ∠G(jω_c) en el cruce de ganancia; K_g = 1/\|G(jω₁)\| en el cruce de fase (−180°).                     |
+| **Pico de resonancia / ancho de banda**  | `closedLoopFrequency`          | M_r, ω_r, ω_b  | Máximo de \|M(jω)\| en lazo cerrado y la frecuencia donde \|M\| cae 3 dB por debajo de \|M(j0)\|.                |
+| **Ziegler-Nichols**                      | `firstMethod` / `secondMethod` | K_cr, P_cr     | Reglas de sintonizado PID por la curva de reacción (L, T) o por la ganancia y el periodo críticos.               |
+| **Compensador de adelanto / atraso**     | `compensator`                  | α, β           | K_c(s + 1/T)/(s + 1/(αT)) con α < 1 (adelanto) o β > 1 (atraso).                                                 |
+| **Controlabilidad / observabilidad**     | `controllabilityMatrix`        | M, N           | Rango n de [B AB ⋯ Aⁿ⁻¹B] o de [C; CA; ⋯; CAⁿ⁻¹].                                                                |
+| **Fórmula de Ackermann**                 | `realimentacion-de-estados`    | K              | K = [0 ⋯ 0 1]M⁻¹φ(A): ganancia de realimentación de estados que ubica los polos deseados.                        |

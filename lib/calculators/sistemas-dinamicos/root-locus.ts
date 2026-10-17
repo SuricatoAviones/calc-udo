@@ -124,9 +124,7 @@ function angleDeg(z: Complex): number {
 }
 
 /** Ángulos de salida de los polos complejos (y de llegada a los ceros complejos), en grados. */
-export function departureAngles(
-  data: LocusData,
-): {
+export function departureAngles(data: LocusData): {
   root: Complex;
   kind: 'polo' | 'cero';
   angle: number;

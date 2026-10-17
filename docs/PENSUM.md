@@ -37,7 +37,7 @@ para que el mapa esté completo.
 | 071-4133 | [Modelos de Operaciones II](#modelos-de-operaciones-2) | Semestre VIII | Modelos de Operaciones I (071-4633) | 3 (2T-2P) | 12 | 0 | 0 |
 | 071-3463 | [Circuitos y Sistemas](#circuitos-y-sistemas) | Semestre V | Matemáticas IV (008-2824) / 005-2134 (fuera de esta rama) | 3 (2T-3P) | 16 | 0 | 0 |
 | 072-3533 | [Electrónica](#electronica) | Semestre VI | Circuitos y Sistemas (071-3463) | 3 (2T-3P) | 6 | 0 | 0 |
-| 071-4643 | [Sistemas Dinámicos](#sistemas-dinamicos) | Semestre VII | Electrónica (072-3533) | 3 (2T-2P) | 0 | 0 | 13 |
+| 071-4643 | [Sistemas Dinámicos](#sistemas-dinamicos) | Semestre VII | Electrónica (072-3533) | 3 (2T-2P) | 13 | 0 | 0 |
 | 072-4641 | [Laboratorio de Circuitos y Electrónica](#laboratorio-de-circuitos-y-electronica) | Semestre VII | Electrónica (072-3533) | 1 (0T-3P) | 3 | 0 | 0 |
 | 071-4303 | [Programación No Lineal](#programacion-no-lineal) | Electiva técnica | Optimización de Operaciones (071-3663) | 3 (3T-0P) | 8 | 0 | 0 |
 | 071-4383 | [Procesos Estocásticos](#procesos-estocasticos) | Electiva técnica | Inferencia y Diseño de Experimentos (071-3122) | 3 (3T-0P) | 7 | 0 | 0 |
@@ -479,19 +479,19 @@ de esta materia; solo aparece en la malla curricular.
 
 | Tema | Calculadora | Estado | Ruta |
 |---|---|---|---|
-| Unidad I — Diagramas de bloque y flujogramas | Reducción de diagramas de bloques | 🗺️ Roadmap | `/sistemas-dinamicos/diagramas-de-bloque/reduccion-de-diagramas-de-bloques/` |
-| Unidad I — Diagramas de bloque y flujogramas | Fórmula de ganancia de Mason | 🗺️ Roadmap | `/sistemas-dinamicos/diagramas-de-bloque/ganancia-de-mason/` |
-| Unidad II — Funciones de transferencia y modelos de sistemas | Función de transferencia | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/funcion-de-transferencia/` |
-| Unidad II — Funciones de transferencia y modelos de sistemas | Funciones de lazo abierto y lazo cerrado | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/lazo-abierto-y-cerrado/` |
-| Unidad II — Funciones de transferencia y modelos de sistemas | Respuesta transitoria de primer y segundo orden | 🗺️ Roadmap | `/sistemas-dinamicos/funciones-de-transferencia/respuesta-transitoria/` |
-| Unidad III — Estabilidad y error en estado estacionario | Criterio de Routh-Hurwitz | 🗺️ Roadmap | `/sistemas-dinamicos/estabilidad-y-error/routh-hurwitz/` |
-| Unidad III — Estabilidad y error en estado estacionario | Error en estado estacionario | 🗺️ Roadmap | `/sistemas-dinamicos/estabilidad-y-error/error-en-estado-estacionario/` |
-| Unidad IV — Lugar geométrico de las raíces | Lugar geométrico de las raíces | 🗺️ Roadmap | `/sistemas-dinamicos/lugar-de-las-raices/lugar-geometrico-de-las-raices/` |
-| Unidad V — Análisis en el dominio de la frecuencia | Diagramas de Bode | 🗺️ Roadmap | `/sistemas-dinamicos/dominio-de-la-frecuencia/diagramas-de-bode/` |
-| Unidad VI — Diseño de controladores | Sintonizado de controladores PID | 🗺️ Roadmap | `/sistemas-dinamicos/diseno-de-controladores/sintonizacion-pid/` |
-| Unidad VI — Diseño de controladores | Compensador de adelanto o retraso de fase | 🗺️ Roadmap | `/sistemas-dinamicos/diseno-de-controladores/compensador-adelanto-retraso/` |
-| Unidad VII — Realimentación de estados | Controlabilidad y observabilidad | 🗺️ Roadmap | `/sistemas-dinamicos/realimentacion-de-estados/controlabilidad-y-observabilidad/` |
-| Unidad VII — Realimentación de estados | Control por realimentación de estados | 🗺️ Roadmap | `/sistemas-dinamicos/realimentacion-de-estados/realimentacion-de-estados/` |
+| Unidad I — Diagramas de bloque y flujogramas | Reducción de diagramas de bloques | ✅ Implementada | `/sistemas-dinamicos/diagramas-de-bloque/reduccion-de-diagramas-de-bloques/` |
+| Unidad I — Diagramas de bloque y flujogramas | Fórmula de ganancia de Mason | ✅ Implementada | `/sistemas-dinamicos/diagramas-de-bloque/ganancia-de-mason/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Función de transferencia | ✅ Implementada | `/sistemas-dinamicos/funciones-de-transferencia/funcion-de-transferencia/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Funciones de lazo abierto y lazo cerrado | ✅ Implementada | `/sistemas-dinamicos/funciones-de-transferencia/lazo-abierto-y-cerrado/` |
+| Unidad II — Funciones de transferencia y modelos de sistemas | Respuesta transitoria de primer y segundo orden | ✅ Implementada | `/sistemas-dinamicos/funciones-de-transferencia/respuesta-transitoria/` |
+| Unidad III — Estabilidad y error en estado estacionario | Criterio de Routh-Hurwitz | ✅ Implementada | `/sistemas-dinamicos/estabilidad-y-error/routh-hurwitz/` |
+| Unidad III — Estabilidad y error en estado estacionario | Error en estado estacionario | ✅ Implementada | `/sistemas-dinamicos/estabilidad-y-error/error-en-estado-estacionario/` |
+| Unidad IV — Lugar geométrico de las raíces | Lugar geométrico de las raíces | ✅ Implementada | `/sistemas-dinamicos/lugar-de-las-raices/lugar-geometrico-de-las-raices/` |
+| Unidad V — Análisis en el dominio de la frecuencia | Diagramas de Bode | ✅ Implementada | `/sistemas-dinamicos/dominio-de-la-frecuencia/diagramas-de-bode/` |
+| Unidad VI — Diseño de controladores | Sintonizado de controladores PID | ✅ Implementada | `/sistemas-dinamicos/diseno-de-controladores/sintonizacion-pid/` |
+| Unidad VI — Diseño de controladores | Compensador de adelanto o retraso de fase | ✅ Implementada | `/sistemas-dinamicos/diseno-de-controladores/compensador-adelanto-retraso/` |
+| Unidad VII — Realimentación de estados | Controlabilidad y observabilidad | ✅ Implementada | `/sistemas-dinamicos/realimentacion-de-estados/controlabilidad-y-observabilidad/` |
+| Unidad VII — Realimentación de estados | Control por realimentación de estados | ✅ Implementada | `/sistemas-dinamicos/realimentacion-de-estados/realimentacion-de-estados/` |
 
 **Bibliografía**
 

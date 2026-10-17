@@ -157,7 +157,9 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
         explanation:
           'Con control proporcional (Ti = ∞, Td = 0) la ecuación característica en lazo cerrado es D(s) + Kp N(s) = 0. La ganancia crítica es el valor de Kp que hace al sistema marginalmente estable; se obtiene con el criterio de Routh (Ogata, ejemplo 10-1).',
         formula: '1 + K_pG(s) = 0',
-        result: `G(s) = ${tfTex(plant)},\\quad ${polyTex(D)} + K_p\\left(${polyTex(N)}\\right) = 0`,
+        result: `G(s) = ${tfTex(plant)},\\quad ${polyTex(D)} + ${
+          N.length === 1 && N[0] === 1 ? 'K_p' : `K_p\\left(${polyTex(N)}\\right)`
+        } = 0`,
       });
       const routh = routhArray(coefs, 'Kp');
       if (!routh.ok) return fail('sin-ganancia-critica', routh.message, [...steps, ...routh.steps]);

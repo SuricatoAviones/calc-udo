@@ -119,7 +119,9 @@ export function solveRootLocus(
     title: 'Ecuación característica',
     explanation: `Los polos en lazo cerrado son las raíces de 1 + KG(s)H(s) = 0 para K ≥ 0. Polos de lazo abierto (K = 0, inicio de las ramas): ${rootsText(polyRoots(F.den))}. Ceros de lazo abierto (fin de las ramas): ${data.m ? rootsText(polyRoots(F.num)) : 'ninguno'}. Hay ${data.n} ramas${data.n > data.m ? `; ${data.n - data.m} van al infinito` : ''}.`,
     formula: '1 + KG(s)H(s) = 0 \\iff D(s) + K\\,N(s) = 0',
-    result: `G(s)H(s) = ${tfTex(F)},\\quad ${laplacePolyTex(F.den)} + K\\left(${laplacePolyTex(F.num)}\\right) = 0`,
+    result: `G(s)H(s) = ${tfTex(F)},\\quad ${laplacePolyTex(F.den)} + ${
+      F.num.length === 1 && F.num[0] === 1 ? 'K' : `K\\left(${laplacePolyTex(F.num)}\\right)`
+    } = 0`,
   });
   steps.push({
     title: 'Condiciones de ángulo y de magnitud',
@@ -258,8 +260,9 @@ export function solveRootLocus(
     ...breakaway.map((b) => b.K),
     ...crossings.map((c) => c.K),
   ]);
-  const curves: NonNullable<Series['curves']> = branches.map((points, i) => ({
-    label: `Rama ${i + 1}`,
+  // Todas las ramas comparten etiqueta: la leyenda muestra una sola entrada.
+  const curves: NonNullable<Series['curves']> = branches.map((points) => ({
+    label: 'Lugar de las raíces',
     points,
   }));
   if (asym) {
@@ -353,12 +356,13 @@ export function solveRootLocus(
       emphasis: true,
     });
   } else {
-    summary.push({ label: 'Cruces con jω', value: '\\text{ninguno}' });
+    summary.push({ label: 'Cruces con el eje imaginario', value: '\\text{ninguno}' });
   }
   if (zetaPoints.length)
     summary.push({
-      label: `ζ = ${formatNumber(input.zeta!, DIGITS)}`,
-      value: zetaPoints.map((p) => `s = ${rect(p.s)},\\ K = ${n(p.K)}`).join(';\\ '),
+      // El rótulo se muestra en mayúsculas: la ζ va en el valor, no en el rótulo.
+      label: 'Amortiguamiento pedido',
+      value: `\\zeta = ${n(input.zeta!)}:\\ ${zetaPoints.map((p) => `s = ${rect(p.s)},\\ K = ${n(p.K)}`).join(';\\ ')}`,
     });
   if (summary.length && !summary.some((s) => s.emphasis)) summary[0]!.emphasis = true;
 

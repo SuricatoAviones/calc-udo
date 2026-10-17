@@ -477,7 +477,10 @@ export function solveCompensator(
       value: `G_c(s) = ${n(kc)}\\frac{s + ${n(zero)}}{s + ${n(pole)}}`,
       emphasis: true,
     },
-    { label: input.mode.endsWith('adelanto') ? 'α' : 'β', value: n(ratio) },
+    // Los rótulos van en mayúsculas: la letra griega va en el valor.
+    input.mode.endsWith('adelanto')
+      ? { label: 'Factor de atenuación', value: `\\alpha = ${n(ratio)}` }
+      : { label: 'Factor del atraso', value: `\\beta = ${n(ratio)}` },
     { label: 'Constante de error', value: `${cName} = ${n(constant)}` },
   ];
   if (phaseMargin !== null)

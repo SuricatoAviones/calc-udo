@@ -7,6 +7,42 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Sistemas Dinámicos** completa (ADR-039), con las 13 calculadoras del programa:
+  - Unidad I: **Reducción de diagramas de bloques** (cascada, paralelo, lazos de realimentación y
+    movimiento de puntos suma y de bifurcación, comparada con Mason) y **Fórmula de ganancia de
+    Mason** (trayectorias directas, lazos, lazos que no se tocan, Δ y Δ_k), con ganancias
+    simbólicas (G1, H2, a12) o funciones de s, sobre un **constructor de diagramas de bloques**
+    (bloques, puntos suma con signo por entrada, bifurcaciones, entradas y salidas con nombre,
+    deshacer, zoom y pantalla completa) o un flujograma escrito como tabla de ramas con su dibujo;
+  - Unidad II: **Función de transferencia** desde una ecuación diferencial, las ecuaciones de
+    estado, G(s) escrita o un **circuito RLC dibujado** en el constructor de Circuitos y Sistemas
+    (formas polinomial y de polos y ceros, polinomio característico, diagrama de polos y ceros);
+    **Funciones de lazo abierto y lazo cerrado** con perturbación; **Respuesta transitoria** de
+    primer y segundo orden o de cualquier G(s) ante impulso, escalón, rampa y parábola, con t_r,
+    t_p, M_p y t_s;
+  - Unidad III: **Criterio de Routh-Hurwitz** con fracciones exactas, casos especiales (ε y
+    polinomio auxiliar) e intervalo de estabilidad de un parámetro K con la ganancia y la
+    frecuencia críticas; **Error en estado estacionario** (tipo, K_p, K_v, K_a y realimentación no
+    unitaria);
+  - Unidades IV y V: **Lugar geométrico de las raíces** (reglas de construcción, ruptura, ángulos
+    de salida, cruces con jω, ganancia para un ζ dado y gráfica en el plano s) y **Diagramas de
+    Bode** (forma de Bode, asintótica y exacta, márgenes de ganancia y de fase, M_r, ω_r y ancho de
+    banda);
+  - Unidades VI y VII: **Sintonizado de controladores PID** por Ziegler-Nichols (con la planta, Kcr
+    sale de Routh y se simula el lazo cerrado), **Compensador de adelanto o retraso** por el lugar
+    de las raíces o por Bode, **Controlabilidad y observabilidad** y **Control por realimentación
+    de estados** (ubicación de polos por la matriz T y por Ackermann, con la respuesta a x(0)).
+- Gráficas en el plano complejo (misma escala en los dos ejes) y eje de frecuencia logarítmico.
+
+### Corregido
+
+- El lector de funciones de s (Laplace) acepta `s(s + 1)` como producto.
+
+Tests contra Ogata, _Ingeniería de Control Moderna_, 3.ª ed. (la del pensum) y 5.ª ed. en español,
+y Kuo, _Sistemas de Control Automático_, 7.ª ed. en español.
+
 ## [1.0.0] — 2026-10-16
 
 Primera versión estable (ADR-038). Lo que falta (Sistemas Dinámicos, las materias sin programa y

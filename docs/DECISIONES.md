@@ -816,3 +816,70 @@ Plantilla:
 - **Alternativas descartadas:** _Publicar como 0.8.0_: no refleja que el sitio está completo
   para casi todas las materias. _Esperar a Sistemas Dinámicos para la 1.0.0_: retrasa el uso de
   lo terminado sin necesidad.
+
+## ADR-039 — Sistemas Dinámicos: núcleo de control, constructor de diagramas de bloques y plano s
+
+- **Fecha:** 2026-10-16
+- **Estado:** Aceptada
+- **Decisión:** Las 13 calculadoras de Sistemas Dinámicos se apoyan en núcleos de
+  `lib/calculators/sistemas-dinamicos/` y en lo que ya existía de Circuitos y Sistemas
+  (`polynomials.ts`, `laplace.ts`, `laplace-inverse.ts`, `state-space.ts`):
+  - `transfer-function.ts`: G(s) = N/D leída con el lector de Laplace (sin retardos), serie,
+    realimentación, cancelación exacta, forma de polos y ceros, tipo y ganancia de baja
+    frecuencia. `tf-analysis.ts` arma el análisis común (orden, tipo, estabilidad, polos y ceros).
+  - `symbolic.ts`: polinomios en varias variables y **cocientes factorizados** (`FRat`: número,
+    monomio y factores con exponente) para las ganancias simbólicas de los diagramas (G1, H2, a12,
+    K, s). Guardar los factores permite cancelar los repetidos como en el cuaderno
+    ([G/(1 − GH)]·(1 − GH) = G); al sumar se busca el denominador común y se intenta la división
+    exacta multivariable (orden lexicográfico). `G1G2H1` se lee como producto y `s(s + 1)` o
+    `K(s + 2)` como productos (mathjs los toma como llamadas a función; el lector de Laplace
+    también se corrigió para `s(…)`).
+  - `signal-flow.ts` (fórmula de Mason: trayectorias directas, lazos individuales y combinaciones
+    de lazos que no se tocan, Δ y Δ_k), `block-diagram.ts` (documento del constructor y su
+    flujograma equivalente: un nodo por señal, cada bloque una rama y cada entrada de un punto suma
+    una rama ±1) y `reduction.ts` (reducción por **eliminación de nodos**, presentada como reglas de
+    la tabla 3-1 de Ogata: bloques en cascada y en paralelo, lazo de realimentación G/(1 − L),
+    puntos suma consecutivos y movimiento de puntos suma o de bifurcación; el resultado se compara
+    con Mason).
+  - `urat.ts` y `routh.ts`: el arreglo de Routh con **fracciones exactas** (`Rational`), así salen
+    7/3 y 2 − 9K/7 como en Ogata. ε es la variable de una función racional (se evalúa el signo con
+    ε → 0⁺); un renglón de ceros usa el polinomio auxiliar (también cuando Ogata usa ε en un
+    renglón de un solo elemento: la conclusión es la misma y da las raíces sobre jω). Con un
+    parámetro, la primera columna son funciones racionales de K: se prueban valores entre sus
+    raíces para el intervalo de estabilidad y en los bordes se busca la frecuencia de oscilación.
+  - `root-locus.ts` (eje real, asíntotas, ruptura por N D′ − N′ D = 0, ángulos de salida y llegada,
+    cruces con jω por partes real e imaginaria, intersección con la recta de ζ y ramas por
+    emparejamiento de raíces), `frequency.ts` (forma de Bode, fase continua factor por factor,
+    asintótica, márgenes con la regla de Ogata del cruce de ganancia más alto, M_r, ω_r y ancho de
+    banda), `time-response.ts` (respuesta por la inversa de Laplace y especificaciones medidas
+    sobre la curva), `state-space-tf.ts` (G = C adj(sI − A)B/det + D) y `state-design.ts`
+    (controlabilidad, observabilidad, rango exacto, Ackermann).
+- **Constructores:** la Unidad I tiene un **constructor de diagramas de bloques**
+  (`BlockDiagramField`): bloques con su G(s) (vista en KaTeX), puntos suma con tres entradas y
+  signo por entrada (se cambia tocándolo), entradas y salidas con nombre, cables ortogonales,
+  bifurcaciones (un extremo sobre otro cable) y cruces que **no** conectan, arrastre con los cables
+  pegados, giro, deshacer, zoom y pantalla completa (por portal, porque el panel del formulario es
+  `sticky` y crea su propio contexto de apilamiento). Mason y la reducción aceptan también un
+  flujograma como tabla de ramas, con un dibujo automático. La función de transferencia reutiliza
+  el constructor de circuitos de Circuitos y Sistemas (R, L, C y fuentes) con la nueva
+  `outputEquation` de `state-space.ts`.
+- **Contrato:** `Series` admite `kind: 'plane'` con `curves` y `markers` (el plano s del LGR y los
+  diagramas de polos y ceros, dibujados por `PlaneChart` en SVG con la misma escala en los dos
+  ejes) y `xScale: 'log'` (Bode). Son campos opcionales: no cambia nada de lo existente.
+- **Fuentes de los tests:** Ogata, _Ingeniería de Control Moderna_, 3.ª ed. en español (la del
+  pensum) y 5.ª ed. en español, y Kuo, _Sistemas de Control Automático_, 7.ª ed. en español, en sus
+  textos de archive.org. Diferencias documentadas en los tests: Kuo, ec. 3-56, omite la
+  trayectoria a12a24a45 que forma la rama a24 de la ec. 3-42; varios valores de Ogata son lecturas
+  de gráficas y se comparan con esa precisión junto al valor exacto: ejemplo 6-1 con ζ = 0.5
+  (−1/3 ± j/√3 y K = 28/27 frente a −0.3337 ± j0.578 y 1.0383), ejemplo 8-20 (márgenes de las
+  trazas asintóticas), ejemplo 7-1 (bisectriz: −2.928 y −5.464 frente a −2.9 y −5.4), ejemplos 9-1
+  y 9-2 (ω_c leída, y en el 9-2 un margen de ganancia exacto de 14.3 dB frente a «≈ 11 dB») y
+  ejemplo 10-1 (12.811 por redondear T_i). El ejemplo 7-21 de la 5.ª ed. trae márgenes de MATLAB y
+  se reproduce a cuatro cifras.
+- **Alternativas descartadas:** _Simplificar con un CAS general (mathjs `simplify`)_: da formas
+  que no son las del libro y no cancela factores de manera fiable. _Routh en coma flotante_: no
+  cancela (K² − 1.5556K)/(K − 1.5556) a K. _Reducir solo por patrones (serie, paralelo,
+  realimentación)_: se atasca con lazos entrelazados; la eliminación de nodos siempre termina.
+  _Dibujar el LGR con Recharts_: agrupa los datos por x y no admite curvas que no son funciones de
+  x. _Un constructor de flujogramas con ramas curvas_: la tabla con dibujo automático es más clara
+  en el celular y el diagrama de bloques ya cubre el dibujo libre.
