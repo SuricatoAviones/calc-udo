@@ -169,13 +169,10 @@ export function PwaPrompts() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] print:hidden">
-      <div
-        role="status"
-        className="bg-card text-card-foreground w-full max-w-md rounded-lg border p-3 shadow-lg"
-      >
+      <div className="bg-card text-card-foreground w-full max-w-md rounded-lg border p-3 shadow-lg">
         {showUpdate ? (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm">Hay una versión nueva de CalcUDO.</p>
+            <output className="text-sm">Hay una versión nueva de CalcUDO.</output>
             <Button
               size="sm"
               onClick={() => {
@@ -191,9 +188,9 @@ export function PwaPrompts() {
 
         {showInstall ? (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm">
+            <output className="text-sm">
               Instala CalcUDO y úsala sin conexión desde tu pantalla de inicio.
-            </p>
+            </output>
             <div className="flex shrink-0 items-center gap-1">
               <Button size="sm" onClick={install} disabled={installing}>
                 Instalar
@@ -207,10 +204,10 @@ export function PwaPrompts() {
 
         {showIos ? (
           <div className="flex flex-col gap-2">
-            <p className="text-sm">
+            <output className="text-sm">
               Para instalar CalcUDO, toca <strong>Compartir</strong> y luego{' '}
               <strong>Añadir a pantalla de inicio</strong>.
-            </p>
+            </output>
             <div className="flex justify-end">
               <Button size="sm" variant="ghost" onClick={dismiss}>
                 Entendido

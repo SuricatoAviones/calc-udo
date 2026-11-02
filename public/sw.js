@@ -34,34 +34,36 @@ function match(cache, request) {
   return cache.match(request, { ignoreSearch: true });
 }
 
-/** Descarga en paralelo (6 a la vez) y avisa del avance. Un fallo no detiene al resto. */
+/** Guarda una URL; un fallo puntual no detiene al resto. */
+async function cacheOne(cache, url) {
+  try {
+    if (await cache.match(url)) return;
+    const response = await fetch(url, { cache: 'reload' });
+    if (response.ok) await cache.put(url, response);
+  } catch {
+    // Sin conexión o 404 puntual: se reintenta en la próxima visita.
+  }
+}
+
+/** Descarga en paralelo (6 a la vez) y avisa del avance. */
 async function precache(urls, onProgress) {
   const cache = await openCache();
-  let next = 0;
-  let done = 0;
+  const state = { next: 0, done: 0 };
 
   async function worker() {
-    while (next < urls.length) {
-      const url = urls[next];
-      next += 1;
-      try {
-        const cached = await cache.match(url);
-        if (!cached) {
-          const response = await fetch(url, { cache: 'reload' });
-          if (response.ok) await cache.put(url, response);
-        }
-      } catch {
-        // Sin conexión o 404 puntual: se reintenta en la próxima visita.
-      }
-      done += 1;
-      if (onProgress && done % 10 === 0) onProgress(done, urls.length);
-    }
+    if (state.next >= urls.length) return;
+    const url = urls[state.next];
+    state.next += 1;
+    await cacheOne(cache, url);
+    state.done += 1;
+    if (onProgress && state.done % 10 === 0) onProgress(state.done, urls.length);
+    return worker();
   }
 
   const workers = Array.from({ length: Math.min(6, urls.length) }, () => worker());
   await Promise.all(workers);
-  if (onProgress) onProgress(done, urls.length);
-  return { done, total: urls.length };
+  if (onProgress) onProgress(state.done, urls.length);
+  return { done: state.done, total: urls.length };
 }
 
 self.addEventListener('install', (event) => {
@@ -137,6 +139,9 @@ async function cachedCount() {
 }
 
 self.addEventListener('message', (event) => {
+  // Solo se atienden mensajes de páginas del propio sitio.
+  if (event.origin && event.origin !== self.location.origin) return;
+
   const data = event.data;
   if (!data || typeof data !== 'object') return;
 
@@ -146,10 +151,10 @@ self.addEventListener('message', (event) => {
   }
 
   if (data.type === 'CACHE_STATUS') {
-    const port = event.ports && event.ports[0];
+    const port = event.ports?.[0];
     event.waitUntil(
       cachedCount().then((done) => {
-        if (port) port.postMessage({ type: 'CACHE_STATUS', done, total: ALL_URLS.length });
+        port?.postMessage({ type: 'CACHE_STATUS', done, total: ALL_URLS.length });
       }),
     );
     return;
@@ -159,9 +164,9 @@ self.addEventListener('message', (event) => {
     const client = event.source;
     event.waitUntil(
       precache(ALL_URLS, (done, total) => {
-        if (client) client.postMessage({ type: 'PRECACHE_PROGRESS', done, total });
+        client?.postMessage({ type: 'PRECACHE_PROGRESS', done, total });
       }).then(({ done, total }) => {
-        if (client) client.postMessage({ type: 'PRECACHE_DONE', done, total });
+        client?.postMessage({ type: 'PRECACHE_DONE', done, total });
       }),
     );
   }

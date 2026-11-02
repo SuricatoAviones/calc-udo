@@ -9,6 +9,19 @@ type Phase =
   | { name: 'saving'; done: number; total: number }
   | { name: 'saved'; total: number };
 
+function labelFor(phase: Phase): string {
+  if (phase.name === 'saved') return 'Disponible sin conexión';
+  if (phase.name === 'idle') return 'Guardar sin conexión';
+  if (phase.total === 0) return 'Guardando…';
+  return `Guardando… ${Math.round((phase.done / phase.total) * 100)} %`;
+}
+
+function PhaseIcon({ phase }: Readonly<{ phase: Phase }>) {
+  if (phase.name === 'saved') return <Check aria-hidden />;
+  if (phase.name === 'saving') return <Loader2 className="animate-spin" aria-hidden />;
+  return <Download aria-hidden />;
+}
+
 /**
  * Descarga el resto del sitio (páginas y payloads de navegación) para usarlo sin conexión.
  *
@@ -27,7 +40,7 @@ export function OfflineCacheButton() {
 
     const onMessage = (event: MessageEvent) => {
       const data = event.data as { type?: string; done?: number; total?: number } | null;
-      if (!data || typeof data.type !== 'string') return;
+      if (typeof data?.type !== 'string') return;
       if (data.type === 'PRECACHE_PROGRESS') {
         setPhase({ name: 'saving', done: data.done ?? 0, total: data.total ?? 0 });
       }
@@ -45,7 +58,7 @@ export function OfflineCacheButton() {
         const channel = new MessageChannel();
         channel.port1.onmessage = (event: MessageEvent) => {
           const data = event.data as { type?: string; done?: number; total?: number } | null;
-          if (!data || data.type !== 'CACHE_STATUS') return;
+          if (data?.type !== 'CACHE_STATUS') return;
           const done = data.done ?? 0;
           const total = data.total ?? 0;
           if (total > 0 && done === total) setPhase({ name: 'saved', total });
@@ -72,14 +85,7 @@ export function OfflineCacheButton() {
       .catch(() => setPhase({ name: 'idle' }));
   }
 
-  const label =
-    phase.name === 'saved'
-      ? 'Disponible sin conexión'
-      : phase.name === 'saving'
-        ? phase.total > 0
-          ? `Guardando… ${Math.round((phase.done / phase.total) * 100)} %`
-          : 'Guardando…'
-        : 'Guardar sin conexión';
+  const label = labelFor(phase);
 
   return (
     <Button
@@ -89,13 +95,7 @@ export function OfflineCacheButton() {
       disabled={phase.name !== 'idle'}
       title="Descarga las calculadoras para usarlas sin internet (unos 24 MB)"
     >
-      {phase.name === 'saved' ? (
-        <Check aria-hidden />
-      ) : phase.name === 'saving' ? (
-        <Loader2 className="animate-spin" aria-hidden />
-      ) : (
-        <Download aria-hidden />
-      )}
+      <PhaseIcon phase={phase} />
       <span aria-live="polite">{label}</span>
     </Button>
   );
