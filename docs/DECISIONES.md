@@ -883,3 +883,59 @@ Plantilla:
   _Dibujar el LGR con Recharts_: agrupa los datos por x y no admite curvas que no son funciones de
   x. _Un constructor de flujogramas con ramas curvas_: la tabla con dibujo automático es más clara
   en el celular y el diagrama de bloques ya cubre el dibujo libre.
+
+## ADR-040 — Aplicación instalable (PWA) con precache generado a partir del build
+
+- **Fecha:** 2026-11-02
+- **Estado:** Aceptada
+- **Decisión:** CalcUDO se instala como **aplicación web progresiva**, sin wrapper nativo ni
+  tienda. El sitio ya es estático (ADR-002): manifest, iconos y un service worker propio bastan
+  para tener icono en la pantalla de inicio, ventana sin barra de navegador y uso sin conexión en
+  Android e iOS, con un solo código y actualizaciones inmediatas.
+- **Manifest e iconos:** `app/manifest.ts` (`id` y `start_url` en `/`, `display: standalone`,
+  `lang: es`, colores del tema claro, categorías `education` y `productivity`). Se necesita
+  `export const dynamic = 'force-static'` porque `output: 'export'` no admite metadata routes
+  dinámicas. Los iconos viven en `public/icons/`: 192 y 512 para `any` y un **maskable** de 512 con
+  el sello al 80 % sobre fondo crema (`#f7f4ec`), de modo que el recorte circular de Android no
+  corte la leyenda. Se generaron con `sharp-cli` desde `public/Logo_UDO.svg.webp` (2000 × 2000,
+  la fuente de mayor resolución del repo); el `apple-touch-icon` de 180 px se reemplazó en
+  `app/apple-icon.png`, que Next publica por convención. El favicon (`app/icon.png`) no cambia.
+- **Service worker propio (`public/sw.js`):** unas 150 líneas, sin `next-pwa` ni Workbox. Es una
+  dependencia menos que mantener y permite decidir el momento de activar una versión nueva. Carga
+  la lista con `importScripts('/sw-precache.js')`; si el archivo falta (por ejemplo en `dev`) la
+  app sigue funcionando y cachea al navegar.
+- **Precache generado, nunca escrito a mano:** `pnpm build` ejecuta, después de `next build`,
+  `scripts/generate-sw-precache.ts`, que recorre `out/` y delega la clasificación en
+  `lib/pwa/precache.ts` (TypeScript puro, con tests):
+  - `core` (~5 MB): recursos de `/_next/static`, iconos, manifest, portada, payloads de la portada
+    e índice de búsqueda. Se descarga al instalar, así la app abre sin red desde el primer uso.
+  - `pages` (~25 MB): las 278 páginas HTML y sus 1.1 mil payloads `.txt` del router. No se bajan
+    solas: el pie tiene **«Guardar sin conexión»**, con progreso, porque son datos móviles que el
+    estudiante debe poder decidir. Lo ya visitado sí queda cacheado al vuelo.
+  - Se excluyen el propio service worker y su manifiesto (cachearse deja versiones pegadas), el
+    `404.html` que sirve el alojamiento, la imagen fuente de 332 KB y los `.map`.
+  - La versión de caché es `versión de package.json + FNV-1a` de la lista con tamaños; una versión
+    nueva usa `calcudo-<versión>` y `activate` borra las anteriores.
+  - El script **falla el build** si falta alguna ruta esperada del currículum (portada, materias,
+    temas, calculadoras implementadas, documentos legales y `/404/`), calculadas desde
+    `data/curriculum.ts` y el registro. Así una calculadora nueva no puede quedarse fuera del
+    offline por olvido.
+- **Estrategia de red:** caché primero para todo lo mismo-origen (los recursos llevan hash y las
+  páginas se versionan con la caché), con `ignoreSearch` para los `?_rsc=…` del router. Una
+  navegación sin caché cae a la portada precargada. No hay datos dinámicos que puedan quedar
+  obsoletos dentro de una versión.
+- **Actualización:** la versión nueva se instala pero **espera**; el aviso «Hay una versión nueva»
+  ofrece **Actualizar**, que envía `SKIP_WAITING` y recarga con `controllerchange`. No se activa
+  sola para no interrumpir un cálculo a medio escribir. El registro ocurre solo en producción; en
+  `dev` se desregistran los service workers para no servir HTML viejo de `out/`.
+- **Instalación:** se captura `beforeinstallprompt` y se muestra un aviso propio, descartable
+  (`localStorage`). En iOS, que no expone ese evento, se explican los pasos (Compartir → Añadir a
+  pantalla de inicio) y `appleWebApp` agrega las metas de Safari. Si la app ya corre instalada
+  (`display-mode: standalone`) no se molesta.
+- **Alternativas descartadas:** _next-pwa o Workbox_: más dependencia y menos control sobre la
+  activación y el manifiesto generado; además next-pwa va por detrás de las versiones de Next.
+  _Capacitor, React Native o Tauri_: duplican el stack, exigen builds nativos y tiendas, y no
+  aportan nada a una app que ya funciona en el navegador. _Cachear solo al navegar_: no permite
+  preparar el teléfono antes de salir sin wifi. _Descargar los 30 MB automáticamente_: gasta datos
+  móviles sin consentimiento. _Activar la versión nueva con `skipWaiting` automático_: recarga la
+  página en medio de un cálculo. _Manifest generado en el servidor_: el sitio no tiene servidor.

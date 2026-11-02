@@ -7,6 +7,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Aplicación instalable (PWA)** (ADR-040): manifiesto, iconos (192, 512 y maskable) y service
+  worker propio. En Android/Chrome se instala con **Instalar**; en iPhone/iPad desde Compartir →
+  Añadir a pantalla de inicio.
+- **Uso sin conexión**: el service worker precarga el armazón del sitio (~5 MB) al instalar y el
+  botón **Guardar sin conexión** del pie descarga las 278 páginas y sus datos de navegación
+  (~25 MB) con progreso. Las páginas que se visitan quedan disponibles sin red aunque no se
+  descargue todo.
+- Aviso de **versión nueva** con botón **Actualizar**: la versión nueva espera para no recargar la
+  página en medio de un cálculo.
+- La lista de precache se genera del build (`scripts/generate-sw-precache.ts`), no se escribe a
+  mano, y el build falla si falta una ruta del currículum.
+
 ## [1.1.0] — 2026-10-16
 
 Sistemas Dinámicos completa (ADR-039). Del pensum solo quedan las materias y calculadoras sin
