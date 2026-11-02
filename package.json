@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && tsx scripts/generate-sw-precache.ts",
     "start": "npx serve out",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "docs:pensum": "tsx scripts/generate-pensum.ts",
+    "sw:precache": "tsx scripts/generate-sw-precache.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
   },
   "dependencies": {

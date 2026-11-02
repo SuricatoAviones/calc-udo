@@ -25,7 +25,16 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'coverage/**', '.agents/**', 'next-env.d.ts']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'coverage/**',
+    '.agents/**',
+    'next-env.d.ts',
+    // El service worker usa globales de ServiceWorkerGlobalScope que ESLint no conoce.
+    'public/**',
+  ]),
 ]);
 
 export default eslintConfig;
