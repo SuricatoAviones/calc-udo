@@ -37,7 +37,8 @@ describe('contrato de calculadoras', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('cada calculadora cumple el contrato', () => {
+  // Recorre ~180 calculadoras con Zod; con todos los archivos de test en paralelo pasa de 5 s.
+  it('cada calculadora cumple el contrato', { timeout: 20_000 }, () => {
     for (const { file, calculator } of calculators) {
       const { meta } = calculator;
       const where = `${file} (${meta.id})`;
