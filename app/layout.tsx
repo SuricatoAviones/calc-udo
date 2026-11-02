@@ -3,6 +3,7 @@ import { Fraunces, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { themeInitScript } from '@/components/layout/ThemeToggle';
+import { PwaPrompts } from '@/components/pwa/PwaPrompts';
 import './globals.css';
 
 const display = Fraunces({ subsets: ['latin'], variable: '--font-display', display: 'swap' });
@@ -16,6 +17,12 @@ export const metadata: Metadata = {
   },
   description:
     'Calculadoras académicas con el procedimiento paso a paso para estudiantes de Ingeniería de Sistemas de la Universidad de Oriente.',
+  applicationName: 'CalcUDO',
+  appleWebApp: {
+    capable: true,
+    title: 'CalcUDO',
+    statusBarStyle: 'default',
+  },
 };
 
 export const viewport: Viewport = {
@@ -50,6 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
         </main>
         <SiteFooter />
+        <PwaPrompts />
       </body>
     </html>
   );

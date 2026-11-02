@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OfflineCacheButton } from '@/components/pwa/OfflineCacheButton';
 import { legalDocuments, legalPath, REPOSITORY_URL } from '@/data/legal';
 import pkg from '@/package.json';
 
@@ -33,13 +34,16 @@ export function SiteFooter() {
               ))}
             </ul>
           </nav>
-          <a
-            href={`${REPOSITORY_URL}/releases/tag/v${version}`}
-            rel="noopener noreferrer"
-            className="hover:text-foreground font-mono text-xs underline-offset-4 hover:underline"
-          >
-            v{version}
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <OfflineCacheButton />
+            <a
+              href={`${REPOSITORY_URL}/releases/tag/v${version}`}
+              rel="noopener noreferrer"
+              className="hover:text-foreground font-mono text-xs underline-offset-4 hover:underline"
+            >
+              v{version}
+            </a>
+          </div>
         </div>
       </div>
     </footer>
