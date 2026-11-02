@@ -52,6 +52,7 @@ pnpm dev | pnpm build | pnpm test | pnpm test:watch
 pnpm typecheck | pnpm lint | pnpm format
 pnpm check          # todo junto; debe pasar antes de commitear
 pnpm docs:pensum    # regenerar docs/PENSUM.md tras cambiar currículum o registro
+pnpm sw:precache    # regenerar out/sw-precache.js tras un build (lo hace `pnpm build`)
 ```
 
 ## Stack
@@ -68,8 +69,9 @@ app/                 Rutas (App Router): /[materia]/[tema]/[calculadora]/, pági
 components/          UI: calculators/ (form, registry), curriculum/, layout/, search/, ui/ (shadcn)
 data/                curriculum.ts (fuente de rutas y home), bibliography.ts, legal.ts
 docs/                Documentación en español + fuentes/ (pensum oficial)
-lib/                 Lógica pura: calculators/ (por materia), math/, search.ts
-scripts/             generate-pensum.ts (pnpm docs:pensum)
+lib/                 Lógica pura: calculators/ (por materia), math/, pwa/, search.ts
+public/              sw.js (service worker) e icons/ (iconos de la PWA)
+scripts/             generate-pensum.ts, generate-sw-precache.ts (pnpm docs:pensum, sw:precache)
 ```
 
 ## Núcleos compartidos (reutilízalos antes de escribir uno nuevo)
@@ -235,6 +237,9 @@ perder barras. Un test del contrato detecta caracteres de control (ADR-014).
   estado estacionario, LGR, Bode, Ziegler-Nichols, compensadores, controlabilidad y
   observabilidad, y ubicación de polos. Tests contra Ogata 3.ª y 5.ª ed. y Kuo 7.ª ed. en
   español. Versión **v1.1.0** ✅
+- Tanda 13 — **Aplicación instalable (PWA)** (ADR-040): manifest, iconos (incluido maskable),
+  service worker con precache generado desde el build y descarga de todas las calculadoras para
+  usarlas sin conexión, con avisos de instalación y de versión nueva. Versión **v1.2.0** ✅
 - **Roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)): Matemáticas I–IV y dos de Teoría de
   Sobrevivencia (sin fuente) y mejoras de los constructores (Schmitt y comparadores dibujados,
   diodo real, Zener, transistores y más edición en el de diagramas de bloques).

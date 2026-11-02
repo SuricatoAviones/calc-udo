@@ -28,6 +28,20 @@ pnpm check        # typecheck + lint + formato + tests (lo mismo que se exige en
 pnpm build        # sitio estático en out/
 ```
 
+## Instalar como app (PWA)
+
+CalcUDO es instalable y funciona sin conexión (ADR-040). En Android/Chrome aparece el botón
+**Instalar**; en iPhone/iPad se agrega desde **Compartir → Añadir a pantalla de inicio**.
+
+El service worker guarda al instalar el armazón del sitio (~5 MB). El botón **Guardar sin
+conexión** del pie descarga además todas las calculadoras (~25 MB) con su avance; cualquier
+página que visites queda disponible sin red aunque no lo uses. Cuando hay una versión nueva se
+avisa con **Actualizar**, sin recargar sola.
+
+`pnpm build` genera `out/` y `out/sw-precache.js` (la lista de archivos a cachear, calculada del
+propio build). `pnpm sw:precache` la regenera sin volver a compilar. En `pnpm dev` el service
+worker no se registra: para probarlo, usa `pnpm build && pnpm start`.
+
 ## Documentación
 
 Toda la documentación está en [`docs/`](docs/README.md), en español:
