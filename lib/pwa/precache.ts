@@ -60,7 +60,7 @@ function extensionOf(path: string): string {
  * sueltos (el 404 del alojamiento) quedan fuera.
  */
 export function precacheUrl(path: string): string | null {
-  const normalized = path.replace(/\\/g, '/').replace(/^\.\//, '');
+  const normalized = path.replaceAll('\\', '/').replace(/^\.\//, '');
   if (!normalized || normalized.includes('..')) return null;
   if (EXCLUDED_PATHS.has(normalized)) return null;
 
@@ -80,10 +80,15 @@ export function precacheUrl(path: string): string | null {
 function fingerprint(input: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
+    hash ^= input.codePointAt(i) ?? 0;
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return hash.toString(16).padStart(8, '0');
+}
+
+function compareUrls(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
 }
 
 /**
@@ -105,14 +110,14 @@ export function buildPrecacheManifest(
     entries.set(url, (entries.get(url) ?? 0) + file.size);
   }
 
-  const sorted = [...entries.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const sorted = [...entries.entries()].sort(([a], [b]) => compareUrls(a, b));
   const core: string[] = [];
   const pages: string[] = [];
   let coreBytes = 0;
   let pageBytes = 0;
 
   for (const [url, size] of sorted) {
-    const isRootPayload = url.endsWith('.txt') && url.indexOf('/', 1) === -1;
+    const isRootPayload = url.endsWith('.txt') && !url.includes('/', 1);
     const isHome = url === '/';
     const isPage = !isHome && !isRootPayload && (url.endsWith('/') || url.endsWith('.txt'));
 
