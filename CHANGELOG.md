@@ -7,6 +7,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.2.0] — 2026-11-02
+
 ### Agregado
 
 - **Aplicación instalable (PWA)** (ADR-040): manifiesto, iconos (192, 512 y maskable) y service
