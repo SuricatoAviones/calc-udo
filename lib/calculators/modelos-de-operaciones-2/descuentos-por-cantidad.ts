@@ -128,7 +128,7 @@ export function solveDiscounts(
     };
   });
   const feasible = candidates.filter((c) => c.totalCost !== null);
-  const best = feasible.reduce((a, b) => (b.totalCost! < a.totalCost! ? b : a));
+  const best = feasible.reduce((a, b) => (b.totalCost! < a.totalCost! ? b : a), feasible[0]!);
   const range = (c: DiscountCandidate) =>
     Number.isFinite(c.max)
       ? String.raw`${n(c.min)} \le Q < ${n(c.max)}`

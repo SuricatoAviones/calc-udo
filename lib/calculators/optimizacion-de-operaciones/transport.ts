@@ -162,7 +162,10 @@ export function initialSolution(b: Balanced, method: InitialMethod): InitialSolu
   const c = (i: number, j: number) => b.costs[i]![j]!;
 
   const cheapest = (candidates: [number, number][]) =>
-    candidates.reduce((best, cell) => (c(cell[0], cell[1]).lt(c(best[0], best[1])) ? cell : best));
+    candidates.reduce(
+      (best, cell) => (c(cell[0], cell[1]).lt(c(best[0], best[1])) ? cell : best),
+      candidates[0]!,
+    );
   const uncrossed = () =>
     [...rows].flatMap((i) => [...cols].map((j) => [i, j] as [number, number]));
 
@@ -187,8 +190,8 @@ export function initialSolution(b: Balanced, method: InitialMethod): InitialSolu
       };
       const rowPen = [...rows].map((i) => ({ i, p: penalty([...cols].map((j) => c(i, j))) }));
       const colPen = [...cols].map((j) => ({ j, p: penalty([...rows].map((i) => c(i, j))) }));
-      const bestRow = rowPen.reduce((x, y) => (y.p.gt(x.p) ? y : x));
-      const bestCol = colPen.reduce((x, y) => (y.p.gt(x.p) ? y : x));
+      const bestRow = rowPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), rowPen[0]!);
+      const bestCol = colPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), colPen[0]!);
       const useRow = !bestCol.p.gt(bestRow.p);
       cell = useRow
         ? cheapest([...cols].map((j) => [bestRow.i, j] as [number, number]))

@@ -6,6 +6,8 @@
  * (¿es 0?, ¿cuál razón es menor?) no dependen de una tolerancia.
  */
 
+import { trimDecimalZeros } from './format';
+
 function gcd(a: bigint, b: bigint): bigint {
   let x = a < 0n ? -a : a;
   let y = b < 0n ? -b : b;
@@ -160,7 +162,7 @@ function shortDecimal(r: Rational): string | null {
   const scaled = (r.num * 10n ** BigInt(places)) / r.den;
   const negative = scaled < 0n;
   const digits = String(negative ? -scaled : scaled).padStart(places + 1, '0');
-  const text = `${digits.slice(0, -places)}.${digits.slice(-places)}`.replace(/\.?0+$/, '');
+  const text = trimDecimalZeros(`${digits.slice(0, -places)}.${digits.slice(-places)}`);
   return `${negative ? '-' : ''}${text}`;
 }
 

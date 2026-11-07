@@ -7,6 +7,7 @@
 import { derivative, type MathNode } from 'mathjs';
 import { expressionFromNode, parseFunction, type ParsedExpression } from '@/lib/math/expression';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { splitRelation } from '../optimizacion-de-operaciones/lp-model';
 
 export const MAX_NLP_VARIABLES = 6;
 export const NLP_VARIABLES = Array.from({ length: MAX_NLP_VARIABLES }, (_, i) => `x${i + 1}`);
@@ -273,9 +274,9 @@ export const relationTex: Record<ConstraintRelation, string> = {
 /** Una restricción «lhs <= rhs», «lhs >= rhs» o «lhs = rhs». */
 export function parseNlpConstraint(line: string): NlpConstraint | string {
   const text = line.trim().replace(/[−–—]/g, '-').replace(/≤|=</g, '<=').replace(/≥|=>/g, '>=');
-  const match = /^(.*?)(<=|>=|=)(.*)$/.exec(text);
-  if (!match) return 'falta el signo de la restricción (<=, >= o =)';
-  const [, left = '', relation, right = ''] = match;
+  const split = splitRelation(text);
+  if (!split) return 'falta el signo de la restricción (<=, >= o =)';
+  const { left, relation, right } = split;
   if (/[<>=]/.test(right)) return 'usa un solo signo por restricción';
   const lhs = parseNlpExpression(left);
   if (!lhs.ok) return `lado izquierdo: ${lhs.message}`;

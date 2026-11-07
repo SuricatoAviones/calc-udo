@@ -212,7 +212,7 @@ export function solveGraphical(input: LpInput): Result {
 
   // ── Vértices ────────────────────────────────────────────────────────────
   const found = orderConvex(vertices(lp, lines));
-  const labelled = found.map((v, i) => ({ ...v, label: String.fromCharCode(65 + (i % 26)) }));
+  const labelled = found.map((v, i) => ({ ...v, label: String.fromCodePoint(65 + (i % 26)) }));
   const zOf = (p: Point) => lp.objective[0]!.mul(p.x).add(lp.objective[1]!.mul(p.y));
 
   // Ventana de la gráfica: abarca los vértices y los cortes con los ejes, con un margen.
@@ -303,7 +303,8 @@ export function solveGraphical(input: LpInput): Result {
   });
 
   const zValues = labelled.map((v) => zOf(v.point));
-  const best = zValues.reduce((b, z) => (lp.sense === 'max' ? (z.gt(b) ? z : b) : z.lt(b) ? z : b));
+  const better = (z: Rational, b: Rational) => (lp.sense === 'max' ? z.gt(b) : z.lt(b));
+  const best = zValues.reduce((b, z) => (better(z, b) ? z : b), zValues[0]!);
   const optimal = labelled.filter((_, i) => zValues[i]!.eq(best));
   const objectiveLatex = linearLatex(lp.objective, [vx, vy]);
   trace.steps.push({

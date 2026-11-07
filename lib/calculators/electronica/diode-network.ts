@@ -120,7 +120,7 @@ function gaussSolve(a: number[][], b: number[]): number[] | null {
       for (let j = k; j <= size; j++) m[i]![j] = m[i]![j]! - f * m[k]![j]!;
     }
   }
-  const x = Array<number>(size).fill(0);
+  const x = new Array<number>(size).fill(0);
   for (let i = size - 1; i >= 0; i--) {
     let s = m[i]![size]!;
     for (let j = i + 1; j < size; j++) s -= m[i]![j]! * x[j]!;
@@ -172,8 +172,8 @@ function solveState(
   });
   const nV = size;
   const total = nV + sources.length;
-  const a = Array.from({ length: total }, () => Array<number>(total).fill(0));
-  const b = Array<number>(total).fill(0);
+  const a = Array.from({ length: total }, () => new Array<number>(total).fill(0));
+  const b = new Array<number>(total).fill(0);
   const conductance = (g: number, p: number, q: number) => {
     if (p >= 0) a[p]![p]! += g;
     if (q >= 0) a[q]![q]! += g;
@@ -730,7 +730,7 @@ function buildEquivalent(
     used.add(nodeA);
     used.add(nodeB);
   }
-  const keep = [...Array(nodeCount).keys()].filter(
+  const keep = [...new Array(nodeCount).keys()].filter(
     (i) => reached.has(i) && (used.has(i) || i === topology.referenceNode),
   );
   const pruned = topology.nodes

@@ -67,8 +67,9 @@ describe('contrato de calculadoras', () => {
 
   // Un "\b", "\f", "\r" o "\t" sin escapar dentro de un string LaTeX ("\begin", "\frac",
   // "\right", "\times") se convierte en un carácter de control invisible que KaTeX muestra como
-  // □. Se revisa todo el texto que produce cada calculadora con su ejemplo.
-  it('ningún texto del resultado contiene caracteres de control', () => {
+  // □. Se revisa todo el texto que produce cada calculadora con su ejemplo. Resuelve las ~180
+  // calculadoras, así que necesita el mismo margen que el test anterior.
+  it('ningún texto del resultado contiene caracteres de control', { timeout: 20_000 }, () => {
     const texts = (value: unknown): string[] => {
       if (typeof value === 'string') return [value];
       if (Array.isArray(value)) return value.flatMap(texts);

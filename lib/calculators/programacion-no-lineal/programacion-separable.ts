@@ -50,7 +50,7 @@ function parseBreakpoints(text: string): Map<number, number[]> | string {
     .map((l) => l.trim())
     .filter((l) => l !== '');
   for (const [index, line] of lines.entries()) {
-    const match = /^x(\d)\s*[:=]\s*(.+)$/i.exec(line);
+    const match = /^x(\d)\s*[:=]\s*(\S.*)$/i.exec(line);
     if (!match) return `Línea ${index + 1}: escribe «x2: 0, 1, 2, 3».`;
     const values = match[2]!
       .split(/[\s;]+|,(?=\s)/)
@@ -122,7 +122,7 @@ function readModel(v: {
   constraints: string;
   breakpoints: string;
 }): SeparableModel | string {
-  const f = parseNlpExpression(v.objective.replace(/^\s*(max|min)?\s*z\s*=/i, ''));
+  const f = parseNlpExpression(v.objective.replace(/^\s*(?:(?:max|min)\s*)?z\s*=/i, ''));
   if (!f.ok) return f.message;
   const constraints = parseConstraintList(
     v.constraints

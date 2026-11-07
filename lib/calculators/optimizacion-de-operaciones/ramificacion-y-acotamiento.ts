@@ -48,7 +48,7 @@ export type BranchAndBoundInput = z.infer<typeof branchAndBoundInputSchema>;
 function integerNames(text: string): string[] {
   return text
     .split(/[\s,;]+/)
-    .map((t) => t.trim().replace(/_/g, ''))
+    .map((t) => t.trim().replaceAll('_', ''))
     .filter(Boolean);
 }
 

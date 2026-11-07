@@ -27,6 +27,18 @@ export function SearchDialog() {
   };
   const close = () => dialogRef.current?.close();
 
+  // Un clic en el fondo (fuera del contenido) llega al propio <dialog>; Escape ya lo cierra el
+  // navegador, así que el diálogo no necesita un manejador de teclado propio.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const onBackdropClick = (event: MouseEvent) => {
+      if (event.target === dialog) dialog.close();
+    };
+    dialog.addEventListener('click', onBackdropClick);
+    return () => dialog.removeEventListener('click', onBackdropClick);
+  }, []);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const shortcut =
@@ -61,10 +73,6 @@ export function SearchDialog() {
         ref={dialogRef}
         aria-label="Buscar calculadora"
         onClose={() => setOpen(false)}
-        // Un clic en el fondo (fuera del contenido) llega al propio <dialog>.
-        onClick={(event) => {
-          if (event.target === dialogRef.current) close();
-        }}
         className="bg-background text-foreground backdrop:bg-foreground/30 m-0 mx-auto mt-16 w-[calc(100%-2rem)] max-w-xl rounded-lg border p-0 shadow-lg backdrop:backdrop-blur-sm"
       >
         <div className="flex flex-col gap-3 p-4">

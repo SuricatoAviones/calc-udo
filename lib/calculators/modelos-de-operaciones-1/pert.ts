@@ -150,7 +150,10 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
   // Con varias rutas críticas medias se toma la de mayor varianza: da la estimación más
   // conservadora de la probabilidad.
   const paths = analysis.criticalPaths;
-  const path = paths.reduce((best, p) => (pathVariance(p) > pathVariance(best) ? p : best));
+  const path = paths.reduce(
+    (best, p) => (pathVariance(p) > pathVariance(best) ? p : best),
+    paths[0]!,
+  );
   const mean = analysis.duration;
   const variance = pathVariance(path);
   const sd = Math.sqrt(variance);

@@ -122,7 +122,7 @@ export function inverse(m: Matrix): Matrix | null {
 /** φ(A) = Aⁿ + α₁Aⁿ⁻¹ + ⋯ + αₙI con los coeficientes de un polinomio mónico. */
 export function polyOfMatrix(p: Poly, A: Matrix): Matrix {
   const n = A.length;
-  let result: Matrix = A.map(() => Array<number>(n).fill(0));
+  let result: Matrix = A.map(() => new Array<number>(n).fill(0));
   for (const c of p) result = matAdd(matMul(result, A), identity(n), c);
   return tidyMatrix(result);
 }
@@ -154,10 +154,10 @@ export function parseComplexList(text: string): ComplexListResult {
   const values: Complex[] = [];
   for (const token of tokens) {
     const source = token
-      .replace(/−/g, '-')
+      .replaceAll('−', '-')
       .replace(/\s+/g, '')
       .replace(/[ji]([\d.]+)/g, '$1i')
-      .replace(/j/g, 'i');
+      .replaceAll('j', 'i');
     if (!/^[-+\d.ei()*]+$/.test(source))
       return { ok: false, message: `«${token}» no es un número complejo.` };
     let value: unknown;

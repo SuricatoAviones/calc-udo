@@ -145,7 +145,7 @@ export function powerSeries(num: Poly, den: Poly, count: number): number[] {
   const d = trimPoly(den);
   const degree = d.length - 1;
   const N = trimPoly(num);
-  const aligned = [...Array<number>(Math.max(0, d.length - N.length)).fill(0), ...N];
+  const aligned = [...new Array<number>(Math.max(0, d.length - N.length)).fill(0), ...N];
   const out: number[] = [];
   for (let k = 0; k < count; k++) {
     let acc = aligned[k] ?? 0;
@@ -368,7 +368,7 @@ function solveSequence(input: ZInput): Result {
         .slice(0, 4)
         .map((v, k) => `${n(v)}${k === 0 ? '' : k === 1 ? 'z^{-1}' : `z^{-${k}}`}`)
         .join(' + ')
-        .replace(/\+ -/g, '- ')} + \cdots`,
+        .replaceAll('+ -', '- ')} + \cdots`,
     },
   ];
   const table: ResultTable = {
@@ -460,7 +460,7 @@ function solveEquation(input: ZInput): Result {
   const a = parseDataList(input.coefficients).values; // aₙ … a₀
   const order = a.length - 1;
   const ic = parseDataList(input.initial).values;
-  const initial = ic.length === 0 ? Array<number>(order).fill(0) : ic;
+  const initial = ic.length === 0 ? new Array<number>(order).fill(0) : ic;
   const forward = forwardSteps(input.expression);
   if ('message' in forward) return fail(forward.code, forward.message);
 

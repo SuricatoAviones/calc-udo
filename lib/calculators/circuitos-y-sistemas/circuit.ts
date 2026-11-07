@@ -145,7 +145,7 @@ export function parseEngineering(text: string): number | null {
     .replace(/\s+/g, '')
     .replace(/^−/, '-')
     .replace(/(Ω|ohms?|[VAFH])$/, '');
-  const m = /^([+-]?\d+\.?\d*|\.\d+)([pnumµukKMG]?)$/.exec(s);
+  const m = /^([+-]?\d+(?:\.\d*)?|\.\d+)([pnumµukKMG]?)$/.exec(s);
   if (!m) return null;
   const val = Number(m[1]);
   const mult = ENG_SUFFIX[m[2]!] ?? 1;

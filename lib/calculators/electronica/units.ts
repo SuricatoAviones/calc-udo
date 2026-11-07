@@ -72,7 +72,7 @@ export function parseQuantity(text: string): number {
     .replace(',', '.')
     .replace(/^[−–]/, '-')
     .replace(/(Ω|ohms?|Hz|[VAFHSW])$/, '');
-  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([pnuµμmkKMG]?)$/i.exec(s);
+  const m = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([pnuµμmkKMG]?)$/i.exec(s);
   if (!m) return Number.NaN;
   // Con exponente no se admite prefijo ("1e3k" es ambiguo); "1E" no es un exponente.
   const [, number, prefix] = m;

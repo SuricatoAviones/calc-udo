@@ -130,7 +130,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
   };
   const pad = (row: URat[]) => [
     ...row,
-    ...Array<URat>(Math.max(0, width - row.length)).fill(U_ZERO),
+    ...new Array<URat>(Math.max(0, width - row.length)).fill(U_ZERO),
   ];
   array.rows.push({ power: n, entries: pad(coefficients.filter((_, i) => i % 2 === 0)) });
   array.rows.push({ power: n - 1, entries: pad(coefficients.filter((_, i) => i % 2 === 1)) });
@@ -304,7 +304,7 @@ export function analyzeSigns(array: RouthArray): SignAnalysis {
   for (const r of array.rows) {
     if (!r.auxiliary || array.variable === 'parametro') continue;
     const p = r.auxiliary.power;
-    const poly: Poly = Array<number>(p + 1).fill(0);
+    const poly: Poly = new Array<number>(p + 1).fill(0);
     r.auxiliary.coefficients.forEach((c, j) => {
       if (p - 2 * j >= 0) poly[2 * j] = uIsConstant(c) ? uValue(c) : 0;
     });

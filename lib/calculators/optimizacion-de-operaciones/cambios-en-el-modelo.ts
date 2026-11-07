@@ -110,7 +110,7 @@ export const modelChangeInputSchema = z
         break;
       }
       case 'coeficientes-tecnologicos': {
-        const name = (v.variable ?? '').trim().replace(/_/g, '');
+        const name = (v.variable ?? '').trim().replaceAll('_', '');
         if (!variables.includes(name)) {
           issue('variable', `Escribe una variable del modelo: ${variables.join(', ')}.`);
         }
@@ -714,7 +714,7 @@ export function solveModelChange(input: ModelChangeInput): Result {
       return enterColumn(o, name, a, cost, null, trace);
     }
     case 'coeficientes-tecnologicos': {
-      const name = (input.variable ?? '').trim().replace(/_/g, '');
+      const name = (input.variable ?? '').trim().replaceAll('_', '');
       const a = parseNumbers(input.column, m, 'la columna');
       const cost = parseCost(input.cost);
       if (!lp.variables.includes(name)) return invalid('La variable no está en el modelo.');

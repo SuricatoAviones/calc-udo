@@ -24,7 +24,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -202,6 +201,7 @@ export function BlockDiagramField({ name }: { name: string }) {
   const { control } = useFormContext();
   const { field } = useController({ name, control, defaultValue: EMPTY });
   const doc = (field.value as BlockDiagramDocument | undefined) ?? EMPTY;
+  const rootRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [tool, setTool] = useState<Tool>('select');
   const [selection, setSelection] = useState<Selection>(null);
@@ -464,7 +464,7 @@ export function BlockDiagramField({ name }: { name: string }) {
     setDrag(null);
   };
 
-  const onKeyDown = (event: ReactKeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') return;
     const key = event.key.toLowerCase();
@@ -505,6 +505,16 @@ export function BlockDiagramField({ name }: { name: string }) {
       setDraft(null);
     }
   };
+
+  // Los atajos llegan al contenedor por burbujeo desde el lienzo (enfocable) o desde cualquier
+  // control del constructor. Se vuelve a suscribir en cada render porque el contenido cambia de
+  // lugar al expandirse y el manejador lee el estado actual.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    root.addEventListener('keydown', onKeyDown);
+    return () => root.removeEventListener('keydown', onKeyDown);
+  });
 
   const selected =
     selection?.kind === 'element' ? doc.elements.find((e) => e.id === selection.id) : undefined;
@@ -691,8 +701,8 @@ export function BlockDiagramField({ name }: { name: string }) {
         'flex flex-col gap-2 outline-none',
         expanded && 'bg-background fixed inset-0 z-50 p-3',
       )}
-      tabIndex={0}
-      onKeyDown={onKeyDown}
+      ref={rootRef}
+      role="group"
       aria-label="Constructor de diagramas de bloques"
     >
       <div
@@ -792,9 +802,10 @@ export function BlockDiagramField({ name }: { name: string }) {
       <svg
         ref={svgRef}
         className={cn(
-          'bg-card w-full touch-none rounded-md border select-none',
+          'bg-card focus-visible:ring-ring/50 w-full touch-none rounded-md border outline-none select-none focus-visible:ring-[3px]',
           expanded ? 'min-h-0 flex-1' : 'h-72',
         )}
+        tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -900,8 +911,8 @@ export function BlockDiagramField({ name }: { name: string }) {
                 onChange={(ev) => updateElement(selected.id, { gain: ev.target.value }, false)}
               />
               <span className="text-muted-foreground">
-                Un símbolo (<code>G1</code>, <code>H2</code>) o una función de s (
-                <code>10/(s+1)</code>).
+                Un símbolo (<code>G1</code>, <code>H2</code>) o una función de s como{' '}
+                <code>10/(s+1)</code>.
               </span>
             </label>
           )}

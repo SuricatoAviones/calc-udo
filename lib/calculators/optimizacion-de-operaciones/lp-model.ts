@@ -84,7 +84,7 @@ function parseExpression(source: string): LinearExpression | string {
     if (!numberMatch && !nameMatch) return `no se entiende «${text.slice(i) || text}»`;
     const value = (coefficient ?? Rational.ONE).mul(Rational.of(sign));
     if (nameMatch) {
-      const name = nameMatch[0].replace(/_/g, '');
+      const name = nameMatch[0].replaceAll('_', '');
       terms.set(name, (terms.get(name) ?? Rational.ZERO).add(value));
     } else {
       constant = constant.add(value);
@@ -123,14 +123,14 @@ export function parseLinearProgram(
       skipped++;
       continue;
     }
-    const match = /^(.*?)(<=|>=|=)(.*)$/.exec(text);
-    if (!match) {
+    const split = splitRelation(text);
+    if (!split) {
       return {
         ok: false,
         message: `Línea ${index + 1}: falta el signo de la restricción (<=, >= o =).`,
       };
     }
-    const [, left = '', rel, right = ''] = match;
+    const { left, relation: rel, right } = split;
     if (/[<>=]/.test(right)) {
       return { ok: false, message: `Línea ${index + 1}: usa un solo signo por restricción.` };
     }
@@ -216,12 +216,28 @@ export function parseLinearCoefficients(text: string, variables: string[]): Rati
   return coefficientsOver(parsed.terms, variables);
 }
 
+/**
+ * Separa «izquierda relación derecha» en la primera relación (<=, >= o =), como lo hacía
+ * `/^(.*?)(<=|>=|=)(.*)$/`, pero sin retroceso.
+ */
+export function splitRelation(
+  text: string,
+): { left: string; relation: '<=' | '>=' | '='; right: string } | null {
+  const match = /<=|>=|=/.exec(text);
+  if (!match) return null;
+  return {
+    left: text.slice(0, match.index),
+    relation: match[0] as '<=' | '>=' | '=',
+    right: text.slice(match.index + match[0].length),
+  };
+}
+
 /** Una restricción escrita como texto («3x1 + 3x2 + x3 <= 500») sobre las variables del modelo. */
 export function parseConstraintLine(line: string, variables: string[]): LpConstraint | string {
   const text = normalize(line);
-  const match = /^(.*?)(<=|>=|=)(.*)$/.exec(text);
-  if (!match) return 'falta el signo de la restricción (<=, >= o =)';
-  const [, left = '', rel, right = ''] = match;
+  const split = splitRelation(text);
+  if (!split) return 'falta el signo de la restricción (<=, >= o =)';
+  const { left, relation: rel, right } = split;
   if (/[<>=]/.test(right)) return 'usa un solo signo en la restricción';
   const l = parseExpression(left);
   const r = parseExpression(right);

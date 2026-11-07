@@ -292,7 +292,7 @@ export function solveSteadyState(
   const slowest = Math.min(...roots.map((r) => Math.abs(r.value.re)).filter((v) => v > 1e-9), 1e9);
   const horizon = Math.min(Math.max(6 / Math.max(slowest, 1e-6), 1), 200);
   for (const item of INPUTS.slice(0, 2)) {
-    const den = [...closed.den, ...Array<number>(item.power).fill(0)];
+    const den = [...closed.den, ...new Array<number>(item.power).fill(0)];
     const inverse = inverseLaplace([{ delay: 0, num: scalePoly(closed.num, R), den }], 'C', 'c');
     if (!inverse.ok) continue;
     const samples = 300;

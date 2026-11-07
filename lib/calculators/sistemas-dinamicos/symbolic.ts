@@ -180,7 +180,7 @@ export function symbolTex(name: string): string {
   const m = /^([A-Za-z]+)_?(\d+)$/.exec(name);
   if (m) return `${m[1]!.length === 1 ? m[1] : String.raw`\mathrm{${m[1]}}`}_{${m[2]}}`;
   if (/^[A-Za-z]$/.test(name)) return name;
-  return String.raw`\mathrm{${name.replace(/_/g, '')}}`;
+  return String.raw`\mathrm{${name.replaceAll('_', '')}}`;
 }
 
 function monoTex(vars: [string, number][]): string {
@@ -211,7 +211,7 @@ export function mpToUnivariate(p: MPoly, variable: string): Poly | null {
       degree = Math.max(degree, e);
     }
   }
-  const out = Array<number>(degree + 1).fill(0);
+  const out = new Array<number>(degree + 1).fill(0);
   for (const t of p) out[degree - exponent(t, variable)]! += t.coef;
   return trimPoly(out);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Rational } from '@/lib/math/rational';
-import { parseLinearProgram } from './lp-model';
+import { parseLinearProgram, splitRelation } from './lp-model';
 import { solveLpSilently } from './lp-solve';
 import { bigM } from './metodo-m-grande';
 import { twoPhase } from './metodo-dos-fases';
@@ -68,6 +68,18 @@ describe('parser del modelo', () => {
     expect(message('3x1', 'x1 <= 4\n2 <= 5')).toMatch(/Línea 2: la restricción no tiene variables/);
     expect(message('3s1', 's1 <= 4')).toMatch(/se reserva/);
     expect(message('3x1', 'x1 <= 4 <= 5')).toMatch(/un solo signo/);
+  });
+
+  // Sin fuente bibliográfica: splitRelation reemplaza a /^(.*?)(<=|>=|=)(.*)$/ y estos casos
+  // comprueban que corta en la misma relación que esa expresión regular (la primera).
+  it('separa en la primera relación, como la expresión regular que reemplaza', () => {
+    expect(splitRelation('3x1+2x2<=18')).toEqual({ left: '3x1+2x2', relation: '<=', right: '18' });
+    expect(splitRelation('x1>=x2')).toEqual({ left: 'x1', relation: '>=', right: 'x2' });
+    expect(splitRelation('x1=4')).toEqual({ left: 'x1', relation: '=', right: '4' });
+    expect(splitRelation('x1<x2=3')).toEqual({ left: 'x1<x2', relation: '=', right: '3' });
+    expect(splitRelation('x1<=4<=5')).toEqual({ left: 'x1', relation: '<=', right: '4<=5' });
+    expect(splitRelation('x1+x2')).toBeNull();
+    expect(splitRelation('x'.repeat(50_000) + '<')).toBeNull();
   });
 });
 

@@ -289,7 +289,7 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
     if (c.kind === 'current-source') currentSourceUnknown.set(c.id, M + k++);
   }
   const size = M + k;
-  const a: number[][] = Array.from({ length: size }, () => Array(size + 1).fill(0));
+  const a: number[][] = Array.from({ length: size }, () => new Array(size + 1).fill(0));
 
   // Filas de KVL por malla.
   const meshTerms: { sym: string[]; num: string[] }[] = [];

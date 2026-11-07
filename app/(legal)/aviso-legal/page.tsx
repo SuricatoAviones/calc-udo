@@ -11,6 +11,7 @@ import {
 } from '@/data/legal';
 
 const doc = getLegalDocument('aviso-legal');
+const LICENSE_URL = `${REPOSITORY_URL}/blob/main/LICENSE`;
 
 export const metadata: Metadata = { title: doc.title, description: doc.description };
 
@@ -89,10 +90,10 @@ export default function LegalNoticePage() {
       <ul>
         <li>
           El código fuente de CalcUDO se publica bajo la{' '}
-          <a href={`${REPOSITORY_URL}/blob/main/LICENSE`} rel="noopener noreferrer">
+          <a href={LICENSE_URL} rel="noopener noreferrer">
             licencia MIT
           </a>
-          : puedes usarlo, copiarlo, modificarlo y redistribuirlo conservando el aviso de copyright
+          . Puedes usarlo, copiarlo, modificarlo y redistribuirlo conservando el aviso de copyright
           y la licencia.
         </li>
         <li>

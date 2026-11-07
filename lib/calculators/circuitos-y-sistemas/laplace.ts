@@ -498,19 +498,16 @@ export function factoredTex(roots: PolyRoot[], lead: number, variable = 's'): st
   for (const r of roots) {
     if (r.value.im < 0) continue;
     let base: string;
-    let simple = false;
     if (r.value.im === 0) {
       const p = r.value.re;
-      if (p === 0) {
-        base = variable;
-        simple = true;
-      } else base = String.raw`\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\right)`;
+      if (p === 0) base = variable;
+      else base = String.raw`\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\right)`;
     } else {
       const quad = polyFromRoots([r.value, C.conj(r.value)]);
       base = String.raw`\left(${polyTex(quad, variable)}\right)`;
     }
     if (r.multiplicity === 1) factors.push(base);
-    else factors.push(simple ? `${base}^{${r.multiplicity}}` : `${base}^{${r.multiplicity}}`);
+    else factors.push(`${base}^{${r.multiplicity}}`);
   }
   const prefix = lead === 1 ? '' : lead === -1 ? '-' : n(lead);
   return `${prefix}${factors.join('')}` || n(lead);

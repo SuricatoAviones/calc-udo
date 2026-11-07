@@ -84,7 +84,7 @@ const n = toLatexNumber;
 
 /** Decimales de un dato tal como se escribió ("3.40" → 2, "12" → 0). */
 function decimalsOf(token: string): number {
-  const match = /[.,](\d+)/.exec(token.replace(/e.*$/i, ''));
+  const match = /[.,](\d+)/.exec(token.split(/e/i)[0]!);
   return match ? match[1]!.length : 0;
 }
 
@@ -201,7 +201,7 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
     substitution: String.raw`L_1 = ${fixed(lowers[0]!)}, \quad U_1 = ${fixed(lowers[0]!)} + ${n(width)} - ${n(unit)} = ${fixed(uppers[0]!)}, \quad m_1 = ${n(tidy((lowers[0]! + uppers[0]!) / 2))}`,
   });
 
-  const frequencies = Array<number>(k).fill(0);
+  const frequencies = new Array<number>(k).fill(0);
   const firstBoundary = start - unit / 2;
   for (const v of values) {
     const index = Math.min(k - 1, Math.max(0, Math.floor(round((v - firstBoundary) / width))));

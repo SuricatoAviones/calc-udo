@@ -303,7 +303,7 @@ function solveEquation(input: LaplaceInput): Result {
   const a = parseDataList(input.coefficients).values; // aₙ … a₀
   const order = a.length - 1;
   const ic = parseDataList(input.initial).values;
-  const initial = ic.length === 0 ? Array<number>(order).fill(0) : ic;
+  const initial = ic.length === 0 ? new Array<number>(order).fill(0) : ic;
 
   const built = transformSteps(input.expression, 'f');
   if ('message' in built) return fail(built.code, built.message);

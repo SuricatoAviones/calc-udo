@@ -104,7 +104,7 @@ export function reduceDiagram(original: Sfg, input: string, output: string): Red
           title: 'Bloques en paralelo',
           explanation: `Hay ${p.parts.length} bloques de ${p.from} a ${p.to}: sus salidas se suman.`,
           formula: 'G_a + G_b',
-          substitution: p.parts.map(frOperandTex).join(' + ').replace(/\+ -/g, '- '),
+          substitution: p.parts.map(frOperandTex).join(' + ').replaceAll('+ -', '- '),
           result: String.raw`${nodeTex(p.from)} \to ${nodeTex(p.to)}:\ ${frTex(p.total)}`,
         });
       }

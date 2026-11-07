@@ -346,7 +346,7 @@ export function solveCrashing(input: CrashingInput): Result {
   ];
   if (input.indirectCost !== undefined) {
     const totals = curve.map((c) => ({ ...c, total: c.direct + input.indirectCost! * c.duration }));
-    const best = totals.reduce((a, b) => (b.total < a.total - 1e-9 ? b : a));
+    const best = totals.reduce((a, b) => (b.total < a.total - 1e-9 ? b : a), totals[0]!);
     optimalDuration = best.duration;
     steps.push({
       title: 'Duración de costo total mínimo',

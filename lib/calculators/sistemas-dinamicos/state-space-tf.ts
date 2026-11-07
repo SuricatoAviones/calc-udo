@@ -34,7 +34,7 @@ export function stateSpaceToTf(
   const n = A.length;
   const { charPoly, M } = faddeevLeverrier(A);
   const b = B.map((row) => row[inputIndex] ?? 0);
-  const c = C[outputIndex] ?? Array<number>(n).fill(0);
+  const c = C[outputIndex] ?? new Array<number>(n).fill(0);
   const d = D[outputIndex]?.[inputIndex] ?? 0;
   // C·adj(sI − A)·B = Σ_k (c M_k b) s^{n−1−k}.
   const numerator: Poly = M.map((m) =>

@@ -408,7 +408,7 @@ function parseNode(source: string): { ok: true; node: MathNode } | { ok: false; 
     };
   }
   try {
-    return { ok: true, node: parse(trimmed.replace(/δ/g, 'delta')) };
+    return { ok: true, node: parse(trimmed.replaceAll('δ', 'delta')) };
   } catch {
     return { ok: false, message: 'La expresión no es válida: revisa los paréntesis y operadores.' };
   }

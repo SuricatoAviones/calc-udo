@@ -210,7 +210,7 @@ function determinant(
   return {
     value,
     symbolic: symbolicParts.join(' '),
-    substitution: substitutionParts.join(' ').replace(/\+ -/g, '- '),
+    substitution: substitutionParts.join(' ').replaceAll('+ -', '- '),
     combos,
   };
 }
@@ -280,8 +280,8 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
           'Las ramas que van del mismo nodo al mismo nodo se suman en una sola (sus señales llegan sumadas).',
         children: merged.map((m) => ({
           title: `${m.from} → ${m.to}`,
-          result: `${m.parts.map(frOperandTex).join(' + ')} = ${frTex(m.total)}`.replace(
-            /\+ -/g,
+          result: `${m.parts.map(frOperandTex).join(' + ')} = ${frTex(m.total)}`.replaceAll(
+            '+ -',
             '- ',
           ),
         })),
@@ -401,7 +401,7 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
           return isOne ? frTex(p.gain) : `${frOperandTex(p.gain)}${frOperandTex(c)}`;
         })
         .join(' + ')
-        .replace(/\+ -/g, '- ')}}{${frTex(D.value)}}`,
+        .replaceAll('+ -', '- ')}}{${frTex(D.value)}}`,
       result: `${tex} = ${frTex(transfer)}`,
     });
 

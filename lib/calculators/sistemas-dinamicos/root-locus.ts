@@ -182,8 +182,8 @@ export function departureAngles(data: LocusData): {
 export function splitJw(p: Poly): { re: Poly; im: Poly } {
   const q = trimPoly(p);
   const degree = q.length - 1;
-  const re = Array<number>(degree + 1).fill(0);
-  const im = Array<number>(degree + 1).fill(0);
+  const re = new Array<number>(degree + 1).fill(0);
+  const im = new Array<number>(degree + 1).fill(0);
   q.forEach((c, i) => {
     const k = degree - i;
     const sign = k % 4 === 0 || k % 4 === 1 ? 1 : -1;
@@ -285,7 +285,7 @@ export function locusBranches(
     const roots = closedLoopRoots(data, K);
     if (roots.length !== n) continue;
     const used = new Set<number>();
-    const next: Complex[] = Array(n);
+    const next: Complex[] = new Array(n);
     // Emparejamiento voraz por la distancia más corta.
     const pairs: { i: number; j: number; d: number }[] = [];
     prev.forEach((p, i) => roots.forEach((r, j) => pairs.push({ i, j, d: C.abs(C.sub(p, r)) })));

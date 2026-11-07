@@ -11,8 +11,21 @@ export const DEFAULT_SIGNIFICANT_DIGITS = 10;
 const SMALL = 1e-4;
 const LARGE = 1e10;
 
+/** Quita los ceros finales: «1200» → «12». Sin regex, que con muchos ceros retrocede. */
+export function trimTrailingZeros(digits: string): string {
+  let end = digits.length;
+  while (end > 0 && digits[end - 1] === '0') end--;
+  return digits.slice(0, end);
+}
+
+/** Ceros finales de un decimal y el punto si queda solo: «1.500» → «1.5», «2.00» → «2». */
+export function trimDecimalZeros(text: string): string {
+  const trimmed = trimTrailingZeros(text);
+  return trimmed !== text && trimmed.endsWith('.') ? trimmed.slice(0, -1) : trimmed;
+}
+
 function trimZeros(mantissa: string): string {
-  return mantissa.includes('.') ? mantissa.replace(/\.?0+$/, '') : mantissa;
+  return mantissa.includes('.') ? trimDecimalZeros(mantissa) : mantissa;
 }
 
 /**
@@ -70,7 +83,7 @@ export function toLatexOperand(
  */
 export function parseDecimal(text: string): number {
   const normalized = text.trim().replace(/\s+/g, '').replace(',', '.');
-  if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(normalized)) return Number.NaN;
+  if (!/^[-+]?(\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/i.test(normalized)) return Number.NaN;
   return Number(normalized);
 }
 

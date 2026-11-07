@@ -149,7 +149,7 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
       const D = trimPoly(plant.den);
       const N = trimPoly(plant.num);
       const size = Math.max(D.length, N.length);
-      const pad = (p: number[]) => [...Array<number>(size - p.length).fill(0), ...p];
+      const pad = (p: number[]) => [...new Array<number>(size - p.length).fill(0), ...p];
       const coefs = pad(D).map((d, i) => uFromPoly([pad(N)[i]!, d]));
       steps.push({
         title: 'Segundo método con la planta',

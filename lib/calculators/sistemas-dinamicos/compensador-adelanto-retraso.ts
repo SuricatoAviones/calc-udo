@@ -161,7 +161,7 @@ function solveFrequency(
 function dominantPole(roots: Complex[]): Complex | null {
   const complexes = roots.filter((r) => r.im > 1e-9);
   if (complexes.length === 0) return null;
-  return complexes.reduce((a, b) => (b.re > a.re ? b : a));
+  return complexes.reduce((a, b) => (b.re > a.re ? b : a), complexes[0]!);
 }
 
 export function solveCompensator(
@@ -285,7 +285,10 @@ export function solveCompensator(
     const data = locusData(mulPoly(shape.num, G.num), mulPoly(shape.den, G.den));
     const candidates = dampingPoints(data, zeta);
     const near = candidates.length
-      ? candidates.reduce((a, b) => (C.abs(C.sub(b.s, dom0)) < C.abs(C.sub(a.s, dom0)) ? b : a))
+      ? candidates.reduce(
+          (a, b) => (C.abs(C.sub(b.s, dom0)) < C.abs(C.sub(a.s, dom0)) ? b : a),
+          candidates[0]!,
+        )
       : null;
     if (!near)
       return fail(
@@ -321,7 +324,7 @@ export function solveCompensator(
     details.uncompensatedPhaseMargin = pm1;
     steps.push({
       title: 'Margen de fase sin compensar',
-      explanation: `Con la ganancia ajustada, G₁(jω) cruza 0 dB en ω = ${formatNumber(m1.gainCrossover ?? NaN, DIGITS)} rad/s.`,
+      explanation: `Con la ganancia ajustada, G₁(jω) cruza 0 dB en ω = ${formatNumber(m1.gainCrossover ?? Number.NaN, DIGITS)} rad/s.`,
       result: String.raw`\gamma_1 = ${deg(pm1)}`,
     });
     const [lo, hi] = frequencyRange(form1, [m1.gainCrossover ?? 1]);

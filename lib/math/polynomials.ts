@@ -35,7 +35,7 @@ export function isZeroPoly(p: Poly): boolean {
 
 export function addPoly(a: Poly, b: Poly): Poly {
   const n = Math.max(a.length, b.length);
-  const out = Array<number>(n).fill(0);
+  const out = new Array<number>(n).fill(0);
   a.forEach((c, i) => (out[n - a.length + i]! += c));
   b.forEach((c, i) => (out[n - b.length + i]! += c));
   return trimPoly(out);
@@ -50,7 +50,7 @@ export function subPoly(a: Poly, b: Poly): Poly {
 }
 
 export function mulPoly(a: Poly, b: Poly): Poly {
-  const out = Array<number>(a.length + b.length - 1).fill(0);
+  const out = new Array<number>(a.length + b.length - 1).fill(0);
   a.forEach((x, i) => b.forEach((y, j) => (out[i + j]! += x * y)));
   return trimPoly(out);
 }
@@ -67,7 +67,7 @@ export function dividePoly(a: Poly, b: Poly): { quotient: Poly; remainder: Poly 
   const den = trimPoly(b);
   if (den.length === 1 && den[0] === 0) throw new RangeError('División entre el polinomio cero');
   if (num.length < den.length) return { quotient: [0], remainder: num };
-  const quotient = Array<number>(num.length - den.length + 1).fill(0);
+  const quotient = new Array<number>(num.length - den.length + 1).fill(0);
   for (let i = 0; i < quotient.length; i++) {
     const factor = num[i]! / den[0]!;
     quotient[i] = factor;

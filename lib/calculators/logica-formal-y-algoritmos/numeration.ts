@@ -9,6 +9,7 @@
  *
  * Todo se calcula con enteros grandes y fracciones exactas, sin redondeo.
  */
+import { trimTrailingZeros } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 
 export const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -47,7 +48,7 @@ export function parseNumeral(text: string, base: number): Numeral | string {
   };
   const intDigits = toDigits(match[2] || '0');
   if (typeof intDigits === 'string') return intDigits;
-  const fracDigits = toDigits((match[3] ?? '').replace(/0+$/, ''));
+  const fracDigits = toDigits(trimTrailingZeros(match[3] ?? ''));
   if (typeof fracDigits === 'string') return fracDigits;
   return { negative: match[1] === '-', intDigits, fracDigits };
 }

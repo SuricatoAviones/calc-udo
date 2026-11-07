@@ -87,7 +87,7 @@ function readModel(v: {
   objective: string;
   constraints: string;
 }): QuadraticModel | string {
-  const parsed = parseNlpExpression(v.objective.replace(/^\s*(max|min)?\s*z\s*=/i, ''));
+  const parsed = parseNlpExpression(v.objective.replace(/^\s*(?:(?:max|min)\s*)?z\s*=/i, ''));
   if (!parsed.ok) return parsed.message;
   const lines = v.constraints
     .split(/\r?\n|;/)
@@ -301,7 +301,9 @@ export function solveWolfe(input: WolfeInput): Result {
   const x = model.names.map((_, j) => values[xCol(j)]!.toNumber());
   const lambda = A.map((_, i) => values[lambdaCol(i)]!.toNumber());
   const mu = model.names.map((_, j) => values[muCol(j)]!.toNumber());
-  const objective = parseNlpExpression(input.objective.replace(/^\s*(max|min)?\s*z\s*=/i, ''));
+  const objective = parseNlpExpression(
+    input.objective.replace(/^\s*(?:(?:max|min)\s*)?z\s*=/i, ''),
+  );
   const zValue = objective.ok ? evaluateAt(objective.expr, x) : Number.NaN;
   steps.push({
     title: 'Solución óptima',

@@ -111,7 +111,7 @@ export function solveQueueCost(input: QueueCostInput): Result {
     });
   }
 
-  const best = rows.reduce((a, b) => (b.totalCost < a.totalCost - 1e-12 ? b : a));
+  const best = rows.reduce((a, b) => (b.totalCost < a.totalCost - 1e-12 ? b : a), rows[0]!);
   steps.push(
     {
       title: 'Medidas del M/M/s para cada número de servidores',

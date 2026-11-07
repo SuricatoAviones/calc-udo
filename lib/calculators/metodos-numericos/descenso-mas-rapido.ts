@@ -105,7 +105,7 @@ function isPolynomial(node: MathNode): boolean {
         const value =
           exponent?.type === 'ConstantNode'
             ? Number((exponent as unknown as { value: unknown }).value)
-            : NaN;
+            : Number.NaN;
         if (!Number.isInteger(value) || value < 0) polynomial = false;
       } else if (fn === 'divide') {
         if (args[1]?.type !== 'ConstantNode') polynomial = false;

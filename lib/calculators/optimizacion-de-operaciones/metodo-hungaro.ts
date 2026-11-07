@@ -141,7 +141,8 @@ export function solveAssignment(
     });
   }
   if (input.sense === 'max') {
-    const top = c.flat().reduce((a, b) => (b.gt(a) ? b : a));
+    const entries = c.flat();
+    const top = entries.reduce((a, b) => (b.gt(a) ? b : a), entries[0]!);
     c = c.map((row) => row.map((v) => top.sub(v)));
     steps.push({
       title: 'Convertir a minimización',
@@ -152,7 +153,7 @@ export function solveAssignment(
   }
   tables.push(matrixTable('matriz-inicial', 'Matriz inicial'));
 
-  const rowMins = c.map((row) => row.reduce((a, b) => (b.lt(a) ? b : a)));
+  const rowMins = c.map((row) => row.reduce((a, b) => (b.lt(a) ? b : a), row[0]!));
   c = c.map((row, i) => row.map((v) => v.sub(rowMins[i]!)));
   steps.push({
     title: 'Restar el mínimo de cada fila',
@@ -160,7 +161,10 @@ export function solveAssignment(
       .map((v, i) => String.raw`${rowName(i)}:\ ${v.toLatex()}`)
       .join(String.raw`,\quad `),
   });
-  const colMins = c[0]!.map((_, j) => c.map((row) => row[j]!).reduce((a, b) => (b.lt(a) ? b : a)));
+  const colMins = c[0]!.map((_, j) => {
+    const column = c.map((row) => row[j]!);
+    return column.reduce((a, b) => (b.lt(a) ? b : a), column[0]!);
+  });
   c = c.map((row) => row.map((v, j) => v.sub(colMins[j]!)));
   steps.push({
     title: 'Restar el mínimo de cada columna',
@@ -191,7 +195,7 @@ export function solveAssignment(
         if (!cover.rows[i] && !cover.cols[j]) uncovered.push(v);
       }),
     );
-    const theta = uncovered.reduce((a, b) => (b.lt(a) ? b : a));
+    const theta = uncovered.reduce((a, b) => (b.lt(a) ? b : a), uncovered[0]!);
     const lines = [
       ...cover.rows.flatMap((on, i) => (on ? [rowName(i)] : [])),
       ...cover.cols.flatMap((on, j) => (on ? [colName(j)] : [])),

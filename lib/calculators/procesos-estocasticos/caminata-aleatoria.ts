@@ -186,7 +186,10 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
       result: String.raw`E[X_{${count}}] = ${n(start + count * (p - q))}, \qquad \operatorname{Var}[X_{${count}}] = ${n(count * (p + q - (p - q) ** 2))}`,
     });
     if (r === 0 && count > 0) {
-      const example = distribution.reduce((a, b) => (b.probability > a.probability ? b : a));
+      const example = distribution.reduce(
+        (a, b) => (b.probability > a.probability ? b : a),
+        distribution[0]!,
+      );
       const up = (count + example.position - start) / 2;
       steps.push({
         title: 'Fórmula cerrada (sin quedarse en el sitio)',

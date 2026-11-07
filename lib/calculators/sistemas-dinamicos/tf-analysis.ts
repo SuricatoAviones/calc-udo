@@ -92,8 +92,8 @@ export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
       explanation: `Polos (raíces del denominador): ${rootsText(poles)}. Ceros (raíces del numerador): ${rootsText(zeros)}.`,
       formula: String.raw`${name} = k\frac{\prod (s - z_i)}{\prod (s - p_j)}`,
       substitution:
-        String.raw`k = ${n(gain)},\quad ${rootsTex(zeros)}\ \text{(ceros)},\quad ${rootsTex(poles)}\ \text{(polos)}`.replace(
-          /s = /g,
+        String.raw`k = ${n(gain)},\quad ${rootsTex(zeros)}\ \text{(ceros)},\quad ${rootsTex(poles)}\ \text{(polos)}`.replaceAll(
+          's = ',
           '',
         ),
       result: `${name} = ${zpkTex(tf)}`,

@@ -74,7 +74,7 @@ export function solveMovingAverage(input: MovingAverageInput): ForecastResult {
   const { values: data } = parseDataList(input.data);
   const size = input.periods;
   const weighted = input.type === 'ponderado';
-  const weights = weighted ? parseWeights(input.weights, size) : Array<number>(size).fill(1);
+  const weights = weighted ? parseWeights(input.weights, size) : new Array<number>(size).fill(1);
   if (typeof weights === 'string' || data.length < 3 || size >= data.length) {
     return {
       ok: false,

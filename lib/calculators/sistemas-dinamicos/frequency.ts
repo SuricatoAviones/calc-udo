@@ -204,7 +204,7 @@ export function margins(tf: TransferFunction, form: BodeForm): Margins {
   phaseCrossovers.sort((a, b) => a.w - b.w);
   const highest = gainCrossovers.at(-1) ?? null;
   const worst = phaseCrossovers.length
-    ? phaseCrossovers.reduce((a, b) => (b.margin < a.margin ? b : a))
+    ? phaseCrossovers.reduce((a, b) => (b.margin < a.margin ? b : a), phaseCrossovers[0]!)
     : null;
   return {
     gainCrossovers,

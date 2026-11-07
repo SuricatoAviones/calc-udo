@@ -114,7 +114,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
   const opamps = components.filter((c) => c.component.kind === 'opamp' && c.nodeC !== undefined);
   const size = nUnknowns + nVsrc + opamps.length;
 
-  const a: number[][] = Array.from({ length: size }, () => Array(size + 1).fill(0));
+  const a: number[][] = Array.from({ length: size }, () => new Array(size + 1).fill(0));
 
   // Estampado.
   for (const { component, nodeA, nodeB } of components) {
@@ -199,7 +199,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
         terms.push(`G_{${label}} v_${nodeIdx + 1}`);
         subs.push(`${n(g)} v_${nodeIdx + 1}`);
       } else {
-        const pair = [nodeIdx, other].sort().join('-');
+        const pair = [nodeIdx, other].sort((a, b) => a - b).join('-');
         if (!seen.has(pair)) {
           seen.add(pair);
           terms.push(`G_{${label}} (v_${nodeIdx + 1} - v_${other + 1})`);

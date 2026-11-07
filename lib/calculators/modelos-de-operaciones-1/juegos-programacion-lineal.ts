@@ -37,7 +37,8 @@ export function solveGameLp(input: GameLpInput): CalculatorResult<GameLpValue, G
   const a = input.payoff.map((row) => row.map(Rational.fromNumber));
   const m = a.length;
   const n = a[0]!.length;
-  const min = a.flat().reduce((x, y) => (y.lt(x) ? y : x));
+  const entries = a.flat();
+  const min = entries.reduce((x, y) => (y.lt(x) ? y : x), entries[0]!);
   const K = min.sign() > 0 ? Rational.ZERO : Rational.ONE.sub(min);
   const shifted = a.map((row) => row.map((v) => v.add(K)));
   const steps: Step[] = [{ title: 'Matriz de pagos', result: payoffMatrixLatex(input.payoff) }];

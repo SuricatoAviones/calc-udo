@@ -78,7 +78,7 @@ function formToRational(form: PoleForm): { num: Poly; den: Poly } {
 function delayForm(form: PoleForm, m: number): PoleForm {
   if (m === 0) return form;
   const { num, den } = formToRational(form);
-  const shifted = mulPoly(den, [1, ...Array<number>(m).fill(0)]);
+  const shifted = mulPoly(den, [1, ...new Array<number>(m).fill(0)]);
   return partialFractions(num, shifted).poles;
 }
 

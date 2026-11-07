@@ -80,8 +80,12 @@ export function solveReorder(
   const d = input.demandMean;
   const sd = input.demandSd;
   const L = input.leadTime;
-  const mean = perPeriod ? (d ?? NaN) * (L ?? NaN) : (input.leadDemandMean ?? NaN);
-  const sigma = perPeriod ? (sd ?? NaN) * Math.sqrt(L ?? NaN) : (input.leadDemandSd ?? NaN);
+  const mean = perPeriod
+    ? (d ?? Number.NaN) * (L ?? Number.NaN)
+    : (input.leadDemandMean ?? Number.NaN);
+  const sigma = perPeriod
+    ? (sd ?? Number.NaN) * Math.sqrt(L ?? Number.NaN)
+    : (input.leadDemandSd ?? Number.NaN);
   if (!Number.isFinite(mean) || !Number.isFinite(sigma) || sigma <= 0) {
     return {
       ok: false,

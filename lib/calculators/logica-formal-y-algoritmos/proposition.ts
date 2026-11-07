@@ -172,7 +172,8 @@ export function variablesOf(formulas: Formula[]): string[] {
     }
   };
   formulas.forEach(walk);
-  return [...names].sort();
+  // Las variables son letras sueltas: el orden es el de sus códigos (mayúsculas primero).
+  return [...names].sort((a, b) => a.codePointAt(0)! - b.codePointAt(0)!);
 }
 
 export function evaluate(f: Formula, values: Map<string, boolean>): boolean {

@@ -11,6 +11,8 @@ import {
   toLatexText,
   toLatexVector,
   toRational,
+  trimDecimalZeros,
+  trimTrailingZeros,
 } from './format';
 
 // Casos de formateo: el valor esperado es la representación decimal del literal de entrada,
@@ -153,5 +155,35 @@ describe('toRational y toLatexRational', () => {
 
   it('no produce caracteres de control', () => {
     expect(toLatexRational(7 / 11) + toLatexText('a_b')).not.toMatch(/[\u0000-\u001f]/);
+  });
+});
+
+// Sin fuente bibliográfica: estos helpers reemplazan a /0+$/ y /\.?0+$/, que retroceden con
+// muchos ceros. Cada caso se contrastó con el resultado de la expresión regular original.
+describe('trimTrailingZeros y trimDecimalZeros', () => {
+  it('quita los ceros finales', () => {
+    expect(trimTrailingZeros('1200')).toBe('12');
+    expect(trimTrailingZeros('000')).toBe('');
+    expect(trimTrailingZeros('105')).toBe('105');
+    expect(trimTrailingZeros('')).toBe('');
+  });
+
+  it('quita los ceros decimales y el punto si queda solo', () => {
+    expect(trimDecimalZeros('1.500')).toBe('1.5');
+    expect(trimDecimalZeros('2.000')).toBe('2');
+    expect(trimDecimalZeros('100.0')).toBe('100');
+    expect(trimDecimalZeros('0.000')).toBe('0');
+    expect(trimDecimalZeros('1.05')).toBe('1.05');
+    expect(trimDecimalZeros('12.')).toBe('12.');
+  });
+
+  it('coincide con la expresión regular original', () => {
+    for (const text of ['1.500', '2.000', '100.0', '10.000', '0.000', '1.05', '12.', '7', '3.10']) {
+      expect(trimDecimalZeros(text)).toBe(text.replace(/\.?0+$/, ''));
+    }
+  });
+
+  it('es lineal con muchos ceros', () => {
+    expect(trimDecimalZeros('1.' + '0'.repeat(100_000) + '1')).toHaveLength(100_003);
   });
 });

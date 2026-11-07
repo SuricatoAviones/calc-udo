@@ -1320,6 +1320,8 @@ export function CircuitBuilderField({
         <svg
           ref={svgRef}
           data-testid="circuit-canvas"
+          role="application"
+          aria-label="Lienzo del circuito"
           className={cn(
             'h-full w-full',
             tool === 'select' ? 'cursor-default' : 'cursor-crosshair',

@@ -217,7 +217,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     const parts = row.flatMap((a, i) =>
       a === 0 ? [] : [`${a === 1 ? '' : a === -1 ? '-' : n(a)}${deltaTex(i)}`],
     );
-    return `${parts.join(' + ').replace(/\+ -/g, '- ')} = ${rhs}`;
+    return `${parts.join(' + ').replaceAll('+ -', '- ')} = ${rhs}`;
   };
   steps.push({
     title: 'Ecuaciones del dual',

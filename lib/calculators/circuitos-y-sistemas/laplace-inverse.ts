@@ -103,7 +103,7 @@ export function expansionTex(poles: PoleExpansion[], variable: string, direct: P
       parts.push(String.raw`\frac{${value}}{${powerFactorTex(p.pole, i + 1, variable)}}`);
     });
   }
-  return parts.join(' + ').replace(/\+ \\frac\{-/g, String.raw`- \frac{`);
+  return parts.join(' + ').replaceAll(String.raw`+ \frac{-`, String.raw`- \frac{`);
 }
 
 export function residueSteps(
@@ -175,7 +175,11 @@ function pairStep(p: PoleExpansion): Step | null {
     if (C.isZero(residue, 1e-12)) return;
     const k = index + 1;
     const piece = timePieces([
-      { pole: p.pole, multiplicity: k, residues: [...Array<Complex>(k - 1).fill(C.ZERO), residue] },
+      {
+        pole: p.pole,
+        multiplicity: k,
+        residues: [...new Array<Complex>(k - 1).fill(C.ZERO), residue],
+      },
     ]);
     const time = joinTerms(piecesLatexTerms(piece, 't'));
     if (p.pole.im === 0) {

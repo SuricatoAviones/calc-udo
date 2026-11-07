@@ -7,7 +7,7 @@ import { TableField, type TableFieldColumn } from '@/components/calculators/form
 export function activityName(index: number): string {
   let name = '';
   for (let k = index; k >= 0; k = Math.floor(k / 26) - 1) {
-    name = String.fromCharCode(65 + (k % 26)) + name;
+    name = String.fromCodePoint(65 + (k % 26)) + name;
   }
   return name;
 }

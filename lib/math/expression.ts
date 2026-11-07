@@ -92,9 +92,9 @@ function toParsed(source: string, node: MathNode, variables: string[]): ParsedEx
   const evaluateAt = (scope: Record<string, number>) => {
     try {
       const value: unknown = compiled.evaluate({ ...scope });
-      return typeof value === 'number' ? value : NaN; // p. ej. Complex de sqrt(-1)
+      return typeof value === 'number' ? value : Number.NaN; // p. ej. Complex de sqrt(-1)
     } catch {
-      return NaN;
+      return Number.NaN;
     }
   };
   const first = variables[0] ?? 'x';

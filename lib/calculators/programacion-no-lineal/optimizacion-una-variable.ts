@@ -260,8 +260,8 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
     ...stationary.map((p) => ({ x: p.x, f: p.f })),
     { x: b, f: f.evaluate(b) },
   ].filter((p) => Number.isFinite(p.f));
-  const globalMax = points.reduce((p, q) => (q.f > p.f ? q : p));
-  const globalMin = points.reduce((p, q) => (q.f < p.f ? q : p));
+  const globalMax = points.reduce((p, q) => (q.f > p.f ? q : p), points[0]!);
+  const globalMin = points.reduce((p, q) => (q.f < p.f ? q : p), points[0]!);
   steps.push({
     title: 'Extremos absolutos en el intervalo',
     explanation:

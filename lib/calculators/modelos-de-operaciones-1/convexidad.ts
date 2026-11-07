@@ -138,7 +138,7 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
       formula: single
         ? String.raw`f''(x) = \frac{d^2 f}{dx^2}`
         : String.raw`H = \left[\frac{\partial^2 f}{\partial ${variable(0)}\,\partial ${variable(1)}}\right]`,
-      result: hessianTex.replace(/x_\{1\}/g, single ? 'x' : 'x_{1}'),
+      result: hessianTex.replaceAll('x_{1}', single ? 'x' : 'x_{1}'),
     },
   ];
 

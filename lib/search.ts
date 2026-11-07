@@ -73,7 +73,7 @@ function fieldsOf(entry: SearchEntry): Fields {
     topic: normalizeText(entry.topic),
     subject: normalizeText(entry.subject),
     context: normalizeText(entry.context),
-    compact: `${title} ${id}`.replace(/ /g, ''),
+    compact: `${title} ${id}`.replaceAll(' ', ''),
   };
 }
 

@@ -43,7 +43,7 @@ export interface TimeResponse {
 /** c(t) = ℒ⁻¹{G(s)R(s)} con la traza de las fracciones parciales. */
 export function timeResponse(tf: TransferFunction, input: InputKind): TimeResponse | null {
   const { power } = INPUT_INFO[input];
-  const den = [...tf.den, ...Array<number>(power).fill(0)];
+  const den = [...tf.den, ...new Array<number>(power).fill(0)];
   const inverse = inverseLaplace([{ delay: 0, num: tf.num, den }], 'C', 'c');
   if (!inverse.ok) return null;
   return {

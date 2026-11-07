@@ -70,7 +70,7 @@ export function dualLatex(dual: DualModel): string {
   const rows = dual.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ &${dual.signs.map(signLatex).join(String.raw`,\ `)} \\end{aligned}`;
+  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ &${dual.signs.map((sign, i) => signLatex(sign, i)).join(String.raw`,\ `)} \\end{aligned}`;
 }
 
 /**

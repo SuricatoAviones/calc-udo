@@ -397,7 +397,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
   }
 
   const columns = [...states.map((s) => s.id), ...inputs.map((u) => u.id)];
-  const raw: number[][] = states.map(() => Array<number>(columns.length).fill(0));
+  const raw: number[][] = states.map(() => new Array<number>(columns.length).fill(0));
   for (let j = 0; j < columns.length; j++) {
     const outcome = solveMna(buildTopology(substitute(columns[j]!)));
     if (!outcome.ok) return fail('singular', outcome.message);
@@ -520,7 +520,7 @@ export function stateTransforms(
   const forced = Bu.some((v) => v !== 0);
   return Array.from({ length: size }, (_, i) => {
     // Σ_k (M_k x0)_i s^{n−k} + (M_k Bu)_i s^{n−1−k}; sin entradas se cancela una s.
-    const num = Array<number>(size + 1).fill(0);
+    const num = new Array<number>(size + 1).fill(0);
     M.forEach((m, k) => {
       const mx = m[i]!.reduce((s, v, j) => s + v * model.x0[j]!, 0);
       const mb = m[i]!.reduce((s, v, j) => s + v * Bu[j]!, 0);

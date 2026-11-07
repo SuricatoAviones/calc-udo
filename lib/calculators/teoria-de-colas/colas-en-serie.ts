@@ -90,7 +90,7 @@ export function solveSeriesQueue({ lambda, stations }: SeriesQueueInput): Result
     result: String.raw`L = ${n(value.L)}, \qquad W = ${n(value.W)}, \qquad W_q = ${n(value.Wq)}`,
   });
 
-  const busiest = results.reduce((a, b) => (b.rho > a.rho ? b : a));
+  const busiest = results.reduce((a, b) => (b.rho > a.rho ? b : a), results[0]!);
   return {
     ok: true,
     value,

@@ -359,7 +359,13 @@ export function solveSimulation(input: SimulationInput): Result {
 
     if (isArrival) {
       const customer = event.customer;
-      customers.push({ customer, arrival: clock, start: NaN, wait: NaN, departure: NaN });
+      customers.push({
+        customer,
+        arrival: clock,
+        start: Number.NaN,
+        wait: Number.NaN,
+        departure: Number.NaN,
+      });
       schedule.arrival = null;
       if (customer < total) {
         const draw = drawTime(arrival);

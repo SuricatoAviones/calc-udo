@@ -134,7 +134,7 @@ function groupingStep(
   const chunks = (s: string) => s.match(new RegExp(`.{${size}}`, 'g')) ?? [];
   const part = (s: string) =>
     chunks(s)
-      .map((g) => String.raw`\underbrace{${g}}_{${digitChar(parseInt(g, 2))}}`)
+      .map((g) => String.raw`\underbrace{${g}}_{${digitChar(Number.parseInt(g, 2))}}`)
       .join(String.raw`\,`);
   return {
     title: `Atajo: grupos de ${size} bits`,

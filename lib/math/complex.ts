@@ -39,7 +39,7 @@ export function scale(a: Complex, k: number): Complex {
 /** a / b. Devuelve `NaN` en ambas partes si b = 0. */
 export function div(a: Complex, b: Complex): Complex {
   // Algoritmo de Smith: evita desbordes cuando |b| es grande o pequeño.
-  if (b.re === 0 && b.im === 0) return { re: NaN, im: NaN };
+  if (b.re === 0 && b.im === 0) return { re: Number.NaN, im: Number.NaN };
   if (Math.abs(b.re) >= Math.abs(b.im)) {
     const r = b.im / b.re;
     const d = b.re + b.im * r;

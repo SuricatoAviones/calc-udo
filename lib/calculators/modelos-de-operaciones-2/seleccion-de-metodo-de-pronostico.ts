@@ -200,8 +200,9 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
 
   const criterion = input.criterion;
   const candidates = methods.filter((m) => measure(m.accuracy, criterion) !== null);
-  const best = candidates.reduce((a, b) =>
-    measure(b.accuracy, criterion)! < measure(a.accuracy, criterion)! - 1e-12 ? b : a,
+  const best = candidates.reduce(
+    (a, b) => (measure(b.accuracy, criterion)! < measure(a.accuracy, criterion)! - 1e-12 ? b : a),
+    candidates[0]!,
   );
 
   const methodStep = (m: MethodResult, formula: string): Step => {
