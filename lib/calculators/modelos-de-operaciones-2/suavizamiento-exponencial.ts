@@ -82,7 +82,7 @@ export function solveExponentialSmoothing(input: ExponentialSmoothingInput): For
     {
       title: 'Suavizamiento exponencial',
       explanation: `Cada pronóstico es un promedio ponderado del último dato y del último pronóstico: con α = ${alpha}, el nuevo pronóstico corrige el anterior con el ${formatNumber(alpha * 100)} % del error.`,
-      formula: 'F_{t+1} = \\alpha Y_t + (1 - \\alpha) F_t = F_t + \\alpha\\,(Y_t - F_t)',
+      formula: String.raw`F_{t+1} = \alpha Y_t + (1 - \alpha) F_t = F_t + \alpha\,(Y_t - F_t)`,
       children,
     },
     ...accuracySteps(points, acc),

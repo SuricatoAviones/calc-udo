@@ -102,7 +102,7 @@ function fail(
 }
 
 const optional = (v: number | null, unit = 's') =>
-  v === null ? '\\text{—}' : `${n(v)}\\ \\text{${unit}}`;
+  v === null ? String.raw`\text{—}` : String.raw`${n(v)}\ \text{${unit}}`;
 
 export function solveTransient(
   input: TransientInput,
@@ -120,8 +120,8 @@ export function solveTransient(
     steps.push({
       title: 'Sistema de primer orden',
       explanation: `T = ${formatNumber(T, DIGITS)} s es la constante de tiempo: el polo está en s = −1/T = ${formatNumber(-1 / T, DIGITS)}.`,
-      formula: 'G(s) = \\frac{K}{Ts + 1}',
-      substitution: `G(s) = \\frac{${n(K)}}{${n(T)}s + 1}`,
+      formula: String.raw`G(s) = \frac{K}{Ts + 1}`,
+      substitution: String.raw`G(s) = \frac{${n(K)}}{${n(T)}s + 1}`,
       result: `G(s) = ${tfTex(tf)}`,
     });
   } else if (input.order === 'segundo-orden') {
@@ -139,8 +139,8 @@ export function solveTransient(
     steps.push({
       title: 'Sistema de segundo orden',
       explanation: `ζ = ${formatNumber(zeta, DIGITS)} es el factor de amortiguamiento relativo y ω_n = ${formatNumber(wn, DIGITS)} rad/s la frecuencia natural no amortiguada. El sistema es ${kind}. Polos: ${rootsText(poles)}.`,
-      formula: 'G(s) = \\frac{K\\omega_n^2}{s^2 + 2\\zeta\\omega_ns + \\omega_n^2}',
-      substitution: `G(s) = \\frac{${n(K)}(${n(wn)})^{2}}{s^{2} + 2(${n(zeta)})(${n(wn)})s + (${n(wn)})^{2}}`,
+      formula: String.raw`G(s) = \frac{K\omega_n^2}{s^2 + 2\zeta\omega_ns + \omega_n^2}`,
+      substitution: String.raw`G(s) = \frac{${n(K)}(${n(wn)})^{2}}{s^{2} + 2(${n(zeta)})(${n(wn)})s + (${n(wn)})^{2}}`,
       result: `G(s) = ${tfTex(tf)}`,
     });
     if (zeta > 0 && zeta < 1) {
@@ -178,9 +178,9 @@ export function solveTransient(
     title: `Respuesta al ${info.name}`,
     explanation:
       'Con condiciones iniciales cero, C(s) = G(s)R(s); se invierte por fracciones parciales.',
-    formula: `C(s) = G(s)\\,${info.R}`,
+    formula: String.raw`C(s) = G(s)\,${info.R}`,
     children: response.steps,
-    result: `c(t) = ${response.tex},\\quad t \\ge 0`,
+    result: String.raw`c(t) = ${response.tex},\quad t \ge 0`,
   });
 
   // Especificaciones de la respuesta al escalón.
@@ -207,9 +207,8 @@ export function solveTransient(
     steps.push({
       title: 'Especificaciones del primer orden',
       explanation: `En t = T la respuesta alcanza el 63.2 % de su valor final; en 4T, el 98.2 % (Ogata, sec. 4-2).`,
-      formula:
-        'c(T) = K(1 - e^{-1}) = 0.632K,\\quad t_s = 4T\\ (2\\,\\%),\\quad t_s = 3T\\ (5\\,\\%)',
-      result: `c(T) = ${n(K * (1 - Math.exp(-1)))},\\quad t_s = ${n(4 * T)}\\ \\text{s}\\ (2\\,\\%),\\quad ${n(3 * T)}\\ \\text{s}\\ (5\\,\\%)`,
+      formula: String.raw`c(T) = K(1 - e^{-1}) = 0.632K,\quad t_s = 4T\ (2\,\%),\quad t_s = 3T\ (5\,\%)`,
+      result: String.raw`c(T) = ${n(K * (1 - Math.exp(-1)))},\quad t_s = ${n(4 * T)}\ \text{s}\ (2\,\%),\quad ${n(3 * T)}\ \text{s}\ (5\,\%)`,
     });
   }
   if (formulas && input.input === 'escalon') {
@@ -221,34 +220,32 @@ export function solveTransient(
       children: [
         {
           title: 'Frecuencia amortiguada y atenuación',
-          formula:
-            '\\omega_d = \\omega_n\\sqrt{1 - \\zeta^2},\\quad \\sigma = \\zeta\\omega_n,\\quad \\beta = \\tan^{-1}\\frac{\\omega_d}{\\sigma}',
-          substitution: `\\omega_d = ${n(wn)}\\sqrt{1 - ${n(zeta)}^{2}},\\quad \\sigma = (${n(zeta)})(${n(wn)})`,
-          result: `\\omega_d = ${n(formulas.omegaD)}\\ \\text{rad/s},\\quad \\sigma = ${n(formulas.sigma)},\\quad \\beta = ${n(formulas.beta)}\\ \\text{rad}`,
+          formula: String.raw`\omega_d = \omega_n\sqrt{1 - \zeta^2},\quad \sigma = \zeta\omega_n,\quad \beta = \tan^{-1}\frac{\omega_d}{\sigma}`,
+          substitution: String.raw`\omega_d = ${n(wn)}\sqrt{1 - ${n(zeta)}^{2}},\quad \sigma = (${n(zeta)})(${n(wn)})`,
+          result: String.raw`\omega_d = ${n(formulas.omegaD)}\ \text{rad/s},\quad \sigma = ${n(formulas.sigma)},\quad \beta = ${n(formulas.beta)}\ \text{rad}`,
         },
         {
           title: 'Tiempo de levantamiento',
-          formula: 't_r = \\frac{\\pi - \\beta}{\\omega_d}',
-          substitution: `t_r = \\frac{\\pi - ${n(formulas.beta)}}{${n(formulas.omegaD)}}`,
-          result: `t_r = ${n(formulas.rise)}\\ \\text{s}`,
+          formula: String.raw`t_r = \frac{\pi - \beta}{\omega_d}`,
+          substitution: String.raw`t_r = \frac{\pi - ${n(formulas.beta)}}{${n(formulas.omegaD)}}`,
+          result: String.raw`t_r = ${n(formulas.rise)}\ \text{s}`,
         },
         {
           title: 'Tiempo pico',
-          formula: 't_p = \\frac{\\pi}{\\omega_d}',
-          substitution: `t_p = \\frac{\\pi}{${n(formulas.omegaD)}}`,
-          result: `t_p = ${n(formulas.peak)}\\ \\text{s}`,
+          formula: String.raw`t_p = \frac{\pi}{\omega_d}`,
+          substitution: String.raw`t_p = \frac{\pi}{${n(formulas.omegaD)}}`,
+          result: String.raw`t_p = ${n(formulas.peak)}\ \text{s}`,
         },
         {
           title: 'Sobrepaso máximo',
-          formula: 'M_p = e^{-(\\sigma/\\omega_d)\\pi}',
-          substitution: `M_p = e^{-(${n(formulas.sigma)}/${n(formulas.omegaD)})\\pi}`,
-          result: `M_p = ${n(formulas.overshoot)} = ${n(100 * formulas.overshoot)}\\,\\%`,
+          formula: String.raw`M_p = e^{-(\sigma/\omega_d)\pi}`,
+          substitution: String.raw`M_p = e^{-(${n(formulas.sigma)}/${n(formulas.omegaD)})\pi}`,
+          result: String.raw`M_p = ${n(formulas.overshoot)} = ${n(100 * formulas.overshoot)}\,\%`,
         },
         {
           title: 'Tiempo de asentamiento',
-          formula:
-            't_s = \\frac{4}{\\sigma}\\ (2\\,\\%),\\quad t_s = \\frac{3}{\\sigma}\\ (5\\,\\%)',
-          result: `t_s = ${n(formulas.settling2)}\\ \\text{s}\\ (2\\,\\%),\\quad ${n(formulas.settling5)}\\ \\text{s}\\ (5\\,\\%)`,
+          formula: String.raw`t_s = \frac{4}{\sigma}\ (2\,\%),\quad t_s = \frac{3}{\sigma}\ (5\,\%)`,
+          result: String.raw`t_s = ${n(formulas.settling2)}\ \text{s}\ (2\,\%),\quad ${n(formulas.settling5)}\ \text{s}\ (5\,\%)`,
         },
       ],
     });
@@ -258,20 +255,20 @@ export function solveTransient(
       id: 'especificaciones',
       title: 'Especificaciones medidas sobre la respuesta al escalón',
       columns: [
-        { key: 'especificacion', header: '\\text{Especificación}', format: 'latex' },
-        { key: 'valor', header: '\\text{Valor}', format: 'latex' },
+        { key: 'especificacion', header: String.raw`\text{Especificación}`, format: 'latex' },
+        { key: 'valor', header: String.raw`\text{Valor}`, format: 'latex' },
       ],
       rows: [
-        { especificacion: 'c(\\infty)', valor: n(specs.final) },
-        { especificacion: 't_d\\ (50\\,\\%)', valor: optional(specs.delay) },
+        { especificacion: String.raw`c(\infty)`, valor: n(specs.final) },
+        { especificacion: String.raw`t_d\ (50\,\%)`, valor: optional(specs.delay) },
         {
-          especificacion: `t_r\\ (${specs.riseCriterion === '0-100' ? '0\\text{ a }100' : '10\\text{ a }90'}\\,\\%)`,
+          especificacion: String.raw`t_r\ (${specs.riseCriterion === '0-100' ? String.raw`0\text{ a }100` : String.raw`10\text{ a }90`}\,\%)`,
           valor: optional(specs.rise),
         },
         { especificacion: 't_p', valor: optional(specs.peak) },
-        { especificacion: 'M_p', valor: `${n(100 * specs.overshoot)}\\,\\%` },
-        { especificacion: 't_s\\ (2\\,\\%)', valor: optional(specs.settling2) },
-        { especificacion: 't_s\\ (5\\,\\%)', valor: optional(specs.settling5) },
+        { especificacion: 'M_p', valor: String.raw`${n(100 * specs.overshoot)}\,\%` },
+        { especificacion: String.raw`t_s\ (2\,\%)`, valor: optional(specs.settling2) },
+        { especificacion: String.raw`t_s\ (5\,\%)`, valor: optional(specs.settling5) },
       ],
     });
     if (input.input === 'escalon') {
@@ -298,8 +295,8 @@ export function solveTransient(
         steadyError === Infinity
           ? 'La salida no sigue a la entrada: el error crece sin límite.'
           : `Cuando t → ∞, la diferencia entre la entrada y la salida tiende a una constante${input.order === 'primer-orden' && K === 1 ? ' (para el primer orden con K = 1 es T, Ogata ec. 4-5)' : ''}.`,
-      formula: 'e_{ss} = \\lim_{t \\to \\infty}\\left[r(t) - c(t)\\right]',
-      result: `e_{ss} = ${steadyError === Infinity ? '\\infty' : n(steadyError)}`,
+      formula: String.raw`e_{ss} = \lim_{t \to \infty}\left[r(t) - c(t)\right]`,
+      result: `e_{ss} = ${steadyError === Infinity ? String.raw`\infty` : n(steadyError)}`,
     });
   }
 
@@ -332,17 +329,17 @@ export function solveTransient(
   ];
   if (specs && input.input === 'escalon') {
     summary.push(
-      { label: 'Sobrepaso máximo', value: `M_p = ${n(100 * specs.overshoot)}\\,\\%` },
+      { label: 'Sobrepaso máximo', value: String.raw`M_p = ${n(100 * specs.overshoot)}\,\%` },
       {
         label: 'Tiempos',
-        value: `t_r = ${optional(specs.rise)},\\ t_p = ${optional(specs.peak)},\\ t_s = ${optional(specs.settling2)}\\ (2\\,\\%)`,
+        value: String.raw`t_r = ${optional(specs.rise)},\ t_p = ${optional(specs.peak)},\ t_s = ${optional(specs.settling2)}\ (2\,\%)`,
       },
     );
   }
   if (steadyError !== null)
     summary.push({
       label: 'Error en estado estacionario',
-      value: `e_{ss} = ${steadyError === Infinity ? '\\infty' : n(steadyError)}`,
+      value: `e_{ss} = ${steadyError === Infinity ? String.raw`\infty` : n(steadyError)}`,
     });
 
   return {

@@ -146,14 +146,16 @@ export function solveSuperposition(doc: CircuitDocument): SuperpositionOutcome {
       explanation: `Se apagan las demás fuentes y se resuelve el circuito. Este es el aporte de ${contribution.sourceLabel}.`,
       result: contribution.results
         .filter((b) => Math.abs(b.i) > 1e-12 || Math.abs(b.v) > 1e-12)
-        .map((b) => `${b.label}: ${formatNumber(b.i, 6)}\\text{ A}`)
-        .join(',\\ '),
+        .map((b) => String.raw`${b.label}: ${formatNumber(b.i, 6)}\text{ A}`)
+        .join(String.raw`,\ `),
     })),
     {
       title: 'Suma de los aportes',
       explanation:
         'Se suman algebraicamente las tensiones y corrientes rama por rama para obtener la respuesta total.',
-      result: total.map((b) => `${b.label}: ${formatNumber(b.i, 6)}\\text{ A}`).join(',\\ '),
+      result: total
+        .map((b) => String.raw`${b.label}: ${formatNumber(b.i, 6)}\text{ A}`)
+        .join(String.raw`,\ `),
     },
   ];
 

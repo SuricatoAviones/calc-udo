@@ -127,7 +127,7 @@ export function dividedName(i: number, k: number): string {
 
 export function forwardName(i: number, k: number): string {
   if (k === 0) return `y_{${i}}`;
-  return `\\Delta${k === 1 ? '' : `^{${k}}`} y_{${i}}`;
+  return String.raw`\Delta${k === 1 ? '' : `^{${k}}`} y_{${i}}`;
 }
 
 export function describeSpacing(h: number): string {

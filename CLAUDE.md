@@ -166,9 +166,10 @@ Consúltalas al escribir UI o rutas.
 lo cierra antes de tiempo; escribe `Q* / D`.
 
 **Cuidado con las barras invertidas.** En un string de JS, `"\frac"` sin doble barra contiene un
-salto de página y `"\begin"` un backspace; KaTeX los muestra como □. Escribe el código con las
-herramientas de edición de archivos, no con heredocs ni `node -e` desde la shell, que pueden
-perder barras. Un test del contrato detecta caracteres de control (ADR-014).
+salto de página y `"\begin"` un backspace; KaTeX los muestra como □. El LaTeX se escribe con
+`String.raw`: `` String.raw`\frac{${a}}{${b}}` ``, sin duplicar barras (ADR-041). Escribe el
+código con las herramientas de edición de archivos, no con heredocs ni `node -e` desde la shell,
+que pueden perder barras. Un test del contrato detecta caracteres de control (ADR-014).
 
 ## Estado del plan
 

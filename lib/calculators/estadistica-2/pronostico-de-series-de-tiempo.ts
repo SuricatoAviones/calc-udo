@@ -79,7 +79,9 @@ export function solveSeriesForecast(
     explanation: d.season
       ? 'Se proyecta la tendencia al periodo futuro (largo plazo) y se ajusta con el índice de su estación (corto plazo).'
       : 'Se proyecta la tendencia a los periodos futuros.',
-    formula: d.season ? 'F_t = T_t \\times S_t = (b_0 + b_1 t)\\,S_t' : 'F_t = T_t = b_0 + b_1 t',
+    formula: d.season
+      ? String.raw`F_t = T_t \times S_t = (b_0 + b_1 t)\,S_t`
+      : 'F_t = T_t = b_0 + b_1 t',
     children: forecasts.slice(0, 12).map((f) => ({
       title: `Periodo t = ${f.t}${d.season ? ` (estación ${seasonOf(f.t, d.season)})` : ''}`,
       substitution: d.season
@@ -100,9 +102,8 @@ export function solveSeriesForecast(
     title: 'Exactitud dentro de la muestra',
     explanation:
       'Se compara cada dato con su valor ajustado Tₜ × Sₜ. Sirve para comparar modelos: menor error, mejor ajuste.',
-    formula:
-      'MAD = \\frac{\\sum |Y_t - \\hat{Y}_t|}{n}, \\quad MSE = \\frac{\\sum (Y_t - \\hat{Y}_t)^2}{n}, \\quad MAPE = \\frac{100\\%}{n}\\sum \\left|\\frac{Y_t - \\hat{Y}_t}{Y_t}\\right|',
-    result: `MAD = ${n(mad)}, \\quad MSE = ${n(mse)}${mape === null ? '' : `, \\quad MAPE = ${n(mape)}\\,\\%`}`,
+    formula: String.raw`MAD = \frac{\sum |Y_t - \hat{Y}_t|}{n}, \quad MSE = \frac{\sum (Y_t - \hat{Y}_t)^2}{n}, \quad MAPE = \frac{100\%}{n}\sum \left|\frac{Y_t - \hat{Y}_t}{Y_t}\right|`,
+    result: String.raw`MAD = ${n(mad)}, \quad MSE = ${n(mse)}${mape === null ? '' : String.raw`, \quad MAPE = ${n(mape)}\,\%`}`,
   });
 
   const summary: SummaryItem[] = [
@@ -121,7 +122,7 @@ export function solveSeriesForecast(
         forecasts
           .slice(0, 8)
           .map((f) => n(f.value))
-          .join(',\\ ') + (forecasts.length > 8 ? ',\\ \\ldots' : ''),
+          .join(String.raw`,\ `) + (forecasts.length > 8 ? String.raw`,\ \ldots` : ''),
     });
   }
 
@@ -137,7 +138,7 @@ export function solveSeriesForecast(
         title: 'Pronósticos',
         columns: [
           { key: 't', header: 't' },
-          ...(d.season ? [{ key: 'season', header: '\\text{Estación}' }] : []),
+          ...(d.season ? [{ key: 'season', header: String.raw`\text{Estación}` }] : []),
           { key: 'trend', header: 'T_t' },
           ...(d.season ? [{ key: 'index', header: 'S_t' }] : []),
           { key: 'value', header: 'F_t' },
@@ -155,8 +156,8 @@ export function solveSeriesForecast(
         title: 'Serie, componentes y ajuste',
         columns: [
           ...decompositionColumns(d, false),
-          { key: 'fitted', header: '\\hat{Y}_t = T_t S_t' },
-          { key: 'error', header: 'Y_t - \\hat{Y}_t' },
+          { key: 'fitted', header: String.raw`\hat{Y}_t = T_t S_t` },
+          { key: 'error', header: String.raw`Y_t - \hat{Y}_t` },
         ],
         rows: decompositionRows(d).map((row, i) => ({
           ...row,

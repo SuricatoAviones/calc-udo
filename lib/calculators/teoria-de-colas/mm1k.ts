@@ -42,9 +42,9 @@ export function solveMM1K({ lambda, mu, capacity: K }: MM1KInput): QueueResult {
       title: 'Intensidad de tráfico',
       explanation:
         'Con capacidad limitada no hace falta ρ < 1: cuando el sistema se llena, los clientes que llegan se pierden y la cola no crece sin límite.',
-      formula: '\\rho = \\frac{\\lambda}{\\mu}',
-      substitution: `\\rho = \\frac{${n(lambda)}}{${n(mu)}}`,
-      result: `\\rho = ${n(rho)}`,
+      formula: String.raw`\rho = \frac{\lambda}{\mu}`,
+      substitution: String.raw`\rho = \frac{${n(lambda)}}{${n(mu)}}`,
+      result: String.raw`\rho = ${n(rho)}`,
     },
   ];
 
@@ -57,14 +57,14 @@ export function solveMM1K({ lambda, mu, capacity: K }: MM1KInput): QueueResult {
       {
         title: 'Probabilidad de que el sistema esté vacío (ρ = 1)',
         explanation: 'Con ρ = 1 los K + 1 estados son igualmente probables.',
-        formula: 'p_0 = \\frac{1}{K + 1}',
-        substitution: `p_0 = \\frac{1}{${K} + 1}`,
+        formula: String.raw`p_0 = \frac{1}{K + 1}`,
+        substitution: String.raw`p_0 = \frac{1}{${K} + 1}`,
         result: `p_0 = ${n(p0)}`,
       },
       {
         title: 'Clientes promedio en el sistema (ρ = 1)',
-        formula: 'L = \\frac{K}{2}',
-        substitution: `L = \\frac{${K}}{2}`,
+        formula: String.raw`L = \frac{K}{2}`,
+        substitution: String.raw`L = \frac{${K}}{2}`,
         result: `L = ${n(L)}`,
       },
     );
@@ -74,15 +74,14 @@ export function solveMM1K({ lambda, mu, capacity: K }: MM1KInput): QueueResult {
     steps.push(
       {
         title: 'Probabilidad de que el sistema esté vacío',
-        formula: 'p_0 = \\frac{1 - \\rho}{1 - \\rho^{K+1}}',
-        substitution: `p_0 = \\frac{1 - ${n(rho)}}{1 - (${n(rho)})^{${K + 1}}}`,
+        formula: String.raw`p_0 = \frac{1 - \rho}{1 - \rho^{K+1}}`,
+        substitution: String.raw`p_0 = \frac{1 - ${n(rho)}}{1 - (${n(rho)})^{${K + 1}}}`,
         result: `p_0 = ${n(p0)}`,
       },
       {
         title: 'Clientes promedio en el sistema',
-        formula:
-          'L = \\frac{\\rho\\left[1 - (K+1)\\rho^K + K\\rho^{K+1}\\right]}{(1 - \\rho)(1 - \\rho^{K+1})}',
-        substitution: `L = \\frac{${n(rho)}\\left[1 - (${K + 1})(${n(rho)})^{${K}} + ${K}(${n(rho)})^{${K + 1}}\\right]}{(1 - ${n(rho)})(1 - (${n(rho)})^{${K + 1}})}`,
+        formula: String.raw`L = \frac{\rho\left[1 - (K+1)\rho^K + K\rho^{K+1}\right]}{(1 - \rho)(1 - \rho^{K+1})}`,
+        substitution: String.raw`L = \frac{${n(rho)}\left[1 - (${K + 1})(${n(rho)})^{${K}} + ${K}(${n(rho)})^{${K + 1}}\right]}{(1 - ${n(rho)})(1 - (${n(rho)})^{${K + 1}})}`,
         result: `L = ${n(L)}`,
       },
     );
@@ -107,32 +106,32 @@ export function solveMM1K({ lambda, mu, capacity: K }: MM1KInput): QueueResult {
     {
       title: 'Probabilidad de que el sistema esté lleno',
       explanation: `Es la fracción de clientes que llegan y se pierden porque ya hay ${K} en el sistema.`,
-      formula: 'p_K = \\rho^K p_0',
-      substitution: `p_{${K}} = (${n(rho)})^{${K}}\\,(${n(p0)})`,
+      formula: String.raw`p_K = \rho^K p_0`,
+      substitution: String.raw`p_{${K}} = (${n(rho)})^{${K}}\,(${n(p0)})`,
       result: `p_{${K}} = ${n(pK)}`,
     },
     {
       title: 'Tasa efectiva de llegadas',
       explanation: 'Solo entran al sistema los clientes que encuentran lugar.',
-      formula: '\\lambda_{ef} = \\lambda\\,(1 - p_K)',
-      substitution: `\\lambda_{ef} = ${n(lambda)}\\,(1 - ${n(pK)})`,
-      result: `\\lambda_{ef} = ${n(lambdaEff)}`,
+      formula: String.raw`\lambda_{ef} = \lambda\,(1 - p_K)`,
+      substitution: String.raw`\lambda_{ef} = ${n(lambda)}\,(1 - ${n(pK)})`,
+      result: String.raw`\lambda_{ef} = ${n(lambdaEff)}`,
     },
     {
       title: 'Clientes promedio en la cola',
       explanation: 'En promedio hay λ_ef/μ clientes en servicio.',
-      formula: 'L_q = L - \\frac{\\lambda_{ef}}{\\mu}',
-      substitution: `L_q = ${n(L)} - \\frac{${n(lambdaEff)}}{${n(mu)}}`,
+      formula: String.raw`L_q = L - \frac{\lambda_{ef}}{\mu}`,
+      substitution: String.raw`L_q = ${n(L)} - \frac{${n(lambdaEff)}}{${n(mu)}}`,
       result: `L_q = ${n(Lq)}`,
     },
-    ...littleSteps(value, '\\lambda_{ef}'),
+    ...littleSteps(value, String.raw`\lambda_{ef}`),
   );
 
   return {
     ok: true,
     value,
     summary: queueSummary(value, [
-      { label: 'Tasa efectiva de llegadas', value: `\\lambda_{ef} = ${n(lambdaEff, 6)}` },
+      { label: 'Tasa efectiva de llegadas', value: String.raw`\lambda_{ef} = ${n(lambdaEff, 6)}` },
       { label: 'Clientes perdidos', value: `p_{${K}} = ${n(pK, 6)}` },
     ]),
     ...probabilityTrace(steps, value, [

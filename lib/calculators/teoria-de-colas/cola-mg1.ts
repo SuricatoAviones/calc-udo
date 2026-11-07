@@ -42,9 +42,9 @@ export function solveMG1({ lambda, mu, sigma }: MG1Input): QueueResult {
       title: 'Factor de utilización',
       explanation:
         'Fracción del tiempo que el servidor está ocupado: la tasa de llegadas por el tiempo promedio de servicio 1/μ. Debe ser menor que 1.',
-      formula: '\\rho = \\frac{\\lambda}{\\mu} = \\lambda\\,E[t]',
-      substitution: `\\rho = \\frac{${n(lambda)}}{${n(mu)}}`,
-      result: `\\rho = ${n(rho)}`,
+      formula: String.raw`\rho = \frac{\lambda}{\mu} = \lambda\,E[t]`,
+      substitution: String.raw`\rho = \frac{${n(lambda)}}{${n(mu)}}`,
+      result: String.raw`\rho = ${n(rho)}`,
     },
   ];
   if (rho >= 1) return unstable(steps, rho);
@@ -66,7 +66,7 @@ export function solveMG1({ lambda, mu, sigma }: MG1Input): QueueResult {
   steps.push(
     {
       title: 'Probabilidad de que el sistema esté vacío',
-      formula: 'p_0 = 1 - \\rho',
+      formula: String.raw`p_0 = 1 - \rho`,
       substitution: `p_0 = 1 - ${n(rho)}`,
       result: `p_0 = ${n(p0)}`,
     },
@@ -74,21 +74,21 @@ export function solveMG1({ lambda, mu, sigma }: MG1Input): QueueResult {
       title: 'Clientes promedio en la cola (Pollaczek-Khintchine)',
       explanation:
         'La variabilidad del servicio entra por σ²: con el mismo μ, un servicio más irregular alarga la cola.',
-      formula: 'L_q = \\frac{\\lambda^2\\sigma^2 + \\rho^2}{2\\,(1 - \\rho)}',
-      substitution: `L_q = \\frac{(${n(lambda)})^2(${n(sigma)})^2 + (${n(rho)})^2}{2\\,(1 - ${n(rho)})}`,
+      formula: String.raw`L_q = \frac{\lambda^2\sigma^2 + \rho^2}{2\,(1 - \rho)}`,
+      substitution: String.raw`L_q = \frac{(${n(lambda)})^2(${n(sigma)})^2 + (${n(rho)})^2}{2\,(1 - ${n(rho)})}`,
       result: `L_q = ${n(Lq)}`,
     },
     {
       title: 'Clientes promedio en el sistema',
-      formula: 'L = L_q + \\rho',
+      formula: String.raw`L = L_q + \rho`,
       substitution: `L = ${n(Lq)} + ${n(rho)}`,
       result: `L = ${n(L)}`,
     },
-    ...littleSteps(value, '\\lambda'),
+    ...littleSteps(value, String.raw`\lambda`),
     {
       title: 'Probabilidad de que un cliente espere',
       explanation: 'Un cliente espera si el servidor está ocupado cuando llega.',
-      formula: 'P_w = \\rho',
+      formula: String.raw`P_w = \rho`,
       result: `P_w = ${n(rho)}`,
     },
   );

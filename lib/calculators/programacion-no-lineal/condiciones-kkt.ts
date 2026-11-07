@@ -123,9 +123,9 @@ function requiredSign(sense: 'max' | 'min', relation: ConstraintRelation): Multi
 }
 
 const SIGN_TEX: Record<MultiplierSign, string> = {
-  'mayor o igual que 0': '\\ge 0',
-  'menor o igual que 0': '\\le 0',
-  libre: '\\text{ libre}',
+  'mayor o igual que 0': String.raw`\ge 0`,
+  'menor o igual que 0': String.raw`\le 0`,
+  libre: String.raw`\text{ libre}`,
 };
 
 /** Mínimos cuadrados: resuelve (AᵀA) x = Aᵀ b. */
@@ -200,7 +200,7 @@ export function solveKkt({
         'Cada restricción se escribe como lado izquierdo − lado derecho, comparado con 0.',
       substitution: constraints
         .map((c, i) => `g_{${i + 1}}(X) = ${c.g.tex} ${relationTex[c.relation]} 0`)
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
     {
       title: 'Factibilidad del punto',
@@ -208,10 +208,12 @@ export function solveKkt({
       substitution: results
         .map(
           (r) =>
-            `g_{${r.index}}(X) = ${n(r.g, 8)} \\ ${r.feasible ? '\\checkmark' : '\\times'}${r.active ? '\\ \\text{(activa)}' : ''}`,
+            String.raw`g_{${r.index}}(X) = ${n(r.g, 8)} \ ${r.feasible ? String.raw`\checkmark` : String.raw`\times`}${r.active ? String.raw`\ \text{(activa)}` : ''}`,
         )
-        .join(' \\\\ '),
-      result: feasible ? '\\text{El punto es factible}' : '\\text{El punto no es factible}',
+        .join(String.raw` \\ `),
+      result: feasible
+        ? String.raw`\text{El punto es factible}`
+        : String.raw`\text{El punto no es factible}`,
     },
   ];
 
@@ -246,22 +248,24 @@ export function solveKkt({
       result:
         results
           .filter((r) => !r.active)
-          .map((r) => `\\lambda_{${r.index}} = 0`)
-          .join(',\\ ') || '\\text{Todas las restricciones son activas}',
+          .map((r) => String.raw`\lambda_{${r.index}} = 0`)
+          .join(String.raw`,\ `) || String.raw`\text{Todas las restricciones son activas}`,
     },
     {
       title: 'Estacionariedad',
       explanation:
         'Se resuelve ∇f(X) = Σ λ_i ∇g_i(X) con las restricciones activas; si hay más ecuaciones que multiplicadores, por mínimos cuadrados, y se revisa si el residuo es cero.',
-      formula: '\\nabla f(X) - \\sum_i \\lambda_i \\nabla g_i(X) = 0',
-      substitution: `\\nabla f(X) = ${pointTex(df)}${activeIdx
-        .map((i) => `,\\quad \\nabla g_{${i + 1}}(X) = ${pointTex(dg[i]!)}`)
+      formula: String.raw`\nabla f(X) - \sum_i \lambda_i \nabla g_i(X) = 0`,
+      substitution: String.raw`\nabla f(X) = ${pointTex(df)}${activeIdx
+        .map((i) => String.raw`,\quad \nabla g_{${i + 1}}(X) = ${pointTex(dg[i]!)}`)
         .join('')}`,
       result: stationary
         ? activeIdx.length > 0
-          ? activeIdx.map((i) => `\\lambda_{${i + 1}} = ${n(results[i]!.lambda, 8)}`).join(',\\ ')
-          : '\\nabla f(X) = 0'
-        : `\\text{No hay multiplicadores que anulen el gradiente (residuo } ${n(residual, 4)})`,
+          ? activeIdx
+              .map((i) => String.raw`\lambda_{${i + 1}} = ${n(results[i]!.lambda, 8)}`)
+              .join(String.raw`,\ `)
+          : String.raw`\nabla f(X) = 0`
+        : String.raw`\text{No hay multiplicadores que anulen el gradiente (residuo } ${n(residual, 4)})`,
     },
     {
       title: 'Signo de los multiplicadores',
@@ -272,9 +276,9 @@ export function solveKkt({
       substitution: results
         .map(
           (r) =>
-            `\\lambda_{${r.index}} = ${n(r.lambda, 8)} \\ (${SIGN_TEX[r.requiredSign].replace('\\text{ libre}', '\\text{libre}')}) \\ ${r.signOk ? '\\checkmark' : '\\times'}`,
+            String.raw`\lambda_{${r.index}} = ${n(r.lambda, 8)} \ (${SIGN_TEX[r.requiredSign].replace(String.raw`\text{ libre}`, String.raw`\text{libre}`)}) \ ${r.signOk ? String.raw`\checkmark` : String.raw`\times`}`,
         )
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
   );
 
@@ -339,12 +343,14 @@ export function solveKkt({
     summary: [
       {
         label: 'Condiciones KKT',
-        value: isKkt ? '\\text{se cumplen}' : '\\text{no se cumplen}',
+        value: isKkt ? String.raw`\text{se cumplen}` : String.raw`\text{no se cumplen}`,
         emphasis: true,
       },
       {
         label: 'Multiplicadores',
-        value: results.map((r) => `\\lambda_{${r.index}} = ${n(r.lambda, 6)}`).join(',\\ '),
+        value: results
+          .map((r) => String.raw`\lambda_{${r.index}} = ${n(r.lambda, 6)}`)
+          .join(String.raw`,\ `),
       },
       { label: 'Valor de la función', value: `f(X) = ${n(evaluateAt(f, x), 8)}` },
     ],
@@ -356,12 +362,12 @@ export function solveKkt({
         title: 'Restricciones en el punto',
         columns: [
           { key: 'index', header: 'i' },
-          { key: 'relation', header: '\\text{Tipo}', format: 'text' },
+          { key: 'relation', header: String.raw`\text{Tipo}`, format: 'text' },
           { key: 'g', header: 'g_i(X)' },
-          { key: 'active', header: '\\text{Activa}', format: 'text' },
-          { key: 'lambda', header: '\\lambda_i' },
-          { key: 'sign', header: '\\text{Signo exigido}', format: 'text' },
-          { key: 'ok', header: '\\text{Cumple}', format: 'text' },
+          { key: 'active', header: String.raw`\text{Activa}`, format: 'text' },
+          { key: 'lambda', header: String.raw`\lambda_i` },
+          { key: 'sign', header: String.raw`\text{Signo exigido}`, format: 'text' },
+          { key: 'ok', header: String.raw`\text{Cumple}`, format: 'text' },
         ],
         rows,
       },

@@ -113,7 +113,7 @@ export function balanceStep(b: Balanced): Step {
       title: 'Modelo balanceado',
       explanation:
         'La oferta total es igual a la demanda total, así que el modelo se puede resolver directamente.',
-      result: `\\sum s_i = \\sum d_j = ${total(b.supply).toLatex()}`,
+      result: String.raw`\sum s_i = \sum d_j = ${total(b.supply).toLatex()}`,
     };
   }
   const extra = b.dummy === 'destino' ? b.demand.at(-1)! : b.supply.at(-1)!;
@@ -123,7 +123,7 @@ export function balanceStep(b: Balanced): Step {
       b.dummy === 'destino'
         ? `Sobran ${extra.toText()} unidades de oferta: se agrega un destino ficticio con esa demanda y costo 0 (lo que se «envía» ahí se queda en el origen).`
         : `Faltan ${extra.toText()} unidades de oferta: se agrega un origen ficticio con esa oferta y costo 0 (lo que «envía» es demanda que no se atiende).`,
-    result: `\\sum s_i = \\sum d_j = ${total(b.supply).toLatex()}`,
+    result: String.raw`\sum s_i = \sum d_j = ${total(b.supply).toLatex()}`,
   };
 }
 
@@ -224,7 +224,7 @@ export function initialSolution(b: Balanced, method: InitialMethod): InitialSolu
     steps.push({
       title: `Asignar a (${b.rowNames[i]}, ${b.colNames[j]})`,
       explanation: `${why} ${crossed}`,
-      substitution: `x_{${i + 1}${j + 1}} = \\min\\{${s[i]!.add(q).toLatex()},\\ ${d[j]!.add(q).toLatex()}\\}`,
+      substitution: String.raw`x_{${i + 1}${j + 1}} = \min\{${s[i]!.add(q).toLatex()},\ ${d[j]!.add(q).toLatex()}\}`,
       result: `x_{${i + 1}${j + 1}} = ${q.toLatex()}`,
     });
   }
@@ -248,10 +248,10 @@ export function allocationTable(
     { key: 'origin', header: '', format: 'text' },
     ...b.colNames.map((name, j) => ({
       key: `d${j}`,
-      header: `\\text{${name}}`,
+      header: String.raw`\text{${name}}`,
       format: 'latex' as const,
     })),
-    { key: 'supply', header: '\\text{Oferta}', format: 'latex' },
+    { key: 'supply', header: String.raw`\text{Oferta}`, format: 'latex' },
   ];
   if (extra?.u) columns.push({ key: 'u', header: 'u_i', format: 'latex' });
   const rows = b.costs.map((row, i) => {
@@ -262,12 +262,12 @@ export function allocationTable(
     row.forEach((cost, j) => {
       const q = allocation.get(cellKey(i, j));
       const sign = extra?.loop?.get(cellKey(i, j));
-      const mark = sign ? `\\ {\\scriptstyle(${sign})}` : '';
+      const mark = sign ? String.raw`\ {\scriptstyle(${sign})}` : '';
       const entering = extra?.entering && extra.entering[0] === i && extra.entering[1] === j;
       cells[`d${j}`] =
         q === undefined
-          ? `{\\scriptstyle ${cost.toLatex()}}${entering ? '\\ \\boxed{\\theta}' : ''}${mark}`
-          : `\\mathbf{${q.toLatex()}}\\ {\\scriptstyle(${cost.toLatex()})}${mark}`;
+          ? String.raw`{\scriptstyle ${cost.toLatex()}}${entering ? String.raw`\ \boxed{\theta}` : ''}${mark}`
+          : String.raw`\mathbf{${q.toLatex()}}\ {\scriptstyle(${cost.toLatex()})}${mark}`;
     });
     if (extra?.u) cells.u = extra.u[i]!.toLatex();
     return cells;

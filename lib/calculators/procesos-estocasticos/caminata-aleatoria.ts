@@ -133,8 +133,8 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
       explanation: absorbing
         ? `Cada paso sube 1, baja 1 o se queda. Las posiciones 0 y ${N} son absorbentes: al llegar a ellas el proceso se detiene.`
         : 'Cada paso sube 1, baja 1 o se queda, independientemente de los pasos anteriores.',
-      formula: 'P\\{+1\\} = p, \\qquad P\\{-1\\} = q, \\qquad P\\{0\\} = r = 1 - p - q',
-      result: `p = ${fractionToLatex(input.p)}, \\qquad q = ${fractionToLatex(input.q)}, \\qquad r = ${n(r)}`,
+      formula: String.raw`P\{+1\} = p, \qquad P\{-1\} = q, \qquad P\{0\} = r = 1 - p - q`,
+      result: String.raw`p = ${fractionToLatex(input.p)}, \qquad q = ${fractionToLatex(input.q)}, \qquad r = ${n(r)}`,
     },
   ];
 
@@ -172,9 +172,8 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
     explanation: absorbing
       ? 'Se aplica la recursión paso a paso; la probabilidad que llega a una barrera se queda en ella.'
       : 'Se aplica la recursión paso a paso partiendo de toda la probabilidad en la posición inicial.',
-    formula:
-      'P\\{X_{t+1} = k\\} = p\\,P\\{X_t = k - 1\\} + q\\,P\\{X_t = k + 1\\} + r\\,P\\{X_t = k\\}',
-    result: `P\\{X_0 = ${start}\\} = 1 \\ \\Rightarrow\\ E[X_{${count}}] = ${n(mean)}`,
+    formula: String.raw`P\{X_{t+1} = k\} = p\,P\{X_t = k - 1\} + q\,P\{X_t = k + 1\} + r\,P\{X_t = k\}`,
+    result: String.raw`P\{X_0 = ${start}\} = 1 \ \Rightarrow\ E[X_{${count}}] = ${n(mean)}`,
   });
 
   if (!absorbing) {
@@ -182,10 +181,9 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
       title: 'Media y varianza de la posición',
       explanation:
         'La posición es la inicial más la suma de n pasos independientes, cada uno con media p − q y varianza (p + q) − (p − q)².',
-      formula:
-        'E[X_n] = i + n(p - q), \\qquad \\operatorname{Var}[X_n] = n\\left[(p + q) - (p - q)^2\\right]',
-      substitution: `E[X_{${count}}] = ${start} + ${count}(${n(p)} - ${n(q)}), \\qquad \\operatorname{Var}[X_{${count}}] = ${count}\\left[${n(p + q)} - (${n(p - q)})^2\\right]`,
-      result: `E[X_{${count}}] = ${n(start + count * (p - q))}, \\qquad \\operatorname{Var}[X_{${count}}] = ${n(count * (p + q - (p - q) ** 2))}`,
+      formula: String.raw`E[X_n] = i + n(p - q), \qquad \operatorname{Var}[X_n] = n\left[(p + q) - (p - q)^2\right]`,
+      substitution: String.raw`E[X_{${count}}] = ${start} + ${count}(${n(p)} - ${n(q)}), \qquad \operatorname{Var}[X_{${count}}] = ${count}\left[${n(p + q)} - (${n(p - q)})^2\right]`,
+      result: String.raw`E[X_{${count}}] = ${n(start + count * (p - q))}, \qquad \operatorname{Var}[X_{${count}}] = ${n(count * (p + q - (p - q) ** 2))}`,
     });
     if (r === 0 && count > 0) {
       const example = distribution.reduce((a, b) => (b.probability > a.probability ? b : a));
@@ -193,10 +191,9 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
       steps.push({
         title: 'Fórmula cerrada (sin quedarse en el sitio)',
         explanation: `Llegar a k exige u = (n + k − i)/2 pasos hacia arriba y n − u hacia abajo, en cualquier orden. Por ejemplo, la posición más probable, k = ${example.position}:`,
-        formula:
-          'P\\{X_n = k\\} = \\binom{n}{u} p^{u} q^{\\,n-u}, \\qquad u = \\frac{n + k - i}{2}',
-        substitution: `P\\{X_{${count}} = ${example.position}\\} = \\binom{${count}}{${up}} (${n(p)})^{${up}} (${n(q)})^{${count - up}}`,
-        result: `P\\{X_{${count}} = ${example.position}\\} = ${n(binomialPmf(count, up, p))}`,
+        formula: String.raw`P\{X_n = k\} = \binom{n}{u} p^{u} q^{\,n-u}, \qquad u = \frac{n + k - i}{2}`,
+        substitution: String.raw`P\{X_{${count}} = ${example.position}\} = \binom{${count}}{${up}} (${n(p)})^{${up}} (${n(q)})^{${count - up}}`,
+        result: String.raw`P\{X_{${count}} = ${example.position}\} = ${n(binomialPmf(count, up, p))}`,
       });
     }
   }
@@ -228,22 +225,22 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
         explanation:
           'Se obtiene del sistema f_i = p f_{i+1} + q f_{i−1} + r f_i con f_0 = 0 y f_N = 1 (análisis del primer paso). Quedarse en el sitio no cambia a dónde se llega.',
         formula: equal
-          ? 'f_i = \\frac{i}{N} \\quad (p = q)'
-          : 'f_i = \\frac{1 - (q/p)^i}{1 - (q/p)^N} \\quad (p \\ne q)',
+          ? String.raw`f_i = \frac{i}{N} \quad (p = q)`
+          : String.raw`f_i = \frac{1 - (q/p)^i}{1 - (q/p)^N} \quad (p \ne q)`,
         substitution:
           p === 0 || q === 0
             ? undefined
             : equal
-              ? `f_{${start}} = \\frac{${start}}{${N}}`
-              : `f_{${start}} = \\frac{1 - (${n(q / p)})^{${start}}}{1 - (${n(q / p)})^{${N}}}`,
-        result: `P\\{\\text{llegar a } ${N}\\} = ${n(top)}, \\qquad P\\{\\text{llegar a } 0\\} = ${n(1 - top)}`,
+              ? String.raw`f_{${start}} = \frac{${start}}{${N}}`
+              : String.raw`f_{${start}} = \frac{1 - (${n(q / p)})^{${start}}}{1 - (${n(q / p)})^{${N}}}`,
+        result: String.raw`P\{\text{llegar a } ${N}\} = ${n(top)}, \qquad P\{\text{llegar a } 0\} = ${n(1 - top)}`,
       },
       {
         title: 'Pasos esperados hasta la absorción',
         explanation: 'Resuelve D_i = 1 + p D_{i+1} + q D_{i−1} + r D_i con D_0 = D_N = 0.',
         formula: equal
-          ? 'D_i = \\frac{i\\,(N - i)}{p + q}'
-          : 'D_i = \\frac{1}{p + q}\\left[\\frac{i}{q - p} - \\frac{N}{q - p}\\,f_i\\right]',
+          ? String.raw`D_i = \frac{i\,(N - i)}{p + q}`
+          : String.raw`D_i = \frac{1}{p + q}\left[\frac{i}{q - p} - \frac{N}{q - p}\,f_i\right]`,
         result: `D_{${start}} = ${n(expectedSteps)}`,
       },
     );
@@ -262,7 +259,7 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
 
   const summary = [
     { label: 'Posición esperada', value: `E[X_{${count}}] = ${n(mean, 6)}`, emphasis: !absorbing },
-    { label: 'Varianza', value: `\\operatorname{Var}[X_{${count}}] = ${n(variance, 6)}` },
+    { label: 'Varianza', value: String.raw`\operatorname{Var}[X_{${count}}] = ${n(variance, 6)}` },
   ];
   if (absorption) {
     summary.unshift(
@@ -288,7 +285,7 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
         title: `Posición tras ${count} pasos`,
         columns: [
           { key: 'position', header: 'k' },
-          { key: 'probability', header: `P\\{X_{${count}} = k\\}` },
+          { key: 'probability', header: String.raw`P\{X_{${count}} = k\}` },
         ],
         rows: distribution.map((d) => ({ ...d })),
       },

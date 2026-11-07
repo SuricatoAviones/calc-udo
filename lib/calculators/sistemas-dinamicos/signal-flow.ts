@@ -56,7 +56,7 @@ export function nodeTex(name: string): string {
 
 /** `R \to x_{1} \to C`. */
 export function chainTex(nodes: string[]): string {
-  return nodes.map(nodeTex).join(' \\to ');
+  return nodes.map(nodeTex).join(String.raw` \to `);
 }
 
 /** Suma las ramas con el mismo origen y destino. Devuelve también los pares sumados. */
@@ -195,16 +195,16 @@ function determinant(
     value = frAdd(value, sign === 1 ? sum : frNeg(sum));
     const op = sign === 1 ? '+' : '-';
     symbolicParts.push(
-      `${op} \\left(${items.map((x) => x.combo.map(subL).join('')).join(' + ')}\\right)`,
+      String.raw`${op} \left(${items.map((x) => x.combo.map(subL).join('')).join(' + ')}\right)`,
     );
     substitutionParts.push(
-      `${op} \\left(${items
+      String.raw`${op} \left(${items
         .map((x) =>
           x.combo.length === 1
             ? frTex(x.gain)
             : x.combo.map((i) => frOperandTex(loops[i]!.gain)).join(''),
         )
-        .join(' + ')}\\right)`,
+        .join(' + ')}\right)`,
     );
   }
   return {
@@ -301,7 +301,7 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
 
     const paths = forwardPaths(g, source, output);
     const loops = loopsOf(g);
-    const tex = ratioTex ?? `\\frac{${nodeTex(output)}}{${nodeTex(input)}}`;
+    const tex = ratioTex ?? String.raw`\frac{${nodeTex(output)}}{${nodeTex(input)}}`;
 
     steps.push({
       title: 'Trayectorias directas',
@@ -352,9 +352,9 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
     }
     steps.push({
       title: 'Determinante del flujograma',
-      formula: `\\Delta = ${D.symbolic}`,
-      substitution: loops.length ? `\\Delta = ${D.substitution}` : undefined,
-      result: `\\Delta = ${frTex(D.value)}`,
+      formula: String.raw`\Delta = ${D.symbolic}`,
+      substitution: loops.length ? String.raw`\Delta = ${D.substitution}` : undefined,
+      result: String.raw`\Delta = ${frTex(D.value)}`,
     });
 
     const cofactorSteps: Step[] = [];
@@ -370,8 +370,8 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
           free.length === 0
             ? `Todos los lazos tocan la trayectoria ${k + 1}.`
             : `Lazos que no tocan la trayectoria ${k + 1}: ${free.map((i) => `L${i + 1}`).join(', ')}.`,
-        formula: free.length ? `\\Delta_{${k + 1}} = ${Dk.symbolic}` : undefined,
-        result: `\\Delta_{${k + 1}} = ${frTex(Dk.value)}`,
+        formula: free.length ? String.raw`\Delta_{${k + 1}} = ${Dk.symbolic}` : undefined,
+        result: String.raw`\Delta_{${k + 1}} = ${frTex(Dk.value)}`,
       });
       pathRows.push({
         k: k + 1,
@@ -393,8 +393,8 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
     const transfer = frDiv(numerator, D.value);
     steps.push({
       title: 'Fórmula de ganancia de Mason',
-      formula: `${tex} = \\frac{\\sum_k P_k\\Delta_k}{\\Delta} = \\frac{${paths.map((_, k) => `P_{${k + 1}}\\Delta_{${k + 1}}`).join(' + ')}}{\\Delta}`,
-      substitution: `${tex} = \\frac{${paths
+      formula: String.raw`${tex} = \frac{\sum_k P_k\Delta_k}{\Delta} = \frac{${paths.map((_, k) => String.raw`P_{${k + 1}}\Delta_{${k + 1}}`).join(' + ')}}{\Delta}`,
+      substitution: String.raw`${tex} = \frac{${paths
         .map((p, k) => {
           const c = cofactors[k]!;
           const isOne = c.coef === 1 && c.mono.length === 0 && c.factors.length === 0;
@@ -410,9 +410,9 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
       title: 'Trayectorias directas',
       columns: [
         { key: 'k', header: 'k' },
-        { key: 'nodos', header: '\\text{Nodos}', format: 'latex' },
+        { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
         { key: 'ganancia', header: 'P_k', format: 'latex' },
-        { key: 'cofactor', header: '\\Delta_k', format: 'latex' },
+        { key: 'cofactor', header: String.raw`\Delta_k`, format: 'latex' },
       ],
       rows: pathRows,
     });
@@ -422,7 +422,7 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
         title: 'Lazos individuales',
         columns: [
           { key: 'i', header: 'i' },
-          { key: 'nodos', header: '\\text{Nodos}', format: 'latex' },
+          { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
           { key: 'ganancia', header: 'L_i', format: 'latex' },
         ],
         rows: loops.map((l, i) => ({

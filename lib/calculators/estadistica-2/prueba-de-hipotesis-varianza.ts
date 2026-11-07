@@ -90,20 +90,20 @@ export function solveVarianceTest(
     steps.push({
       title: 'Hipótesis',
       explanation: `σ₀ = ${formatNumber(input.sigma0!)}, así que σ₀² = ${formatNumber(sigma2)}.`,
-      result: `H_0\\!: \\sigma^2 = ${n(sigma2)}, \\qquad H_1\\!: \\sigma^2 ${rel} ${n(sigma2)}`,
+      result: String.raw`H_0\!: \sigma^2 = ${n(sigma2)}, \qquad H_1\!: \sigma^2 ${rel} ${n(sigma2)}`,
     });
     steps.push({
       title: fromData ? 'Varianza de la muestra' : 'Datos',
-      formula: fromData ? 's^2 = \\frac{\\sum (x_i - \\bar{x})^2}{n - 1}' : undefined,
-      result: `n = ${size}, \\quad s^2 = ${n(s2)}, \\quad s = ${n(Math.sqrt(s2))}`,
+      formula: fromData ? String.raw`s^2 = \frac{\sum (x_i - \bar{x})^2}{n - 1}` : undefined,
+      result: String.raw`n = ${size}, \quad s^2 = ${n(s2)}, \quad s = ${n(Math.sqrt(s2))}`,
     });
     statistic = (df * s2) / sigma2;
-    statTex = `\\chi^2 = ${n(statistic)}`;
+    statTex = String.raw`\chi^2 = ${n(statistic)}`;
     steps.push({
       title: 'Estadístico ji-cuadrada',
       explanation: `Si la población es normal y H₀ es cierta, tiene distribución ji-cuadrada con ν = n − 1 = ${df} grados de libertad.`,
-      formula: '\\chi^2 = \\frac{(n - 1)s^2}{\\sigma_0^2}',
-      substitution: `\\chi^2 = \\frac{(${size} - 1)(${n(s2)})}{${n(sigma2)}}`,
+      formula: String.raw`\chi^2 = \frac{(n - 1)s^2}{\sigma_0^2}`,
+      substitution: String.raw`\chi^2 = \frac{(${size} - 1)(${n(s2)})}{${n(sigma2)}}`,
       result: statTex,
     });
     outcome = testDecision({
@@ -117,19 +117,19 @@ export function solveVarianceTest(
     const b = sampleOf(input, 2);
     steps.push({
       title: 'Hipótesis',
-      result: `H_0\\!: \\sigma_1^2 = \\sigma_2^2, \\qquad H_1\\!: \\sigma_1^2 ${rel} \\sigma_2^2`,
+      result: String.raw`H_0\!: \sigma_1^2 = \sigma_2^2, \qquad H_1\!: \sigma_1^2 ${rel} \sigma_2^2`,
     });
     steps.push({
       title: a.fromData ? 'Varianzas de las muestras' : 'Datos',
-      result: `n_1 = ${a.size},\\ s_1^2 = ${n(a.s2)}; \\qquad n_2 = ${b.size},\\ s_2^2 = ${n(b.s2)}`,
+      result: String.raw`n_1 = ${a.size},\ s_1^2 = ${n(a.s2)}; \qquad n_2 = ${b.size},\ s_2^2 = ${n(b.s2)}`,
     });
     statistic = a.s2 / b.s2;
     statTex = `f = ${n(statistic)}`;
     steps.push({
       title: 'Estadístico F',
       explanation: `Si las poblaciones son normales y H₀ es cierta, tiene distribución F con ν₁ = ${a.size - 1} y ν₂ = ${b.size - 1} grados de libertad.`,
-      formula: 'f = \\frac{s_1^2}{s_2^2}',
-      substitution: `f = \\frac{${n(a.s2)}}{${n(b.s2)}}`,
+      formula: String.raw`f = \frac{s_1^2}{s_2^2}`,
+      substitution: String.raw`f = \frac{${n(a.s2)}}{${n(b.s2)}}`,
       result: statTex,
     });
     outcome = testDecision({

@@ -136,20 +136,20 @@ function fail(code: ExpectationErrorCode, message: string, steps: Step[] = []): 
 
 function summary(value: ExpectationValue) {
   return [
-    { label: 'Media', value: `\\mu = E(X) = ${n(value.mean, 6)}`, emphasis: true },
+    { label: 'Media', value: String.raw`\mu = E(X) = ${n(value.mean, 6)}`, emphasis: true },
     {
       label: 'Varianza',
       value:
         value.variance === null
-          ? '\\sigma^2\\ \\text{no existe}'
-          : `\\sigma^2 = ${n(value.variance, 6)}`,
+          ? String.raw`\sigma^2\ \text{no existe}`
+          : String.raw`\sigma^2 = ${n(value.variance, 6)}`,
     },
     {
       label: 'Desviación estándar',
       value:
         value.standardDeviation === null
-          ? '\\sigma\\ \\text{no existe}'
-          : `\\sigma = ${n(value.standardDeviation, 6)}`,
+          ? String.raw`\sigma\ \text{no existe}`
+          : String.raw`\sigma = ${n(value.standardDeviation, 6)}`,
     },
   ];
 }
@@ -161,15 +161,15 @@ function varianceSteps(mean: number, second: number): Step[] {
       title: 'Varianza',
       explanation:
         'Con el teorema 4.2 no hace falta calcular cada desviación (x − μ)²: basta E(X²) y la media.',
-      formula: '\\sigma^2 = E(X^2) - \\mu^2',
-      substitution: `\\sigma^2 = ${n(second)} - ${toLatexOperand(mean)}^2`,
-      result: `\\sigma^2 = ${n(variance)}`,
+      formula: String.raw`\sigma^2 = E(X^2) - \mu^2`,
+      substitution: String.raw`\sigma^2 = ${n(second)} - ${toLatexOperand(mean)}^2`,
+      result: String.raw`\sigma^2 = ${n(variance)}`,
     },
     {
       title: 'Desviación estándar',
-      formula: '\\sigma = \\sqrt{\\sigma^2}',
-      substitution: `\\sigma = \\sqrt{${n(variance)}}`,
-      result: `\\sigma = ${n(Math.sqrt(Math.max(0, variance)))}`,
+      formula: String.raw`\sigma = \sqrt{\sigma^2}`,
+      substitution: String.raw`\sigma = \sqrt{${n(variance)}}`,
+      result: String.raw`\sigma = ${n(Math.sqrt(Math.max(0, variance)))}`,
     },
   ];
 }
@@ -202,7 +202,7 @@ function solveDiscreteCase(input: ExpectationInput): Result {
       ? sorted
           .map(
             (r) =>
-              `${power === 1 ? toLatexOperand(r.x) : `(${n(r.x)})^2`}\\left(${fractionToLatex(r.text)}\\right)`,
+              String.raw`${power === 1 ? toLatexOperand(r.x) : `(${n(r.x)})^2`}\left(${fractionToLatex(r.text)}\right)`,
           )
           .join(' + ')
       : undefined;
@@ -211,21 +211,21 @@ function solveDiscreteCase(input: ExpectationInput): Result {
     {
       title: 'Verificar la distribución',
       explanation: 'Cada f(x) es una probabilidad y, juntas, suman 1.',
-      formula: '\\sum_x f(x) = 1',
+      formula: String.raw`\sum_x f(x) = 1`,
       substitution:
         sorted.length <= 8 ? sorted.map((r) => fractionToLatex(r.text)).join(' + ') : undefined,
-      result: `\\sum_x f(x) = ${n(sum, 6)}`,
+      result: String.raw`\sum_x f(x) = ${n(sum, 6)}`,
     },
     {
       title: 'Media (valor esperado)',
       explanation: 'Promedio de los valores de X, cada uno pesado por su probabilidad.',
-      formula: '\\mu = E(X) = \\sum_x x\\,f(x)',
-      substitution: products(1) && `\\mu = ${products(1)}`,
-      result: `\\mu = ${n(mean)}`,
+      formula: String.raw`\mu = E(X) = \sum_x x\,f(x)`,
+      substitution: products(1) && String.raw`\mu = ${products(1)}`,
+      result: String.raw`\mu = ${n(mean)}`,
     },
     {
       title: 'Segundo momento',
-      formula: 'E(X^2) = \\sum_x x^2 f(x)',
+      formula: String.raw`E(X^2) = \sum_x x^2 f(x)`,
       substitution: products(2) && `E(X^2) = ${products(2)}`,
       result: `E(X^2) = ${n(second)}`,
     },
@@ -256,9 +256,9 @@ function solveDiscreteCase(input: ExpectationInput): Result {
         columns: [
           { key: 'x', header: 'x', format: 'latex' },
           { key: 'p', header: 'f(x)' },
-          { key: 'xp', header: 'x\\,f(x)' },
+          { key: 'xp', header: String.raw`x\,f(x)` },
           { key: 'x2p', header: 'x^2 f(x)' },
-          { key: 'dev', header: '(x - \\mu)^2 f(x)' },
+          { key: 'dev', header: String.raw`(x - \mu)^2 f(x)` },
         ],
         rows: [
           ...sorted.map((r) => ({
@@ -269,7 +269,7 @@ function solveDiscreteCase(input: ExpectationInput): Result {
             dev: (r.x - mean) ** 2 * r.p,
           })),
           {
-            x: '\\Sigma',
+            x: String.raw`\Sigma`,
             p: sum,
             xp: mean,
             x2p: second,
@@ -283,7 +283,7 @@ function solveDiscreteCase(input: ExpectationInput): Result {
 }
 
 const boundLatex = (v: number): Latex =>
-  v === Infinity ? '\\infty' : v === -Infinity ? '-\\infty' : n(v);
+  v === Infinity ? String.raw`\infty` : v === -Infinity ? String.raw`-\infty` : n(v);
 
 function solveContinuousCase(input: ExpectationInput): Result {
   const parsed = parseFunction(input.density ?? '');
@@ -295,7 +295,7 @@ function solveContinuousCase(input: ExpectationInput): Result {
   }
   const f = parsed.expr.evaluate;
   const tex = parsed.expr.tex;
-  const range = `\\int_{${boundLatex(a)}}^{${boundLatex(b)}}`;
+  const range = String.raw`\int_{${boundLatex(a)}}^{${boundLatex(b)}}`;
 
   const area = integrate(f, a, b);
   const steps: Step[] = [
@@ -303,8 +303,8 @@ function solveContinuousCase(input: ExpectationInput): Result {
       title: 'Verificar la densidad',
       explanation:
         'Una función de densidad no es negativa y el área total bajo ella es 1. Fuera del soporte vale 0.',
-      formula: `\\int_{-\\infty}^{\\infty} f(x)\\,dx = ${range} ${tex}\\,dx = 1`,
-      result: area.converged ? `${range} f(x)\\,dx = ${n(area.value, 8)}` : undefined,
+      formula: String.raw`\int_{-\infty}^{\infty} f(x)\,dx = ${range} ${tex}\,dx = 1`,
+      result: area.converged ? String.raw`${range} f(x)\,dx = ${n(area.value, 8)}` : undefined,
     },
   ];
   if (!area.converged || !Number.isFinite(area.value)) {
@@ -333,9 +333,9 @@ function solveContinuousCase(input: ExpectationInput): Result {
   steps.push({
     title: 'Media (valor esperado)',
     explanation: 'Es la integral de x por la densidad en el soporte (definición 4.1).',
-    formula: `\\mu = E(X) = ${range} x\\,f(x)\\,dx`,
-    substitution: `\\mu = ${range} x \\left(${tex}\\right) dx`,
-    result: first.converged ? `\\mu = ${n(first.value)}` : undefined,
+    formula: String.raw`\mu = E(X) = ${range} x\,f(x)\,dx`,
+    substitution: String.raw`\mu = ${range} x \left(${tex}\right) dx`,
+    result: first.converged ? String.raw`\mu = ${n(first.value)}` : undefined,
   });
   if (!first.converged || !Number.isFinite(first.value)) {
     return fail(
@@ -348,9 +348,11 @@ function solveContinuousCase(input: ExpectationInput): Result {
   const second = integrate((x) => x * x * f(x), a, b);
   steps.push({
     title: 'Segundo momento',
-    formula: `E(X^2) = ${range} x^2 f(x)\\,dx`,
-    substitution: `E(X^2) = ${range} x^2 \\left(${tex}\\right) dx`,
-    result: second.converged ? `E(X^2) = ${n(second.value)}` : '\\text{la integral diverge}',
+    formula: String.raw`E(X^2) = ${range} x^2 f(x)\,dx`,
+    substitution: String.raw`E(X^2) = ${range} x^2 \left(${tex}\right) dx`,
+    result: second.converged
+      ? `E(X^2) = ${n(second.value)}`
+      : String.raw`\text{la integral diverge}`,
   });
 
   const notices = [];

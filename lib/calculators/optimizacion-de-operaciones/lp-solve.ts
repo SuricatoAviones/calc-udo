@@ -108,9 +108,9 @@ export function standardFormLatex(
   if (mode === 'big-m' && artificial.length > 0) {
     objective += ` ${lp.sense === 'max' ? '-' : '+'} M(${artificial.join(' + ')})`;
   }
-  if (mode === 'phase-1') objective = `\\min\\ r = ${artificial.join(' + ')}`;
+  if (mode === 'phase-1') objective = String.raw`\min\ r = ${artificial.join(' + ')}`;
   const rows = sf.rows.map((row, i) => `${linearLatex(row, names)} &= ${sf.rhs[i]!.toLatex()}`);
-  return `\\begin{aligned} ${objective.replace('=', '&=')} \\\\ ${rows.join(' \\\\ ')} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+  return String.raw`\begin{aligned} ${objective.replace('=', '&=')} \\ ${rows.join(String.raw` \\ `)} \\ ${names.join(', ')} &\ge 0 \end{aligned}`;
 }
 
 export function standardFormStep(lp: LinearProgram, sf: StandardForm, mode: ObjectiveMode): Step {
@@ -149,7 +149,9 @@ export function standardFormStep(lp: LinearProgram, sf: StandardForm, mode: Obje
         title: 'Solución básica inicial',
         explanation:
           'Las variables de decisión (y los excesos) valen 0; cada restricción queda resuelta por su holgura o su artificial.',
-        result: sf.basis.map((b, i) => `${basic[i]} = ${sf.rhs[i]!.toLatex()}`).join(',\\ '),
+        result: sf.basis
+          .map((b, i) => `${basic[i]} = ${sf.rhs[i]!.toLatex()}`)
+          .join(String.raw`,\ `),
       },
     ],
   };
@@ -207,20 +209,20 @@ export function finish(
   const degenerate = degenerateBasics(t);
   const decisionLatex = lp.variables
     .map((v, j) => `${variableLatex(v)} = ${decisions[j]!.toLatex()}`)
-    .join(',\\ ');
+    .join(String.raw`,\ `);
   const slackLatex = t.columns
     .map((c, j) =>
       c.kind === 'slack' || c.kind === 'surplus' ? `${c.latex} = ${values[j]!.toLatex()}` : null,
     )
     .filter(Boolean)
-    .join(',\\ ');
+    .join(String.raw`,\ `);
   trace.steps.push(wording.optimality ?? optimalityStep(t), {
     title: 'Solución óptima',
     explanation:
       wording.solution ??
       'Las variables básicas toman el valor de la columna Solución; las no básicas valen 0. El valor de z es el lado derecho de la fila z.',
     result: latexLines([
-      `${decisionLatex}, \\qquad z^* = ${z.toLatex()}`,
+      String.raw`${decisionLatex}, \qquad z^* = ${z.toLatex()}`,
       ...(slackLatex ? [slackLatex] : []),
     ]),
   });

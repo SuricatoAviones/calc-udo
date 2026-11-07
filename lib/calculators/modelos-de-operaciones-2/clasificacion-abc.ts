@@ -156,21 +156,21 @@ export function solveAbc(input: AbcInput): Result {
       title: 'Uso anual en dinero de cada pieza',
       explanation:
         'Es la medida de importancia: una pieza barata con mucha demanda puede valer más que una cara con poca. Si no se da el costo unitario, la cantidad ya es el uso en dinero.',
-      formula: '\\text{Uso anual} = \\text{demanda anual} \\times \\text{costo unitario}',
-      result: `\\text{Total} = ${n(total)}`,
+      formula: String.raw`\text{Uso anual} = \text{demanda anual} \times \text{costo unitario}`,
+      result: String.raw`\text{Total} = ${n(total)}`,
     },
     {
       title: 'Ordenar de mayor a menor y acumular',
       explanation:
         'Se calcula el porcentaje de cada pieza sobre el total y el porcentaje acumulado.',
-      formula: '\\%_i = \\frac{\\text{uso}_i}{\\sum \\text{uso}} \\times 100',
+      formula: String.raw`\%_i = \frac{\text{uso}_i}{\sum \text{uso}} \times 100`,
       substitution: items
         .slice(0, 6)
         .map(
           (i) =>
-            `${toLatexText(i.name)}: \\frac{${n(i.value)}}{${n(total)}} = ${n(i.percent, 4)}\\,\\%`,
+            String.raw`${toLatexText(i.name)}: \frac{${n(i.value)}}{${n(total)}} = ${n(i.percent, 4)}\,\%`,
         )
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
     {
       title: 'Cortes de los grupos',
@@ -179,17 +179,20 @@ export function solveAbc(input: AbcInput): Result {
           ? `Por porcentaje de piezas: A = el primer ${formatNumber(cutA)} % de la lista (${countA} de ${count}), B = el siguiente ${formatNumber(cutB)} % (${countB}) y C el resto.`
           : `Por valor acumulado: A mientras el acumulado no pase de ${formatNumber(cutA)} %, B hasta ${formatNumber(cutB)} % y C el resto.`,
       result: groups
-        .map((g) => `${g.group}: ${g.names.map(toLatexText).join(',\\ ') || '\\text{—}'}`)
-        .join(' \\\\ '),
+        .map(
+          (g) =>
+            `${g.group}: ${g.names.map(toLatexText).join(String.raw`,\ `) || String.raw`\text{—}`}`,
+        )
+        .join(String.raw` \\ `),
     },
     {
       title: 'Resumen por grupo',
       substitution: groups
         .map(
           (g) =>
-            `${g.group}: ${n(g.value)} \\ (${n(g.percent, 3)}\\,\\% \\text{ del valor, } ${n(g.itemsPercent, 3)}\\,\\% \\text{ de las piezas})`,
+            String.raw`${g.group}: ${n(g.value)} \ (${n(g.percent, 3)}\,\% \text{ del valor, } ${n(g.itemsPercent, 3)}\,\% \text{ de las piezas})`,
         )
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
   ];
 
@@ -208,7 +211,7 @@ export function solveAbc(input: AbcInput): Result {
     value: { items, groups, total },
     summary: groups.map((g, k) => ({
       label: `Grupo ${g.group}`,
-      value: `${g.names.length} \\text{ piezas, } ${n(g.percent, 3)}\\,\\% \\text{ del valor}`,
+      value: String.raw`${g.names.length} \text{ piezas, } ${n(g.percent, 3)}\,\% \text{ del valor}`,
       emphasis: k === 0,
     })),
     ...emptyTrace(),
@@ -218,13 +221,13 @@ export function solveAbc(input: AbcInput): Result {
         id: 'piezas',
         title: 'Piezas ordenadas por uso anual en dinero',
         columns: [
-          { key: 'rank', header: '\\#' },
-          { key: 'name', header: '\\text{Pieza}', format: 'text' },
-          { key: 'value', header: '\\text{Uso anual}' },
-          { key: 'percent', header: '\\%' },
-          { key: 'cumulative', header: '\\%\\ \\text{acumulado}' },
-          { key: 'itemsPercent', header: '\\%\\ \\text{de piezas}' },
-          { key: 'group', header: '\\text{Grupo}', format: 'text' },
+          { key: 'rank', header: String.raw`\#` },
+          { key: 'name', header: String.raw`\text{Pieza}`, format: 'text' },
+          { key: 'value', header: String.raw`\text{Uso anual}` },
+          { key: 'percent', header: String.raw`\%` },
+          { key: 'cumulative', header: String.raw`\%\ \text{acumulado}` },
+          { key: 'itemsPercent', header: String.raw`\%\ \text{de piezas}` },
+          { key: 'group', header: String.raw`\text{Grupo}`, format: 'text' },
         ],
         rows: items.map((i): Record<string, CellValue> => ({ ...i })),
       },
@@ -232,11 +235,11 @@ export function solveAbc(input: AbcInput): Result {
         id: 'grupos',
         title: 'Agrupamiento ABC',
         columns: [
-          { key: 'group', header: '\\text{Grupo}', format: 'text' },
-          { key: 'names', header: '\\text{Piezas}', format: 'text' },
-          { key: 'value', header: '\\text{Uso anual}' },
-          { key: 'percent', header: '\\%\\ \\text{del valor}' },
-          { key: 'itemsPercent', header: '\\%\\ \\text{de piezas}' },
+          { key: 'group', header: String.raw`\text{Grupo}`, format: 'text' },
+          { key: 'names', header: String.raw`\text{Piezas}`, format: 'text' },
+          { key: 'value', header: String.raw`\text{Uso anual}` },
+          { key: 'percent', header: String.raw`\%\ \text{del valor}` },
+          { key: 'itemsPercent', header: String.raw`\%\ \text{de piezas}` },
         ],
         rows: groups.map((g) => ({ ...g, names: g.names.join(', ') })),
       },

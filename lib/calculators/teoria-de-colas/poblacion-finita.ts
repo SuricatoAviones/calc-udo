@@ -100,55 +100,54 @@ export function solveFinitePopulation({
     {
       title: 'Relación entre las tasas',
       explanation: `λ es la tasa de llegadas de cada cliente mientras está fuera del sistema. Con n clientes en el sistema solo ${K} − n pueden llegar, así que la tasa total es λₙ = (K − n)λ.`,
-      formula: 'r = \\frac{\\lambda}{\\mu}, \\qquad \\lambda_n = (K - n)\\lambda',
-      substitution: `r = \\frac{${n(lambda)}}{${n(mu)}}`,
+      formula: String.raw`r = \frac{\lambda}{\mu}, \qquad \lambda_n = (K - n)\lambda`,
+      substitution: String.raw`r = \frac{${n(lambda)}}{${n(mu)}}`,
       result: `r = ${n(r)}`,
     },
     {
       title: 'Probabilidad de que el sistema esté vacío',
       explanation: `Se suman los términos de cada estado n = 0, 1, …, ${K}; cada p_n es su término multiplicado por p₀.`,
-      formula:
-        'p_0 = \\left[\\sum_{n=0}^{R} \\binom{K}{n} r^n + \\sum_{n=R+1}^{K} \\binom{K}{n} \\frac{n!\\,r^n}{R!\\,R^{\\,n-R}}\\right]^{-1}',
-      substitution: `p_0 = \\left[${shown.join(' + ')}${K > 3 ? ' + \\cdots' : ''}\\right]^{-1} = \\left[${n(total, 8)}\\right]^{-1}`,
+      formula: String.raw`p_0 = \left[\sum_{n=0}^{R} \binom{K}{n} r^n + \sum_{n=R+1}^{K} \binom{K}{n} \frac{n!\,r^n}{R!\,R^{\,n-R}}\right]^{-1}`,
+      substitution: String.raw`p_0 = \left[${shown.join(' + ')}${K > 3 ? String.raw` + \cdots` : ''}\right]^{-1} = \left[${n(total, 8)}\right]^{-1}`,
       result: `p_0 = ${n(p0)}`,
     },
     {
       title: 'Clientes promedio en el sistema',
       explanation: 'No hay fórmula cerrada: se calcula con la definición de valor esperado.',
-      formula: 'L = \\sum_{n=0}^{K} n\\,p_n',
+      formula: String.raw`L = \sum_{n=0}^{K} n\,p_n`,
       substitution: `L = ${probabilities
         .slice(0, 3)
         .map((p, k) => `${k}(${n(p, 6)})`)
-        .join(' + ')}${K > 2 ? ' + \\cdots' : ''}`,
+        .join(' + ')}${K > 2 ? String.raw` + \cdots` : ''}`,
       result: `L = ${n(L)}`,
     },
     {
       title: 'Clientes promedio en la cola',
       explanation: `Solo esperan los clientes que exceden a los ${R} servidores.`,
-      formula: 'L_q = \\sum_{n=R+1}^{K} (n - R)\\,p_n',
+      formula: String.raw`L_q = \sum_{n=R+1}^{K} (n - R)\,p_n`,
       result: `L_q = ${n(Lq)}`,
     },
     {
       title: 'Tasa efectiva de llegadas',
       explanation: 'En promedio hay K − L clientes fuera del sistema, cada uno con tasa λ.',
-      formula: '\\lambda_{ef} = \\lambda\\,(K - L)',
-      substitution: `\\lambda_{ef} = ${n(lambda)}\\,(${K} - ${n(L)})`,
-      result: `\\lambda_{ef} = ${n(lambdaEff)}`,
+      formula: String.raw`\lambda_{ef} = \lambda\,(K - L)`,
+      substitution: String.raw`\lambda_{ef} = ${n(lambda)}\,(${K} - ${n(L)})`,
+      result: String.raw`\lambda_{ef} = ${n(lambdaEff)}`,
     },
-    ...littleSteps(value, '\\lambda_{ef}'),
+    ...littleSteps(value, String.raw`\lambda_{ef}`),
     {
       title: 'Probabilidad de esperar',
       explanation: 'Un cliente espera si al llegar encuentra ocupados a todos los servidores.',
-      formula: 'P_w = \\sum_{n=R}^{K} p_n',
+      formula: String.raw`P_w = \sum_{n=R}^{K} p_n`,
       result: `P_w = ${n(waitProbability)}`,
     },
     {
       title: 'Productividad de la población',
       explanation:
         'En el problema de reparación de máquinas es el porcentaje de máquinas que están trabajando.',
-      formula: '\\text{Productividad} = \\frac{K - L}{K} \\times 100\\,\\%',
-      substitution: `\\text{Productividad} = \\frac{${K} - ${n(L)}}{${K}} \\times 100\\,\\%`,
-      result: `\\text{Productividad} = ${n(productivity, 6)}\\,\\%`,
+      formula: String.raw`\text{Productividad} = \frac{K - L}{K} \times 100\,\%`,
+      substitution: String.raw`\text{Productividad} = \frac{${K} - ${n(L)}}{${K}} \times 100\,\%`,
+      result: String.raw`\text{Productividad} = ${n(productivity, 6)}\,\%`,
     },
   ];
 
@@ -156,11 +155,11 @@ export function solveFinitePopulation({
     ok: true,
     value,
     summary: queueSummary(value, [
-      { label: 'Tasa efectiva de llegadas', value: `\\lambda_{ef} = ${n(lambdaEff, 6)}` },
+      { label: 'Tasa efectiva de llegadas', value: String.raw`\lambda_{ef} = ${n(lambdaEff, 6)}` },
       { label: 'Probabilidad de esperar', value: `P_w = ${n(waitProbability, 6)}` },
       {
         label: 'Productividad',
-        value: `${n(productivity, 5)}\\,\\%`,
+        value: String.raw`${n(productivity, 5)}\,\%`,
       },
     ]),
     ...probabilityTrace(steps, value, [

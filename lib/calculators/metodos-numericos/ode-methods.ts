@@ -41,8 +41,8 @@ const eulerRule: OdeRule = {
       ],
       update: {
         title: 'Avanzar con la pendiente',
-        formula: 'y_{i+1} = y_i + f(x_i, y_i)\\,h',
-        substitution: `y_{${i + 1}} = ${n(y)} + ${op(k)}\\,(${n(h)})`,
+        formula: String.raw`y_{i+1} = y_i + f(x_i, y_i)\,h`,
+        substitution: String.raw`y_{${i + 1}} = ${n(y)} + ${op(k)}\,(${n(h)})`,
         result: `y_{${i + 1}} = ${n(yNext)}`,
       },
     };
@@ -72,8 +72,8 @@ const heunRule: OdeRule = {
           value: predictor,
           step: {
             title: 'Predictor (un paso de Euler)',
-            formula: "y^0_{i+1} = y_i + y'_i\\,h",
-            substitution: `y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\\,(${n(h)})`,
+            formula: String.raw`y^0_{i+1} = y_i + y'_i\,h`,
+            substitution: String.raw`y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\,(${n(h)})`,
             result: `y^0_{${i + 1}} = ${n(predictor)}`,
           },
         },
@@ -91,8 +91,8 @@ const heunRule: OdeRule = {
       ],
       update: {
         title: 'Corrector: avanzar con la pendiente promedio',
-        formula: "y_{i+1} = y_i + \\frac{y'_i + y'_{i+1}}{2}\\,h",
-        substitution: `y_{${i + 1}} = ${n(y)} + \\frac{${n(k1)} + ${op(k2)}}{2}\\,(${n(h)})`,
+        formula: String.raw`y_{i+1} = y_i + \frac{y'_i + y'_{i+1}}{2}\,h`,
+        substitution: String.raw`y_{${i + 1}} = ${n(y)} + \frac{${n(k1)} + ${op(k2)}}{2}\,(${n(h)})`,
         result: `y_{${i + 1}} = ${n(yNext)}`,
       },
     };
@@ -125,15 +125,22 @@ export const rk4Rule: OdeRule = {
         {
           key: 'k1',
           value: k1,
-          step: slopeStep('k₁: pendiente al inicio', 'k_1', x, y, k1, 'k_1 = f(x_i,\\ y_i)'),
+          step: slopeStep(
+            'k₁: pendiente al inicio',
+            'k_1',
+            x,
+            y,
+            k1,
+            String.raw`k_1 = f(x_i,\ y_i)`,
+          ),
         },
         {
           key: 'k2',
           value: k2,
           step: {
             ...slopeStep('k₂: pendiente en el punto medio, usando k₁', 'k_2', x + half, y2, k2),
-            formula: 'k_2 = f\\left(x_i + \\tfrac{h}{2},\\ y_i + \\tfrac{h}{2}k_1\\right)',
-            substitution: `y_i + \\tfrac{h}{2}k_1 = ${n(y)} + ${n(half)}\\,(${n(k1)}) = ${n(y2)}`,
+            formula: String.raw`k_2 = f\left(x_i + \tfrac{h}{2},\ y_i + \tfrac{h}{2}k_1\right)`,
+            substitution: String.raw`y_i + \tfrac{h}{2}k_1 = ${n(y)} + ${n(half)}\,(${n(k1)}) = ${n(y2)}`,
           },
         },
         {
@@ -141,8 +148,8 @@ export const rk4Rule: OdeRule = {
           value: k3,
           step: {
             ...slopeStep('k₃: pendiente en el punto medio, usando k₂', 'k_3', x + half, y3, k3),
-            formula: 'k_3 = f\\left(x_i + \\tfrac{h}{2},\\ y_i + \\tfrac{h}{2}k_2\\right)',
-            substitution: `y_i + \\tfrac{h}{2}k_2 = ${n(y)} + ${n(half)}\\,(${n(k2)}) = ${n(y3)}`,
+            formula: String.raw`k_3 = f\left(x_i + \tfrac{h}{2},\ y_i + \tfrac{h}{2}k_2\right)`,
+            substitution: String.raw`y_i + \tfrac{h}{2}k_2 = ${n(y)} + ${n(half)}\,(${n(k2)}) = ${n(y3)}`,
           },
         },
         {
@@ -150,15 +157,15 @@ export const rk4Rule: OdeRule = {
           value: k4,
           step: {
             ...slopeStep('k₄: pendiente al final, usando k₃', 'k_4', x + h, y4, k4),
-            formula: 'k_4 = f(x_i + h,\\ y_i + h\\,k_3)',
-            substitution: `y_i + h\\,k_3 = ${n(y)} + ${n(h)}\\,(${n(k3)}) = ${n(y4)}`,
+            formula: String.raw`k_4 = f(x_i + h,\ y_i + h\,k_3)`,
+            substitution: String.raw`y_i + h\,k_3 = ${n(y)} + ${n(h)}\,(${n(k3)}) = ${n(y4)}`,
           },
         },
       ],
       update: {
         title: 'Avanzar con el promedio ponderado de las pendientes',
-        formula: 'y_{i+1} = y_i + \\frac{1}{6}\\,(k_1 + 2k_2 + 2k_3 + k_4)\\,h',
-        substitution: `y_{${i + 1}} = ${n(y)} + \\frac{1}{6}\\,(${n(k1)} + 2(${n(k2)}) + 2(${n(k3)}) + ${n(k4)})\\,(${n(h)})`,
+        formula: String.raw`y_{i+1} = y_i + \frac{1}{6}\,(k_1 + 2k_2 + 2k_3 + k_4)\,h`,
+        substitution: String.raw`y_{${i + 1}} = ${n(y)} + \frac{1}{6}\,(${n(k1)} + 2(${n(k2)}) + 2(${n(k3)}) + ${n(k4)})\,(${n(h)})`,
         result: `y_{${i + 1}} = ${n(yNext)}`,
       },
     };

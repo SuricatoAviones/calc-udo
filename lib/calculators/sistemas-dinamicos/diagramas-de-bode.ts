@@ -80,14 +80,14 @@ function fail(code: BodeErrorCode, message: string): CalculatorResult<BodeValue,
 
 /** Factor en la forma de Bode: `\left(1 + \frac{j\omega}{3}\right)`, `(j\omega)`. */
 function factorTex(f: BodeFactor): string {
-  if (f.kind === 'origen') return '(j\\omega)';
+  if (f.kind === 'origen') return String.raw`(j\omega)`;
   if (f.kind === 'primer-orden') {
-    return `\\left(1 ${f.rightHalf ? '-' : '+'} \\frac{j\\omega}{${n(f.corner)}}\\right)`;
+    return String.raw`\left(1 ${f.rightHalf ? '-' : '+'} \frac{j\omega}{${n(f.corner)}}\right)`;
   }
   const c2 = 1 / (f.corner * f.corner);
   const c1 = (2 * f.zeta) / f.corner;
-  const term1 = c1 === 0 ? '' : ` ${c1 < 0 ? '-' : '+'} ${n(Math.abs(c1))}j\\omega`;
-  return `\\left[${n(c2)}(j\\omega)^{2}${term1} + 1\\right]`;
+  const term1 = c1 === 0 ? '' : String.raw` ${c1 < 0 ? '-' : '+'} ${n(Math.abs(c1))}j\omega`;
+  return String.raw`\left[${n(c2)}(j\omega)^{2}${term1} + 1\right]`;
 }
 
 function powered(f: BodeFactor): string {
@@ -97,7 +97,7 @@ function powered(f: BodeFactor): string {
 
 /** El factor como aparece en G(jω): en el numerador tal cual, en el denominador como 1/(…). */
 function signedFactorTex(f: BodeFactor): string {
-  return f.zero ? powered(f) : `\\frac{1}{${powered(f)}}`;
+  return f.zero ? powered(f) : String.raw`\frac{1}{${powered(f)}}`;
 }
 
 export function bodeFormTex(form: BodeForm): string {
@@ -111,7 +111,7 @@ export function bodeFormTex(form: BodeForm): string {
     .join('');
   const k = n(form.gain);
   if (!bottom) return `${k}${top}`;
-  return `\\frac{${k}${top}}{${bottom}}`;
+  return String.raw`\frac{${k}${top}}{${bottom}}`;
 }
 
 function describe(f: BodeFactor): string {
@@ -148,7 +148,7 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     explanation:
       'Se escribe G(jω) con factores cuyas asíntotas de baja frecuencia son la recta de 0 dB: (1 + jω/ω_c) para cada raíz real y [(jω/ω_n)² + 2ζ(jω/ω_n) + 1] para cada par complejo. La ganancia K es el valor de sᴺG(s) en s → 0.',
     formula: `G(s)H(s) = ${tfTex(tf)}`,
-    result: `G(j\\omega)H(j\\omega) = ${bodeFormTex(form)}`,
+    result: String.raw`G(j\omega)H(j\omega) = ${bodeFormTex(form)}`,
   });
   steps.push({
     title: 'Factores y frecuencias de esquina',
@@ -203,8 +203,7 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
   });
   steps.push({
     title: 'Magnitud y fase exactas',
-    formula:
-      '|G(j\\omega)|_{\\text{dB}} = 20\\log_{10}|G(j\\omega)|,\\qquad \\angle G(j\\omega) = \\sum \\angle(\\text{ceros}) - \\sum \\angle(\\text{polos})',
+    formula: String.raw`|G(j\omega)|_{\text{dB}} = 20\log_{10}|G(j\omega)|,\qquad \angle G(j\omega) = \sum \angle(\text{ceros}) - \sum \angle(\text{polos})`,
   });
 
   // Márgenes.
@@ -215,9 +214,9 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     marginChildren.push({
       title: 'Margen de fase',
       explanation: `La magnitud vale 0 dB en ω_c = ${formatNumber(gc.w, DIGITS)} rad/s${m.gainCrossovers.length > 1 ? ' (la más alta de las frecuencias de cruce de ganancia, como indica Ogata)' : ''}.`,
-      formula: '\\gamma = 180^{\\circ} + \\angle G(j\\omega_c)',
-      substitution: `\\gamma = 180^{\\circ} + (${n(gc.phase)}^{\\circ})`,
-      result: `\\gamma = ${n(gc.margin)}^{\\circ}`,
+      formula: String.raw`\gamma = 180^{\circ} + \angle G(j\omega_c)`,
+      substitution: String.raw`\gamma = 180^{\circ} + (${n(gc.phase)}^{\circ})`,
+      result: String.raw`\gamma = ${n(gc.margin)}^{\circ}`,
     });
   } else {
     marginChildren.push({
@@ -230,10 +229,9 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     marginChildren.push({
       title: 'Margen de ganancia',
       explanation: `La fase vale −180° en ω₁ = ${formatNumber(pc.w, DIGITS)} rad/s.`,
-      formula:
-        'K_g = \\frac{1}{|G(j\\omega_1)|},\\qquad K_g\\ \\text{dB} = -20\\log_{10}|G(j\\omega_1)|',
-      substitution: `K_g\\ \\text{dB} = -(${n(pc.magnitudeDb)})`,
-      result: `K_g = ${n(10 ** (pc.margin / 20))} = ${n(pc.margin)}\\ \\text{dB}`,
+      formula: String.raw`K_g = \frac{1}{|G(j\omega_1)|},\qquad K_g\ \text{dB} = -20\log_{10}|G(j\omega_1)|`,
+      substitution: String.raw`K_g\ \text{dB} = -(${n(pc.magnitudeDb)})`,
+      result: String.raw`K_g = ${n(10 ** (pc.margin / 20))} = ${n(pc.margin)}\ \text{dB}`,
     });
   } else {
     marginChildren.push({
@@ -270,7 +268,7 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
           ? `Tiene un pico de resonancia M_r = ${formatNumber(cl.peak.magnitude, DIGITS)} (${formatNumber(20 * Math.log10(cl.peak.magnitude), DIGITS)} dB) en ω_r = ${formatNumber(cl.peak.w, DIGITS)} rad/s.`
           : 'La magnitud no tiene pico de resonancia (decrece desde ω = 0).'
       } ${cl.bandwidth ? `El ancho de banda (|M| cae 3 dB por debajo de |M(j0)|) es ω_b = ${formatNumber(cl.bandwidth, DIGITS)} rad/s.` : ''}`.trim(),
-      formula: 'M(s) = \\frac{G(s)}{1 + G(s)}',
+      formula: String.raw`M(s) = \frac{G(s)}{1 + G(s)}`,
       result: `M(s) = ${tfTex(M)}`,
     });
   } else {
@@ -323,9 +321,9 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     id: 'factores',
     title: 'Factores de la forma de Bode',
     columns: [
-      { key: 'factor', header: '\\text{Factor}', format: 'latex' },
-      { key: 'esquina', header: '\\omega_c\\ (\\text{rad/s})' },
-      { key: 'pendiente', header: '\\text{Pendiente (dB/déc)}' },
+      { key: 'factor', header: String.raw`\text{Factor}`, format: 'latex' },
+      { key: 'esquina', header: String.raw`\omega_c\ (\text{rad/s})` },
+      { key: 'pendiente', header: String.raw`\text{Pendiente (dB/déc)}` },
     ],
     rows: [
       { factor: n(form.gain), esquina: '—', pendiente: 0 },
@@ -340,10 +338,10 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     id: 'valores',
     title: 'Magnitud y fase en las frecuencias de esquina',
     columns: [
-      { key: 'w', header: '\\omega\\ (\\text{rad/s})' },
-      { key: 'mag', header: '|G|\\ (\\text{dB})' },
-      { key: 'asin', header: '\\text{Asintótica (dB)}' },
-      { key: 'fase', header: '\\angle G\\ (^{\\circ})' },
+      { key: 'w', header: String.raw`\omega\ (\text{rad/s})` },
+      { key: 'mag', header: String.raw`|G|\ (\text{dB})` },
+      { key: 'asin', header: String.raw`\text{Asintótica (dB)}` },
+      { key: 'fase', header: String.raw`\angle G\ (^{\circ})` },
     ],
     rows: [
       ...corners,
@@ -364,28 +362,28 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       label: 'Margen de fase',
       value:
         m.phaseMargin === null
-          ? '\\infty'
-          : `\\gamma = ${n(m.phaseMargin)}^{\\circ}\\ (\\omega_c = ${n(m.gainCrossover!)})`,
+          ? String.raw`\infty`
+          : String.raw`\gamma = ${n(m.phaseMargin)}^{\circ}\ (\omega_c = ${n(m.gainCrossover!)})`,
       emphasis: true,
     },
     {
       label: 'Margen de ganancia',
       value:
         m.gainMarginDb === null
-          ? '\\infty'
-          : `K_g = ${n(m.gainMarginDb)}\\ \\text{dB}\\ (\\omega_1 = ${n(m.phaseCrossover!)})`,
+          ? String.raw`\infty`
+          : String.raw`K_g = ${n(m.gainMarginDb)}\ \text{dB}\ (\omega_1 = ${n(m.phaseCrossover!)})`,
     },
     { label: 'Forma de Bode', value: bodeFormTex(form) },
   ];
   if (closed?.peak)
     summary.push({
       label: 'Pico de resonancia',
-      value: `M_r = ${n(closed.peak)}\\ (\\omega_r = ${n(closed.peakFrequency!)})`,
+      value: String.raw`M_r = ${n(closed.peak)}\ (\omega_r = ${n(closed.peakFrequency!)})`,
     });
   if (closed?.bandwidth)
     summary.push({
       label: 'Ancho de banda',
-      value: `\\omega_b = ${n(closed.bandwidth)}\\ \\text{rad/s}`,
+      value: String.raw`\omega_b = ${n(closed.bandwidth)}\ \text{rad/s}`,
     });
 
   return {

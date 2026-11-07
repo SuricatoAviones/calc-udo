@@ -84,11 +84,12 @@ const MAX_PATHS = 20;
 
 const n = toLatexNumber;
 const name = toLatexText;
-const at = (symbol: string, activity: string) => `\\mathrm{${symbol}}_{${name(activity)}}`;
+const at = (symbol: string, activity: string) => String.raw`\mathrm{${symbol}}_{${name(activity)}}`;
 
 /** Opciones de presentación: CPM usa t (duración); PERT, μ (tiempo esperado). */
 export interface NetworkOptions {
-  durationSymbol: 't' | '\\mu';
+  /** Símbolo LaTeX de la duración: `t` en CPM, `\mu` en PERT. */
+  durationSymbol: string;
 }
 
 const key = (activityName: string) => activityName.toUpperCase();
@@ -184,7 +185,7 @@ export function analyzeNetwork(
       title: 'Construir la red del proyecto',
       explanation:
         'Cada actividad es un nodo y cada relación de precedencia es una flecha de la predecesora a la actividad (representación de actividades en los nodos). En esta representación no hacen falta actividades ficticias; en la de actividades en las flechas se agregan para expresar precedencias que comparten eventos.',
-      result: `\\text{Iniciales: } ${initial.map(name).join(',\\ ')} \\qquad \\text{Finales: } ${final.map(name).join(',\\ ')}`,
+      result: String.raw`\text{Iniciales: } ${initial.map(name).join(String.raw`,\ `)} \qquad \text{Finales: } ${final.map(name).join(String.raw`,\ `)}`,
     },
   ];
 
@@ -204,28 +205,28 @@ export function analyzeNetwork(
         ? `${at('ES', a)} = 0`
         : p.length === 1
           ? `${at('ES', a)} = ${at('EF', p[0]!)}`
-          : `${at('ES', a)} = \\max\\{${p.map((x) => at('EF', x)).join(',\\ ')}\\}`;
+          : String.raw`${at('ES', a)} = \max\{${p.map((x) => at('EF', x)).join(String.raw`,\ `)}\}`;
     const esSubstitution =
       p.length === 0
         ? `${at('ES', a)} = 0`
         : p.length === 1
           ? `${at('ES', a)} = ${n(start)}`
-          : `${at('ES', a)} = \\max\\{${p.map((x) => n(ef.get(key(x))!)).join(',\\ ')}\\} = ${n(start)}`;
+          : String.raw`${at('ES', a)} = \max\{${p.map((x) => n(ef.get(key(x))!)).join(String.raw`,\ `)}\} = ${n(start)}`;
     forward.push({
       title:
         p.length === 0
           ? `${a} (sin predecesoras)`
           : `${a} (${p.length === 1 ? 'predecesora' : 'predecesoras'}: ${p.join(', ')})`,
-      formula: `${esFormula}, \\qquad ${at('EF', a)} = ${at('ES', a)} + ${t(a)}`,
-      substitution: `${esSubstitution}, \\qquad ${at('EF', a)} = ${n(start)} + ${n(activity.duration)}`,
-      result: `${at('ES', a)} = ${n(start)}, \\qquad ${at('EF', a)} = ${n(finish)}`,
+      formula: String.raw`${esFormula}, \qquad ${at('EF', a)} = ${at('ES', a)} + ${t(a)}`,
+      substitution: String.raw`${esSubstitution}, \qquad ${at('EF', a)} = ${n(start)} + ${n(activity.duration)}`,
+      result: String.raw`${at('ES', a)} = ${n(start)}, \qquad ${at('EF', a)} = ${n(finish)}`,
     });
   }
   steps.push({
     title: 'Recorrido hacia adelante (tiempos más próximos)',
     explanation:
       'Una actividad puede empezar en cuanto terminan todas sus predecesoras: su inicio más próximo ES es el mayor de los tiempos de terminación más próximos EF de sus predecesoras. Las actividades iniciales empiezan en 0.',
-    formula: `\\mathrm{ES} = \\max\\{\\mathrm{EF}\\ \\text{de las predecesoras}\\}, \\qquad \\mathrm{EF} = \\mathrm{ES} + ${durationSymbol}`,
+    formula: String.raw`\mathrm{ES} = \max\{\mathrm{EF}\ \text{de las predecesoras}\}, \qquad \mathrm{EF} = \mathrm{ES} + ${durationSymbol}`,
     children: forward,
   });
 
@@ -233,11 +234,11 @@ export function analyzeNetwork(
   steps.push({
     title: 'Duración del proyecto',
     explanation: 'El proyecto termina cuando terminan todas las actividades finales.',
-    formula: `T = \\max\\{\\mathrm{EF}\\ \\text{de las actividades finales}\\}`,
+    formula: String.raw`T = \max\{\mathrm{EF}\ \text{de las actividades finales}\}`,
     substitution:
       final.length === 1
         ? `T = ${at('EF', final[0]!)}`
-        : `T = \\max\\{${final.map((a) => n(ef.get(key(a))!)).join(',\\ ')}\\}`,
+        : String.raw`T = \max\{${final.map((a) => n(ef.get(key(a))!)).join(String.raw`,\ `)}\}`,
     result: `T = ${n(duration)}`,
   });
 
@@ -257,26 +258,26 @@ export function analyzeNetwork(
         ? `${at('LF', a)} = T`
         : s.length === 1
           ? `${at('LF', a)} = ${at('LS', s[0]!)}`
-          : `${at('LF', a)} = \\min\\{${s.map((x) => at('LS', x)).join(',\\ ')}\\}`;
+          : String.raw`${at('LF', a)} = \min\{${s.map((x) => at('LS', x)).join(String.raw`,\ `)}\}`;
     const lfSubstitution =
       s.length === 0 || s.length === 1
         ? `${at('LF', a)} = ${n(finish)}`
-        : `${at('LF', a)} = \\min\\{${s.map((x) => n(ls.get(key(x))!)).join(',\\ ')}\\} = ${n(finish)}`;
+        : String.raw`${at('LF', a)} = \min\{${s.map((x) => n(ls.get(key(x))!)).join(String.raw`,\ `)}\} = ${n(finish)}`;
     backward.push({
       title:
         s.length === 0
           ? `${a} (sin sucesoras)`
           : `${a} (${s.length === 1 ? 'sucesora' : 'sucesoras'}: ${s.join(', ')})`,
-      formula: `${lfFormula}, \\qquad ${at('LS', a)} = ${at('LF', a)} - ${t(a)}`,
-      substitution: `${lfSubstitution}, \\qquad ${at('LS', a)} = ${n(finish)} - ${n(activity.duration)}`,
-      result: `${at('LS', a)} = ${n(start)}, \\qquad ${at('LF', a)} = ${n(finish)}`,
+      formula: String.raw`${lfFormula}, \qquad ${at('LS', a)} = ${at('LF', a)} - ${t(a)}`,
+      substitution: String.raw`${lfSubstitution}, \qquad ${at('LS', a)} = ${n(finish)} - ${n(activity.duration)}`,
+      result: String.raw`${at('LS', a)} = ${n(start)}, \qquad ${at('LF', a)} = ${n(finish)}`,
     });
   }
   steps.push({
     title: 'Recorrido hacia atrás (tiempos más lejanos)',
     explanation:
       'Partiendo de T, se retrocede desde las actividades finales: una actividad debe terminar a más tardar cuando la primera de sus sucesoras tiene que empezar. Así se obtienen los tiempos más lejanos que no retrasan el proyecto.',
-    formula: `\\mathrm{LF} = \\min\\{\\mathrm{LS}\\ \\text{de las sucesoras}\\}, \\qquad \\mathrm{LS} = \\mathrm{LF} - ${durationSymbol}`,
+    formula: String.raw`\mathrm{LF} = \min\{\mathrm{LS}\ \text{de las sucesoras}\}, \qquad \mathrm{LS} = \mathrm{LF} - ${durationSymbol}`,
     children: backward,
   });
 
@@ -305,7 +306,7 @@ export function analyzeNetwork(
     title: 'Holguras',
     explanation:
       'La holgura total es cuánto puede retrasarse una actividad sin retrasar el proyecto; la holgura libre, cuánto puede retrasarse sin retrasar el inicio más próximo de ninguna sucesora. Las actividades con holgura total 0 son críticas.',
-    formula: `\\mathrm{HT} = \\mathrm{LS} - \\mathrm{ES} = \\mathrm{LF} - \\mathrm{EF}, \\qquad \\mathrm{HL} = \\min\\{\\mathrm{ES}\\ \\text{de las sucesoras}\\} - \\mathrm{EF}`,
+    formula: String.raw`\mathrm{HT} = \mathrm{LS} - \mathrm{ES} = \mathrm{LF} - \mathrm{EF}, \qquad \mathrm{HL} = \min\{\mathrm{ES}\ \text{de las sucesoras}\} - \mathrm{EF}`,
     children: scheduled.map((a) => {
       const nextStarts = a.successors.map((s) => n(es.get(key(s))!));
       const free =
@@ -313,11 +314,11 @@ export function analyzeNetwork(
           ? `T - ${at('EF', a.name)} = ${n(duration)} - ${n(a.ef)}`
           : a.successors.length === 1
             ? `${nextStarts[0]} - ${n(a.ef)}`
-            : `\\min\\{${nextStarts.join(',\\ ')}\\} - ${n(a.ef)}`;
+            : String.raw`\min\{${nextStarts.join(String.raw`,\ `)}\} - ${n(a.ef)}`;
       return {
         title: `${a.name}${a.critical ? ' (crítica)' : ''}`,
-        substitution: `${at('HT', a.name)} = ${n(a.ls)} - ${n(a.es)}, \\qquad ${at('HL', a.name)} = ${free}`,
-        result: `${at('HT', a.name)} = ${n(a.totalSlack)}, \\qquad ${at('HL', a.name)} = ${n(a.freeSlack)}`,
+        substitution: String.raw`${at('HT', a.name)} = ${n(a.ls)} - ${n(a.es)}, \qquad ${at('HL', a.name)} = ${free}`,
+        result: String.raw`${at('HT', a.name)} = ${n(a.totalSlack)}, \qquad ${at('HL', a.name)} = ${n(a.freeSlack)}`,
       };
     }),
   });
@@ -351,7 +352,9 @@ export function analyzeNetwork(
     explanation:
       'La ruta crítica encadena actividades con holgura total 0 desde el inicio hasta el fin del proyecto. Es la ruta más larga de la red: cualquier retraso en una de sus actividades retrasa el proyecto completo.',
     result: latexLines(
-      criticalPaths.map((path) => `${criticalPathLatex(path)} \\quad (T = ${n(duration)})`),
+      criticalPaths.map(
+        (path) => String.raw`${criticalPathLatex(path)} \quad (T = ${n(duration)})`,
+      ),
     ),
   });
 
@@ -360,7 +363,7 @@ export function analyzeNetwork(
 
 /** Ruta en LaTeX: `\text{A} \to \text{B} \to …`. */
 export function criticalPathLatex(path: string[]): string {
-  return path.map(name).join(' \\to ');
+  return path.map(name).join(String.raw` \to `);
 }
 
 /** Ruta en texto plano: «A → B → C». */
@@ -371,13 +374,13 @@ export function criticalPathText(path: string[]): string {
 /** Columnas de tiempos comunes a CPM y PERT. */
 export function scheduleColumns(): ResultTable['columns'] {
   return [
-    { key: 'es', header: '\\mathrm{ES}' },
-    { key: 'ef', header: '\\mathrm{EF}' },
-    { key: 'ls', header: '\\mathrm{LS}' },
-    { key: 'lf', header: '\\mathrm{LF}' },
-    { key: 'totalSlack', header: '\\mathrm{HT}' },
-    { key: 'freeSlack', header: '\\mathrm{HL}' },
-    { key: 'critical', header: '\\text{¿Crítica?}', format: 'text' },
+    { key: 'es', header: String.raw`\mathrm{ES}` },
+    { key: 'ef', header: String.raw`\mathrm{EF}` },
+    { key: 'ls', header: String.raw`\mathrm{LS}` },
+    { key: 'lf', header: String.raw`\mathrm{LF}` },
+    { key: 'totalSlack', header: String.raw`\mathrm{HT}` },
+    { key: 'freeSlack', header: String.raw`\mathrm{HL}` },
+    { key: 'critical', header: String.raw`\text{¿Crítica?}`, format: 'text' },
   ];
 }
 

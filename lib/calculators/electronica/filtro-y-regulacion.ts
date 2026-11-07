@@ -139,10 +139,10 @@ function solveFilter(
       idc: filter.idc,
     },
     summary: [
-      { label: 'V_r(pp)', value: `${n(filter.vrpp, 5)}\\ \\text{V}`, emphasis: true },
-      { label: 'V_r(rms)', value: `${n(filter.vrrms, 5)}\\ \\text{V}` },
-      { label: 'V_cd', value: `${n(filter.vdc, 5)}\\ \\text{V}` },
-      { label: 'Rizo r', value: `${n(100 * filter.ripple, 4)}\\,\\%` },
+      { label: 'V_r(pp)', value: String.raw`${n(filter.vrpp, 5)}\ \text{V}`, emphasis: true },
+      { label: 'V_r(rms)', value: String.raw`${n(filter.vrrms, 5)}\ \text{V}` },
+      { label: 'V_cd', value: String.raw`${n(filter.vdc, 5)}\ \text{V}` },
+      { label: 'Rizo r', value: String.raw`${n(100 * filter.ripple, 4)}\,\%` },
     ],
     steps: [
       {
@@ -195,8 +195,8 @@ function solveZener(
       rippleOut,
     };
     summary = [
-      { label: 'Zener', value: z0.on ? '\\text{encendido}' : '\\text{apagado}' },
-      { label: 'V_L', value: `${n(z0.vl, 5)}\\ \\text{V}`, emphasis: true },
+      { label: 'Zener', value: z0.on ? String.raw`\text{encendido}` : String.raw`\text{apagado}` },
+      { label: 'V_L', value: String.raw`${n(z0.vl, 5)}\ \text{V}`, emphasis: true },
       { label: 'I_Z', value: engTex(z0.iz, 'A') },
       { label: 'I_L', value: engTex(z0.il, 'A') },
       { label: 'P_Z', value: engTex(z0.pz, 'W') },
@@ -224,10 +224,13 @@ function solveZener(
     summary = [
       {
         label: 'R_L',
-        value: `${engTex(r.rlMin, 'Ω')} \\le R_L \\le ${Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : '\\infty'}`,
+        value: String.raw`${engTex(r.rlMin, 'Ω')} \le R_L \le ${Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : String.raw`\infty`}`,
         emphasis: true,
       },
-      { label: 'I_L', value: `${engTex(r.ilMin, 'A')} \\le I_L \\le ${engTex(r.ilMax, 'A')}` },
+      {
+        label: 'I_L',
+        value: String.raw`${engTex(r.ilMin, 'A')} \le I_L \le ${engTex(r.ilMax, 'A')}`,
+      },
       { label: 'P_max', value: engTex(r.pMax, 'W') },
     ];
   } else {
@@ -244,7 +247,7 @@ function solveZener(
     summary = [
       {
         label: 'V_i',
-        value: `${n(r.viMin, 5)}\\ \\text{V} \\le V_i \\le ${n(r.viMax, 5)}\\ \\text{V}`,
+        value: String.raw`${n(r.viMin, 5)}\ \text{V} \le V_i \le ${n(r.viMax, 5)}\ \text{V}`,
         emphasis: true,
       },
       { label: 'I_L', value: engTex(r.il, 'A') },

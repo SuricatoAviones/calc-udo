@@ -51,8 +51,8 @@ export function solveSeriesQueue({ lambda, stations }: SeriesQueueInput): Result
       title: 'Llegadas a cada estación',
       explanation:
         'Si cada estación tiene capacidad para λ (λ < sⱼμⱼ), en estado estable su salida también es un proceso de Poisson con tasa λ, que es la entrada de la siguiente. Así, cada estación se analiza como un M/M/s independiente con la misma λ.',
-      formula: '\\lambda_1 = \\lambda_2 = \\cdots = \\lambda_m = \\lambda',
-      result: `\\lambda_j = ${n(lambda)}`,
+      formula: String.raw`\lambda_1 = \lambda_2 = \cdots = \lambda_m = \lambda`,
+      result: String.raw`\lambda_j = ${n(lambda)}`,
     },
   ];
   const analysis = analyzeStations(
@@ -85,9 +85,9 @@ export function solveSeriesQueue({ lambda, stations }: SeriesQueueInput): Result
     title: 'Medidas de toda la línea',
     explanation:
       'Cada cliente pasa una vez por cada estación, así que los tiempos y los números promedio de clientes se suman.',
-    formula: 'L = \\sum_j L_j, \\qquad W = \\sum_j W_j, \\qquad W_q = \\sum_j W_{q,j}',
-    substitution: `L = ${list('L')}, \\qquad W = ${list('W')}, \\qquad W_q = ${list('Wq')}`,
-    result: `L = ${n(value.L)}, \\qquad W = ${n(value.W)}, \\qquad W_q = ${n(value.Wq)}`,
+    formula: String.raw`L = \sum_j L_j, \qquad W = \sum_j W_j, \qquad W_q = \sum_j W_{q,j}`,
+    substitution: String.raw`L = ${list('L')}, \qquad W = ${list('W')}, \qquad W_q = ${list('Wq')}`,
+    result: String.raw`L = ${n(value.L)}, \qquad W = ${n(value.W)}, \qquad W_q = ${n(value.Wq)}`,
   });
 
   const busiest = results.reduce((a, b) => (b.rho > a.rho ? b : a));

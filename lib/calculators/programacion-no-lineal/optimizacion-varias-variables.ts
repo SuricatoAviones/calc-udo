@@ -131,12 +131,12 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     {
       title: 'Gradiente (condición necesaria)',
       explanation: 'En un extremo todas las derivadas parciales se anulan: ∇f(X₀) = 0.',
-      formula: `\\nabla f = \\left(${names.map((_, j) => `\\frac{\\partial f}{\\partial x_{${j + 1}}}`).join(',\\ ')}\\right)`,
-      result: `\\nabla f = ${expressionVectorTex(gradient)} = \\mathbf{0}`,
+      formula: String.raw`\nabla f = \left(${names.map((_, j) => String.raw`\frac{\partial f}{\partial x_{${j + 1}}}`).join(String.raw`,\ `)}\right)`,
+      result: String.raw`\nabla f = ${expressionVectorTex(gradient)} = \mathbf{0}`,
     },
     {
       title: 'Matriz hessiana',
-      formula: 'H = \\left[\\frac{\\partial^2 f}{\\partial x_i \\partial x_j}\\right]',
+      formula: String.raw`H = \left[\frac{\partial^2 f}{\partial x_i \partial x_j}\right]`,
       result: `H = ${expressionMatrixTex(hessian)}`,
     },
   ];
@@ -151,11 +151,11 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     title: 'Resolver ∇f = 0 (Newton-Raphson)',
     explanation:
       'Se parte del punto inicial y se aplica X_{k+1} = X_k − H(X_k)⁻¹∇f(X_k). Si f es cuadrática, ∇f es lineal y basta un paso.',
-    formula: 'X_{k+1} = X_k - H(X_k)^{-1}\\,\\nabla f(X_k)',
+    formula: String.raw`X_{k+1} = X_k - H(X_k)^{-1}\,\nabla f(X_k)`,
     substitution: `X_0 = ${pointTex(x0)}`,
     children: newton.iterations.slice(0, 15).map((it, k) => ({
       title: `Iteración ${k + 1}`,
-      result: `X_{${k + 1}} = ${pointTex(it.point, 8)}, \\quad \\lVert \\nabla f \\rVert = ${n(it.residual, 4)}`,
+      result: String.raw`X_{${k + 1}} = ${pointTex(it.point, 8)}, \quad \lVert \nabla f \rVert = ${n(it.residual, 4)}`,
     })),
   });
   if (!newton.converged) {
@@ -184,15 +184,17 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
   steps.push(
     {
       title: 'Punto estacionario',
-      result: `X_0 = ${pointTex(point, 8)}, \\qquad f(X_0) = ${n(value)}`,
+      result: String.raw`X_0 = ${pointTex(point, 8)}, \qquad f(X_0) = ${n(value)}`,
     },
     {
       title: 'Hessiana en el punto y menores principales',
       explanation:
         'Δₖ es el determinante de la submatriz formada por las primeras k filas y columnas de H(X₀).',
-      formula: '\\Delta_k = \\det\\left[h_{ij}\\right]_{i,j \\le k}',
+      formula: String.raw`\Delta_k = \det\left[h_{ij}\right]_{i,j \le k}`,
       substitution: `H(X_0) = ${toLatexMatrix(H)}`,
-      result: minors.map((d, k) => `\\Delta_{${k + 1}} = ${n(d, 8)}`).join(',\\ '),
+      result: minors
+        .map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d, 8)}`)
+        .join(String.raw`,\ `),
     },
     {
       title: 'Condición suficiente',
@@ -204,7 +206,7 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
             : definiteness === 'indefinida'
               ? 'H es indefinida (no es semidefinida positiva ni negativa): X₀ es un punto de silla.'
               : `H es ${definiteness}: el criterio de la segunda derivada no concluye; habría que estudiar términos de orden superior.`,
-      result: `\\text{${kind}}`,
+      result: String.raw`\text{${kind}}`,
     },
   );
 
@@ -236,9 +238,9 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     },
     summary: [
       { label: 'Punto estacionario', value: `X_0 = ${pointTex(point, 8)}`, emphasis: true },
-      { label: 'Tipo', value: `\\text{${kind}}` },
+      { label: 'Tipo', value: String.raw`\text{${kind}}` },
       { label: 'Valor de la función', value: `f(X_0) = ${n(value, 8)}` },
-      { label: 'Hessiana', value: `\\text{${definiteness}}` },
+      { label: 'Hessiana', value: String.raw`\text{${definiteness}}` },
     ],
     ...emptyTrace(),
     steps,

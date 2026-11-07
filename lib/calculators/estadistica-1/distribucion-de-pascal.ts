@@ -55,14 +55,14 @@ function pascalModel(k: number, p: number): DiscreteModel {
     min: k,
     max: Infinity,
     pmf,
-    notation: (x) => `b^*(${x};\\ ${k}, ${n(p)})`,
-    pmfFormula: '\\binom{x-1}{k-1} p^k q^{\\,x-k}',
+    notation: (x) => String.raw`b^*(${x};\ ${k}, ${n(p)})`,
+    pmfFormula: String.raw`\binom{x-1}{k-1} p^k q^{\,x-k}`,
     pmfSubstitution: (x) =>
-      `\\binom{${x - 1}}{${k - 1}} (${n(p)})^{${k}} (${n(q)})^{${x - k}} = ${formatNumber(combinations(x - 1, k - 1))}\\,(${n(p ** k)})(${n(q ** (x - k))})`,
+      String.raw`\binom{${x - 1}}{${k - 1}} (${n(p)})^{${k}} (${n(q)})^{${x - k}} = ${formatNumber(combinations(x - 1, k - 1))}\,(${n(p ** k)})(${n(q ** (x - k))})`,
     mean: k / p,
     variance: (k * q) / p ** 2,
-    meanFormula: `\\frac{k}{p} = \\frac{${k}}{${n(p)}}`,
-    varianceFormula: `\\frac{kq}{p^2} = \\frac{${k}(${n(q)})}{(${n(p)})^2}`,
+    meanFormula: String.raw`\frac{k}{p} = \frac{${k}}{${n(p)}}`,
+    varianceFormula: String.raw`\frac{kq}{p^2} = \frac{${k}(${n(q)})}{(${n(p)})^2}`,
     explanation: `X es el número del ensayo en el que ocurre el éxito número k = ${k}, con ensayos independientes y probabilidad de éxito p = ${formatNumber(p)}. El último ensayo es un éxito, y en los x − 1 anteriores hay k − 1 éxitos en cualquier orden: de ahí el coeficiente C(x − 1, k − 1).`,
   };
 }

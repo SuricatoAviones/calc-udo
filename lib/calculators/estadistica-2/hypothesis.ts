@@ -45,10 +45,14 @@ export type TestStatistic =
 
 const n = (v: number) => toLatexNumber(v, 6);
 
-export const RELATION: Record<Alternative, Latex> = { distinto: '\\neq', menor: '<', mayor: '>' };
+export const RELATION: Record<Alternative, Latex> = {
+  distinto: String.raw`\neq`,
+  menor: '<',
+  mayor: '>',
+};
 
 export function hypothesesLatex(parameter: Latex, value: Latex, alternative: Alternative): Latex {
-  return `H_0\\!: ${parameter} = ${value}, \\qquad H_1\\!: ${parameter} ${RELATION[alternative]} ${value}`;
+  return String.raw`H_0\!: ${parameter} = ${value}, \qquad H_1\!: ${parameter} ${RELATION[alternative]} ${value}`;
 }
 
 interface Distribution {
@@ -89,12 +93,12 @@ function distribution(statistic: TestStatistic): Distribution {
       };
     case 'chi2':
       return {
-        symbol: '\\chi^2',
+        symbol: String.raw`\chi^2`,
         name: `ji-cuadrada con ν = ${formatNumber(statistic.df)} grados de libertad`,
         cdf: (x) => chiSquareCdf(x, statistic.df),
         quantile: (p) => chiSquareQuantile(p, statistic.df),
         density: (x) => chiSquareDensity(x, statistic.df),
-        criticalName: (a) => `\\chi^2_{${formatNumber(a, 6)}}`,
+        criticalName: (a) => String.raw`\chi^2_{${formatNumber(a, 6)}}`,
         symmetric: false,
         support: [0, Infinity],
       };
@@ -163,10 +167,10 @@ export function testDecision({
     const upper = d.quantile(1 - alpha / 2);
     critical = [lower, upper];
     inRegion = (x) => x < lower || x > upper;
-    region = `${s} < ${n(lower)} \\;\\text{ o }\\; ${s} > ${n(upper)}`;
+    region = String.raw`${s} < ${n(lower)} \;\text{ o }\; ${s} > ${n(upper)}`;
     criticalTex = d.symmetric
       ? `${d.criticalName(alpha / 2)} = ${n(upper)}`
-      : `${d.criticalName(1 - alpha / 2)} = ${n(lower)}, \\quad ${d.criticalName(alpha / 2)} = ${n(upper)}`;
+      : String.raw`${d.criticalName(1 - alpha / 2)} = ${n(lower)}, \quad ${d.criticalName(alpha / 2)} = ${n(upper)}`;
   } else if (alternative === 'mayor') {
     const upper = d.quantile(1 - alpha);
     critical = [upper];
@@ -192,14 +196,14 @@ export function testDecision({
         ? `P = P(${s} > ${n(value)})`
         : d.symmetric
           ? `P = 2P(${s} > ${n(Math.abs(value))})`
-          : `P = 2\\min\\{P(${s} < ${n(value)}),\\ P(${s} > ${n(value)})\\}`;
+          : String.raw`P = 2\min\{P(${s} < ${n(value)}),\ P(${s} > ${n(value)})\}`;
 
   const steps: Step[] = [
     {
       title: 'Región crítica',
       explanation: `Bajo H₀ el estadístico tiene distribución ${d.name}. Con α = ${formatNumber(alpha)}${alternative === 'distinto' ? `, repartido en las dos colas (α/2 = ${formatNumber(alpha / 2)} en cada una)` : alternative === 'mayor' ? ', en la cola derecha' : ', en la cola izquierda'}:`,
       formula: criticalTex,
-      result: `\\text{Se rechaza } H_0 \\text{ si } ${region}`,
+      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${region}`,
     },
     {
       title: 'Valor P',
@@ -213,7 +217,7 @@ export function testDecision({
       explanation: reject
         ? `El estadístico ${formatNumber(value, 6)} cae en la región crítica (equivalentemente, P = ${formatNumber(pValue, 4)} < α = ${formatNumber(alpha)}): se rechaza H₀ a favor de H₁.`
         : `El estadístico ${formatNumber(value, 6)} no cae en la región crítica (P = ${formatNumber(pValue, 4)} ≥ α = ${formatNumber(alpha)}): no se rechaza H₀. Los datos no dan evidencia suficiente a favor de H₁.`,
-      result: reject ? '\\text{Se rechaza } H_0' : '\\text{No se rechaza } H_0',
+      result: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
     },
   ];
 
@@ -246,8 +250,8 @@ export function testDecision({
   const observed = Math.min(Math.max(Number.isFinite(value) ? value : value > 0 ? hi : lo, lo), hi);
   const series: Series = {
     id: 'prueba',
-    title: `Distribución de ${s === '\\chi^2' ? 'χ²' : s} bajo H₀ y región de rechazo`,
-    xLabel: s === '\\chi^2' ? 'χ²' : s,
+    title: `Distribución de ${s === String.raw`\chi^2` ? 'χ²' : s} bajo H₀ y región de rechazo`,
+    xLabel: s === String.raw`\chi^2` ? 'χ²' : s,
     yLabel: 'Densidad',
     label: 'Densidad bajo H₀',
     points,
@@ -273,7 +277,7 @@ export function testDecision({
   const summary: SummaryItem[] = [
     {
       label: 'Decisión',
-      value: reject ? '\\text{Se rechaza } H_0' : '\\text{No se rechaza } H_0',
+      value: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
       emphasis: true,
     },
     { label: 'Valor P', value: `P = ${toLatexNumber(pValue, 4)}` },

@@ -133,9 +133,9 @@ function response(
     children.push({
       title: 'Constantes A₁ y A₂',
       explanation: 'Se evalúan x(t) y su derivada en t = 0⁺ y se resuelve el sistema.',
-      formula: `\\begin{cases} A_1 + A_2 = x(0^{+}) - x_f \\\\ s_1A_1 + s_2A_2 = x'(0^{+}) \\end{cases}`,
-      substitution: `\\begin{cases} A_1 + A_2 = ${n(d)} \\\\ ${n(s1)}A_1 + (${n(s2)})A_2 = ${n(dx0)} \\end{cases}`,
-      result: `A_1 = ${n(A1)},\\quad A_2 = ${n(A2)}`,
+      formula: String.raw`\begin{cases} A_1 + A_2 = x(0^{+}) - x_f \\ s_1A_1 + s_2A_2 = x'(0^{+}) \end{cases}`,
+      substitution: String.raw`\begin{cases} A_1 + A_2 = ${n(d)} \\ ${n(s1)}A_1 + (${n(s2)})A_2 = ${n(dx0)} \end{cases}`,
+      result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
     });
   } else if (damping === 'critico') {
     const A2 = d;
@@ -147,9 +147,9 @@ function response(
     ];
     children.push({
       title: 'Constantes A₁ y A₂',
-      formula: `A_2 = x(0^{+}) - x_f,\\qquad A_1 - \\alpha A_2 = x'(0^{+})`,
-      substitution: `A_2 = ${n(d)},\\qquad A_1 = ${n(dx0)} + (${n(alpha)})(${n(A2)})`,
-      result: `A_1 = ${n(A1)},\\quad A_2 = ${n(A2)}`,
+      formula: String.raw`A_2 = x(0^{+}) - x_f,\qquad A_1 - \alpha A_2 = x'(0^{+})`,
+      substitution: String.raw`A_2 = ${n(d)},\qquad A_1 = ${n(dx0)} + (${n(alpha)})(${n(A2)})`,
+      result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
     });
   } else {
     const B1 = d;
@@ -158,9 +158,9 @@ function response(
     pieces = [{ power: 0, sigma: -alpha, omega: omegaD, a: B1, b: B2 }];
     children.push({
       title: 'Constantes B₁ y B₂',
-      formula: `B_1 = x(0^{+}) - x_f,\\qquad -\\alpha B_1 + \\omega_d B_2 = x'(0^{+})`,
-      substitution: `B_1 = ${n(d)},\\qquad B_2 = \\frac{${n(dx0)} + (${n(alpha)})(${n(B1)})}{${n(omegaD)}}`,
-      result: `B_1 = ${n(B1)},\\quad B_2 = ${n(B2)}`,
+      formula: String.raw`B_1 = x(0^{+}) - x_f,\qquad -\alpha B_1 + \omega_d B_2 = x'(0^{+})`,
+      substitution: String.raw`B_1 = ${n(d)},\qquad B_2 = \frac{${n(dx0)} + (${n(alpha)})(${n(B1)})}{${n(omegaD)}}`,
+      result: String.raw`B_1 = ${n(B1)},\quad B_2 = ${n(B2)}`,
     });
   }
   const all: TimePiece[] = [
@@ -180,7 +180,7 @@ function response(
   const atTime = time === undefined ? undefined : evaluate(time);
   children.push({
     title: 'Respuesta',
-    result: `${name}(t) = ${tex}\\ \\text{${unit}}${atTime === undefined ? '' : `,\\quad ${name}(${n(time!)}) = ${n(atTime)}\\ \\text{${unit}}`}`,
+    result: String.raw`${name}(t) = ${tex}\ \text{${unit}}${atTime === undefined ? '' : String.raw`,\quad ${name}(${n(time!)}) = ${n(atTime)}\ \text{${unit}}`}`,
   });
   return {
     value: { name, unit, x0, dx0, xInf, constants, tex, pieces: all, atTime },
@@ -205,18 +205,18 @@ export function solveSecondOrder(
       ? 'v es el voltaje común (+ arriba) e i_L baja por el inductor. La fuente de cd I_s, si la hay, entra al nodo superior a partir de t = 0.'
       : 'i circula en sentido horario por los tres elementos y v_C tiene su + por donde entra i. La fuente de cd V_s, si la hay, está en serie a partir de t = 0.',
     formula: parallel
-      ? 'C\\frac{d^{2}v}{dt^{2}} + \\frac{1}{R}\\frac{dv}{dt} + \\frac{1}{L}v = 0'
-      : 'L\\frac{d^{2}i}{dt^{2}} + R\\frac{di}{dt} + \\frac{1}{C}i = 0',
+      ? String.raw`C\frac{d^{2}v}{dt^{2}} + \frac{1}{R}\frac{dv}{dt} + \frac{1}{L}v = 0`
+      : String.raw`L\frac{d^{2}i}{dt^{2}} + R\frac{di}{dt} + \frac{1}{C}i = 0`,
   });
   steps.push({
     title: 'Frecuencias α y ω₀',
     formula: parallel
-      ? '\\alpha = \\frac{1}{2RC},\\qquad \\omega_0 = \\frac{1}{\\sqrt{LC}}'
-      : '\\alpha = \\frac{R}{2L},\\qquad \\omega_0 = \\frac{1}{\\sqrt{LC}}',
+      ? String.raw`\alpha = \frac{1}{2RC},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`
+      : String.raw`\alpha = \frac{R}{2L},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`,
     substitution: parallel
-      ? `\\alpha = \\frac{1}{2(${n(R)})(${n(Cap)})},\\qquad \\omega_0 = \\frac{1}{\\sqrt{(${n(L)})(${n(Cap)})}}`
-      : `\\alpha = \\frac{${n(R)}}{2(${n(L)})},\\qquad \\omega_0 = \\frac{1}{\\sqrt{(${n(L)})(${n(Cap)})}}`,
-    result: `\\alpha = ${n(alpha)}\\ \\text{s}^{-1},\\quad \\omega_0 = ${n(omega0)}\\ \\text{rad/s}`,
+      ? String.raw`\alpha = \frac{1}{2(${n(R)})(${n(Cap)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`
+      : String.raw`\alpha = \frac{${n(R)}}{2(${n(L)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`,
+    result: String.raw`\alpha = ${n(alpha)}\ \text{s}^{-1},\quad \omega_0 = ${n(omega0)}\ \text{rad/s}`,
   });
 
   const dampingText = {
@@ -227,13 +227,13 @@ export function solveSecondOrder(
   steps.push({
     title: 'Tipo de respuesta',
     explanation: `${dampingText} Razón de amortiguamiento ζ = α/ω₀ = ${formatNumber(alpha / omega0, DIGITS)}.`,
-    formula: 's_{1,2} = -\\alpha \\pm \\sqrt{\\alpha^{2} - \\omega_0^{2}}',
+    formula: String.raw`s_{1,2} = -\alpha \pm \sqrt{\alpha^{2} - \omega_0^{2}}`,
     result:
       natural.damping === 'sobreamortiguado'
-        ? `s_1 = ${n(natural.s1)},\\quad s_2 = ${n(natural.s2)}`
+        ? String.raw`s_1 = ${n(natural.s1)},\quad s_2 = ${n(natural.s2)}`
         : natural.damping === 'critico'
-          ? `s_1 = s_2 = -\\alpha = ${n(-alpha)}`
-          : `s_{1,2} = ${n(-alpha)} \\pm j${n(natural.omegaD)},\\quad \\omega_d = \\sqrt{\\omega_0^{2} - \\alpha^{2}} = ${n(natural.omegaD)}\\ \\text{rad/s}`,
+          ? String.raw`s_1 = s_2 = -\alpha = ${n(-alpha)}`
+          : String.raw`s_{1,2} = ${n(-alpha)} \pm j${n(natural.omegaD)},\quad \omega_d = \sqrt{\omega_0^{2} - \alpha^{2}} = ${n(natural.omegaD)}\ \text{rad/s}`,
   });
   if (natural.damping !== 'critico' && Math.abs(alpha - omega0) / omega0 < 1e-3) {
     notices.push({
@@ -244,8 +244,8 @@ export function solveSecondOrder(
   }
   const form = {
     sobreamortiguado: 'x(t) = x_f + A_1e^{s_1t} + A_2e^{s_2t}',
-    critico: 'x(t) = x_f + e^{-\\alpha t}(A_1t + A_2)',
-    subamortiguado: 'x(t) = x_f + e^{-\\alpha t}(B_1\\cos\\omega_dt + B_2\\sin\\omega_dt)',
+    critico: String.raw`x(t) = x_f + e^{-\alpha t}(A_1t + A_2)`,
+    subamortiguado: String.raw`x(t) = x_f + e^{-\alpha t}(B_1\cos\omega_dt + B_2\sin\omega_dt)`,
   }[natural.damping];
   steps.push({
     title: 'Forma de la respuesta',
@@ -259,7 +259,7 @@ export function solveSecondOrder(
   if (input.mode === 'general') {
     const derivation: Step = {
       title: 'Condiciones iniciales y valor final',
-      result: `x(0^{+}) = ${n(input.x0)},\\quad x'(0^{+}) = ${n(input.dx0)},\\quad x_f = ${n(input.xInf)}`,
+      result: String.raw`x(0^{+}) = ${n(input.x0)},\quad x'(0^{+}) = ${n(input.dx0)},\quad x_f = ${n(input.xInf)}`,
     };
     const r = response(natural, 'x', '', input.x0, input.dx0, input.xInf, derivation, time);
     responses.push(r.value);
@@ -278,9 +278,9 @@ export function solveSecondOrder(
         title: 'Condiciones iniciales (LCK en t = 0⁺)',
         explanation:
           'v(0⁺) = v_C(0) porque el voltaje del capacitor no cambia de golpe. La derivada sale de la corriente del capacitor: i_C = I_s − i_L − v/R. Con cd, en t → ∞ el inductor es un corto: v_f = 0.',
-        formula: "v'(0^{+}) = \\frac{i_C(0^{+})}{C} = \\frac{I_s - i_L(0) - v(0)/R}{C}",
-        substitution: `v'(0^{+}) = \\frac{${n(Is)} - (${n(iL0)}) - (${n(vC0)})/${n(R)}}{${n(Cap)}}`,
-        result: `v(0^{+}) = ${n(vC0)},\\quad v'(0^{+}) = ${n(dv0)}\\ \\text{V/s},\\quad v_f = 0`,
+        formula: String.raw`v'(0^{+}) = \frac{i_C(0^{+})}{C} = \frac{I_s - i_L(0) - v(0)/R}{C}`,
+        substitution: String.raw`v'(0^{+}) = \frac{${n(Is)} - (${n(iL0)}) - (${n(vC0)})/${n(R)}}{${n(Cap)}}`,
+        result: String.raw`v(0^{+}) = ${n(vC0)},\quad v'(0^{+}) = ${n(dv0)}\ \text{V/s},\quad v_f = 0`,
       },
       time,
     );
@@ -296,9 +296,9 @@ export function solveSecondOrder(
         title: 'Condiciones iniciales del inductor',
         explanation:
           'i_L(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe; su derivada es v/L. En t → ∞ toda la corriente de la fuente pasa por el inductor.',
-        formula: "i_L'(0^{+}) = \\frac{v(0^{+})}{L}",
-        substitution: `i_L'(0^{+}) = \\frac{${n(vC0)}}{${n(L)}}`,
-        result: `i_L(0^{+}) = ${n(iL0)},\\quad i_L'(0^{+}) = ${n(diL0)}\\ \\text{A/s},\\quad i_{L,f} = ${n(Is)}`,
+        formula: String.raw`i_L'(0^{+}) = \frac{v(0^{+})}{L}`,
+        substitution: String.raw`i_L'(0^{+}) = \frac{${n(vC0)}}{${n(L)}}`,
+        result: String.raw`i_L(0^{+}) = ${n(iL0)},\quad i_L'(0^{+}) = ${n(diL0)}\ \text{A/s},\quad i_{L,f} = ${n(Is)}`,
       },
       time,
     );
@@ -318,9 +318,9 @@ export function solveSecondOrder(
         title: 'Condiciones iniciales (LVK en t = 0⁺)',
         explanation:
           'i(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe. La derivada sale del voltaje del inductor: v_L = V_s − Ri − v_C. Con cd, en t → ∞ el capacitor es un abierto: i_f = 0.',
-        formula: "i'(0^{+}) = \\frac{v_L(0^{+})}{L} = \\frac{V_s - R\\,i(0) - v_C(0)}{L}",
-        substitution: `i'(0^{+}) = \\frac{${n(Vs)} - (${n(R)})(${n(iL0)}) - (${n(vC0)})}{${n(L)}}`,
-        result: `i(0^{+}) = ${n(iL0)},\\quad i'(0^{+}) = ${n(di0)}\\ \\text{A/s},\\quad i_f = 0`,
+        formula: String.raw`i'(0^{+}) = \frac{v_L(0^{+})}{L} = \frac{V_s - R\,i(0) - v_C(0)}{L}`,
+        substitution: String.raw`i'(0^{+}) = \frac{${n(Vs)} - (${n(R)})(${n(iL0)}) - (${n(vC0)})}{${n(L)}}`,
+        result: String.raw`i(0^{+}) = ${n(iL0)},\quad i'(0^{+}) = ${n(di0)}\ \text{A/s},\quad i_f = 0`,
       },
       time,
     );
@@ -336,9 +336,9 @@ export function solveSecondOrder(
         title: 'Condiciones iniciales del capacitor',
         explanation:
           'v_C(0⁺) = v_C(0); su derivada es i/C. En t → ∞ el capacitor queda cargado al voltaje de la fuente.',
-        formula: "v_C'(0^{+}) = \\frac{i(0^{+})}{C}",
-        substitution: `v_C'(0^{+}) = \\frac{${n(iL0)}}{${n(Cap)}}`,
-        result: `v_C(0^{+}) = ${n(vC0)},\\quad v_C'(0^{+}) = ${n(dvC0)}\\ \\text{V/s},\\quad v_{C,f} = ${n(Vs)}`,
+        formula: String.raw`v_C'(0^{+}) = \frac{i(0^{+})}{C}`,
+        substitution: String.raw`v_C'(0^{+}) = \frac{${n(iL0)}}{${n(Cap)}}`,
+        result: String.raw`v_C(0^{+}) = ${n(vC0)},\quad v_C'(0^{+}) = ${n(dvC0)}\ \text{V/s},\quad v_{C,f} = ${n(Vs)}`,
       },
       time,
     );
@@ -388,15 +388,15 @@ export function solveSecondOrder(
       responses,
     },
     summary: [
-      { label: 'α', value: `${n(alpha)}\\ \\text{s}^{-1}` },
-      { label: 'ω₀', value: `${n(omega0)}\\ \\text{rad/s}` },
+      { label: 'α', value: String.raw`${n(alpha)}\ \text{s}^{-1}` },
+      { label: 'ω₀', value: String.raw`${n(omega0)}\ \text{rad/s}` },
       {
         label: 'Tipo',
-        value: `\\text{${{ sobreamortiguado: 'sobreamortiguado', critico: 'críticamente amortiguado', subamortiguado: 'subamortiguado' }[natural.damping]}}`,
+        value: String.raw`\text{${{ sobreamortiguado: 'sobreamortiguado', critico: 'críticamente amortiguado', subamortiguado: 'subamortiguado' }[natural.damping]}}`,
       },
       ...responses.map((r, i) => ({
         label: `${r.name}(t)`,
-        value: `${r.name}(t) = ${r.tex}${r.unit ? `\\ \\text{${r.unit}}` : ''}`,
+        value: `${r.name}(t) = ${r.tex}${r.unit ? String.raw`\ \text{${r.unit}}` : ''}`,
         emphasis: i === 0,
       })),
     ],

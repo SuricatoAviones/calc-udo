@@ -136,7 +136,7 @@ export function slopeStep(
   return {
     title,
     formula,
-    result: `${name} = f(${n(x)},\\ ${n(y)}) = ${n(value)}`,
+    result: String.raw`${name} = f(${n(x)},\ ${n(y)}) = ${n(value)}`,
   };
 }
 
@@ -180,8 +180,8 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
     {
       title: 'Problema de valor inicial',
       explanation: `Se avanza desde x₀ = ${formatNumber(x0)} hasta x = ${formatNumber(input.xf)} en ${count} pasos de tamaño h = ${formatNumber(h)}.`,
-      formula: `\\frac{dy}{dx} = ${f.tex}, \\qquad y(${n(x0)}) = ${n(y0)}`,
-      result: exact ? `y_{\\text{exacta}}(x) = ${exact.tex}` : undefined,
+      formula: String.raw`\frac{dy}{dx} = ${f.tex}, \qquad y(${n(x0)}) = ${n(y0)}`,
+      result: exact ? String.raw`y_{\text{exacta}}(x) = ${exact.tex}` : undefined,
     },
     ...(rule.introSteps ?? []),
   ];
@@ -208,8 +208,8 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
       { key: 'y', header: 'y_i' },
       ...(trueValues
         ? [
-            { key: 'yTrue', header: 'y_{\\text{verdadero}}' },
-            { key: 'et', header: '\\varepsilon_t\\,(\\%)' },
+            { key: 'yTrue', header: String.raw`y_{\text{verdadero}}` },
+            { key: 'et', header: String.raw`\varepsilon_t\,(\%)` },
           ]
         : []),
       ...rule.slopeColumns,
@@ -281,10 +281,10 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
   const summary: SummaryItem[] = [
     {
       label: `Solución aproximada en x = ${formatNumber(xf)}`,
-      value: `y(${n(xf)}) \\approx ${n(yFinal)}`,
+      value: String.raw`y(${n(xf)}) \approx ${n(yFinal)}`,
       emphasis: true,
     },
-    { label: 'Pasos', value: `${count} \\text{ pasos de } h = ${n(h)}` },
+    { label: 'Pasos', value: String.raw`${count} \text{ pasos de } h = ${n(h)}` },
   ];
   const trueRelativeErrors = trueValues ? ys.map((y, i) => trueErrors!(i, y)) : null;
   if (trueValues) {
@@ -293,14 +293,14 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
     if (et !== null && et !== undefined) {
       summary.push({
         label: 'Error relativo verdadero',
-        value: `\\varepsilon_t = ${n(et, 4)}\\,\\%`,
+        value: String.raw`\varepsilon_t = ${n(et, 4)}\,\%`,
       });
     }
   }
   steps.push({
     title: 'Resultado',
     explanation: `Después de ${count} pasos se llega a x = ${formatNumber(xf)}.`,
-    result: `y(${n(xf)}) \\approx ${n(yFinal)}`,
+    result: String.raw`y(${n(xf)}) \approx ${n(yFinal)}`,
   });
 
   return {

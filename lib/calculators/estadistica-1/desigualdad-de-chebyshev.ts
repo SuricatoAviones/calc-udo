@@ -87,9 +87,9 @@ export function solveChebyshev(
   if (input.dispersionType === 'varianza') {
     steps.push({
       title: 'Desviación estándar',
-      formula: '\\sigma = \\sqrt{\\sigma^2}',
-      substitution: `\\sigma = \\sqrt{${n(input.dispersion)}}`,
-      result: `\\sigma = ${n(sigma)}`,
+      formula: String.raw`\sigma = \sqrt{\sigma^2}`,
+      substitution: String.raw`\sigma = \sqrt{${n(input.dispersion)}}`,
+      result: String.raw`\sigma = ${n(sigma)}`,
     });
   }
 
@@ -98,9 +98,9 @@ export function solveChebyshev(
     k = input.k ?? Number.NaN;
     steps.push({
       title: 'Intervalo de k desviaciones estándar',
-      formula: '\\mu \\pm k\\sigma',
-      substitution: `${n(mu)} \\pm (${n(k)})(${n(sigma)})`,
-      result: `(${n(mu - k * sigma)},\\ ${n(mu + k * sigma)})`,
+      formula: String.raw`\mu \pm k\sigma`,
+      substitution: String.raw`${n(mu)} \pm (${n(k)})(${n(sigma)})`,
+      result: String.raw`(${n(mu - k * sigma)},\ ${n(mu + k * sigma)})`,
     });
   } else if (mode === 'fuera') {
     const c = input.distance ?? Number.NaN;
@@ -108,8 +108,8 @@ export function solveChebyshev(
     steps.push({
       title: 'Número de desviaciones estándar',
       explanation: `Alejarse al menos c = ${formatNumber(c)} de la media es alejarse al menos k desviaciones estándar.`,
-      formula: 'k = \\frac{c}{\\sigma}',
-      substitution: `k = \\frac{${n(c)}}{${n(sigma)}}`,
+      formula: String.raw`k = \frac{c}{\sigma}`,
+      substitution: String.raw`k = \frac{${n(c)}}{${n(sigma)}}`,
       result: `k = ${n(k)}`,
     });
   } else {
@@ -125,11 +125,11 @@ export function solveChebyshev(
         ? 'El intervalo es simétrico alrededor de la media: sus extremos están a k desviaciones estándar de μ.'
         : 'El intervalo no es simétrico alrededor de la media. Se usa el extremo más cercano a μ: el intervalo contiene a (μ − kσ, μ + kσ), así que la cota sigue valiendo (aunque es más débil).',
       formula: symmetric
-        ? 'k = \\frac{b - \\mu}{\\sigma} = \\frac{\\mu - a}{\\sigma}'
-        : 'k = \\min\\left(\\frac{\\mu - a}{\\sigma}, \\frac{b - \\mu}{\\sigma}\\right)',
+        ? String.raw`k = \frac{b - \mu}{\sigma} = \frac{\mu - a}{\sigma}`
+        : String.raw`k = \min\left(\frac{\mu - a}{\sigma}, \frac{b - \mu}{\sigma}\right)`,
       substitution: symmetric
-        ? `k = \\frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}`
-        : `k = \\min\\left(\\frac{${n(mu)} - ${toLatexOperand(a)}}{${n(sigma)}}, \\frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}\\right)`,
+        ? String.raw`k = \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}`
+        : String.raw`k = \min\left(\frac{${n(mu)} - ${toLatexOperand(a)}}{${n(sigma)}}, \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}\right)`,
       result: `k = ${n(k)}`,
     });
     if (!symmetric) {
@@ -147,7 +147,7 @@ export function solveChebyshev(
     mode === 'intervalo'
       ? `P(${n(input.lower!)} < X < ${n(input.upper!)})`
       : mode === 'fuera'
-        ? `P(|X - ${toLatexOperand(mu)}| \\ge ${n(input.distance!)})`
+        ? String.raw`P(|X - ${toLatexOperand(mu)}| \ge ${n(input.distance!)})`
         : `P(${n(interval[0])} < X < ${n(interval[1])})`;
   const boundTex = toLatexRational(bound);
 
@@ -157,12 +157,12 @@ export function solveChebyshev(
       ? 'Para cualquier distribución, al menos 1 − 1/k² de la probabilidad está a menos de k desviaciones estándar de la media.'
       : 'Por complemento: P(|X − μ| ≥ kσ) = 1 − P(|X − μ| < kσ) ≤ 1 − (1 − 1/k²) = 1/k².',
     formula: inside
-      ? 'P(\\mu - k\\sigma < X < \\mu + k\\sigma) \\ge 1 - \\frac{1}{k^2}'
-      : 'P(|X - \\mu| \\ge k\\sigma) \\le \\frac{1}{k^2}',
+      ? String.raw`P(\mu - k\sigma < X < \mu + k\sigma) \ge 1 - \frac{1}{k^2}`
+      : String.raw`P(|X - \mu| \ge k\sigma) \le \frac{1}{k^2}`,
     substitution: inside
-      ? `${target} \\ge 1 - \\frac{1}{(${n(k)})^2}`
-      : `${target} \\le \\frac{1}{(${n(k)})^2}`,
-    result: `${target} ${inside ? '\\ge' : '\\le'} ${boundTex}`,
+      ? String.raw`${target} \ge 1 - \frac{1}{(${n(k)})^2}`
+      : String.raw`${target} \le \frac{1}{(${n(k)})^2}`,
+    result: `${target} ${inside ? String.raw`\ge` : String.raw`\le`} ${boundTex}`,
   });
 
   if (k <= 1) {
@@ -184,11 +184,14 @@ export function solveChebyshev(
     summary: [
       {
         label: inside ? 'Cota inferior' : 'Cota superior',
-        value: `${target} ${inside ? '\\ge' : '\\le'} ${boundTex}`,
+        value: `${target} ${inside ? String.raw`\ge` : String.raw`\le`} ${boundTex}`,
         emphasis: true,
       },
       { label: 'Desviaciones estándar', value: `k = ${n(k, 6)}` },
-      { label: 'Intervalo μ ± kσ', value: `(${n(interval[0], 6)},\\ ${n(interval[1], 6)})` },
+      {
+        label: 'Intervalo μ ± kσ',
+        value: String.raw`(${n(interval[0], 6)},\ ${n(interval[1], 6)})`,
+      },
     ],
     ...emptyTrace(),
     steps,

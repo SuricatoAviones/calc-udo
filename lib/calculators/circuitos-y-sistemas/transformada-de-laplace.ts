@@ -134,7 +134,7 @@ function toRationals(groups: LaplaceGroup[]): DelayedRational[] {
 function describePair(groups: LaplaceGroup[]): { name: string; formula: string } {
   const generic = {
     name: 'Linealidad y tabla de pares',
-    formula: '\\mathcal{L}\\{a f_1(t) + b f_2(t)\\} = a F_1(s) + b F_2(s)',
+    formula: String.raw`\mathcal{L}\{a f_1(t) + b f_2(t)\} = a F_1(s) + b F_2(s)`,
   };
   if (groups.length !== 1) return generic;
   const g = groups[0]!;
@@ -142,7 +142,7 @@ function describePair(groups: LaplaceGroup[]): { name: string; formula: string }
   let base: { name: string; formula: string } | null = null;
   const poles = g.poles.filter((p) => p.residues.some((r) => !C.isZero(r, 1e-14)));
   if (poles.length === 0 && !C.isZero(g.impulse)) {
-    base = { name: 'Impulso', formula: '\\delta(t) \\leftrightarrow 1' };
+    base = { name: 'Impulso', formula: String.raw`\delta(t) \leftrightarrow 1` };
   } else if (C.isZero(g.impulse)) {
     const nonzero = (p: (typeof poles)[number]) =>
       p.residues.map((r, k) => (C.isZero(r, 1e-14) ? -1 : k + 1)).filter((k) => k > 0);
@@ -150,18 +150,21 @@ function describePair(groups: LaplaceGroup[]): { name: string; formula: string }
       const p = poles[0]!.pole.re;
       const k = nonzero(poles[0]!)[0]!;
       if (p === 0 && k === 1)
-        base = { name: 'Escalón', formula: 'K\\,u(t) \\leftrightarrow \\frac{K}{s}' };
+        base = { name: 'Escalón', formula: String.raw`K\,u(t) \leftrightarrow \frac{K}{s}` };
       else if (p === 0) {
         base = {
           name: 'Potencia de t (rampa)',
-          formula: 't^{n} \\leftrightarrow \\frac{n!}{s^{n+1}}',
+          formula: String.raw`t^{n} \leftrightarrow \frac{n!}{s^{n+1}}`,
         };
       } else if (k === 1) {
-        base = { name: 'Exponencial', formula: 'e^{-at} \\leftrightarrow \\frac{1}{s + a}' };
+        base = {
+          name: 'Exponencial',
+          formula: String.raw`e^{-at} \leftrightarrow \frac{1}{s + a}`,
+        };
       } else {
         base = {
           name: 'Potencia de t por exponencial',
-          formula: 't^{n}e^{-at} \\leftrightarrow \\frac{n!}{(s + a)^{n+1}}',
+          formula: String.raw`t^{n}e^{-at} \leftrightarrow \frac{n!}{(s + a)^{n+1}}`,
         };
       }
     } else if (
@@ -173,27 +176,24 @@ function describePair(groups: LaplaceGroup[]): { name: string; formula: string }
       base = damped
         ? {
             name: 'Seno y coseno amortiguados (desplazamiento en frecuencia)',
-            formula:
-              'e^{-at}\\sin\\omega t \\leftrightarrow \\frac{\\omega}{(s + a)^{2} + \\omega^{2}},\\quad e^{-at}\\cos\\omega t \\leftrightarrow \\frac{s + a}{(s + a)^{2} + \\omega^{2}}',
+            formula: String.raw`e^{-at}\sin\omega t \leftrightarrow \frac{\omega}{(s + a)^{2} + \omega^{2}},\quad e^{-at}\cos\omega t \leftrightarrow \frac{s + a}{(s + a)^{2} + \omega^{2}}`,
           }
         : {
             name: 'Seno y coseno',
-            formula:
-              '\\sin\\omega t \\leftrightarrow \\frac{\\omega}{s^{2} + \\omega^{2}},\\quad \\cos\\omega t \\leftrightarrow \\frac{s}{s^{2} + \\omega^{2}}',
+            formula: String.raw`\sin\omega t \leftrightarrow \frac{\omega}{s^{2} + \omega^{2}},\quad \cos\omega t \leftrightarrow \frac{s}{s^{2} + \omega^{2}}`,
           };
     }
   }
   if (!base) {
     base = {
       name: 'Linealidad y desplazamiento en frecuencia',
-      formula:
-        '\\mathcal{L}\\{e^{-at}f(t)\\} = F(s + a),\\quad \\mathcal{L}\\{t^{n}f(t)\\} = (-1)^{n}\\frac{d^{n}F}{ds^{n}}',
+      formula: String.raw`\mathcal{L}\{e^{-at}f(t)\} = F(s + a),\quad \mathcal{L}\{t^{n}f(t)\} = (-1)^{n}\frac{d^{n}F}{ds^{n}}`,
     };
   }
   if (delay === 0) return base;
   return {
     name: `${base.name} con desplazamiento en el tiempo`,
-    formula: `${base.formula},\\quad f(t - a)u(t - a) \\leftrightarrow e^{-as}F(s)`,
+    formula: String.raw`${base.formula},\quad f(t - a)u(t - a) \leftrightarrow e^{-as}F(s)`,
   };
 }
 
@@ -219,7 +219,7 @@ function transformSteps(
     children.push({
       title: pair.name,
       formula: pair.formula,
-      result: `\\mathcal{L}\\left\\{${termTex}\\right\\} = ${sign < 0 ? `-\\left(${transformTex(transform)}\\right)` : transformTex(transform)}`,
+      result: String.raw`\mathcal{L}\left\{${termTex}\right\} = ${sign < 0 ? String.raw`-\left(${transformTex(transform)}\right)` : transformTex(transform)}`,
     });
   }
   if (split.terms.length > 1) {
@@ -227,7 +227,7 @@ function transformSteps(
       title: 'Linealidad',
       explanation:
         'La transformada de una suma es la suma de las transformadas; las constantes salen como factor.',
-      formula: `\\mathcal{L}\\{${name}(t)\\} = \\mathcal{L}\\left\\{${tex}\\right\\}`,
+      formula: String.raw`\mathcal{L}\{${name}(t)\} = \mathcal{L}\left\{${tex}\right\}`,
     });
   }
   steps.push({
@@ -326,7 +326,7 @@ function solveEquation(input: LaplaceInput): Result {
     {
       title: 'Ecuación diferencial',
       formula: `${lhs} = ${fTex}`,
-      result: initial.map((v, k) => `${initialName(k)} = ${n(v)}`).join(',\\ '),
+      result: initial.map((v, k) => `${initialName(k)} = ${n(v)}`).join(String.raw`,\ `),
     },
   ];
 
@@ -346,8 +346,8 @@ function solveEquation(input: LaplaceInput): Result {
     });
     derivativeSteps.push({
       title: `ℒ{${k === 1 ? "y'" : k === 2 ? "y''" : `y^(${k})`}}`,
-      formula: `\\mathcal{L}\\{${derivativeName(k)}\\} = ${k === 1 ? '' : `s^{${k}}`}${k === 1 ? 's' : ''}Y(s) - ${terms.join(' - ')}`,
-      substitution: `= ${k === 1 ? 's' : `s^{${k}}`}Y(s) - \\left(${values.join(' + ')}\\right)`,
+      formula: String.raw`\mathcal{L}\{${derivativeName(k)}\} = ${k === 1 ? '' : `s^{${k}}`}${k === 1 ? 's' : ''}Y(s) - ${terms.join(' - ')}`,
+      substitution: String.raw`= ${k === 1 ? 's' : `s^{${k}}`}Y(s) - \left(${values.join(' + ')}\right)`,
     });
   }
   steps.push({
@@ -393,8 +393,8 @@ function solveEquation(input: LaplaceInput): Result {
     title: 'Ecuación algebraica en s',
     explanation:
       'Se reemplaza cada transformada y se agrupan los términos con Y(s): el polinomio característico multiplica a Y(s) y las condiciones iniciales pasan al lado derecho.',
-    formula: `\\left(${polyTex(p)}\\right)Y(s) - \\left(${polyTex(ip)}\\right) = F(s)`,
-    result: `Y(s) = \\frac{F(s) + ${polyTex(ip).startsWith('-') ? `\\left(${polyTex(ip)}\\right)` : polyTex(ip)}}{${polyTex(p)}} = ${transformTex(groups)}`,
+    formula: String.raw`\left(${polyTex(p)}\right)Y(s) - \left(${polyTex(ip)}\right) = F(s)`,
+    result: String.raw`Y(s) = \frac{F(s) + ${polyTex(ip).startsWith('-') ? String.raw`\left(${polyTex(ip)}\right)` : polyTex(ip)}}{${polyTex(p)}} = ${transformTex(groups)}`,
   });
 
   if (groups.length === 0) {

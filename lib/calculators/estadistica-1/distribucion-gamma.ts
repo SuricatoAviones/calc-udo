@@ -44,9 +44,9 @@ function poissonSum(y: number, alpha: number): Latex {
   const power = (k: number) =>
     Number.isInteger(y) && y >= 0 ? `${n(y)}^{${k}}` : `(${n(y)})^{${k}}`;
   const terms = Array.from({ length: alpha }, (_, k) =>
-    k === 0 ? '1' : k === 1 ? yTex : `\\frac{${power(k)}}{${k}!}`,
+    k === 0 ? '1' : k === 1 ? yTex : String.raw`\frac{${power(k)}}{${k}!}`,
   );
-  return `1 - e^{-${yTex}}\\left(${terms.join(' + ')}\\right)`;
+  return String.raw`1 - e^{-${yTex}}\left(${terms.join(' + ')}\right)`;
 }
 
 function gammaModel(alpha: number, beta: number): ContinuousModel {
@@ -61,24 +61,24 @@ function gammaModel(alpha: number, beta: number): ContinuousModel {
       return Math.exp((alpha - 1) * Math.log(x) - x / beta - lnNormalizer);
     },
     cdf: (x) => regularizedGammaP(alpha, x / beta),
-    pdfFormula: `\\frac{1}{\\beta^{\\alpha}\\Gamma(\\alpha)} x^{\\alpha-1} e^{-x/\\beta} = \\frac{1}{(${n(beta)})^{${n(alpha)}}\\,\\Gamma(${n(alpha)})} x^{${n(alpha - 1)}} e^{-x/${n(beta)}}, \\quad x > 0`,
+    pdfFormula: String.raw`\frac{1}{\beta^{\alpha}\Gamma(\alpha)} x^{\alpha-1} e^{-x/\beta} = \frac{1}{(${n(beta)})^{${n(alpha)}}\,\Gamma(${n(alpha)})} x^{${n(alpha - 1)}} e^{-x/${n(beta)}}, \quad x > 0`,
     cdfFormula:
       integer && alpha <= MAX_POISSON_TERMS
-        ? 'F\\left(\\tfrac{x}{\\beta};\\ \\alpha\\right) = 1 - \\sum_{k=0}^{\\alpha-1} \\frac{e^{-x/\\beta} (x/\\beta)^k}{k!}'
-        : 'F\\left(\\tfrac{x}{\\beta};\\ \\alpha\\right) = \\int_0^{x/\\beta} \\frac{y^{\\alpha-1} e^{-y}}{\\Gamma(\\alpha)}\\,dy',
+        ? String.raw`F\left(\tfrac{x}{\beta};\ \alpha\right) = 1 - \sum_{k=0}^{\alpha-1} \frac{e^{-x/\beta} (x/\beta)^k}{k!}`
+        : String.raw`F\left(\tfrac{x}{\beta};\ \alpha\right) = \int_0^{x/\beta} \frac{y^{\alpha-1} e^{-y}}{\Gamma(\alpha)}\,dy`,
     cdfExplanation:
       integer && alpha <= MAX_POISSON_TERMS
         ? 'Con y = x/β, F(x) es la función gamma incompleta F(y; α) de la tabla A.23 de Walpole. Como α es entero, X es el tiempo hasta el α-ésimo evento de Poisson: X ≤ x si hay al menos α eventos antes de x, de ahí la suma de Poisson.'
         : 'Con y = x/β, F(x) es la función gamma incompleta F(y; α) de la tabla A.23 de Walpole. Aquí se calcula numéricamente; con la tabla se lee con y redondeado.',
     cdfSubstitution: (x) => {
       const y = x / beta;
-      const head = `F\\left(\\tfrac{${n(x)}}{${n(beta)}};\\ ${n(alpha)}\\right) = F(${n(y)};\\ ${n(alpha)})`;
+      const head = String.raw`F\left(\tfrac{${n(x)}}{${n(beta)}};\ ${n(alpha)}\right) = F(${n(y)};\ ${n(alpha)})`;
       return integer && alpha <= MAX_POISSON_TERMS ? `${head} = ${poissonSum(y, alpha)}` : head;
     },
     mean: alpha * beta,
     variance: alpha * beta ** 2,
-    meanFormula: `\\alpha\\beta = (${n(alpha)})(${n(beta)})`,
-    varianceFormula: `\\alpha\\beta^2 = (${n(alpha)})(${n(beta)})^2`,
+    meanFormula: String.raw`\alpha\beta = (${n(alpha)})(${n(beta)})`,
+    varianceFormula: String.raw`\alpha\beta^2 = (${n(alpha)})(${n(beta)})^2`,
     explanation: `α = ${formatNumber(alpha)} da la forma y β = ${formatNumber(beta)} la escala. ${
       integer
         ? `Con α entero, X es el tiempo hasta que ocurren α eventos de Poisson, con un tiempo medio β entre eventos (β = 1/λ si te dan la tasa λ).`

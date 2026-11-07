@@ -69,7 +69,7 @@ export function matrixTable(id: string, title: string, M: number[][], symbol: st
     id,
     title,
     columns: [
-      { key: 'state', header: '\\text{Estado}' },
+      { key: 'state', header: String.raw`\text{Estado}` },
       ...M.map((_, j) => ({ key: `c${j}`, header: `${symbol}_{i${j + 1}}` })),
     ],
     rows: M.map((row, i) => ({

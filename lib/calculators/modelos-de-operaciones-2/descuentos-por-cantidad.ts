@@ -130,7 +130,9 @@ export function solveDiscounts(
   const feasible = candidates.filter((c) => c.totalCost !== null);
   const best = feasible.reduce((a, b) => (b.totalCost! < a.totalCost! ? b : a));
   const range = (c: DiscountCandidate) =>
-    Number.isFinite(c.max) ? `${n(c.min)} \\le Q < ${n(c.max)}` : `Q \\ge ${n(c.min)}`;
+    Number.isFinite(c.max)
+      ? String.raw`${n(c.min)} \le Q < ${n(c.max)}`
+      : String.raw`Q \ge ${n(c.min)}`;
 
   const steps: Step[] = [
     {
@@ -139,11 +141,11 @@ export function solveDiscounts(
         ? `El costo de mantener es el ${formatNumber(holding)} % del precio, así que cambia en cada nivel: h_j = I c_j.`
         : 'El costo de mantener es el mismo en todos los niveles, así que Q* no depende del precio.',
       formula: percent
-        ? 'h_j = I\\,c_j, \\qquad Q_j^* = \\sqrt{\\frac{2KD}{h_j}}'
-        : 'Q_j^* = \\sqrt{\\frac{2KD}{h}}',
+        ? String.raw`h_j = I\,c_j, \qquad Q_j^* = \sqrt{\frac{2KD}{h_j}}`
+        : String.raw`Q_j^* = \sqrt{\frac{2KD}{h}}`,
       children: candidates.map((c) => ({
         title: `Nivel ${c.tier + 1}: c = ${formatNumber(c.price)}`,
-        substitution: `${percent ? `h_{${c.tier + 1}} = ${n(holding / 100)}(${n(c.price)}) = ${n(c.holding, 6)}, \\quad ` : ''}Q_{${c.tier + 1}}^* = \\sqrt{\\frac{2(${n(K)})(${n(D)})}{${n(c.holding, 6)}}}`,
+        substitution: String.raw`${percent ? String.raw`h_{${c.tier + 1}} = ${n(holding / 100)}(${n(c.price)}) = ${n(c.holding, 6)}, \quad ` : ''}Q_{${c.tier + 1}}^* = \sqrt{\frac{2(${n(K)})(${n(D)})}{${n(c.holding, 6)}}}`,
         result: `Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)}`,
       })),
     },
@@ -153,21 +155,21 @@ export function solveDiscounts(
         'Si Q* está en el rango del nivel, es un candidato. Si queda por debajo, se sube al mínimo del rango para obtener el descuento. Si queda por encima, el nivel se descarta: en el siguiente nivel el precio es menor y el costo también.',
       children: candidates.map((c) => ({
         title: `Nivel ${c.tier + 1} (${Number.isFinite(c.max) ? `${formatNumber(c.min)} a ${formatNumber(c.max)}` : `${formatNumber(c.min)} o más`})`,
-        substitution: `Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)} \\quad \\text{y} \\quad ${range(c)}`,
+        substitution: String.raw`Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)} \quad \text{y} \quad ${range(c)}`,
         result:
           c.quantity === null
-            ? '\\text{Se descarta: } Q^* \\text{ supera el rango}'
+            ? String.raw`\text{Se descarta: } Q^* \text{ supera el rango}`
             : c.quantity === c.eoq
               ? `Q_{${c.tier + 1}} = Q_{${c.tier + 1}}^* = ${n(c.quantity, 6)}`
-              : `Q_{${c.tier + 1}} = ${n(c.quantity, 6)} \\ \\text{(mínimo del rango)}`,
+              : String.raw`Q_{${c.tier + 1}} = ${n(c.quantity, 6)} \ \text{(mínimo del rango)}`,
       })),
     },
     {
       title: 'Costo total de cada candidato',
-      formula: 'T_j = D\\,c_j + \\frac{KD}{Q_j} + \\frac{h_j Q_j}{2}',
+      formula: String.raw`T_j = D\,c_j + \frac{KD}{Q_j} + \frac{h_j Q_j}{2}`,
       children: feasible.map((c) => ({
         title: `Nivel ${c.tier + 1}`,
-        substitution: `T_{${c.tier + 1}} = ${n(D)}(${n(c.price)}) + \\frac{${n(K)}(${n(D)})}{${n(c.quantity!, 6)}} + \\frac{${n(c.holding, 6)}(${n(c.quantity!, 6)})}{2}`,
+        substitution: String.raw`T_{${c.tier + 1}} = ${n(D)}(${n(c.price)}) + \frac{${n(K)}(${n(D)})}{${n(c.quantity!, 6)}} + \frac{${n(c.holding, 6)}(${n(c.quantity!, 6)})}{2}`,
         result: `T_{${c.tier + 1}} = ${n(c.totalCost!, 8)}`,
       })),
     },
@@ -175,9 +177,9 @@ export function solveDiscounts(
       title: 'Elegir el menor costo',
       substitution:
         feasible.length > 1
-          ? `\\min\\{${feasible.map((c) => n(c.totalCost!, 8)).join(',\\ ')}\\} = ${n(best.totalCost!, 8)}`
+          ? String.raw`\min\{${feasible.map((c) => n(c.totalCost!, 8)).join(String.raw`,\ `)}\} = ${n(best.totalCost!, 8)}`
           : undefined,
-      result: `Q^* = ${n(best.quantity!, 6)} \\ \\text{a}\\ c = ${n(best.price)}, \\qquad T = ${n(best.totalCost!, 8)}`,
+      result: String.raw`Q^* = ${n(best.quantity!, 6)} \ \text{a}\ c = ${n(best.price)}, \qquad T = ${n(best.totalCost!, 8)}`,
     },
   ];
 
@@ -241,14 +243,14 @@ export function solveDiscounts(
         id: 'niveles',
         title: 'Candidatos por nivel de precio',
         columns: [
-          { key: 'tier', header: '\\text{Nivel}' },
-          { key: 'range', header: '\\text{Rango}', format: 'latex' },
+          { key: 'tier', header: String.raw`\text{Nivel}` },
+          { key: 'range', header: String.raw`\text{Rango}`, format: 'latex' },
           { key: 'price', header: 'c_j' },
           { key: 'holding', header: 'h_j' },
           { key: 'eoq', header: 'Q_j^*' },
           { key: 'quantity', header: 'Q_j' },
           { key: 'total', header: 'T_j' },
-          { key: 'status', header: '\\text{Estado}', format: 'text' },
+          { key: 'status', header: String.raw`\text{Estado}`, format: 'text' },
         ],
         rows: candidates.map((c) => ({
           tier: c.tier + 1,

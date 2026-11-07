@@ -126,7 +126,7 @@ function inverse(M: number[][]): number[][] | null {
   return Array.from({ length: size }, (_, i) => columns.map((col) => clean(col[i]!)));
 }
 
-const setLatex = (states: number[]) => `\\{${states.join(', ')}\\}`;
+const setLatex = (states: number[]) => String.raw`\{${states.join(', ')}\}`;
 
 export function solveClassification({ P }: ClassificationInput): Result {
   const size = P.length;
@@ -137,8 +137,9 @@ export function solveClassification({ P }: ClassificationInput): Result {
       explanation:
         'j es accesible desde i si hay una sucesión de transiciones con probabilidad positiva que lleva de i a j. Se obtiene siguiendo las entradas p_ij > 0 de la matriz.',
       substitution: P.map(
-        (_, i) => `${i + 1} \\to ${setLatex(reach[i]!.flatMap((r, j) => (r ? [j + 1] : [])))}`,
-      ).join(',\\quad '),
+        (_, i) =>
+          String.raw`${i + 1} \to ${setLatex(reach[i]!.flatMap((r, j) => (r ? [j + 1] : [])))}`,
+      ).join(String.raw`,\quad `),
     },
   ];
 
@@ -162,7 +163,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
     title: 'Clases de estados que se comunican',
     explanation:
       'Dos estados se comunican si cada uno es accesible desde el otro. Cada clase agrupa estados que se comunican entre sí.',
-    result: classes.map((c, k) => `C_{${k + 1}} = ${setLatex(c.states)}`).join(',\\quad '),
+    result: classes.map((c, k) => `C_{${k + 1}} = ${setLatex(c.states)}`).join(String.raw`,\quad `),
   });
 
   const states: StateClassification[] = Array.from({ length: size }, (_, i) => {
@@ -194,8 +195,8 @@ export function solveClassification({ P }: ClassificationInput): Result {
             : 'Cerrada: ninguna transición sale de la clase. Sus estados son recurrentes.'
           : 'Abierta: hay transiciones que salen de la clase y no vuelven. Sus estados son transitorios.',
         result: c.closed
-          ? '\\text{recurrente}'
-          : `\\text{sale por } ${exits.slice(0, 4).join(',\\ ')}`,
+          ? String.raw`\text{recurrente}`
+          : String.raw`\text{sale por } ${exits.slice(0, 4).join(String.raw`,\ `)}`,
       };
     }),
   });
@@ -207,9 +208,9 @@ export function solveClassification({ P }: ClassificationInput): Result {
     result: classes
       .map(
         (c, k) =>
-          `C_{${k + 1}}: ${c.period === null ? '\\text{sin retorno}' : c.period === 1 ? '\\text{aperiódica}' : `d = ${c.period}`}`,
+          `C_{${k + 1}}: ${c.period === null ? String.raw`\text{sin retorno}` : c.period === 1 ? String.raw`\text{aperiódica}` : `d = ${c.period}`}`,
       )
-      .join(',\\quad '),
+      .join(String.raw`,\quad `),
   });
 
   const irreducible = classes.length === 1;
@@ -221,7 +222,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
       : irreducible
         ? `Todos los estados se comunican, pero tienen período ${classes[0]!.period}: la cadena es periódica, no ergódica.`
         : `Hay ${classes.length} clases: la cadena no es irreducible, así que no es ergódica.`,
-    result: ergodic ? '\\text{ergódica}' : '\\text{no ergódica}',
+    result: ergodic ? String.raw`\text{ergódica}` : String.raw`\text{no ergódica}`,
   });
 
   // Análisis de absorción.
@@ -233,10 +234,10 @@ export function solveClassification({ P }: ClassificationInput): Result {
       id: 'estados',
       title: 'Clasificación de los estados',
       columns: [
-        { key: 'state', header: '\\text{Estado}' },
-        { key: 'classIndex', header: '\\text{Clase}' },
-        { key: 'kind', header: '\\text{Tipo}', format: 'text' },
-        { key: 'period', header: '\\text{Período}', format: 'text' },
+        { key: 'state', header: String.raw`\text{Estado}` },
+        { key: 'classIndex', header: String.raw`\text{Clase}` },
+        { key: 'kind', header: String.raw`\text{Tipo}`, format: 'text' },
+        { key: 'period', header: String.raw`\text{Período}`, format: 'text' },
       ],
       rows: states.map((s): Record<string, CellValue> => ({
         state: s.state,
@@ -291,7 +292,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
       children: [
         {
           title: 'Matrices N y A',
-          result: `N = ${toLatexMatrix(N)}, \\qquad A = ${toLatexMatrix(A)}`,
+          result: String.raw`N = ${toLatexMatrix(N)}, \qquad A = ${toLatexMatrix(A)}`,
         },
         {
           title: 'Matriz fundamental',
@@ -302,10 +303,10 @@ export function solveClassification({ P }: ClassificationInput): Result {
         },
         {
           title: 'Transiciones esperadas hasta la absorción',
-          formula: '(I - N)^{-1}\\,\\mathbf{1}',
+          formula: String.raw`(I - N)^{-1}\,\mathbf{1}`,
           result: transient
-            .map((s, k) => `\\text{desde } ${s + 1}: ${n(stepsToAbsorption[k]!, 6)}`)
-            .join(',\\quad '),
+            .map((s, k) => String.raw`\text{desde } ${s + 1}: ${n(stepsToAbsorption[k]!, 6)}`)
+            .join(String.raw`,\quad `),
         },
         {
           title: 'Probabilidades de absorción',
@@ -320,9 +321,9 @@ export function solveClassification({ P }: ClassificationInput): Result {
       id: 'absorcion',
       title: 'Probabilidad de terminar en cada estado recurrente',
       columns: [
-        { key: 'from', header: '\\text{Desde}' },
-        ...recurrent.map((j) => ({ key: `r${j}`, header: `\\text{Estado } ${j + 1}` })),
-        { key: 'steps', header: '\\text{Transiciones esperadas}' },
+        { key: 'from', header: String.raw`\text{Desde}` },
+        ...recurrent.map((j) => ({ key: `r${j}`, header: String.raw`\text{Estado } ${j + 1}` })),
+        { key: 'steps', header: String.raw`\text{Transiciones esperadas}` },
       ],
       rows: transient.map((i, k) => ({
         from: i + 1,
@@ -335,19 +336,22 @@ export function solveClassification({ P }: ClassificationInput): Result {
   const summary = [
     {
       label: 'Clases',
-      value: classes.map((c) => setLatex(c.states)).join(',\\ '),
+      value: classes.map((c) => setLatex(c.states)).join(String.raw`,\ `),
       emphasis: true,
     },
-    { label: 'Cadena', value: ergodic ? '\\text{ergódica}' : '\\text{no ergódica}' },
+    {
+      label: 'Cadena',
+      value: ergodic ? String.raw`\text{ergódica}` : String.raw`\text{no ergódica}`,
+    },
   ];
   const absorbing = states.filter((s) => s.kind === 'absorbente').map((s) => s.state);
   if (absorbing.length > 0) {
-    summary.push({ label: 'Estados absorbentes', value: absorbing.join(',\\ ') });
+    summary.push({ label: 'Estados absorbentes', value: absorbing.join(String.raw`,\ `) });
   }
   if (transient.length > 0) {
     summary.push({
       label: 'Estados transitorios',
-      value: transient.map((i) => i + 1).join(',\\ '),
+      value: transient.map((i) => i + 1).join(String.raw`,\ `),
     });
   }
 

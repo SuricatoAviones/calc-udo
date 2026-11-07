@@ -27,10 +27,10 @@ const rule: BracketingRule = {
   pointTitle: 'Intersección de la recta con el eje x',
   pointExplanation:
     'Se une (xₗ, f(xₗ)) con (xᵤ, f(xᵤ)) mediante una recta; donde esa recta corta el eje x está la nueva aproximación.',
-  formula: 'x_r = x_u - \\frac{f(x_u)\\,(x_l - x_u)}{f(x_l) - f(x_u)}',
+  formula: String.raw`x_r = x_u - \frac{f(x_u)\,(x_l - x_u)}{f(x_l) - f(x_u)}`,
   compute: (xl, xu, fxl, fxu) => xu - (fxu * (xl - xu)) / (fxl - fxu),
   substitution: (xl, xu, fxl, fxu) =>
-    `x_r = ${n(xu)} - \\frac{${op(fxu)}\\,(${n(xl)} - ${op(xu)})}{${n(fxl)} - ${op(fxu)}}`,
+    String.raw`x_r = ${n(xu)} - \frac{${op(fxu)}\,(${n(xl)} - ${op(xu)})}{${n(fxl)} - ${op(fxu)}}`,
 };
 
 export const falsePosition: Calculator<BracketingInput, BracketingValue, BracketingErrorCode> = {

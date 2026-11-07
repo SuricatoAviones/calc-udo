@@ -129,30 +129,29 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
     };
   }
 
-  const lambdaTex = (i: number) => `\\lambda_{${i + 1}}`;
+  const lambdaTex = (i: number) => String.raw`\lambda_{${i + 1}}`;
   const gTex = constraints.map((c, i) => `g_{${i + 1}}(X) = ${c.g.tex}`);
   const steps: Step[] = [
     {
       title: 'Función de Lagrange',
       explanation:
         'Cada restricción se escribe como g_i(X) = 0 (lado izquierdo menos lado derecho). Se resta cada una multiplicada por su multiplicador λ_i.',
-      formula: 'L(X, \\lambda) = f(X) - \\sum_i \\lambda_i\\,g_i(X)',
-      substitution: `${gTex.join(',\\quad ')}`,
-      result: `L = ${f.tex} ${constraints.map((c, i) => `- ${lambdaTex(i)}\\left(${c.g.tex}\\right)`).join(' ')}`,
+      formula: String.raw`L(X, \lambda) = f(X) - \sum_i \lambda_i\,g_i(X)`,
+      substitution: `${gTex.join(String.raw`,\quad `)}`,
+      result: `L = ${f.tex} ${constraints.map((c, i) => String.raw`- ${lambdaTex(i)}\left(${c.g.tex}\right)`).join(' ')}`,
     },
     {
       title: 'Condiciones necesarias',
       explanation: `Se igualan a cero las ${size} derivadas respecto de las variables y las ${m} respecto de los multiplicadores (que devuelven las restricciones).`,
-      formula:
-        '\\frac{\\partial L}{\\partial x_j} = \\frac{\\partial f}{\\partial x_j} - \\sum_i \\lambda_i \\frac{\\partial g_i}{\\partial x_j} = 0, \\qquad \\frac{\\partial L}{\\partial \\lambda_i} = -g_i(X) = 0',
-      substitution: `\\begin{aligned} ${gradF
+      formula: String.raw`\frac{\partial L}{\partial x_j} = \frac{\partial f}{\partial x_j} - \sum_i \lambda_i \frac{\partial g_i}{\partial x_j} = 0, \qquad \frac{\partial L}{\partial \lambda_i} = -g_i(X) = 0`,
+      substitution: String.raw`\begin{aligned} ${gradF
         .map(
           (df, j) =>
-            `${df.tex} ${constraints.map((_, i) => `- ${lambdaTex(i)}\\left(${gradG[i]![j]!.tex}\\right)`).join(' ')} &= 0`,
+            `${df.tex} ${constraints.map((_, i) => String.raw`- ${lambdaTex(i)}\left(${gradG[i]![j]!.tex}\right)`).join(' ')} &= 0`,
         )
         .join(
-          ' \\\\ ',
-        )} \\\\ ${constraints.map((c) => `${c.g.tex} &= 0`).join(' \\\\ ')} \\end{aligned}`,
+          String.raw` \\ `,
+        )} \\ ${constraints.map((c) => `${c.g.tex} &= 0`).join(String.raw` \\ `)} \end{aligned}`,
     },
   ];
 
@@ -189,7 +188,7 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
     substitution: `X_0 = ${pointTex(x0)}`,
     children: newton.iterations.slice(0, 15).map((it, k) => ({
       title: `Iteración ${k + 1}`,
-      result: `(X, \\lambda) = ${pointTex(it.point, 8)}, \\quad \\lVert \\nabla L \\rVert = ${n(it.residual, 4)}`,
+      result: String.raw`(X, \lambda) = ${pointTex(it.point, 8)}, \quad \lVert \nabla L \rVert = ${n(it.residual, 4)}`,
     })),
   });
   if (!newton.converged) {
@@ -232,15 +231,16 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
   steps.push(
     {
       title: 'Punto estacionario y multiplicadores',
-      result: `X_0 = ${pointTex(point, 8)}, \\quad \\lambda = ${pointTex(multipliers, 8)}, \\quad f(X_0) = ${n(value)}`,
+      result: String.raw`X_0 = ${pointTex(point, 8)}, \quad \lambda = ${pointTex(multipliers, 8)}, \quad f(X_0) = ${n(value)}`,
     },
     {
       title: 'Hessiana orlada',
       explanation: `Se borda la hessiana de L con los gradientes de las restricciones. Se revisan los menores principales dominantes de orden 2m + 1 = ${2 * m + 1} a m + n = ${m + size}.`,
-      formula:
-        'H^B = \\begin{bmatrix} 0 & \\nabla g \\\\ \\nabla g^{T} & \\nabla^2 L \\end{bmatrix}',
+      formula: String.raw`H^B = \begin{bmatrix} 0 & \nabla g \\ \nabla g^{T} & \nabla^2 L \end{bmatrix}`,
       substitution: `H^B = ${toLatexMatrix(bordered)}`,
-      result: borderedMinors.map((d, k) => `\\Delta_{${orders[k]}} = ${n(d, 8)}`).join(',\\ '),
+      result: borderedMinors
+        .map((d, k) => String.raw`\Delta_{${orders[k]}} = ${n(d, 8)}`)
+        .join(String.raw`,\ `),
     },
     {
       title: 'Condición suficiente',
@@ -249,15 +249,15 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
         : isMax
           ? 'Los menores alternan de signo empezando por (−1)^{m+1}: es un máximo.'
           : 'Los signos no siguen ninguno de los dos patrones: la condición suficiente no concluye.',
-      result: `\\text{${kind}}`,
+      result: String.raw`\text{${kind}}`,
     },
     {
       title: 'Interpretación de los multiplicadores',
       explanation:
         'λ_i ≈ ∂f/∂b_i: si el lado derecho de la restricción i aumenta en una unidad, el valor óptimo de f cambia aproximadamente en λ_i.',
       result: multipliers
-        .map((l, i) => `\\frac{\\partial f}{\\partial b_{${i + 1}}} \\approx ${n(l, 6)}`)
-        .join(',\\ '),
+        .map((l, i) => String.raw`\frac{\partial f}{\partial b_{${i + 1}}} \approx ${n(l, 6)}`)
+        .join(String.raw`,\ `),
     },
   );
 
@@ -268,10 +268,10 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
       { label: 'Punto estacionario', value: `X_0 = ${pointTex(point, 6)}`, emphasis: true },
       {
         label: 'Multiplicadores',
-        value: multipliers.map((l, i) => `${lambdaTex(i)} = ${n(l, 6)}`).join(',\\ '),
+        value: multipliers.map((l, i) => `${lambdaTex(i)} = ${n(l, 6)}`).join(String.raw`,\ `),
       },
       { label: 'Valor de la función', value: `f(X_0) = ${n(value, 8)}` },
-      { label: 'Tipo', value: `\\text{${kind}}` },
+      { label: 'Tipo', value: String.raw`\text{${kind}}` },
     ],
     ...emptyTrace(),
     steps,

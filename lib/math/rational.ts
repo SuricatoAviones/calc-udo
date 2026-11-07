@@ -133,7 +133,7 @@ export class Rational {
     const decimal = shortDecimal(this);
     if (decimal !== null) return decimal;
     const n = this.num < 0n ? -this.num : this.num;
-    return `${this.num < 0n ? '-' : ''}\\frac{${n}}{${this.den}}`;
+    return String.raw`${this.num < 0n ? '-' : ''}\frac{${n}}{${this.den}}`;
   }
 
   /** Igual que `toLatex`, pero en texto plano: `2/3`, `0.5`. */

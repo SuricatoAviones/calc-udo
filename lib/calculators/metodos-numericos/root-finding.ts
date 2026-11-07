@@ -75,9 +75,9 @@ export function approximateError(
       explanation: converged
         ? `εₐ = ${formatNumber(ea, 4)} % es menor que la tolerancia εₛ = ${String(tolerance)} %: el método convergió.`
         : `εₐ = ${formatNumber(ea, 4)} % no es menor que la tolerancia εₛ = ${String(tolerance)} %: se sigue iterando.`,
-      formula: `\\varepsilon_a = \\left| \\frac{${newLabel} - ${oldLabel}}{${newLabel}} \\right| \\times 100\\%`,
-      substitution: `\\varepsilon_a = \\left| \\frac{${n(xNew)} - ${toLatexOperand(xOld)}}{${n(xNew)}} \\right| \\times 100\\%`,
-      result: `\\varepsilon_a = ${n(ea, 6)}\\,\\%`,
+      formula: String.raw`\varepsilon_a = \left| \frac{${newLabel} - ${oldLabel}}{${newLabel}} \right| \times 100\%`,
+      substitution: String.raw`\varepsilon_a = \left| \frac{${n(xNew)} - ${toLatexOperand(xOld)}}{${n(xNew)}} \right| \times 100\%`,
+      result: String.raw`\varepsilon_a = ${n(ea, 6)}\,\%`,
     },
   };
 }
@@ -126,11 +126,11 @@ export function rootSummary(
 ): SummaryItem[] {
   const n = toLatexNumber;
   return [
-    { label: 'Raíz aproximada', value: `x_r \\approx ${n(root)}`, emphasis: true },
+    { label: 'Raíz aproximada', value: String.raw`x_r \approx ${n(root)}`, emphasis: true },
     { label: 'Iteraciones', value: String(iterations) },
     {
       label: 'Error relativo aproximado',
-      value: ea === null ? '\\text{—}' : `\\varepsilon_a = ${n(ea, 4)}\\,\\%`,
+      value: ea === null ? String.raw`\text{—}` : String.raw`\varepsilon_a = ${n(ea, 4)}\,\%`,
     },
     { label: 'Comprobación', value: `f(x_r) = ${n(residual, 4)}` },
   ];

@@ -210,25 +210,27 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
     return {
       title: m.method,
       formula,
-      substitution: `\\mathrm{MAD} = \\frac{${n(sumAbs, 6)}}{${m.accuracy.count}},\\quad \\mathrm{MSE} = \\frac{${n(sumSq, 6)}}{${m.accuracy.count}}`,
-      result: `\\mathrm{MAD} = ${n(m.accuracy.mad, 6)},\\ \\mathrm{MSE} = ${n(m.accuracy.mse, 6)},\\ \\mathrm{MAPE} = ${m.accuracy.mape === null ? '\\text{no definido}' : `${n(m.accuracy.mape, 4)}\\,\\%`}`,
+      substitution: String.raw`\mathrm{MAD} = \frac{${n(sumAbs, 6)}}{${m.accuracy.count}},\quad \mathrm{MSE} = \frac{${n(sumSq, 6)}}{${m.accuracy.count}}`,
+      result: String.raw`\mathrm{MAD} = ${n(m.accuracy.mad, 6)},\ \mathrm{MSE} = ${n(m.accuracy.mse, 6)},\ \mathrm{MAPE} = ${m.accuracy.mape === null ? String.raw`\text{no definido}` : String.raw`${n(m.accuracy.mape, 4)}\,\%`}`,
     };
   };
   const formulas = new Map<string, string>([
     ['Ingenuo (último dato)', 'F_{t+1} = Y_t'],
-    ['Promedio de los datos anteriores', 'F_{t+1} = \\frac{1}{t}\\sum_{i=1}^{t} Y_i'],
+    ['Promedio de los datos anteriores', String.raw`F_{t+1} = \frac{1}{t}\sum_{i=1}^{t} Y_i`],
   ]);
   const children = methods.map((m) => {
     if (formulas.has(m.method)) return methodStep(m, formulas.get(m.method)!);
     if (m.method.startsWith('Promedio móvil')) {
-      return methodStep(m, 'F_{t+1} = \\frac{Y_t + Y_{t-1} + \\cdots + Y_{t-k+1}}{k}');
+      return methodStep(m, String.raw`F_{t+1} = \frac{Y_t + Y_{t-1} + \cdots + Y_{t-k+1}}{k}`);
     }
     if (m.method.startsWith('Suavizamiento')) {
-      return methodStep(m, 'F_{t+1} = \\alpha Y_t + (1 - \\alpha) F_t, \\qquad F_2 = Y_1');
+      return methodStep(m, String.raw`F_{t+1} = \alpha Y_t + (1 - \alpha) F_t, \qquad F_2 = Y_1`);
     }
     return methodStep(
       m,
-      trend ? `T_t = b_0 + b_1 t = ${n(trend.b0, 6)} + ${n(trend.b1, 6)}\\,t` : 'T_t = b_0 + b_1 t',
+      trend
+        ? String.raw`T_t = b_0 + b_1 t = ${n(trend.b0, 6)} + ${n(trend.b1, 6)}\,t`
+        : 'T_t = b_0 + b_1 t',
     );
   });
 
@@ -237,8 +239,7 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
       title: 'Medidas de exactitud',
       explanation:
         'Cada método se aplica a los datos históricos y se mide cuánto se equivoca en los periodos en que tiene pronóstico.',
-      formula:
-        'e_t = Y_t - F_t, \\quad \\mathrm{MAD} = \\frac{\\sum|e_t|}{k}, \\quad \\mathrm{MSE} = \\frac{\\sum e_t^2}{k}, \\quad \\mathrm{MAPE} = \\frac{1}{k}\\sum\\left|\\frac{e_t}{Y_t}\\right| 100\\,\\%',
+      formula: String.raw`e_t = Y_t - F_t, \quad \mathrm{MAD} = \frac{\sum|e_t|}{k}, \quad \mathrm{MSE} = \frac{\sum e_t^2}{k}, \quad \mathrm{MAPE} = \frac{1}{k}\sum\left|\frac{e_t}{Y_t}\right| 100\,\%`,
     },
     { title: 'Métodos evaluados', children },
     {
@@ -246,9 +247,9 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
       explanation:
         'Se elige el método con el menor error histórico. Antes de usarlo conviene revisar si el patrón de la serie (horizontal, con tendencia, estacional) seguirá igual en el futuro.',
       substitution: candidates
-        .map((m) => `\\text{${m.method}}: ${n(measure(m.accuracy, criterion)!, 6)}`)
-        .join(' \\\\ '),
-      result: `\\text{${best.method}}`,
+        .map((m) => String.raw`\text{${m.method}}: ${n(measure(m.accuracy, criterion)!, 6)}`)
+        .join(String.raw` \\ `),
+      result: String.raw`\text{${best.method}}`,
     },
   ];
 
@@ -287,7 +288,7 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
     summary: [
       {
         label: `Mejor método (${CRITERION_LABEL[criterion]})`,
-        value: `\\text{${best.method}}`,
+        value: String.raw`\text{${best.method}}`,
         emphasis: true,
       },
       {
@@ -303,13 +304,13 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
         id: 'comparacion',
         title: 'Comparación de los métodos',
         columns: [
-          { key: 'method', header: '\\text{Método}', format: 'text' },
+          { key: 'method', header: String.raw`\text{Método}`, format: 'text' },
           { key: 'count', header: 'k' },
-          { key: 'mad', header: '\\mathrm{MAD}' },
-          { key: 'mse', header: '\\mathrm{MSE}' },
-          { key: 'mape', header: '\\mathrm{MAPE}\\ (\\%)' },
+          { key: 'mad', header: String.raw`\mathrm{MAD}` },
+          { key: 'mse', header: String.raw`\mathrm{MSE}` },
+          { key: 'mape', header: String.raw`\mathrm{MAPE}\ (\%)` },
           { key: 'next', header: `F_{${data.length + 1}}` },
-          { key: 'best', header: '\\text{Elegido}', format: 'text' },
+          { key: 'best', header: String.raw`\text{Elegido}`, format: 'text' },
         ],
         rows,
       },

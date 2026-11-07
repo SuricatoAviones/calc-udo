@@ -44,7 +44,7 @@ export function solveReduction(
     };
   }
   const steps: Step[] = [...resolved.steps];
-  const ratio = `\\frac{${nodeTex(resolved.output)}}{${nodeTex(resolved.input)}}`;
+  const ratio = String.raw`\frac{${nodeTex(resolved.output)}}{${nodeTex(resolved.input)}}`;
   const outcome = reduceDiagram(resolved.graph, resolved.input, resolved.output);
   if (!outcome.ok) {
     return {

@@ -46,18 +46,18 @@ function oneThird(nodes: IntegrationNode[], title: string): { integral: number; 
         title: `${title}: sumas de los nodos impares y pares`,
         explanation:
           'Los nodos de índice impar son los puntos medios de cada par de segmentos (peso 4); los pares interiores unen dos parábolas (peso 2).',
-        formula: '\\sum_{\\text{impares}} f(x_i), \\qquad \\sum_{\\text{pares}} f(x_j)',
-        substitution: `\\sum_{\\text{impares}} = ${listOrSum(odd)}, \\qquad \\sum_{\\text{pares}} = ${listOrSum(even)}`,
-        result: `\\sum_{\\text{impares}} = ${n(sumOdd)}, \\qquad \\sum_{\\text{pares}} = ${n(sumEven)}`,
+        formula: String.raw`\sum_{\text{impares}} f(x_i), \qquad \sum_{\text{pares}} f(x_j)`,
+        substitution: String.raw`\sum_{\text{impares}} = ${listOrSum(odd)}, \qquad \sum_{\text{pares}} = ${listOrSum(even)}`,
+        result: String.raw`\sum_{\text{impares}} = ${n(sumOdd)}, \qquad \sum_{\text{pares}} = ${n(sumEven)}`,
       },
       {
         title: `${title}: aplicar la fórmula`,
         formula:
           m === 2
-            ? 'I \\cong (b - a)\\,\\frac{f(x_0) + 4f(x_1) + f(x_2)}{6}'
-            : 'I \\cong (b - a)\\,\\frac{f(x_0) + 4\\sum_{\\text{impares}} f(x_i) + 2\\sum_{\\text{pares}} f(x_j) + f(x_n)}{3n}',
-        substitution: `I \\cong ${width}\\,\\frac{${n(f0)} + 4(${n(sumOdd)}) + 2(${n(sumEven)}) + ${n(fm)}}{3(${m})}`,
-        result: `I \\cong ${n(integral)}`,
+            ? String.raw`I \cong (b - a)\,\frac{f(x_0) + 4f(x_1) + f(x_2)}{6}`
+            : String.raw`I \cong (b - a)\,\frac{f(x_0) + 4\sum_{\text{impares}} f(x_i) + 2\sum_{\text{pares}} f(x_j) + f(x_n)}{3n}`,
+        substitution: String.raw`I \cong ${width}\,\frac{${n(f0)} + 4(${n(sumOdd)}) + 2(${n(sumEven)}) + ${n(fm)}}{3(${m})}`,
+        result: String.raw`I \cong ${n(integral)}`,
       },
     ],
   };
@@ -81,9 +81,9 @@ function threeEighths(
       {
         title: `${title}: aplicar la fórmula`,
         explanation: 'Se ajusta un polinomio cúbico a cuatro puntos equidistantes.',
-        formula: 'I \\cong (b - a)\\,\\frac{f(x_0) + 3f(x_1) + 3f(x_2) + f(x_3)}{8}',
-        substitution: `I \\cong (${n(p3.x)} - ${toLatexOperand(p0.x)})\\,\\frac{${n(p0.fx)} + 3(${n(p1.fx)}) + 3(${n(p2.fx)}) + ${n(p3.fx)}}{8}`,
-        result: `I \\cong ${n(integral)}`,
+        formula: String.raw`I \cong (b - a)\,\frac{f(x_0) + 3f(x_1) + 3f(x_2) + f(x_3)}{8}`,
+        substitution: String.raw`I \cong (${n(p3.x)} - ${toLatexOperand(p0.x)})\,\frac{${n(p0.fx)} + 3(${n(p1.fx)}) + 3(${n(p2.fx)}) + ${n(p3.fx)}}{8}`,
+        result: String.raw`I \cong ${n(integral)}`,
       },
     ],
   };
@@ -119,7 +119,7 @@ const rule: IntegrationRule<SimpsonInput> = {
           title: 'Sumar las dos partes',
           formula: 'I = I_{1/3} + I_{3/8}',
           substitution: `I = ${n(first.integral)} + ${toLatexOperand(last.integral)}`,
-          result: `I \\cong ${n(integral)}`,
+          result: String.raw`I \cong ${n(integral)}`,
         },
       ],
     };

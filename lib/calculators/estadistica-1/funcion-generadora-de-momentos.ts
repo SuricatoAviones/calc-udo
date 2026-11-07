@@ -63,8 +63,7 @@ export function solveMgf(input: MgfInput): Result {
       title: 'Función generadora de momentos',
       explanation:
         'Al derivar M_X(t) r veces y evaluar en t = 0 se obtiene el r-ésimo momento alrededor del origen, E(Xʳ) (teorema 7.6).',
-      formula:
-        "M_X(t) = E(e^{tX}), \\qquad \\mu'_r = \\left.\\frac{d^r M_X(t)}{dt^r}\\right|_{t=0}",
+      formula: String.raw`M_X(t) = E(e^{tX}), \qquad \mu'_r = \left.\frac{d^r M_X(t)}{dt^r}\right|_{t=0}`,
       substitution: `M_X(t) = ${m.tex}`,
     },
   ];
@@ -97,16 +96,16 @@ export function solveMgf(input: MgfInput): Result {
     if (!derived.ok) return fail('not-differentiable', derived.message, steps);
     current = derived.expr;
     const value = current.evaluate(0);
-    const prime = `\\mu'_{${r}}`;
+    const prime = String.raw`\mu'_{${r}}`;
     const power = r === 1 ? '' : `^{${r}}`;
-    const derivative = `\\frac{d${power} M_X(t)}{dt${power}}`;
+    const derivative = String.raw`\frac{d${power} M_X(t)}{dt${power}}`;
     steps.push({
       title: `${ordinal[r - 1]![0]!.toUpperCase()}${ordinal[r - 1]!.slice(1)} momento`,
       explanation:
         current.tex.length > MAX_TEX_LENGTH
           ? `Se deriva M_X(t) ${r === 1 ? 'una vez' : `${r} veces`}; la derivada es larga y se omite.`
           : undefined,
-      formula: `${prime} = E(X${power}) = \\left.${derivative}\\right|_{t=0}`,
+      formula: String.raw`${prime} = E(X${power}) = \left.${derivative}\right|_{t=0}`,
       substitution:
         current.tex.length > MAX_TEX_LENGTH ? undefined : `${derivative} = ${current.tex}`,
       result: `${prime} = ${n(value)}`,
@@ -126,27 +125,31 @@ export function solveMgf(input: MgfInput): Result {
   steps.push({
     title: 'Media y varianza',
     formula:
-      variance === null ? "\\mu = \\mu'_1" : "\\mu = \\mu'_1, \\qquad \\sigma^2 = \\mu'_2 - \\mu^2",
+      variance === null
+        ? String.raw`\mu = \mu'_1`
+        : String.raw`\mu = \mu'_1, \qquad \sigma^2 = \mu'_2 - \mu^2`,
     substitution:
-      variance === null ? undefined : `\\sigma^2 = ${n(moments[1]!)} - ${toLatexOperand(mean)}^2`,
+      variance === null
+        ? undefined
+        : String.raw`\sigma^2 = ${n(moments[1]!)} - ${toLatexOperand(mean)}^2`,
     result:
       variance === null
-        ? `\\mu = ${n(mean)}`
-        : `\\mu = ${n(mean)}, \\qquad \\sigma^2 = ${n(variance)}`,
+        ? String.raw`\mu = ${n(mean)}`
+        : String.raw`\mu = ${n(mean)}, \qquad \sigma^2 = ${n(variance)}`,
   });
 
   return {
     ok: true,
     value: { moments, mean, variance },
     summary: [
-      { label: 'Media', value: `\\mu = ${n(mean, 6)}`, emphasis: true },
+      { label: 'Media', value: String.raw`\mu = ${n(mean, 6)}`, emphasis: true },
       ...(variance === null
         ? []
         : [
-            { label: 'Varianza', value: `\\sigma^2 = ${n(variance, 6)}` },
+            { label: 'Varianza', value: String.raw`\sigma^2 = ${n(variance, 6)}` },
             {
               label: 'Desviación estándar',
-              value: `\\sigma = ${n(Math.sqrt(Math.max(0, variance)), 6)}`,
+              value: String.raw`\sigma = ${n(Math.sqrt(Math.max(0, variance)), 6)}`,
             },
           ]),
     ],
@@ -158,7 +161,7 @@ export function solveMgf(input: MgfInput): Result {
         title: 'Momentos alrededor del origen',
         columns: [
           { key: 'r', header: 'r' },
-          { key: 'moment', header: "\\mu'_r = E(X^r)" },
+          { key: 'moment', header: String.raw`\mu'_r = E(X^r)` },
         ],
         rows: moments.map((moment, i) => ({ r: i + 1, moment })),
       },

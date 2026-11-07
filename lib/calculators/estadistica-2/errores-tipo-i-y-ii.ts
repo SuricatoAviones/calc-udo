@@ -127,7 +127,7 @@ function regionLatex(
 ) {
   if (alternative === 'mayor') return `${variable} > ${n(upper!)}`;
   if (alternative === 'menor') return `${variable} < ${n(lower!)}`;
-  return `${variable} < ${n(lower!)} \\;\\text{ o }\\; ${variable} > ${n(upper!)}`;
+  return String.raw`${variable} < ${n(lower!)} \;\text{ o }\; ${variable} > ${n(upper!)}`;
 }
 
 function solveNormal(
@@ -137,13 +137,13 @@ function solveNormal(
   const se = input.sigma! / Math.sqrt(input.n);
   const alt = input.alternative;
   const steps: Step[] = [
-    { title: 'Hipótesis', result: hypothesesLatex('\\mu', n(mu0), alt) },
+    { title: 'Hipótesis', result: hypothesesLatex(String.raw`\mu`, n(mu0), alt) },
     {
       title: 'Distribución de la media muestral',
       explanation: 'Con σ conocida, X̄ es normal con media μ y error estándar σ/√n.',
-      formula: '\\sigma_{\\bar{X}} = \\frac{\\sigma}{\\sqrt{n}}',
-      substitution: `\\sigma_{\\bar{X}} = \\frac{${n(input.sigma!)}}{\\sqrt{${input.n}}}`,
-      result: `\\sigma_{\\bar{X}} = ${n(se)}`,
+      formula: String.raw`\sigma_{\bar{X}} = \frac{\sigma}{\sqrt{n}}`,
+      substitution: String.raw`\sigma_{\bar{X}} = \frac{${n(input.sigma!)}}{\sqrt{${input.n}}}`,
+      result: String.raw`\sigma_{\bar{X}} = ${n(se)}`,
     },
   ];
 
@@ -159,9 +159,9 @@ function solveNormal(
     steps.push({
       title: 'Región crítica a partir de α',
       explanation: `Se busca el valor de x̄ que deja un área ${formatNumber(tail)} en ${alt === 'distinto' ? 'cada cola' : 'la cola'} cuando μ = μ₀.`,
-      formula: `\\bar{x}_c = \\mu_0 ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : '\\pm'} z_{${formatNumber(tail)}}\\,\\sigma_{\\bar{X}}`,
-      substitution: `\\bar{x}_c = ${n(mu0)} ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : '\\pm'} ${n(zc)}(${n(se)})`,
-      result: `\\text{Se rechaza } H_0 \\text{ si } ${regionLatex('\\bar{x}', alt, lower, upper)}`,
+      formula: String.raw`\bar{x}_c = \mu_0 ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : String.raw`\pm`} z_{${formatNumber(tail)}}\,\sigma_{\bar{X}}`,
+      substitution: String.raw`\bar{x}_c = ${n(mu0)} ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : String.raw`\pm`} ${n(zc)}(${n(se)})`,
+      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${regionLatex(String.raw`\bar{x}`, alt, lower, upper)}`,
     });
   } else {
     lower = alt === 'mayor' ? null : input.lower!;
@@ -174,14 +174,18 @@ function solveNormal(
     steps.push({
       title: 'Probabilidad del error tipo I',
       explanation: 'Es la probabilidad de caer en la región crítica cuando H₀ es cierta (μ = μ₀).',
-      formula: `\\alpha = P(${regionLatex('\\bar{X}', alt, lower, upper)} \\mid \\mu = ${n(mu0)})`,
+      formula: String.raw`\alpha = P(${regionLatex(String.raw`\bar{X}`, alt, lower, upper)} \mid \mu = ${n(mu0)})`,
       substitution: [
-        zLow === null ? null : `z_1 = \\frac{${n(lower!)} - ${n(mu0)}}{${n(se)}} = ${n(zLow)}`,
-        zUp === null ? null : `z_2 = \\frac{${n(upper!)} - ${n(mu0)}}{${n(se)}} = ${n(zUp)}`,
+        zLow === null
+          ? null
+          : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu0)}}{${n(se)}} = ${n(zLow)}`,
+        zUp === null
+          ? null
+          : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu0)}}{${n(se)}} = ${n(zUp)}`,
       ]
         .filter(Boolean)
-        .join(',\\quad '),
-      result: `\\alpha = ${[zLow === null ? null : `P(Z < ${n(zLow)})`, zUp === null ? null : `P(Z > ${n(zUp)})`].filter(Boolean).join(' + ')} = ${p4(alpha)}`,
+        .join(String.raw`,\quad `),
+      result: String.raw`\alpha = ${[zLow === null ? null : `P(Z < ${n(zLow)})`, zUp === null ? null : `P(Z > ${n(zUp)})`].filter(Boolean).join(' + ')} = ${p4(alpha)}`,
     });
   }
 
@@ -201,14 +205,14 @@ function solveNormal(
       title: `Probabilidad del error tipo II cuando μ = ${formatNumber(mu1)}`,
       explanation:
         'Es la probabilidad de NO caer en la región crítica cuando la media verdadera es μ₁.',
-      formula: `\\beta = P(${lower === null ? '' : `${n(lower)} \\le `}\\bar{X}${upper === null ? '' : ` \\le ${n(upper)}`} \\mid \\mu = ${n(mu1)})`,
+      formula: String.raw`\beta = P(${lower === null ? '' : String.raw`${n(lower)} \le `}\bar{X}${upper === null ? '' : String.raw` \le ${n(upper)}`} \mid \mu = ${n(mu1)})`,
       substitution: [
-        z1 === null ? null : `z_1 = \\frac{${n(lower!)} - ${n(mu1)}}{${n(se)}} = ${n(z1)}`,
-        z2 === null ? null : `z_2 = \\frac{${n(upper!)} - ${n(mu1)}}{${n(se)}} = ${n(z2)}`,
+        z1 === null ? null : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu1)}}{${n(se)}} = ${n(z1)}`,
+        z2 === null ? null : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu1)}}{${n(se)}} = ${n(z2)}`,
       ]
         .filter(Boolean)
-        .join(',\\quad '),
-      result: `\\beta = ${p4(beta)}, \\qquad \\text{potencia} = 1 - \\beta = ${p4(1 - beta)}`,
+        .join(String.raw`,\quad `),
+      result: String.raw`\beta = ${p4(beta)}, \qquad \text{potencia} = 1 - \beta = ${p4(1 - beta)}`,
     });
   }
 
@@ -238,7 +242,7 @@ function solveNormal(
     [lower, upper],
     steps,
     series,
-    regionLatex('\\bar{x}', alt, lower, upper),
+    regionLatex(String.raw`\bar{x}`, alt, lower, upper),
   );
 }
 
@@ -255,7 +259,7 @@ function solveBinomial(
     {
       title: 'Estadístico y región crítica',
       explanation: `X es el número de éxitos en ${trials} ensayos; bajo H₀, X ~ binomial(n = ${trials}, p = ${formatNumber(p0)}).`,
-      result: `\\text{Se rechaza } H_0 \\text{ si } ${regionLatex('X', alt, lower, upper)}`,
+      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${regionLatex('X', alt, lower, upper)}`,
     },
   ];
   // P(no rechazar) = P(lower ≤ X ≤ upper), con límites por defecto 0 y n.
@@ -265,14 +269,14 @@ function solveBinomial(
     return binomialCdf(top, trials, p) - binomialCdf(bottom - 1, trials, p);
   };
   const alpha = 1 - acceptance(p0);
-  const range = `${lower === null ? 0 : n(lower)} \\le X \\le ${upper === null ? trials : n(upper)}`;
+  const range = String.raw`${lower === null ? 0 : n(lower)} \le X \le ${upper === null ? trials : n(upper)}`;
   steps.push({
     title: 'Probabilidad del error tipo I',
     explanation:
       'Probabilidad de caer en la región crítica cuando p = p₀, sumando la distribución binomial.',
-    formula: `\\alpha = 1 - P(${range} \\mid p = ${n(p0)})`,
-    substitution: `\\alpha = 1 - ${p4(acceptance(p0))}`,
-    result: `\\alpha = ${p4(alpha)}`,
+    formula: String.raw`\alpha = 1 - P(${range} \mid p = ${n(p0)})`,
+    substitution: String.raw`\alpha = 1 - ${p4(acceptance(p0))}`,
+    result: String.raw`\alpha = ${p4(alpha)}`,
   });
   let beta: number | null = null;
   if (input.trueValue !== undefined) {
@@ -280,8 +284,8 @@ function solveBinomial(
     beta = acceptance(p1);
     steps.push({
       title: `Probabilidad del error tipo II cuando p = ${formatNumber(p1)}`,
-      formula: `\\beta = P(${range} \\mid p = ${n(p1)}) = \\sum b(x;\\ ${trials},\\ ${n(p1)})`,
-      result: `\\beta = ${p4(beta)}, \\qquad \\text{potencia} = 1 - \\beta = ${p4(1 - beta)}`,
+      formula: String.raw`\beta = P(${range} \mid p = ${n(p1)}) = \sum b(x;\ ${trials},\ ${n(p1)})`,
+      result: String.raw`\beta = ${p4(beta)}, \qquad \text{potencia} = 1 - \beta = ${p4(1 - beta)}`,
     });
   }
   const series: Series = {
@@ -309,12 +313,12 @@ function finish(
       'α y β se mueven en sentidos opuestos: ampliar la región crítica aumenta α y reduce β. Para reducir ambos a la vez hay que aumentar el tamaño de la muestra. La gráfica muestra la potencia para cada valor del parámetro.',
   });
   const summary: SummaryItem[] = [
-    { label: 'Error tipo I', value: `\\alpha = ${p4(alpha)}`, emphasis: true },
+    { label: 'Error tipo I', value: String.raw`\alpha = ${p4(alpha)}`, emphasis: true },
     ...(beta === null
       ? []
       : [
-          { label: 'Error tipo II', value: `\\beta = ${p4(beta)}`, emphasis: true },
-          { label: 'Potencia', value: `1 - \\beta = ${p4(1 - beta)}` },
+          { label: 'Error tipo II', value: String.raw`\beta = ${p4(beta)}`, emphasis: true },
+          { label: 'Potencia', value: String.raw`1 - \beta = ${p4(1 - beta)}` },
         ]),
     { label: 'Región crítica', value: region },
   ];

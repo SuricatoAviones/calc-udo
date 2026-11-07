@@ -147,8 +147,8 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
   const steps: Step[] = [
     {
       title: 'Primera y segunda derivada',
-      formula: "f'(x), \\qquad f''(x)",
-      result: `f'(x) = ${d1.tex}, \\qquad f''(x) = ${derivatives[2]!.tex}`,
+      formula: String.raw`f'(x), \qquad f''(x)`,
+      result: String.raw`f'(x) = ${d1.tex}, \qquad f''(x) = ${derivatives[2]!.tex}`,
     },
   ];
 
@@ -226,8 +226,8 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
     formula: "f'(x_0) = 0",
     result:
       stationary.length === 0
-        ? '\\text{No hay puntos estacionarios en el intervalo}'
-        : stationary.map((p, i) => `x_{${i + 1}} = ${n(p.x)}`).join(',\\ '),
+        ? String.raw`\text{No hay puntos estacionarios en el intervalo}`
+        : stationary.map((p, i) => `x_{${i + 1}} = ${n(p.x)}`).join(String.raw`,\ `),
   });
 
   stationary.forEach((p, i) => {
@@ -250,7 +250,7 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
             ? `f″ ${p.derivative! > 0 ? '> 0' : '< 0'}: ${p.kind}.`
             : `La primera derivada no nula es la de orden ${p.order} (${p.order % 2 === 0 ? 'par' : 'impar'}): ${p.kind}.`,
       children,
-      result: `x_{${i + 1}} = ${n(p.x)}: \\ \\text{${p.kind}}, \\quad f(x_{${i + 1}}) = ${n(p.f)}`,
+      result: String.raw`x_{${i + 1}} = ${n(p.x)}: \ \text{${p.kind}}, \quad f(x_{${i + 1}}) = ${n(p.f)}`,
     });
   });
 
@@ -266,8 +266,8 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
     title: 'Extremos absolutos en el intervalo',
     explanation:
       'Se compara f en los puntos estacionarios y en los extremos a y b: el mayor valor es el máximo absoluto en [a, b] y el menor, el mínimo absoluto.',
-    substitution: points.map((p) => `f(${n(p.x, 6)}) = ${n(p.f, 6)}`).join(',\\ '),
-    result: `\\max = f(${n(globalMax.x, 6)}) = ${n(globalMax.f, 6)}, \\qquad \\min = f(${n(globalMin.x, 6)}) = ${n(globalMin.f, 6)}`,
+    substitution: points.map((p) => `f(${n(p.x, 6)}) = ${n(p.f, 6)}`).join(String.raw`,\ `),
+    result: String.raw`\max = f(${n(globalMax.x, 6)}) = ${n(globalMax.f, 6)}, \qquad \min = f(${n(globalMin.x, 6)}) = ${n(globalMin.f, 6)}`,
   });
 
   const plot = Array.from({ length: 201 }, (_, i) => {
@@ -303,7 +303,7 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
     summary: [
       ...stationary.slice(0, 4).map((p, i) => ({
         label: p.kind[0]!.toUpperCase() + p.kind.slice(1),
-        value: `x = ${n(p.x, 8)}, \\ f = ${n(p.f, 8)}`,
+        value: String.raw`x = ${n(p.x, 8)}, \ f = ${n(p.f, 8)}`,
         emphasis: i === 0,
       })),
       {
@@ -326,7 +326,7 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
           { key: 'f', header: 'f(x_0)' },
           { key: 'order', header: 'n' },
           { key: 'derivative', header: 'f^{(n)}(x_0)' },
-          { key: 'kind', header: '\\text{Tipo}', format: 'text' },
+          { key: 'kind', header: String.raw`\text{Tipo}`, format: 'text' },
         ],
         rows,
       },

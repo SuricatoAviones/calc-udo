@@ -69,11 +69,11 @@ const n = toLatexNumber;
 function exact(value: number): string {
   const r = toRational(value);
   if (!r || r.denominator === 1) return n(value, 6);
-  return `${r.numerator < 0 ? '-' : ''}\\frac{${Math.abs(r.numerator)}}{${r.denominator}}`;
+  return String.raw`${r.numerator < 0 ? '-' : ''}\frac{${Math.abs(r.numerator)}}{${r.denominator}}`;
 }
 
 function vectorLatex(values: number[]): string {
-  return `\\left(${values.map(exact).join(',\\ ')}\\right)`;
+  return String.raw`\left(${values.map(exact).join(String.raw`,\ `)}\right)`;
 }
 
 // ─── Dominancia ─────────────────────────────────────────────────────────────
@@ -89,8 +89,10 @@ function eliminateDominated(a: PayoffMatrix): Reduction {
   let rows = a.map((_, i) => i);
   let cols = a[0]!.map((_, j) => j);
   const steps: Step[] = [];
-  const rowVector = (i: number) => `\\left(${cols.map((j) => n(a[i]![j]!)).join(',\\ ')}\\right)`;
-  const colVector = (j: number) => `\\left(${rows.map((i) => n(a[i]![j]!)).join(',\\ ')}\\right)`;
+  const rowVector = (i: number) =>
+    String.raw`\left(${cols.map((j) => n(a[i]![j]!)).join(String.raw`,\ `)}\right)`;
+  const colVector = (j: number) =>
+    String.raw`\left(${rows.map((i) => n(a[i]![j]!)).join(String.raw`,\ `)}\right)`;
 
   // `high` domina a `low` si nunca es menor y alguna vez es mayor. Para A (maximiza) la fila
   // dominante es la de pagos altos; para B (minimiza), la columna de pagos bajos. Si dos
@@ -116,7 +118,7 @@ function eliminateDominated(a: PayoffMatrix): Reduction {
         steps.push({
           title: `A${r + 1} está dominada por A${k + 1}`,
           explanation: `Contra cualquier estrategia de B, A${k + 1} le paga a A al menos lo mismo que A${r + 1}, así que A nunca usaría A${r + 1}.`,
-          substitution: `${rowName(k)} = ${rowVector(k)} \\ \\ge\\ ${rowName(r)} = ${rowVector(r)}`,
+          substitution: String.raw`${rowName(k)} = ${rowVector(k)} \ \ge\ ${rowName(r)} = ${rowVector(r)}`,
         });
         rows = rows.filter((i) => i !== r);
         removed = true;
@@ -140,7 +142,7 @@ function eliminateDominated(a: PayoffMatrix): Reduction {
         steps.push({
           title: `B${c + 1} está dominada por B${l + 1}`,
           explanation: `B quiere pagar lo menos posible: contra cualquier estrategia de A, con B${l + 1} paga a lo sumo lo mismo que con B${c + 1}, así que B nunca usaría B${c + 1}.`,
-          substitution: `${colName(l)} = ${colVector(l)} \\ \\le\\ ${colName(c)} = ${colVector(c)}`,
+          substitution: String.raw`${colName(l)} = ${colVector(l)} \ \le\ ${colName(c)} = ${colVector(c)}`,
         });
         cols = cols.filter((j) => j !== c);
         removed = true;
@@ -232,7 +234,7 @@ function graphical(
       explanation: `Si ${names.own[0]} se juega con probabilidad ${variable} y ${names.own[1]} con 1 − ${variable}, cada estrategia pura del oponente da una recta de pago esperado para A.`,
       children: lines.map((l) => ({
         title: names.opponentPlain(l.index),
-        substitution: `E_{${names.opponent(l.index)}}(${variable}) = ${n(l.slope + l.intercept)}\\,${variable} + ${toLatexOperand(l.intercept)}\\,(1 - ${variable})`,
+        substitution: String.raw`E_{${names.opponent(l.index)}}(${variable}) = ${n(l.slope + l.intercept)}\,${variable} + ${toLatexOperand(l.intercept)}\,(1 - ${variable})`,
         result: `E_{${names.opponent(l.index)}}(${variable}) = ${lineLatex(l, variable)}`,
       })),
     },
@@ -253,9 +255,9 @@ function graphical(
       title: `Punto ${criterion}`,
       explanation: `La envolvente ${envelopeName} alcanza su ${maximize ? 'máximo' : 'mínimo'} sobre la recta horizontal de ${names.opponentPlain(horizontal.index)}.`,
       formula: maximize
-        ? `v = \\max_{0 \\le ${variable} \\le 1} \\min_j E_j(${variable})`
-        : `v = \\min_{0 \\le ${variable} \\le 1} \\max_i E_i(${variable})`,
-      result: `${variable}^* = ${exact(p)}, \\qquad v = ${exact(best)}`,
+        ? String.raw`v = \max_{0 \le ${variable} \le 1} \min_j E_j(${variable})`
+        : String.raw`v = \min_{0 \le ${variable} \le 1} \max_i E_i(${variable})`,
+      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${exact(best)}`,
     });
   } else if (rising && falling) {
     const x = (falling.intercept - rising.intercept) / (rising.slope - falling.slope);
@@ -264,10 +266,10 @@ function graphical(
       title: `Punto ${criterion}`,
       explanation: `El ${maximize ? 'máximo de la envolvente inferior (el peor caso de A)' : 'mínimo de la envolvente superior (el peor caso de B)'} está donde se cortan las rectas de ${names.opponentPlain(left.index)} y ${names.opponentPlain(right.index)}.`,
       formula: maximize
-        ? `v = \\max_{0 \\le ${variable} \\le 1} \\min_j E_j(${variable})`
-        : `v = \\min_{0 \\le ${variable} \\le 1} \\max_i E_i(${variable})`,
-      substitution: `${lineLatex(left, variable)} = ${lineLatex(right, variable)} \\ \\Rightarrow\\ ${variable} = ${exact(x)}`,
-      result: `${variable}^* = ${exact(p)}, \\qquad v = ${lineLatex(left, `(${exact(p)})`)} = ${exact(best)}`,
+        ? String.raw`v = \max_{0 \le ${variable} \le 1} \min_j E_j(${variable})`
+        : String.raw`v = \min_{0 \le ${variable} \le 1} \max_i E_i(${variable})`,
+      substitution: String.raw`${lineLatex(left, variable)} = ${lineLatex(right, variable)} \ \Rightarrow\ ${variable} = ${exact(x)}`,
+      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${lineLatex(left, `(${exact(p)})`)} = ${exact(best)}`,
     });
     const wRising = -falling.slope / (rising.slope - falling.slope);
     opponent.set(rising.index, wRising);
@@ -279,7 +281,7 @@ function graphical(
     steps.push({
       title: `Punto ${criterion}`,
       explanation: `La envolvente ${envelopeName} alcanza su ${maximize ? 'máximo' : 'mínimo'} en un extremo del intervalo.`,
-      result: `${variable}^* = ${exact(p)}, \\qquad v = ${exact(best)}`,
+      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${exact(best)}`,
     });
   }
 
@@ -327,7 +329,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
           explanation:
             'Una estrategia dominada nunca conviene, así que se elimina. Al quitar estrategias de un jugador pueden aparecer nuevas dominancias para el otro, por eso se repite hasta que no quede ninguna.',
           children: reduction.steps,
-          result: `\\text{Matriz reducida: } ${payoffMatrixLatex(payoff, rr, rc)}`,
+          result: String.raw`\text{Matriz reducida: } ${payoffMatrixLatex(payoff, rr, rc)}`,
         }
       : {
           title: 'Eliminar estrategias dominadas',
@@ -351,8 +353,8 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
         rr.length === 1 && rc.length === 1
           ? 'La eliminación de estrategias dominadas dejó una sola estrategia a cada jugador: esa es la solución.'
           : 'En la matriz reducida el maximin coincide con el minimax: la solución es en estrategias puras (cada jugador usa una estrategia con probabilidad 1).',
-      formula: '\\underline{v} = \\max_i \\min_j a_{ij} = \\min_j \\max_i a_{ij} = \\overline{v}',
-      result: `(${rowName(i)}, ${colName(j)}), \\qquad v = ${n(v)}`,
+      formula: String.raw`\underline{v} = \max_i \min_j a_{ij} = \min_j \max_i a_{ij} = \overline{v}`,
+      result: String.raw`(${rowName(i)}, ${colName(j)}), \qquad v = ${n(v)}`,
     });
     notices.push({
       level: 'info',
@@ -377,7 +379,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
     title: 'Sin punto de silla',
     explanation:
       'En la matriz reducida el maximin es menor que el minimax: hacen falta estrategias mixtas.',
-    result: `\\underline{v} = ${n(minimax.maximin)} < v < \\overline{v} = ${n(minimax.minimax)}`,
+    result: String.raw`\underline{v} = ${n(minimax.maximin)} < v < \overline{v} = ${n(minimax.minimax)}`,
   });
 
   if (rr.length === 2) {
@@ -506,7 +508,7 @@ function opponentStep(
     return {
       title: `Estrategia óptima de ${player}`,
       explanation: `${player} usa siempre ${player}${k + 1}: su recta pasa por el punto óptimo sin superarlo${player === 'B' ? ' por encima' : ' por debajo'}, así que asegura el valor v.`,
-      result: `${name(k)} \\text{ con probabilidad } 1`,
+      result: String.raw`${name(k)} \text{ con probabilidad } 1`,
     };
   }
   const [[k1, w1], [k2, w2]] = used as [[number, number], [number, number]];
@@ -516,8 +518,8 @@ function opponentStep(
   return {
     title: `Estrategia óptima de ${player}`,
     explanation: `Solo las rectas que pasan por el punto óptimo reciben probabilidad positiva. ${player} las combina de modo que la recta resultante sea horizontal (pendiente 0): así el pago esperado es v sin importar lo que haga el otro jugador.`,
-    formula: `${p1}\\,(${n(l1.slope, 6)}) + (1 - ${p1})\\,(${n(l2.slope, 6)}) = 0`,
-    result: `${p1} = ${exact(w1)}, \\qquad p_{${name(k2)}} = ${exact(w2)}`,
+    formula: String.raw`${p1}\,(${n(l1.slope, 6)}) + (1 - ${p1})\,(${n(l2.slope, 6)}) = 0`,
+    result: String.raw`${p1} = ${exact(w1)}, \qquad p_{${name(k2)}} = ${exact(w2)}`,
   };
 }
 
@@ -525,7 +527,7 @@ function solutionStep(strategyA: number[], strategyB: number[], value: number): 
   return {
     title: 'Solución del juego',
     explanation: 'Probabilidades para todas las estrategias originales (0 para las eliminadas).',
-    result: `x^* = ${vectorLatex(strategyA)}, \\qquad y^* = ${vectorLatex(strategyB)}, \\qquad v = ${exact(value)}`,
+    result: String.raw`x^* = ${vectorLatex(strategyA)}, \qquad y^* = ${vectorLatex(strategyB)}, \qquad v = ${exact(value)}`,
   };
 }
 
@@ -544,10 +546,10 @@ function success(
       { label: 'Estrategia óptima de B', value: `y^* = ${vectorLatex(value.strategyB)}` },
       {
         label: 'Estrategias que se usan',
-        value: `${strategyList(
+        value: String.raw`${strategyList(
           value.strategyA.flatMap((p, i) => (p > 0 ? [i] : [])),
           rowName,
-        )} \\ \\text{contra}\\ ${strategyList(
+        )} \ \text{contra}\ ${strategyList(
           value.strategyB.flatMap((p, j) => (p > 0 ? [j] : [])),
           colName,
         )}`,
@@ -561,10 +563,10 @@ function success(
         id: 'estrategias',
         title: 'Estrategias óptimas',
         columns: [
-          { key: 'player', header: '\\text{Jugador}', format: 'text' },
-          { key: 'strategy', header: '\\text{Estrategia}', format: 'text' },
-          { key: 'probability', header: '\\text{Probabilidad}' },
-          { key: 'exact', header: '\\text{Fracción}', format: 'latex' },
+          { key: 'player', header: String.raw`\text{Jugador}`, format: 'text' },
+          { key: 'strategy', header: String.raw`\text{Estrategia}`, format: 'text' },
+          { key: 'probability', header: String.raw`\text{Probabilidad}` },
+          { key: 'exact', header: String.raw`\text{Fracción}`, format: 'latex' },
         ],
         rows: [
           ...value.strategyA.map((p, i) => ({

@@ -69,7 +69,7 @@ interface IterationRow {
 
 // ─── LaTeX ──────────────────────────────────────────────────────────────────
 
-const NEWTON_FORMULA = "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}";
+const NEWTON_FORMULA = String.raw`x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}`;
 
 const n = toLatexNumber;
 
@@ -84,7 +84,7 @@ function iterationTable(rows: IterationRow[]): ResultTable {
       { key: 'dfxn', header: "f'(x_n)" },
       { key: 'xNext', header: 'x_{n+1}' },
       { key: 'absoluteError', header: 'E_a' },
-      { key: 'relativeError', header: '\\varepsilon_a\\,(\\%)' },
+      { key: 'relativeError', header: String.raw`\varepsilon_a\,(\%)` },
     ],
     rows: rows.map((row) => ({ ...row })),
   };
@@ -221,7 +221,7 @@ export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
         {
           title: 'Aplicar la fórmula de Newton-Raphson',
           formula: NEWTON_FORMULA,
-          substitution: `${xn1} = ${n(x)} - \\frac{${n(fx)}}{${n(dfx)}}`,
+          substitution: String.raw`${xn1} = ${n(x)} - \frac{${n(fx)}}{${n(dfx)}}`,
           result: `${xn1} = ${n(xNext)}`,
         },
         errorStep,
@@ -239,7 +239,7 @@ export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
       steps.push({
         title: 'Conclusión',
         explanation: `Después de ${i + 1} iteraciones el error relativo aproximado es menor que la tolerancia.`,
-        result: `x_r \\approx ${n(xNext)}`,
+        result: String.raw`x_r \approx ${n(xNext)}`,
       });
       return succeed(xNext, true);
     }

@@ -102,9 +102,9 @@ export function solveSinglePeriod(
       title: 'Costos de pedir de menos y de pedir de más',
       explanation:
         'Si falta una unidad se pierde su ganancia (más la penalización por faltante, si la hay); si sobra, se pierde su costo menos lo que se recupera al rescatarla, más lo que cuesta guardarla.',
-      formula: 'C_u = p - c + \\pi, \\qquad C_o = c - s + h',
-      substitution: `C_u = ${n(p)} - ${toLatexOperand(c)} + ${toLatexOperand(penalty)}, \\qquad C_o = ${n(c)} - ${toLatexOperand(s)} + ${toLatexOperand(h)}`,
-      result: `C_u = ${n(underage)}, \\qquad C_o = ${n(overage)}`,
+      formula: String.raw`C_u = p - c + \pi, \qquad C_o = c - s + h`,
+      substitution: String.raw`C_u = ${n(p)} - ${toLatexOperand(c)} + ${toLatexOperand(penalty)}, \qquad C_o = ${n(c)} - ${toLatexOperand(s)} + ${toLatexOperand(h)}`,
+      result: String.raw`C_u = ${n(underage)}, \qquad C_o = ${n(overage)}`,
     },
   ];
   if (underage <= 0 || overage <= 0) {
@@ -127,8 +127,8 @@ export function solveSinglePeriod(
     title: 'Razón crítica',
     explanation:
       'Conviene agregar una unidad más mientras la probabilidad de venderla, multiplicada por C_u, supere la de que sobre, multiplicada por C_o. El óptimo deja una probabilidad RC de que la demanda no supere lo pedido.',
-    formula: 'F(y^*) = P(D \\le y^*) = \\frac{C_u}{C_u + C_o}',
-    substitution: `F(y^*) = \\frac{${n(underage)}}{${n(underage)} + ${n(overage)}}`,
+    formula: String.raw`F(y^*) = P(D \le y^*) = \frac{C_u}{C_u + C_o}`,
+    substitution: String.raw`F(y^*) = \frac{${n(underage)}}{${n(underage)} + ${n(overage)}}`,
     result: `F(y^*) = ${n(ratio, 6)}`,
   });
 
@@ -146,8 +146,8 @@ export function solveSinglePeriod(
     steps.push({
       title: 'Cantidad óptima (demanda normal)',
       explanation: 'Se busca en la tabla de la normal el valor z con área RC a su izquierda.',
-      formula: 'y^* = \\mu + z\\,\\sigma, \\qquad \\Phi(z) = F(y^*)',
-      substitution: `\\Phi(z) = ${n(ratio, 6)} \\ \\Rightarrow\\ z = ${n(z, 4)}, \\qquad y^* = ${n(mean)} + ${toLatexOperand(z, 6)}(${n(sd)})`,
+      formula: String.raw`y^* = \mu + z\,\sigma, \qquad \Phi(z) = F(y^*)`,
+      substitution: String.raw`\Phi(z) = ${n(ratio, 6)} \ \Rightarrow\ z = ${n(z, 4)}, \qquad y^* = ${n(mean)} + ${toLatexOperand(z, 6)}(${n(sd)})`,
       result: `y^* = ${n(optimal, 6)}`,
     });
   } else if (input.distribution === 'uniforme') {
@@ -158,7 +158,7 @@ export function solveSinglePeriod(
     [from, to] = [min - margin, max + margin];
     steps.push({
       title: 'Cantidad óptima (demanda uniforme)',
-      formula: 'F(y) = \\frac{y - a}{b - a} \\ \\Rightarrow\\ y^* = a + F(y^*)\\,(b - a)',
+      formula: String.raw`F(y) = \frac{y - a}{b - a} \ \Rightarrow\ y^* = a + F(y^*)\,(b - a)`,
       substitution: `y^* = ${n(min)} + ${n(ratio, 6)}(${n(max)} - ${toLatexOperand(min)})`,
       result: `y^* = ${n(optimal, 6)}`,
     });
@@ -169,9 +169,8 @@ export function solveSinglePeriod(
     [from, to] = [0, Math.max(5 * mean, optimal * 1.3)];
     steps.push({
       title: 'Cantidad óptima (demanda exponencial)',
-      formula:
-        'F(y) = 1 - e^{-y/\\lambda} \\ \\Rightarrow\\ y^* = -\\lambda \\ln\\left(1 - F(y^*)\\right)',
-      substitution: `y^* = -${n(mean)} \\ln(1 - ${n(ratio, 6)}) = -${n(mean)} \\ln(${n(1 - ratio, 6)})`,
+      formula: String.raw`F(y) = 1 - e^{-y/\lambda} \ \Rightarrow\ y^* = -\lambda \ln\left(1 - F(y^*)\right)`,
+      substitution: String.raw`y^* = -${n(mean)} \ln(1 - ${n(ratio, 6)}) = -${n(mean)} \ln(${n(1 - ratio, 6)})`,
       result: `y^* = ${n(optimal, 6)}`,
     });
   }
@@ -185,9 +184,9 @@ export function solveSinglePeriod(
         stock < optimal
           ? 'Ya hay inventario: se pide solo lo necesario para llegar a y*.'
           : 'El inventario inicial ya alcanza o supera y*: no se pide nada.',
-      formula: '\\text{pedido} = \\max\\{0,\\ y^* - x\\}',
-      substitution: `\\max\\{0,\\ ${n(optimal, 6)} - ${n(stock)}\\}`,
-      result: `\\text{pedido} = ${n(order, 6)}`,
+      formula: String.raw`\text{pedido} = \max\{0,\ y^* - x\}`,
+      substitution: String.raw`\max\{0,\ ${n(optimal, 6)} - ${n(stock)}\}`,
+      result: String.raw`\text{pedido} = ${n(order, 6)}`,
     });
   }
 
@@ -227,7 +226,10 @@ export function solveSinglePeriod(
         ? []
         : [{ label: 'Cantidad a pedir', value: `y^* - x = ${n(order, 6)}` }]),
       { label: 'Razón crítica', value: `F(y^*) = ${n(ratio, 6)}` },
-      { label: 'Costos unitarios', value: `C_u = ${n(underage)}, \\quad C_o = ${n(overage)}` },
+      {
+        label: 'Costos unitarios',
+        value: String.raw`C_u = ${n(underage)}, \quad C_o = ${n(overage)}`,
+      },
     ],
     ...emptyTrace(),
     steps,

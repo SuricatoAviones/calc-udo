@@ -85,7 +85,7 @@ export function solveNewtonInterpolation(
     {
       title: 'Datos',
       explanation: `${size} puntos: el polinomio interpolante es de grado ${size - 1} como máximo.${h !== null ? ` ${describeSpacing(h)}` : ''}`,
-      result: x.map((xi, i) => `(${n(xi)},\\ ${n(y[i]!)})`).join(',\\ '),
+      result: x.map((xi, i) => String.raw`(${n(xi)},\ ${n(y[i]!)})`).join(String.raw`,\ `),
     },
     {
       title: forward ? 'Diferencias hacia adelante en x₀' : 'Coeficientes: diferencias divididas',
@@ -96,7 +96,7 @@ export function solveNewtonInterpolation(
         .map((c, k) =>
           forward ? `${forwardName(0, k)} = ${n(c)}` : `b_{${k}} = ${dividedName(0, k)} = ${n(c)}`,
         )
-        .join(',\\quad '),
+        .join(String.raw`,\quad `),
     },
   ];
 
@@ -112,12 +112,12 @@ export function solveNewtonInterpolation(
       for (let j = 0; j < k; j++) product *= s! - j;
       term = (coefficients[k]! * product) / factorial(k);
       const factors = Array.from({ length: k }, (_, j) => (j === 0 ? 's' : `(s - ${j})`)).join('');
-      formula = k === 0 ? 'y_0' : `\\frac{${factors}}{${k}!}\\,${forwardName(0, k)}`;
+      formula = k === 0 ? 'y_0' : String.raw`\frac{${factors}}{${k}!}\,${forwardName(0, k)}`;
       const numericFactors = Array.from({ length: k }, (_, j) => `(${n(s! - j)})`).join('');
       substitution =
         k === 0
           ? n(coefficients[0]!)
-          : `\\frac{${numericFactors}}{${factorial(k)}}${op(coefficients[k]!)}`;
+          : String.raw`\frac{${numericFactors}}{${factorial(k)}}${op(coefficients[k]!)}`;
     } else {
       let product = 1;
       for (let j = 0; j < k; j++) product *= xp - x[j]!;
@@ -138,7 +138,7 @@ export function solveNewtonInterpolation(
           const factors = Array.from({ length: k }, (_, j) => (j === 0 ? 's' : `(s - ${j})`)).join(
             '',
           );
-          return `${c < 0 ? '-' : '+'} \\frac{${n(Math.abs(c))}}{${k}!}${factors}`;
+          return String.raw`${c < 0 ? '-' : '+'} \frac{${n(Math.abs(c))}}{${k}!}${factors}`;
         })
         .join(' ')}`
     : `f_{${size - 1}}(x) = ${coefficients
@@ -154,15 +154,15 @@ export function solveNewtonInterpolation(
   steps.push({
     title: 'Polinomio de Newton',
     formula: forward
-      ? `f_n(x) = y_0 + s\\,\\Delta y_0 + \\frac{s(s-1)}{2!}\\Delta^2 y_0 + \\cdots, \\qquad s = \\frac{x - x_0}{h}`
-      : 'f_n(x) = b_0 + b_1(x - x_0) + b_2(x - x_0)(x - x_1) + \\cdots',
+      ? String.raw`f_n(x) = y_0 + s\,\Delta y_0 + \frac{s(s-1)}{2!}\Delta^2 y_0 + \cdots, \qquad s = \frac{x - x_0}{h}`
+      : String.raw`f_n(x) = b_0 + b_1(x - x_0) + b_2(x - x_0)(x - x_1) + \cdots`,
     result: newtonForm,
   });
   if (forward) {
     steps.push({
       title: 'Valor de s',
-      formula: 's = \\frac{x - x_0}{h}',
-      substitution: `s = \\frac{${n(xp)} - ${op(x[0]!)}}{${n(h!)}}`,
+      formula: String.raw`s = \frac{x - x_0}{h}`,
+      substitution: String.raw`s = \frac{${n(xp)} - ${op(x[0]!)}}{${n(h!)}}`,
       result: `s = ${n(s!)}`,
     });
   }
@@ -197,7 +197,7 @@ export function solveNewtonInterpolation(
     result:
       input.trueValue === undefined
         ? undefined
-        : `\\varepsilon_t = \\frac{${n(input.trueValue)} - ${op(value)}}{${n(input.trueValue)}} \\times 100\\% = ${toLatexNumber(rows.at(-1)!.et ?? 0, 4)}\\,\\%`,
+        : String.raw`\varepsilon_t = \frac{${n(input.trueValue)} - ${op(value)}}{${n(input.trueValue)}} \times 100\% = ${toLatexNumber(rows.at(-1)!.et ?? 0, 4)}\,\%`,
   });
 
   // Gráfica: el polinomio y los datos.
@@ -249,11 +249,11 @@ export function solveNewtonInterpolation(
   if (input.trueValue !== undefined && rows.at(-1)!.et !== null) {
     summary.push({
       label: 'Error relativo verdadero',
-      value: `\\varepsilon_t = ${n(rows.at(-1)!.et!)}\\,\\%`,
+      value: String.raw`\varepsilon_t = ${n(rows.at(-1)!.et!)}\,\%`,
     });
   }
   if (xp < Math.min(...x) || xp > Math.max(...x)) {
-    summary.push({ label: 'Atención', value: '\\text{extrapolación}' });
+    summary.push({ label: 'Atención', value: String.raw`\text{extrapolación}` });
   }
 
   return {
@@ -267,14 +267,14 @@ export function solveNewtonInterpolation(
         id: 'aproximaciones',
         title: 'Aproximación con grado creciente',
         columns: [
-          { key: 'k', header: '\\text{Grado } k' },
-          { key: 'coefficient', header: forward ? '\\Delta^k y_0' : 'b_k' },
-          { key: 'term', header: '\\text{Término}' },
+          { key: 'k', header: String.raw`\text{Grado } k` },
+          { key: 'coefficient', header: forward ? String.raw`\Delta^k y_0` : 'b_k' },
+          { key: 'term', header: String.raw`\text{Término}` },
           { key: 'approx', header: `f_k(${n(xp)})` },
-          { key: 'next', header: 'R_k \\approx \\text{término } k+1' },
+          { key: 'next', header: String.raw`R_k \approx \text{término } k+1` },
           ...(input.trueValue === undefined
             ? []
-            : [{ key: 'et', header: '\\varepsilon_t\\,(\\%)' }]),
+            : [{ key: 'et', header: String.raw`\varepsilon_t\,(\%)` }]),
         ],
         rows,
       },

@@ -124,7 +124,7 @@ export function solveAssignment(
       { key: 'row', header: '', format: 'text' as const },
       ...Array.from({ length: n }, (_, j) => ({
         key: `c${j}`,
-        header: `\\text{${colName(j)}}`,
+        header: String.raw`\text{${colName(j)}}`,
         format: 'latex' as const,
       })),
     ],
@@ -156,13 +156,17 @@ export function solveAssignment(
   c = c.map((row, i) => row.map((v) => v.sub(rowMins[i]!)));
   steps.push({
     title: 'Restar el mínimo de cada fila',
-    substitution: rowMins.map((v, i) => `${rowName(i)}:\\ ${v.toLatex()}`).join(',\\quad '),
+    substitution: rowMins
+      .map((v, i) => String.raw`${rowName(i)}:\ ${v.toLatex()}`)
+      .join(String.raw`,\quad `),
   });
   const colMins = c[0]!.map((_, j) => c.map((row) => row[j]!).reduce((a, b) => (b.lt(a) ? b : a)));
   c = c.map((row) => row.map((v, j) => v.sub(colMins[j]!)));
   steps.push({
     title: 'Restar el mínimo de cada columna',
-    substitution: colMins.map((v, j) => `${colName(j)}:\\ ${v.toLatex()}`).join(',\\quad '),
+    substitution: colMins
+      .map((v, j) => String.raw`${colName(j)}:\ ${v.toLatex()}`)
+      .join(String.raw`,\quad `),
   });
   tables.push(matrixTable('reducida', 'Matriz reducida'));
 
@@ -202,8 +206,8 @@ export function solveAssignment(
           return covered === 0
             ? v
             : covered === 2
-              ? `\\underline{\\overline{${v}}}`
-              : `\\overline{${v}}`;
+              ? String.raw`\underline{\overline{${v}}}`
+              : String.raw`\overline{${v}}`;
         },
       ),
     );
@@ -216,8 +220,8 @@ export function solveAssignment(
     steps.push({
       title: `Ajuste ${iterations + 1}`,
       explanation: `Bastan ${size} líneas (${lines.join(', ')}) para cubrir todos los ceros, menos que ${n}: todavía no hay asignación completa. Se resta el menor valor descubierto θ de las celdas descubiertas y se suma en las intersecciones de dos líneas.`,
-      substitution: `\\theta = \\min\\{${uncovered.map((v) => v.toLatex()).join(',\\ ')}\\}`,
-      result: `\\theta = ${theta.toLatex()}`,
+      substitution: String.raw`\theta = \min\{${uncovered.map((v) => v.toLatex()).join(String.raw`,\ `)}\}`,
+      result: String.raw`\theta = ${theta.toLatex()}`,
     });
     tables.push(matrixTable(`ajuste-${iterations}`, `Matriz después del ajuste ${iterations + 1}`));
   }
@@ -237,7 +241,7 @@ export function solveAssignment(
   });
   tables.push(
     matrixTable('asignacion', 'Asignación óptima (ceros elegidos)', (i, j) =>
-      rowOf[i] === j ? `\\boxed{${c[i]![j]!.toLatex()}}` : c[i]![j]!.toLatex(),
+      rowOf[i] === j ? String.raw`\boxed{${c[i]![j]!.toLatex()}}` : c[i]![j]!.toLatex(),
     ),
   );
   const pairs = rowOf.flatMap((j, i) => (i < m && j < k ? [{ i, j, cost: original[i]![j]! }] : []));
@@ -246,9 +250,9 @@ export function solveAssignment(
     title: 'Asignación óptima',
     explanation: `Se elige un cero en cada fila y columna. El ${input.sense === 'max' ? 'valor' : 'costo'} total se calcula con la matriz original${n > Math.min(m, k) && m !== k ? '; lo asignado a una fila o columna ficticia queda sin asignar' : ''}.`,
     substitution: latexLines(
-      pairs.map((p) => `${rowName(p.i)} \\to ${colName(p.j)}:\\ ${p.cost.toLatex()}`),
+      pairs.map((p) => String.raw`${rowName(p.i)} \to ${colName(p.j)}:\ ${p.cost.toLatex()}`),
     ),
-    result: `\\text{Total} = ${pairs.map((p) => p.cost.toLatex()).join(' + ')} = ${total.toLatex()}`,
+    result: String.raw`\text{Total} = ${pairs.map((p) => p.cost.toLatex()).join(' + ')} = ${total.toLatex()}`,
   });
 
   return {
@@ -267,8 +271,8 @@ export function solveAssignment(
       {
         label: 'Asignación',
         value: pairs
-          .map((p) => `\\text{${rowName(p.i)}} \\to \\text{${colName(p.j)}}`)
-          .join(',\\ '),
+          .map((p) => String.raw`\text{${rowName(p.i)}} \to \text{${colName(p.j)}}`)
+          .join(String.raw`,\ `),
       },
       { label: 'Ajustes', value: String(iterations) },
     ],

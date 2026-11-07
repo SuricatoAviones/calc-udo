@@ -38,13 +38,13 @@ function geometricModel(p: number): DiscreteModel {
     min: 1,
     max: Infinity,
     pmf: (x) => (x < 1 ? 0 : p * q ** (x - 1)),
-    notation: (x) => `g(${x};\\ ${n(p)})`,
-    pmfFormula: 'p\\,q^{x-1}',
+    notation: (x) => String.raw`g(${x};\ ${n(p)})`,
+    pmfFormula: String.raw`p\,q^{x-1}`,
     pmfSubstitution: (x) => `(${n(p)})(${n(q)})^{${x - 1}}`,
     mean: 1 / p,
     variance: q / p ** 2,
-    meanFormula: `\\frac{1}{p} = \\frac{1}{${n(p)}}`,
-    varianceFormula: `\\frac{1-p}{p^2} = \\frac{${n(q)}}{(${n(p)})^2}`,
+    meanFormula: String.raw`\frac{1}{p} = \frac{1}{${n(p)}}`,
+    varianceFormula: String.raw`\frac{1-p}{p^2} = \frac{${n(q)}}{(${n(p)})^2}`,
     explanation: `X es el número del ensayo en el que ocurre el primer éxito, con ensayos independientes y probabilidad de éxito p = ${formatNumber(p)} en cada uno. Antes del éxito hay x − 1 fracasos, cada uno con probabilidad q = 1 − p = ${formatNumber(q)}.`,
   };
 }

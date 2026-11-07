@@ -56,10 +56,10 @@ function binomialModel(trials: number, p: number): DiscreteModel {
     name: 'binomial',
     max: trials,
     pmf,
-    notation: (x) => `b(${x};\\ ${trials}, ${n(p)})`,
-    pmfFormula: '\\binom{n}{x} p^x q^{\\,n-x}',
+    notation: (x) => String.raw`b(${x};\ ${trials}, ${n(p)})`,
+    pmfFormula: String.raw`\binom{n}{x} p^x q^{\,n-x}`,
     pmfSubstitution: (x) =>
-      `\\binom{${trials}}{${x}} (${n(p)})^{${x}} (${n(q)})^{${trials - x}} = ${formatNumber(combinations(trials, x))}\\,(${n(p ** x)})(${n(q ** (trials - x))})`,
+      String.raw`\binom{${trials}}{${x}} (${n(p)})^{${x}} (${n(q)})^{${trials - x}} = ${formatNumber(combinations(trials, x))}\,(${n(p ** x)})(${n(q ** (trials - x))})`,
     mean: trials * p,
     variance: trials * p * q,
     meanFormula: `np = ${trials}(${n(p)})`,

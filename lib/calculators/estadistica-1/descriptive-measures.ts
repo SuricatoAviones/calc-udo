@@ -61,8 +61,8 @@ function listOrSummary(values: number[], max = 12): string {
   const shown = values
     .slice(0, max)
     .map((v) => n(v))
-    .join(',\\ ');
-  return values.length > max ? `${shown},\\ \\ldots` : shown;
+    .join(String.raw`,\ `);
+  return values.length > max ? String.raw`${shown},\ \ldots` : shown;
 }
 
 export function solveDescriptive(
@@ -112,14 +112,14 @@ export function solveDescriptive(
     },
     {
       title: 'Sumas',
-      formula: '\\sum x_i, \\qquad \\sum x_i^2',
-      result: `\\sum x_i = ${n(sum)}, \\qquad \\sum x_i^2 = ${n(sumOfSquares)}`,
+      formula: String.raw`\sum x_i, \qquad \sum x_i^2`,
+      result: String.raw`\sum x_i = ${n(sum)}, \qquad \sum x_i^2 = ${n(sumOfSquares)}`,
     },
     {
       title: 'Media muestral',
-      formula: '\\bar{x} = \\frac{\\sum x_i}{n}',
-      substitution: `\\bar{x} = \\frac{${n(sum)}}{${count}}`,
-      result: `\\bar{x} = ${n(mean)}`,
+      formula: String.raw`\bar{x} = \frac{\sum x_i}{n}`,
+      substitution: String.raw`\bar{x} = \frac{${n(sum)}}{${count}}`,
+      result: String.raw`\bar{x} = ${n(mean)}`,
     },
     {
       title: 'Mediana',
@@ -129,13 +129,13 @@ export function solveDescriptive(
           : `n es par: la mediana es el promedio de los datos en las posiciones ${middle} y ${middle + 1} de la lista ordenada.`,
       formula:
         count % 2 === 1
-          ? '\\tilde{x} = x_{((n+1)/2)}'
-          : '\\tilde{x} = \\frac{x_{(n/2)} + x_{(n/2+1)}}{2}',
+          ? String.raw`\tilde{x} = x_{((n+1)/2)}`
+          : String.raw`\tilde{x} = \frac{x_{(n/2)} + x_{(n/2+1)}}{2}`,
       substitution:
         count % 2 === 1
           ? undefined
-          : `\\tilde{x} = \\frac{${n(sorted[middle - 1]!)} + ${n(sorted[middle]!)}}{2}`,
-      result: `\\tilde{x} = ${n(median)}`,
+          : String.raw`\tilde{x} = \frac{${n(sorted[middle - 1]!)} + ${n(sorted[middle]!)}}{2}`,
+      result: String.raw`\tilde{x} = ${n(median)}`,
     },
     {
       title: 'Moda',
@@ -144,11 +144,13 @@ export function solveDescriptive(
           ? 'Ningún valor se repite, así que la muestra no tiene moda.'
           : `${modes.length === 1 ? 'El valor que más se repite aparece' : 'Los valores que más se repiten aparecen'} ${topFrequency} veces.`,
       result:
-        modes.length === 0 ? undefined : `\\text{Moda} = ${modes.map((m) => n(m)).join(',\\ ')}`,
+        modes.length === 0
+          ? undefined
+          : String.raw`\text{Moda} = ${modes.map((m) => n(m)).join(String.raw`,\ `)}`,
     },
     {
       title: 'Rango',
-      formula: 'R = x_{\\max} - x_{\\min}',
+      formula: String.raw`R = x_{\max} - x_{\min}`,
       substitution: `R = ${n(max)} - ${n(min)}`,
       result: `R = ${n(max - min)}`,
     },
@@ -156,15 +158,14 @@ export function solveDescriptive(
       title: 'Varianza muestral',
       explanation:
         'Se divide entre n − 1 (no entre n) porque la media se estimó con los mismos datos. La fórmula abreviada evita calcular cada desviación.',
-      formula:
-        's^2 = \\frac{\\sum (x_i - \\bar{x})^2}{n - 1} = \\frac{n\\sum x_i^2 - \\left(\\sum x_i\\right)^2}{n(n - 1)}',
-      substitution: `s^2 = \\frac{${count}(${n(sumOfSquares)}) - (${n(sum)})^2}{${count}(${count - 1})}`,
+      formula: String.raw`s^2 = \frac{\sum (x_i - \bar{x})^2}{n - 1} = \frac{n\sum x_i^2 - \left(\sum x_i\right)^2}{n(n - 1)}`,
+      substitution: String.raw`s^2 = \frac{${count}(${n(sumOfSquares)}) - (${n(sum)})^2}{${count}(${count - 1})}`,
       result: `s^2 = ${n(variance)}`,
     },
     {
       title: 'Desviación estándar muestral',
-      formula: 's = \\sqrt{s^2}',
-      substitution: `s = \\sqrt{${n(variance)}}`,
+      formula: String.raw`s = \sqrt{s^2}`,
+      substitution: String.raw`s = \sqrt{${n(variance)}}`,
       result: `s = ${n(standardDeviation)}`,
     },
   ];
@@ -189,11 +190,14 @@ export function solveDescriptive(
       standardDeviation,
     },
     summary: [
-      { label: 'Media', value: `\\bar{x} = ${n(mean, 6)}`, emphasis: true },
-      { label: 'Mediana', value: `\\tilde{x} = ${n(median, 6)}` },
+      { label: 'Media', value: String.raw`\bar{x} = ${n(mean, 6)}`, emphasis: true },
+      { label: 'Mediana', value: String.raw`\tilde{x} = ${n(median, 6)}` },
       {
         label: 'Moda',
-        value: modes.length === 0 ? '\\text{no hay}' : modes.map((m) => n(m, 6)).join(',\\ '),
+        value:
+          modes.length === 0
+            ? String.raw`\text{no hay}`
+            : modes.map((m) => n(m, 6)).join(String.raw`,\ `),
       },
       { label: 'Desviación estándar', value: `s = ${n(standardDeviation, 6)}` },
       { label: 'Varianza', value: `s^2 = ${n(variance, 6)}` },

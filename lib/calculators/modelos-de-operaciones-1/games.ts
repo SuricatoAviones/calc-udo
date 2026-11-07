@@ -54,7 +54,7 @@ export function payoffMatrixLatex(
 ): string {
   const header = ` & ${cols.map(colName).join(' & ')}`;
   const body = rows.map((i) => `${rowName(i)} & ${cols.map((j) => n(matrix[i]![j]!)).join(' & ')}`);
-  return `\\begin{array}{c|${'c'.repeat(cols.length)}} ${header} \\\\ \\hline ${body.join(' \\\\ ')} \\end{array}`;
+  return String.raw`\begin{array}{c|${'c'.repeat(cols.length)}} ${header} \\ \hline ${body.join(String.raw` \\ `)} \end{array}`;
 }
 
 export interface MinimaxAnalysis {
@@ -99,5 +99,5 @@ export function analyzeMinimax(
 
 /** Lista de nombres de estrategias: `A_{1}, A_{3}`. */
 export function strategyList(indices: number[], name: (k: number) => string): string {
-  return indices.map(name).join(',\\ ');
+  return indices.map(name).join(String.raw`,\ `);
 }

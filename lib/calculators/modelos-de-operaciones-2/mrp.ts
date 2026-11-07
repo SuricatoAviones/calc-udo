@@ -208,8 +208,8 @@ export function solveMrp(input: MrpInput): Result {
       explanation:
         'Se calcula cada pieza después de todas las que la contienen, para conocer antes sus necesidades brutas (explosión nivel por nivel).',
       substitution: order
-        .map((i) => `${toLatexText(i.code)}: \\text{nivel } ${level.get(keyOf(i.code))}`)
-        .join(',\\ '),
+        .map((i) => String.raw`${toLatexText(i.code)}: \text{nivel } ${level.get(keyOf(i.code))}`)
+        .join(String.raw`,\ `),
     },
   ];
   const notices: Result['notices'] = [];
@@ -240,7 +240,7 @@ export function solveMrp(input: MrpInput): Result {
         if (release >= 1) plannedReleases[release]! += quantity;
         else pastDue.push({ period: release, quantity });
         lines.push(
-          `t = ${t}:\\ ${n(previous)} + ${n(scheduled[t]!)} - ${n(g[t]!)} = ${n(available)} \\Rightarrow \\text{neta } ${n(net[t]!)},\\ \\text{entrada planeada } ${n(quantity)},\\ \\text{saldo } ${n(balance)},\\ \\text{expedición en } t = ${release}`,
+          String.raw`t = ${t}:\ ${n(previous)} + ${n(scheduled[t]!)} - ${n(g[t]!)} = ${n(available)} \Rightarrow \text{neta } ${n(net[t]!)},\ \text{entrada planeada } ${n(quantity)},\ \text{saldo } ${n(balance)},\ \text{expedición en } t = ${release}`,
         );
       } else {
         balance = available;
@@ -266,12 +266,11 @@ export function solveMrp(input: MrpInput): Result {
           ? `Se pide en múltiplos de ${formatNumber(lot)}.`
           : 'Lote por lote: se pide exactamente la necesidad neta.'
       } Tiempo de entrega: ${item.leadTime}.`,
-      formula:
-        '\\text{Saldo}_t = \\text{saldo}_{t-1} + \\text{entradas programadas}_t - \\text{necesidades brutas}_t',
+      formula: String.raw`\text{Saldo}_t = \text{saldo}_{t-1} + \text{entradas programadas}_t - \text{necesidades brutas}_t`,
       substitution:
         lines.length > 0
-          ? lines.join(' \\\\ ')
-          : '\\text{No hay necesidades netas en el horizonte}',
+          ? lines.join(String.raw` \\ `)
+          : String.raw`\text{No hay necesidades netas en el horizonte}`,
     });
     for (const p of pastDue) {
       notices.push({
@@ -312,7 +311,7 @@ export function solveMrp(input: MrpInput): Result {
       id: `mrp-${r.item}`,
       title: `${r.item}: TE = ${item.leadTime}, existencia = ${formatNumber(item.onHand)}, IS = ${formatNumber(item.safetyStock ?? 0)}, ${item.lotSize ? `lote = ${formatNumber(item.lotSize)}` : 'lote por lote'}`,
       columns: [
-        { key: 'concept', header: '\\text{Periodo}', format: 'text' as const },
+        { key: 'concept', header: String.raw`\text{Periodo}`, format: 'text' as const },
         ...periodColumns,
       ],
       rows: [
@@ -329,9 +328,11 @@ export function solveMrp(input: MrpInput): Result {
   // Un renglón del resumen por pieza: sus expediciones planeadas (cantidad y periodo).
   const releaseItems = records.flatMap((r) => {
     const list = r.plannedReleases.flatMap((q, t) =>
-      q > 0 ? [`${n(q)} \\text{ en } t = ${t + 1}`] : [],
+      q > 0 ? [String.raw`${n(q)} \text{ en } t = ${t + 1}`] : [],
     );
-    return list.length > 0 ? [{ label: `Expedir ${r.item}`, value: list.join(',\\ ') }] : [];
+    return list.length > 0
+      ? [{ label: `Expedir ${r.item}`, value: list.join(String.raw`,\ `) }]
+      : [];
   });
 
   return {
@@ -340,7 +341,7 @@ export function solveMrp(input: MrpInput): Result {
     summary:
       releaseItems.length > 0
         ? releaseItems.slice(0, 8).map((item, k) => ({ ...item, emphasis: k === 0 }))
-        : [{ label: 'Pedidos a expedir', value: '\\text{ninguno}', emphasis: true }],
+        : [{ label: 'Pedidos a expedir', value: String.raw`\text{ninguno}`, emphasis: true }],
     ...emptyTrace(),
     steps,
     tables,

@@ -92,13 +92,13 @@ export function cloneMatrix(m: Matrix): Matrix {
 /** Matriz → LaTeX entre corchetes. */
 export function texMatrix(m: Matrix, digits = MATRIX_DIGITS): Latex {
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** Determinante escrito con barras: `\begin{vmatrix} … \end{vmatrix}`. */
 export function texDeterminant(m: Matrix, digits = MATRIX_DIGITS): Latex {
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return `\\begin{vmatrix} ${rows.join(' \\\\ ')} \\end{vmatrix}`;
+  return String.raw`\begin{vmatrix} ${rows.join(String.raw` \\ `)} \end{vmatrix}`;
 }
 
 /**
@@ -109,7 +109,7 @@ export function texAugmented(m: Matrix, extra: number, digits = MATRIX_DIGITS): 
   const cols = m[0]?.length ?? 0;
   const spec = `${'c'.repeat(cols - extra)}|${'c'.repeat(extra)}`;
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return `\\left[\\begin{array}{${spec}} ${rows.join(' \\\\ ')} \\end{array}\\right]`;
+  return String.raw`\left[\begin{array}{${spec}} ${rows.join(String.raw` \\ `)} \end{array}\right]`;
 }
 
 /** Umbral relativo bajo el cual un pivote se considera cero. */
@@ -174,7 +174,7 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
       const candidates = m
         .slice(k)
         .map((row, r) => `|a_{${k + r + 1}${k + 1}}| = ${n(Math.abs(row[k]!))}`)
-        .join(',\\ ');
+        .join(String.raw`,\ `);
       if (best !== k) {
         [m[k], m[best]] = [m[best]!, m[k]!];
         swaps++;
@@ -182,7 +182,7 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
           title: `Pivoteo parcial: intercambiar R${k + 1} y R${best + 1}`,
           explanation: `En la columna ${k + 1}, el mayor valor absoluto desde la fila ${k + 1} hacia abajo está en la fila ${best + 1}. Se usa como pivote para reducir el error de redondeo.`,
           substitution: candidates,
-          result: `R_{${k + 1}} \\leftrightarrow R_{${best + 1}}:\\quad ${show(m, options.augmentedColumns)}`,
+          result: String.raw`R_{${k + 1}} \leftrightarrow R_{${best + 1}}:\quad ${show(m, options.augmentedColumns)}`,
         });
       } else if (k < m.length - 1) {
         children.push({
@@ -214,9 +214,9 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
       m[i]![k] = 0; // exacto: evita residuos de redondeo bajo la diagonal
       children.push({
         title: `Eliminar a${sub(i + 1, k + 1)} con la fila ${k + 1}`,
-        formula: `f_{${i + 1}${k + 1}} = \\frac{a_{${i + 1}${k + 1}}}{a_{${k + 1}${k + 1}}}, \\qquad R_{${i + 1}} \\leftarrow R_{${i + 1}} - f_{${i + 1}${k + 1}}\\,R_{${k + 1}}`,
-        substitution: `f_{${i + 1}${k + 1}} = \\frac{${n(a)}}{${n(pivot)}} = ${n(factor)}`,
-        result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(',\\ ')})`,
+        formula: String.raw`f_{${i + 1}${k + 1}} = \frac{a_{${i + 1}${k + 1}}}{a_{${k + 1}${k + 1}}}, \qquad R_{${i + 1}} \leftarrow R_{${i + 1}} - f_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
+        substitution: String.raw`f_{${i + 1}${k + 1}} = \frac{${n(a)}}{${n(pivot)}} = ${n(factor)}`,
+        result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(String.raw`,\ `)})`,
       });
     }
     stages.push(cloneMatrix(m));
@@ -252,9 +252,9 @@ export function determinantFromUpper(upper: Matrix, swaps: number): { value: num
         swaps === 0
           ? 'El determinante de una matriz triangular es el producto de su diagonal, y la eliminación (restar a una fila un múltiplo de otra) no lo cambia.'
           : `El determinante de una matriz triangular es el producto de su diagonal. La eliminación no lo cambia, pero cada uno de los ${swaps} intercambio(s) de filas le cambia el signo: se multiplica por (−1)^${swaps}.`,
-      formula: `\\det A = (-1)^{p}\\, a_{11} a_{22} \\cdots a_{${size}${size}}`,
-      substitution: `\\det A = ${swaps === 0 ? '' : `(-1)^{${swaps}}\\,`}${diagonal.map((v) => `(${n(v)})`).join('')}`,
-      result: `\\det A = ${n(value)}`,
+      formula: String.raw`\det A = (-1)^{p}\, a_{11} a_{22} \cdots a_{${size}${size}}`,
+      substitution: String.raw`\det A = ${swaps === 0 ? '' : String.raw`(-1)^{${swaps}}\,`}${diagonal.map((v) => `(${n(v)})`).join('')}`,
+      result: String.raw`\det A = ${n(value)}`,
     },
   };
 }
@@ -277,8 +277,8 @@ export function backSubstitution(upper: Matrix): { x: number[]; steps: Step[] } 
     const idx = i + 1;
     const formula =
       terms.length === 0
-        ? `x_{${idx}} = \\frac{b_{${idx}}}{a_{${idx}${idx}}}`
-        : `x_{${idx}} = \\frac{b_{${idx}} - ${terms.map(({ j }) => `a_{${idx}${j + 1}}x_{${j + 1}}`).join(' - ')}}{a_{${idx}${idx}}}`;
+        ? String.raw`x_{${idx}} = \frac{b_{${idx}}}{a_{${idx}${idx}}}`
+        : String.raw`x_{${idx}} = \frac{b_{${idx}} - ${terms.map(({ j }) => `a_{${idx}${j + 1}}x_{${j + 1}}`).join(' - ')}}{a_{${idx}${idx}}}`;
     const numerator =
       terms.length === 0
         ? n(b)
@@ -286,7 +286,7 @@ export function backSubstitution(upper: Matrix): { x: number[]; steps: Step[] } 
     steps.push({
       title: `Despejar x${subscript(idx)}`,
       formula,
-      substitution: `x_{${idx}} = \\frac{${numerator}}{${n(row[i]!)}}`,
+      substitution: String.raw`x_{${idx}} = \frac{${numerator}}{${n(row[i]!)}}`,
       result: `x_{${idx}} = ${n(x[i]!)}`,
     });
   }

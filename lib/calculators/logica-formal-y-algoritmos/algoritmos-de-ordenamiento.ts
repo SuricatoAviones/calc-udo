@@ -131,37 +131,37 @@ function insertion(a: number[], outOfOrder: (x: number, y: number) => boolean): 
 function code(method: SortMethod, op: string): string {
   if (method === 'burbuja') {
     return pseudocode([
-      [0, '**para** k \\leftarrow 1 **hasta** n - 1 **hacer**'],
-      [1, '\\mathit{hubo} \\leftarrow \\text{falso}'],
-      [1, '**para** j \\leftarrow 1 **hasta** n - k **hacer**'],
+      [0, String.raw`**para** k \leftarrow 1 **hasta** n - 1 **hacer**`],
+      [1, String.raw`\mathit{hubo} \leftarrow \text{falso}`],
+      [1, String.raw`**para** j \leftarrow 1 **hasta** n - k **hacer**`],
       [
         2,
-        `**si** a_j ${op} a_{j+1} **entonces** \\text{intercambiar } a_j,\\ a_{j+1};\\ \\mathit{hubo} \\leftarrow \\text{verdadero}`,
+        String.raw`**si** a_j ${op} a_{j+1} **entonces** \text{intercambiar } a_j,\ a_{j+1};\ \mathit{hubo} \leftarrow \text{verdadero}`,
       ],
       [1, '**fin para**'],
-      [1, '**si no** \\mathit{hubo} **entonces** \\text{terminar}'],
+      [1, String.raw`**si no** \mathit{hubo} **entonces** \text{terminar}`],
       [0, '**fin para**'],
     ]);
   }
   if (method === 'seleccion') {
     const inverse = op === '>' ? '<' : '>';
     return pseudocode([
-      [0, '**para** i \\leftarrow 1 **hasta** n - 1 **hacer**'],
-      [1, 'm \\leftarrow i'],
-      [1, '**para** j \\leftarrow i + 1 **hasta** n **hacer**'],
-      [2, `**si** a_j ${inverse} a_m **entonces** m \\leftarrow j`],
+      [0, String.raw`**para** i \leftarrow 1 **hasta** n - 1 **hacer**`],
+      [1, String.raw`m \leftarrow i`],
+      [1, String.raw`**para** j \leftarrow i + 1 **hasta** n **hacer**`],
+      [2, String.raw`**si** a_j ${inverse} a_m **entonces** m \leftarrow j`],
       [1, '**fin para**'],
-      [1, '**si** m \\ne i **entonces** \\text{intercambiar } a_i,\\ a_m'],
+      [1, String.raw`**si** m \ne i **entonces** \text{intercambiar } a_i,\ a_m`],
       [0, '**fin para**'],
     ]);
   }
   return pseudocode([
-    [0, '**para** i \\leftarrow 2 **hasta** n **hacer**'],
-    [1, '\\mathit{clave} \\leftarrow a_i;\\ j \\leftarrow i - 1'],
-    [1, `**mientras** j \\ge 1 **y** a_j ${op} \\mathit{clave} **hacer**`],
-    [2, 'a_{j+1} \\leftarrow a_j;\\ j \\leftarrow j - 1'],
+    [0, String.raw`**para** i \leftarrow 2 **hasta** n **hacer**`],
+    [1, String.raw`\mathit{clave} \leftarrow a_i;\ j \leftarrow i - 1`],
+    [1, String.raw`**mientras** j \ge 1 **y** a_j ${op} \mathit{clave} **hacer**`],
+    [2, String.raw`a_{j+1} \leftarrow a_j;\ j \leftarrow j - 1`],
     [1, '**fin mientras**'],
-    [1, 'a_{j+1} \\leftarrow \\mathit{clave}'],
+    [1, String.raw`a_{j+1} \leftarrow \mathit{clave}`],
     [0, '**fin para**'],
   ]);
 }
@@ -209,7 +209,7 @@ export function solveSort(input: SortInput): CalculatorResult<SortValue, SortErr
       title: `Algoritmo de ${NAMES[input.method]}`,
       explanation: INTRO[input.method],
       formula: code(input.method, ascending ? '>' : '<'),
-      result: `${listLatex(values)},\\quad n = ${values.length}`,
+      result: String.raw`${listLatex(values)},\quad n = ${values.length}`,
     },
     ...passes.map((p, k) => ({
       title: `Pasada ${k + 1}`,
@@ -247,12 +247,15 @@ export function solveSort(input: SortInput): CalculatorResult<SortValue, SortErr
         id: 'pasadas',
         title: 'Estado de la lista tras cada pasada',
         columns: [
-          { key: 'pass', header: '\\text{Pasada}', format: 'text' },
-          { key: 'list', header: '\\text{Lista}', format: 'latex' },
-          { key: 'comparisons', header: '\\text{Comp.}' },
+          { key: 'pass', header: String.raw`\text{Pasada}`, format: 'text' },
+          { key: 'list', header: String.raw`\text{Lista}`, format: 'latex' },
+          { key: 'comparisons', header: String.raw`\text{Comp.}` },
           {
             key: 'moves',
-            header: input.method === 'insercion' ? '\\text{Desplaz.}' : '\\text{Interc.}',
+            header:
+              input.method === 'insercion'
+                ? String.raw`\text{Desplaz.}`
+                : String.raw`\text{Interc.}`,
           },
         ],
         rows: [

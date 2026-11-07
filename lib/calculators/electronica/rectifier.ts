@@ -43,17 +43,17 @@ export function transformer(v1rms: number, ratio: number): TransformerResult {
     steps: [
       {
         title: 'Tensión de pico en el primario',
-        formula: 'V_{p1} = \\frac{V_{1(rms)}}{0.707} = \\sqrt{2}\\,V_{1(rms)}',
-        substitution: `V_{p1} = \\sqrt{2}\\,(${n(v1rms)})`,
-        result: `V_{p1} = ${n(vp1)}\\ \\text{V}`,
+        formula: String.raw`V_{p1} = \frac{V_{1(rms)}}{0.707} = \sqrt{2}\,V_{1(rms)}`,
+        substitution: String.raw`V_{p1} = \sqrt{2}\,(${n(v1rms)})`,
+        result: String.raw`V_{p1} = ${n(vp1)}\ \text{V}`,
       },
       {
         title: 'Tensión de pico en el secundario',
         explanation:
           'El transformador reductor divide la tensión entre la relación de espiras N₁:N₂.',
-        formula: 'V_{p2} = \\frac{V_{p1}}{N_1/N_2}',
-        substitution: `V_{p2} = \\frac{${n(vp1)}}{${n(ratio)}}`,
-        result: `V_{p2} = ${n(vp2)}\\ \\text{V}\\quad (V_{2(rms)} = ${n(v2rms)}\\ \\text{V})`,
+        formula: String.raw`V_{p2} = \frac{V_{p1}}{N_1/N_2}`,
+        substitution: String.raw`V_{p2} = \frac{${n(vp1)}}{${n(ratio)}}`,
+        result: String.raw`V_{p2} = ${n(vp2)}\ \text{V}\quad (V_{2(rms)} = ${n(v2rms)}\ \text{V})`,
       },
     ],
   };
@@ -84,7 +84,7 @@ export function rectify(vp2: number, type: RectifierType, vk: number, f: number)
     type === 'media-onda'
       ? 'V_{p(out)} = V_{p2} - V_K'
       : type === 'derivacion-central'
-        ? 'V_{p(out)} = 0.5\\,V_{p2} - V_K'
+        ? String.raw`V_{p(out)} = 0.5\,V_{p2} - V_K`
         : 'V_{p(out)} = V_{p2} - 2V_K';
   const substitution =
     type === 'media-onda'
@@ -109,7 +109,7 @@ export function rectify(vp2: number, type: RectifierType, vk: number, f: number)
             : `Conduce un solo diodo, en el semiciclo positivo${vk > 0 ? ', con su caída V_K' : ''}.`,
       formula,
       substitution: vk > 0 ? substitution : undefined,
-      result: `V_{p(out)} = ${n(vpOut)}\\ \\text{V}`,
+      result: String.raw`V_{p(out)} = ${n(vpOut)}\ \text{V}`,
     },
   };
 }

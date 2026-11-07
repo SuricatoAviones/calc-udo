@@ -63,10 +63,10 @@ export function solveCentralLimit(
 
   const target =
     query === 'menor'
-      ? `P(\\bar{X} < ${n(limits[0]!)})`
+      ? String.raw`P(\bar{X} < ${n(limits[0]!)})`
       : query === 'mayor'
-        ? `P(\\bar{X} > ${n(limits[0]!)})`
-        : `P(${n(limits[0]!)} < \\bar{X} < ${n(limits[1]!)})`;
+        ? String.raw`P(\bar{X} > ${n(limits[0]!)})`
+        : String.raw`P(${n(limits[0]!)} < \bar{X} < ${n(limits[1]!)})`;
   const targetZ =
     query === 'menor'
       ? `P(Z < ${n(zs[0]!, 6)})`
@@ -78,39 +78,41 @@ export function solveCentralLimit(
     {
       title: 'Distribución muestral de la media',
       explanation: `Por el teorema del límite central, X̄ es aproximadamente normal con la misma media que la población y una desviación estándar (error estándar) ${size > 1 ? `√${size} veces menor` : 'igual a σ'}.`,
-      formula: '\\mu_{\\bar{X}} = \\mu, \\qquad \\sigma_{\\bar{X}} = \\frac{\\sigma}{\\sqrt{n}}',
-      substitution: `\\mu_{\\bar{X}} = ${n(mu)}, \\qquad \\sigma_{\\bar{X}} = \\frac{${n(sigma)}}{\\sqrt{${size}}}`,
-      result: `\\sigma_{\\bar{X}} = ${n(se)}`,
+      formula: String.raw`\mu_{\bar{X}} = \mu, \qquad \sigma_{\bar{X}} = \frac{\sigma}{\sqrt{n}}`,
+      substitution: String.raw`\mu_{\bar{X}} = ${n(mu)}, \qquad \sigma_{\bar{X}} = \frac{${n(sigma)}}{\sqrt{${size}}}`,
+      result: String.raw`\sigma_{\bar{X}} = ${n(se)}`,
     },
     {
       title: 'Estandarizar',
-      formula: 'z = \\frac{\\bar{x} - \\mu}{\\sigma / \\sqrt{n}}',
+      formula: String.raw`z = \frac{\bar{x} - \mu}{\sigma / \sqrt{n}}`,
       substitution: limits
-        .map((v, i) => `z_{${i + 1}} = \\frac{${n(v)} - ${toLatexOperand(mu)}}{${n(se)}}`)
-        .join(', \\qquad '),
-      result: zs.map((z, i) => `z_{${i + 1}} = ${n(z, 6)}`).join(', \\qquad '),
+        .map((v, i) => String.raw`z_{${i + 1}} = \frac{${n(v)} - ${toLatexOperand(mu)}}{${n(se)}}`)
+        .join(String.raw`, \qquad `),
+      result: zs.map((z, i) => `z_{${i + 1}} = ${n(z, 6)}`).join(String.raw`, \qquad `),
     },
     {
       title: 'Área bajo la normal estándar',
       explanation: 'Φ(z) es el área a la izquierda de z (la de la tabla de la normal).',
-      formula: '\\Phi(z) = P(Z < z)',
-      result: zs.map((z, i) => `\\Phi(${n(z, 6)}) = ${n(phis[i]!, 6)}`).join(', \\qquad '),
+      formula: String.raw`\Phi(z) = P(Z < z)`,
+      result: zs
+        .map((z, i) => String.raw`\Phi(${n(z, 6)}) = ${n(phis[i]!, 6)}`)
+        .join(String.raw`, \qquad `),
     },
     {
       title: 'Calcular la probabilidad',
       formula:
         query === 'menor'
-          ? `${target} \\approx ${targetZ} = \\Phi(z_1)`
+          ? String.raw`${target} \approx ${targetZ} = \Phi(z_1)`
           : query === 'mayor'
-            ? `${target} \\approx ${targetZ} = 1 - \\Phi(z_1)`
-            : `${target} \\approx ${targetZ} = \\Phi(z_2) - \\Phi(z_1)`,
+            ? String.raw`${target} \approx ${targetZ} = 1 - \Phi(z_1)`
+            : String.raw`${target} \approx ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
       substitution:
         query === 'menor'
           ? undefined
           : query === 'mayor'
-            ? `${target} \\approx 1 - ${n(phis[0]!, 6)}`
-            : `${target} \\approx ${n(phis[1]!, 6)} - ${n(phis[0]!, 6)}`,
-      result: `${target} \\approx ${n(probability, 6)}`,
+            ? String.raw`${target} \approx 1 - ${n(phis[0]!, 6)}`
+            : String.raw`${target} \approx ${n(phis[1]!, 6)} - ${n(phis[0]!, 6)}`,
+      result: String.raw`${target} \approx ${n(probability, 6)}`,
     },
   ];
 
@@ -146,8 +148,12 @@ export function solveCentralLimit(
     ok: true,
     value: { probability, standardError: se, z: zs },
     summary: [
-      { label: 'Probabilidad', value: `${target} \\approx ${n(probability, 6)}`, emphasis: true },
-      { label: 'Error estándar', value: `\\sigma_{\\bar{X}} = ${n(se, 6)}` },
+      {
+        label: 'Probabilidad',
+        value: String.raw`${target} \approx ${n(probability, 6)}`,
+        emphasis: true,
+      },
+      { label: 'Error estándar', value: String.raw`\sigma_{\bar{X}} = ${n(se, 6)}` },
       { label: 'Estandarizado', value: targetZ },
     ],
     ...emptyTrace(),

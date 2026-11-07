@@ -19,7 +19,7 @@ function KnownFields() {
             name="vMag"
             label={
               <>
-                <Formula tex={`|\\mathbf{V}| = V_{${suffix}}`} /> (V)
+                <Formula tex={String.raw`|\mathbf{V}| = V_{${suffix}}`} /> (V)
               </>
             }
           />
@@ -39,7 +39,7 @@ function KnownFields() {
             name="iMag"
             label={
               <>
-                <Formula tex={`|\\mathbf{I}| = I_{${suffix}}`} /> (A)
+                <Formula tex={String.raw`|\mathbf{I}| = I_{${suffix}}`} /> (A)
               </>
             }
           />

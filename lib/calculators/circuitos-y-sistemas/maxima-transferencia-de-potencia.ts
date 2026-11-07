@@ -80,10 +80,10 @@ export function solveMaxPower(
 
   const pMaxValue = Number.isFinite(pMax) ? pMax : 0;
   const summary: SummaryItem[] = [
-    { label: 'R_L óptima', value: `${formatNumber(rTh, 4)}\\ \\Omega`, emphasis: true },
-    { label: 'P_máx', value: `${formatNumber(pMaxValue, 4)}\\text{ W}` },
-    { label: 'R_L actual', value: `${formatNumber(loadValue, 4)}\\ \\Omega` },
-    { label: 'P_L actual', value: `${formatNumber(loadPower, 4)}\\text{ W}` },
+    { label: 'R_L óptima', value: String.raw`${formatNumber(rTh, 4)}\ \Omega`, emphasis: true },
+    { label: 'P_máx', value: String.raw`${formatNumber(pMaxValue, 4)}\text{ W}` },
+    { label: 'R_L actual', value: String.raw`${formatNumber(loadValue, 4)}\ \Omega` },
+    { label: 'P_L actual', value: String.raw`${formatNumber(loadPower, 4)}\text{ W}` },
   ];
 
   const transferSteps: Step[] = [
@@ -92,27 +92,27 @@ export function solveMaxPower(
       title: 'Potencia en función de la carga',
       explanation:
         'Con el equivalente de Thévenin, la potencia que recibe una carga R_L es el producto de su tensión por su corriente.',
-      formula: 'P_L = i_L^2 R_L = \\frac{V_{th}^2\\, R_L}{(R_{th} + R_L)^2}',
+      formula: String.raw`P_L = i_L^2 R_L = \frac{V_{th}^2\, R_L}{(R_{th} + R_L)^2}`,
     },
     {
       title: 'Condición de máximo',
       explanation:
         'Se deriva P_L respecto de R_L y se iguala a cero. El máximo ocurre cuando la carga ve la misma resistencia que el equivalente: R_L = R_th.',
-      formula: '\\frac{dP_L}{dR_L} = 0 \\;\\Rightarrow\\; R_L = R_{th}',
-      substitution: `R_L = ${formatNumber(rTh, 6)}\\ \\Omega`,
+      formula: String.raw`\frac{dP_L}{dR_L} = 0 \;\Rightarrow\; R_L = R_{th}`,
+      substitution: String.raw`R_L = ${formatNumber(rTh, 6)}\ \Omega`,
     },
     {
       title: 'Potencia máxima',
       explanation:
         'Al sustituir R_L = R_th, queda la mitad de la tensión de Thévenin sobre la carga.',
-      formula: 'P_{máx} = \\frac{V_{th}^2}{4\\,R_{th}}',
-      substitution: `P_{máx} = \\frac{${formatNumber(vTh, 6)}^2}{4\\,(${formatNumber(rTh, 6)})}`,
-      result: `P_{máx} = ${formatNumber(pMaxValue, 6)}\\text{ W}`,
+      formula: String.raw`P_{máx} = \frac{V_{th}^2}{4\,R_{th}}`,
+      substitution: String.raw`P_{máx} = \frac{${formatNumber(vTh, 6)}^2}{4\,(${formatNumber(rTh, 6)})}`,
+      result: String.raw`P_{máx} = ${formatNumber(pMaxValue, 6)}\text{ W}`,
     },
     {
       title: 'Comparación con la carga actual',
       explanation: `La carga actual es de ${formatNumber(loadValue, 6)} Ω. Solo recibe la potencia máxima si su valor coincide con R_th.`,
-      result: `P_L = ${formatNumber(loadPower, 6)}\\text{ W} \\quad (${((loadPower / pMaxValue) * 100).toFixed(1)}\\,\\%\\ \\text{de } P_{máx})`,
+      result: String.raw`P_L = ${formatNumber(loadPower, 6)}\text{ W} \quad (${((loadPower / pMaxValue) * 100).toFixed(1)}\,\%\ \text{de } P_{máx})`,
     },
   ];
 

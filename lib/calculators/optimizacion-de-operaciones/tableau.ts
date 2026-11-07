@@ -216,7 +216,7 @@ function rowOperation(target: string, coefficient: MValue, pivotRow: string): st
   const negative = coefficient.sign() < 0;
   const abs = negative ? coefficient.scale(Rational.of(-1)) : coefficient;
   const factor = abs.hasM() && !abs.a.isZero() ? `(${abs.toLatex()})` : abs.toLatex();
-  return `\\text{Fila } ${target} \\leftarrow \\text{fila } ${target} ${negative ? '+' : '-'} ${factor === '1' ? '' : `${factor}\\,`}\\text{fila } ${pivotRow}`;
+  return String.raw`\text{Fila } ${target} \leftarrow \text{fila } ${target} ${negative ? '+' : '-'} ${factor === '1' ? '' : String.raw`${factor}\,`}\text{fila } ${pivotRow}`;
 }
 
 export interface IterationInfo {
@@ -267,7 +267,7 @@ export function pivotTableau(
   const enteringLatex = t.columns[e]!.latex;
   const leavingLatex = t.columns[t.basis[r]!]!.latex;
   const operations = [
-    `\\text{Fila pivote } ${enteringLatex} \\leftarrow \\frac{\\text{fila } ${leavingLatex}}{${p.toLatex()}}`,
+    String.raw`\text{Fila pivote } ${enteringLatex} \leftarrow \frac{\text{fila } ${leavingLatex}}{${p.toLatex()}}`,
   ];
   const rows = t.rows.map((row, i) => {
     if (i === r) return pivotRow;
@@ -364,11 +364,11 @@ export function tableauTable(
   info?: IterationInfo,
 ): ResultTable {
   const columns: ResultTable['columns'] = [
-    { key: 'basic', header: '\\text{Básica}', format: 'latex' },
+    { key: 'basic', header: String.raw`\text{Básica}`, format: 'latex' },
     ...t.columns.map((c, j) => ({ key: `c${j}`, header: c.latex, format: 'latex' as const })),
-    { key: 'rhs', header: '\\text{Solución}', format: 'latex' },
+    { key: 'rhs', header: String.raw`\text{Solución}`, format: 'latex' },
   ];
-  if (info) columns.push({ key: 'ratio', header: '\\text{Razón}', format: 'latex' });
+  if (info) columns.push({ key: 'ratio', header: String.raw`\text{Razón}`, format: 'latex' });
   const zRow: Record<string, string | null> = { basic: t.objective, rhs: t.zRhs.toLatex() };
   t.z.forEach((v, j) => {
     zRow[`c${j}`] = v.toLatex();
@@ -386,8 +386,8 @@ export function tableauTable(
       const ratio = info.ratios[i];
       cells.ratio =
         ratio === null || ratio === undefined
-          ? '\\text{—}'
-          : `${ratio.toLatex()}${i === info.leaving ? '\\ \\leftarrow' : ''}`;
+          ? String.raw`\text{—}`
+          : `${ratio.toLatex()}${i === info.leaving ? String.raw`\ \leftarrow` : ''}`;
     }
     return cells;
   });
@@ -405,14 +405,14 @@ export function iterationStep(t: Tableau, info: IterationInfo, number: number): 
     const basic = t.columns[t.basis[i]!]!.latex;
     const ratio = info.ratios[i];
     return ratio === null || ratio === undefined
-      ? `${basic}:\\ \\text{no aplica } (${row[info.entering]!.toLatex()} \\le 0)`
-      : `${basic}:\\ \\frac{${t.rhs[i]!.toLatex()}}{${row[info.entering]!.toLatex()}} = ${ratio.toLatex()}`;
+      ? String.raw`${basic}:\ \text{no aplica } (${row[info.entering]!.toLatex()} \le 0)`
+      : String.raw`${basic}:\ \frac{${t.rhs[i]!.toLatex()}}{${row[info.entering]!.toLatex()}} = ${ratio.toLatex()}`;
   });
   const children: Step[] = [
     {
       title: 'Variable que entra',
       explanation: rule,
-      result: `${entering} \\ \\text{entra (coeficiente } ${info.enteringValue.toLatex()})`,
+      result: String.raw`${entering} \ \text{entra (coeficiente } ${info.enteringValue.toLatex()})`,
     },
     {
       title: 'Variable que sale (razón mínima)',
@@ -421,8 +421,8 @@ export function iterationStep(t: Tableau, info: IterationInfo, number: number): 
       substitution: latexLines(ratioLines),
       result:
         info.leaving === null
-          ? '\\text{Ningún coeficiente positivo: no hay razón mínima}'
-          : `${t.columns[t.basis[info.leaving]!]!.latex} \\ \\text{sale; pivote } = ${info.pivot!.toLatex()}`,
+          ? String.raw`\text{Ningún coeficiente positivo: no hay razón mínima}`
+          : String.raw`${t.columns[t.basis[info.leaving]!]!.latex} \ \text{sale; pivote } = ${info.pivot!.toLatex()}`,
     },
   ];
   if (info.leaving !== null) {
@@ -442,7 +442,7 @@ export function decisionValuesLatex(t: Tableau): string {
   return t.columns
     .map((c, j) => (c.kind === 'decision' ? `${c.latex} = ${values[j]!.toLatex()}` : null))
     .filter(Boolean)
-    .join(',\\ ');
+    .join(String.raw`,\ `);
 }
 
 /** Variables básicas en cero (solución degenerada). */
@@ -532,12 +532,14 @@ export function dualTableauTable(
   const table = tableauTable(t, id, title);
   if (info) {
     table.rows = table.rows.map((row, i) =>
-      i === info.leaving + 1 ? { ...row, basic: `${row.basic}\\ \\leftarrow` } : row,
+      i === info.leaving + 1 ? { ...row, basic: String.raw`${row.basic}\ \leftarrow` } : row,
     );
-    const ratioRow: Record<string, string | null> = { basic: '\\text{Razón}', rhs: null };
+    const ratioRow: Record<string, string | null> = { basic: String.raw`\text{Razón}`, rhs: null };
     info.ratios.forEach((ratio, j) => {
       ratioRow[`c${j}`] =
-        ratio === null ? null : `${ratio.toLatex()}${j === info.entering ? '\\ \\uparrow' : ''}`;
+        ratio === null
+          ? null
+          : `${ratio.toLatex()}${j === info.entering ? String.raw`\ \uparrow` : ''}`;
     });
     table.rows.push(ratioRow);
   }
@@ -552,7 +554,7 @@ export function dualIterationStep(t: Tableau, info: DualIterationInfo, number: n
     {
       title: 'Variable que sale',
       explanation: 'Sale la variable básica con el lado derecho más negativo.',
-      result: `${t.columns[t.basis[r]!]!.latex} = ${t.rhs[r]!.toLatex()} \\ \\text{sale}`,
+      result: String.raw`${t.columns[t.basis[r]!]!.latex} = ${t.rhs[r]!.toLatex()} \ \text{sale}`,
     },
     {
       title: 'Variable que entra',
@@ -563,14 +565,14 @@ export function dualIterationStep(t: Tableau, info: DualIterationInfo, number: n
           ratio === null
             ? []
             : [
-                `${t.columns[j]!.latex}:\\ \\left|\\frac{${t.z[j]!.a.toLatex()}}{${t.rows[r]![j]!.toLatex()}}\\right| = ${ratio.toLatex()}`,
+                String.raw`${t.columns[j]!.latex}:\ \left|\frac{${t.z[j]!.a.toLatex()}}{${t.rows[r]![j]!.toLatex()}}\right| = ${ratio.toLatex()}`,
               ],
         ),
       ),
       result:
         e === null
-          ? '\\text{Ningún coeficiente negativo en la fila: no hay variable que entre}'
-          : `${t.columns[e]!.latex} \\ \\text{entra; pivote } = ${t.rows[r]![e]!.toLatex()}`,
+          ? String.raw`\text{Ningún coeficiente negativo en la fila: no hay variable que entre}`
+          : String.raw`${t.columns[e]!.latex} \ \text{entra; pivote } = ${t.rows[r]![e]!.toLatex()}`,
     },
   ];
   if (e !== null) {

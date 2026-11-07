@@ -170,7 +170,7 @@ export function zpkTex(tf: TransferFunction): string {
   const { gain, zeros, poles } = zpk(tf);
   const top = zeros.length ? factoredTex(zeros, 1) : '1';
   if (poles.length === 0) return zeros.length ? `${gainPrefix(gain)}${top}` : n(gain);
-  return `${gainPrefix(gain)}\\frac{${top}}{${factoredTex(poles, 1)}}`;
+  return String.raw`${gainPrefix(gain)}\frac{${top}}{${factoredTex(poles, 1)}}`;
 }
 
 function gainPrefix(gain: number): string {
@@ -202,18 +202,18 @@ export function rootsText(roots: PolyRoot[]): string {
 
 /** Raíces en LaTeX: `s = -1,\ s = -2 \pm j1.41421`. */
 export function rootsTex(roots: PolyRoot[], variable = 's'): string {
-  if (roots.length === 0) return '\\text{ninguno}';
+  if (roots.length === 0) return String.raw`\text{ninguno}`;
   return roots
     .filter((r) => r.value.im >= 0)
     .map((r) => {
       const value =
         r.value.im === 0
           ? n(r.value.re)
-          : `${r.value.re === 0 ? '' : n(r.value.re)} \\pm j${n(r.value.im)}`;
-      const mult = r.multiplicity > 1 ? `\\ (\\times ${r.multiplicity})` : '';
+          : String.raw`${r.value.re === 0 ? '' : n(r.value.re)} \pm j${n(r.value.im)}`;
+      const mult = r.multiplicity > 1 ? String.raw`\ (\times ${r.multiplicity})` : '';
       return `${variable} = ${value}${mult}`;
     })
-    .join(',\\ ');
+    .join(String.raw`,\ `);
 }
 
 /** Puntos (Re, Im) de las raíces, con repeticiones según la multiplicidad. */

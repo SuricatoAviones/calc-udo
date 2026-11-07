@@ -177,8 +177,8 @@ export function solveContinuous(
     },
     {
       title: 'Media, varianza y desviación estándar',
-      formula: `\\mu = ${model.meanFormula}, \\qquad \\sigma^2 = ${model.varianceFormula}`,
-      result: `\\mu = ${n(model.mean)}, \\qquad \\sigma^2 = ${n(model.variance)}, \\qquad \\sigma = ${n(standardDeviation)}`,
+      formula: String.raw`\mu = ${model.meanFormula}, \qquad \sigma^2 = ${model.varianceFormula}`,
+      result: String.raw`\mu = ${n(model.mean)}, \qquad \sigma^2 = ${n(model.variance)}, \qquad \sigma = ${n(standardDeviation)}`,
     },
   ];
 
@@ -205,9 +205,9 @@ export function solveContinuous(
     },
     summary: [
       { label: 'Probabilidad', value: `${target} = ${n(probability, 6)}`, emphasis: true },
-      { label: 'Media', value: `\\mu = ${n(model.mean, 6)}` },
-      { label: 'Varianza', value: `\\sigma^2 = ${n(model.variance, 6)}` },
-      { label: 'Desviación estándar', value: `\\sigma = ${n(standardDeviation, 6)}` },
+      { label: 'Media', value: String.raw`\mu = ${n(model.mean, 6)}` },
+      { label: 'Varianza', value: String.raw`\sigma^2 = ${n(model.variance, 6)}` },
+      { label: 'Desviación estándar', value: String.raw`\sigma = ${n(standardDeviation, 6)}` },
     ],
     ...emptyTrace(),
     steps,

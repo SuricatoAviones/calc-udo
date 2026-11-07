@@ -72,26 +72,30 @@ export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, N
       title: 'Estandarizar',
       explanation:
         'Se transforma X ~ N(μ, σ) en la normal estándar Z ~ N(0, 1) para usar una sola tabla (o función) para todas las normales.',
-      formula: 'z = \\frac{x - \\mu}{\\sigma}',
+      formula: String.raw`z = \frac{x - \mu}{\sigma}`,
       substitution: limits
-        .map((v, i) => `z_{${i + 1}} = \\frac{${n(v)} - ${toLatexOperand(mu)}}{${n(sigma)}}`)
-        .join(', \\qquad '),
-      result: zs.map((z, i) => `z_{${i + 1}} = ${n(z, 6)}`).join(', \\qquad '),
+        .map(
+          (v, i) => String.raw`z_{${i + 1}} = \frac{${n(v)} - ${toLatexOperand(mu)}}{${n(sigma)}}`,
+        )
+        .join(String.raw`, \qquad `),
+      result: zs.map((z, i) => `z_{${i + 1}} = ${n(z, 6)}`).join(String.raw`, \qquad `),
     },
     {
       title: 'Buscar el área en la normal estándar',
       explanation: 'Φ(z) es el área bajo la curva a la izquierda de z (la que dan las tablas).',
-      formula: '\\Phi(z) = P(Z < z)',
-      result: zs.map((z, i) => `\\Phi(${n(z, 6)}) = ${n(phis[i]!, 6)}`).join(', \\qquad '),
+      formula: String.raw`\Phi(z) = P(Z < z)`,
+      result: zs
+        .map((z, i) => String.raw`\Phi(${n(z, 6)}) = ${n(phis[i]!, 6)}`)
+        .join(String.raw`, \qquad `),
     },
     {
       title: 'Calcular la probabilidad',
       formula:
         query === 'menor'
-          ? `${target} = ${targetZ} = \\Phi(z_1)`
+          ? String.raw`${target} = ${targetZ} = \Phi(z_1)`
           : query === 'mayor'
-            ? `${target} = ${targetZ} = 1 - \\Phi(z_1)`
-            : `${target} = ${targetZ} = \\Phi(z_2) - \\Phi(z_1)`,
+            ? String.raw`${target} = ${targetZ} = 1 - \Phi(z_1)`
+            : String.raw`${target} = ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
       substitution:
         query === 'menor'
           ? undefined

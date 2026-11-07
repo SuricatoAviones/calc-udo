@@ -75,7 +75,7 @@ function powerFactorTex(p: Complex, k: number, variable: string): string {
   const base = factorTex(p, variable);
   const needsParens = !C.isZero(p);
   if (k === 1) return base;
-  return needsParens ? `\\left(${base}\\right)^{${k}}` : `${base}^{${k}}`;
+  return needsParens ? String.raw`\left(${base}\right)^{${k}}` : `${base}^{${k}}`;
 }
 
 /** Forma general de la expansión: `\frac{K_{1}}{s + 2} + \frac{K_{2}}{(s + 1)^{2}}`. */
@@ -85,7 +85,7 @@ export function expansionTemplate(poles: PoleExpansion[], variable: string, dire
   let index = 1;
   for (const p of poles) {
     for (let k = 1; k <= p.multiplicity; k++) {
-      parts.push(`\\frac{K_{${index}}}{${powerFactorTex(p.pole, k, variable)}}`);
+      parts.push(String.raw`\frac{K_{${index}}}{${powerFactorTex(p.pole, k, variable)}}`);
       index++;
     }
   }
@@ -99,11 +99,11 @@ export function expansionTex(poles: PoleExpansion[], variable: string, direct: P
   for (const p of poles) {
     p.residues.forEach((r, i) => {
       if (C.isZero(r, 1e-12)) return;
-      const value = C.isReal(r, 1e-12) ? n(r.re) : `\\left(${rect(r)}\\right)`;
-      parts.push(`\\frac{${value}}{${powerFactorTex(p.pole, i + 1, variable)}}`);
+      const value = C.isReal(r, 1e-12) ? n(r.re) : String.raw`\left(${rect(r)}\right)`;
+      parts.push(String.raw`\frac{${value}}{${powerFactorTex(p.pole, i + 1, variable)}}`);
     });
   }
-  return parts.join(' + ').replace(/\+ \\frac\{-/g, '- \\frac{');
+  return parts.join(' + ').replace(/\+ \\frac\{-/g, String.raw`- \frac{`);
 }
 
 export function residueSteps(
@@ -140,8 +140,8 @@ export function residueSteps(
         steps.push({
           title: `Residuo ${textName} (polo ${textPole})`,
           explanation: 'Polo simple: se multiplica por el factor del polo y se evalúa en él.',
-          formula: `${name} = \\left.(${factorTex(p.pole, variable)})\\,${fn}(${variable})\\right|_{${variable} = ${poleTex(p.pole)}}`,
-          substitution: `${name} = \\frac{${rect(numValue)}}{${rect(restValue)}}`,
+          formula: String.raw`${name} = \left.(${factorTex(p.pole, variable)})\,${fn}(${variable})\right|_{${variable} = ${poleTex(p.pole)}}`,
+          substitution: String.raw`${name} = \frac{${rect(numValue)}}{${rect(restValue)}}`,
           result: `${name} = ${rect(residue)}`,
         });
         continue;
@@ -151,15 +151,15 @@ export function residueSteps(
         order === 0
           ? ''
           : order === 1
-            ? `\\frac{d}{d${variable}}`
-            : `\\frac{1}{${order}!}\\frac{d^{${order}}}{d${variable}^{${order}}}`;
+            ? String.raw`\frac{d}{d${variable}}`
+            : String.raw`\frac{1}{${order}!}\frac{d^{${order}}}{d${variable}^{${order}}}`;
       steps.push({
         title: `Residuo ${textName} (polo ${textPole} de multiplicidad ${m})`,
         explanation:
           order === 0
             ? 'Coeficiente de la potencia más alta: se multiplica por el factor elevado a la multiplicidad y se evalúa.'
             : `Polo repetido: se deriva ${order} ${order === 1 ? 'vez' : 'veces'} antes de evaluar.`,
-        formula: `${name} = ${derivative}\\left[${powerFactorTex(p.pole, m, variable)}\\,${fn}(${variable})\\right]_{${variable} = ${poleTex(p.pole)}}`,
+        formula: String.raw`${name} = ${derivative}\left[${powerFactorTex(p.pole, m, variable)}\,${fn}(${variable})\right]_{${variable} = ${poleTex(p.pole)}}`,
         result: `${name} = ${rect(residue)}`,
       });
     }
@@ -181,8 +181,8 @@ function pairStep(p: PoleExpansion): Step | null {
     if (p.pole.im === 0) {
       const general =
         k === 1
-          ? `\\frac{K}{s - p} \\leftrightarrow K e^{pt}`
-          : `\\frac{K}{(s - p)^{k}} \\leftrightarrow K \\frac{t^{k-1}}{(k-1)!} e^{pt}`;
+          ? String.raw`\frac{K}{s - p} \leftrightarrow K e^{pt}`
+          : String.raw`\frac{K}{(s - p)^{k}} \leftrightarrow K \frac{t^{k-1}}{(k-1)!} e^{pt}`;
       children.push({
         title: `Polo real ${C.toTextRect(p.pole, DIGITS)}${k > 1 ? `, orden ${k}` : ''}`,
         formula: general,
@@ -196,9 +196,9 @@ function pairStep(p: PoleExpansion): Step | null {
         explanation: `Con K = |K|∠θ: 2|K| = ${formatNumber(magnitude, DIGITS)} y θ = ${formatNumber(angle, DIGITS)}°.`,
         formula:
           k === 1
-            ? `\\frac{K}{s - p} + \\frac{K^{*}}{s - p^{*}} \\leftrightarrow 2|K| e^{\\sigma t}\\cos(\\omega t + \\theta) = 2\\,\\mathrm{Re}(K)\\,e^{\\sigma t}\\cos\\omega t - 2\\,\\mathrm{Im}(K)\\,e^{\\sigma t}\\sin\\omega t`
-            : `\\frac{K}{(s - p)^{k}} + \\frac{K^{*}}{(s - p^{*})^{k}} \\leftrightarrow \\frac{2|K|\\,t^{k-1}}{(k-1)!} e^{\\sigma t}\\cos(\\omega t + \\theta)`,
-        substitution: `\\sigma = ${n(sigma)},\\ \\omega = ${n(p.pole.im)}`,
+            ? String.raw`\frac{K}{s - p} + \frac{K^{*}}{s - p^{*}} \leftrightarrow 2|K| e^{\sigma t}\cos(\omega t + \theta) = 2\,\mathrm{Re}(K)\,e^{\sigma t}\cos\omega t - 2\,\mathrm{Im}(K)\,e^{\sigma t}\sin\omega t`
+            : String.raw`\frac{K}{(s - p)^{k}} + \frac{K^{*}}{(s - p^{*})^{k}} \leftrightarrow \frac{2|K|\,t^{k-1}}{(k-1)!} e^{\sigma t}\cos(\omega t + \theta)`,
+        substitution: String.raw`\sigma = ${n(sigma)},\ \omega = ${n(p.pole.im)}`,
         result: time,
       });
     }
@@ -225,12 +225,14 @@ export function delayedTex(delay: number, direct: Poly, pieces: TimePiece[]): st
     ...piecesLatexTerms(pieces, variable),
   ];
   if (delay === 0) return joinTerms(terms);
-  const step = `u\\left(${variable}\\right)`;
+  const step = String.raw`u\left(${variable}\right)`;
   if (terms.length === 1) {
     const [term] = terms;
-    return joinTerms([{ coef: term!.coef, body: term!.body ? `${term!.body}\\,${step}` : step }]);
+    return joinTerms([
+      { coef: term!.coef, body: term!.body ? String.raw`${term!.body}\,${step}` : step },
+    ]);
   }
-  return `\\left[${joinTerms(terms)}\\right]${step}`;
+  return String.raw`\left[${joinTerms(terms)}\right]${step}`;
 }
 
 /** Une sumandos ya escritos en LaTeX respetando los signos. */
@@ -322,7 +324,7 @@ export function inverseLaplace(
     if (impulses.length > 0) {
       pairSteps.unshift({
         title: 'Parte polinomial',
-        formula: `1 \\leftrightarrow \\delta(t),\\quad s \\leftrightarrow \\delta'(t)`,
+        formula: String.raw`1 \leftrightarrow \delta(t),\quad s \leftrightarrow \delta'(t)`,
         result: joinTerms(impulses),
       });
     }
@@ -338,7 +340,7 @@ export function inverseLaplace(
     if (group.delay > 0) {
       groupSteps.push({
         title: 'Desplazamiento en el tiempo',
-        formula: `e^{-as}F(s) \\leftrightarrow f(t - a)\\,u(t - a)`,
+        formula: String.raw`e^{-as}F(s) \leftrightarrow f(t - a)\,u(t - a)`,
         result: delayedTex(group.delay, pf.direct, pieces),
       });
     }
@@ -378,7 +380,7 @@ export function inverseLaplace(
     { key: 'orden', header: 'k' },
     { key: 'residuo', header: 'K', format: 'latex' },
     { key: 'modulo', header: '|K|' },
-    { key: 'angulo', header: '\\angle K\\,(^{\\circ})' },
+    { key: 'angulo', header: String.raw`\angle K\,(^{\circ})` },
   ];
 
   return {

@@ -86,12 +86,11 @@ export function solveKnapsack({
     {
       title: 'Elementos del modelo',
       explanation: `Etapa i = artículo i (${count} etapas). La alternativa m_i es cuántas unidades del artículo i se cargan y el estado x_i es la capacidad que queda para los artículos i, …, ${count}. Se resuelve en reversa, desde el último artículo.`,
-      formula:
-        'f_i(x_i) = \\max_{m_i = 0, 1, \\ldots, \\lfloor x_i / w_i \\rfloor} \\left\\{ r_i m_i + f_{i+1}(x_i - w_i m_i) \\right\\}, \\qquad f_{n+1} = 0',
+      formula: String.raw`f_i(x_i) = \max_{m_i = 0, 1, \ldots, \lfloor x_i / w_i \rfloor} \left\{ r_i m_i + f_{i+1}(x_i - w_i m_i) \right\}, \qquad f_{n+1} = 0`,
       result: latexLines(
         items.map(
           (item, i) =>
-            `${t(item.name)}:\\ w_{${i + 1}} = ${item.weight},\\ r_{${i + 1}} = ${n(item.value)}${item.maxUnits === undefined ? '' : `,\\ m_{${i + 1}} \\le ${item.maxUnits}`}`,
+            String.raw`${t(item.name)}:\ w_{${i + 1}} = ${item.weight},\ r_{${i + 1}} = ${n(item.value)}${item.maxUnits === undefined ? '' : String.raw`,\ m_{${i + 1}} \le ${item.maxUnits}`}`,
         ),
       ),
     },
@@ -121,13 +120,13 @@ export function solveKnapsack({
       });
       children.push({
         title: `Capacidad x${stage} = ${x}`,
-        substitution: `f_{${stage}}(${x}) = ${optimumLatex(
+        substitution: String.raw`f_{${stage}}(${x}) = ${optimumLatex(
           'max',
           values,
-        )} \\quad \\text{con } ${options
-          .map((m) => `m = ${m}:\\ ${n(r)}(${m}) + f_{${stage + 1}}(${x - w * m})`)
-          .join(',\\ ')}`,
-        result: `f_{${stage}}(${x}) = ${n(f[i]![x]!)}, \\qquad m_{${stage}}^* = ${best.map((k) => options[k]!).join('\\ \\text{o}\\ ')}`,
+        )} \quad \text{con } ${options
+          .map((m) => String.raw`m = ${m}:\ ${n(r)}(${m}) + f_{${stage + 1}}(${x - w * m})`)
+          .join(String.raw`,\ `)}`,
+        result: String.raw`f_{${stage}}(${x}) = ${n(f[i]![x]!)}, \qquad m_{${stage}}^* = ${best.map((k) => options[k]!).join(String.raw`\ \text{o}\ `)}`,
       });
     }
     steps.push({
@@ -158,7 +157,7 @@ export function solveKnapsack({
   for (let i = 0; i < count; i++) {
     const m = decisions[i]![x]!;
     units.push(m);
-    walk.push(`x_{${i + 1}} = ${x} \\Rightarrow m_{${i + 1}}^* = ${m}`);
+    walk.push(String.raw`x_{${i + 1}} = ${x} \Rightarrow m_{${i + 1}}^* = ${m}`);
     x -= items[i]!.weight * m;
   }
   const usedCapacity = W - x;
@@ -168,7 +167,7 @@ export function solveKnapsack({
     explanation:
       'Con x₁ = W se lee m₁* en la etapa 1; la capacidad que queda, x₂ = x₁ − w₁m₁*, da m₂* en la etapa 2, y así sucesivamente.',
     substitution: latexLines(walk),
-    result: `m^* = \\left(${units.join(',\\ ')}\\right), \\qquad f_1(${W}) = ${n(totalValue)}`,
+    result: String.raw`m^* = \left(${units.join(String.raw`,\ `)}\right), \qquad f_1(${W}) = ${n(totalValue)}`,
   });
 
   return {
@@ -184,9 +183,9 @@ export function solveKnapsack({
       { label: 'Beneficio máximo', value: n(totalValue), emphasis: true },
       {
         label: 'Unidades de cada artículo',
-        value: items.map((item, i) => `${t(item.name)}: ${units[i]}`).join(',\\quad '),
+        value: items.map((item, i) => `${t(item.name)}: ${units[i]}`).join(String.raw`,\quad `),
       },
-      { label: 'Capacidad usada', value: `${usedCapacity}\\ \\text{de}\\ ${W}` },
+      { label: 'Capacidad usada', value: String.raw`${usedCapacity}\ \text{de}\ ${W}` },
     ],
     ...emptyTrace(),
     steps,
@@ -195,7 +194,7 @@ export function solveKnapsack({
         id: 'solucion',
         title: 'Carga óptima',
         columns: [
-          { key: 'name', header: '\\text{Artículo}', format: 'text' },
+          { key: 'name', header: String.raw`\text{Artículo}`, format: 'text' },
           { key: 'units', header: 'm_i' },
           { key: 'weight', header: 'w_i m_i' },
           { key: 'value', header: 'r_i m_i' },

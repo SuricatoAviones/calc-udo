@@ -68,8 +68,8 @@ const op = (v: number) => toLatexOperand(v, 8);
 /** Σ x^k, para la notación de las ecuaciones normales. */
 function sumName(power: number, withY: boolean): string {
   const x = power === 0 ? '' : power === 1 ? 'x_i' : `x_i^{${power}}`;
-  if (withY) return `\\sum ${x}${x ? '\\,' : ''}y_i`;
-  return power === 0 ? 'n' : `\\sum ${x}`;
+  if (withY) return String.raw`\sum ${x}${x ? String.raw`\,` : ''}y_i`;
+  return power === 0 ? 'n' : String.raw`\sum ${x}`;
 }
 
 export function solveLeastSquares(
@@ -100,7 +100,7 @@ export function solveLeastSquares(
       result: [
         ...sumX.slice(1).map((v, k) => `${sumName(k + 1, false)} = ${n(v)}`),
         ...sumXY.map((v, k) => `${sumName(k, true)} = ${n(v)}`),
-      ].join(',\\quad '),
+      ].join(String.raw`,\quad `),
     },
   ];
 
@@ -109,10 +109,10 @@ export function solveLeastSquares(
     title: 'Ecuaciones normales',
     explanation:
       'Se derivan Sr respecto de cada coeficiente y se igualan a 0. Queda un sistema lineal de m + 1 ecuaciones.',
-    formula: `\\begin{aligned} ${A.map(
+    formula: String.raw`\begin{aligned} ${A.map(
       (row, j) =>
-        `${row.map((_, k) => `${sumName(j + k, false)}\\,a_{${k}}`).join(' + ')} &= ${sumName(j, true)}`,
-    ).join(' \\\\ ')} \\end{aligned}`,
+        `${row.map((_, k) => String.raw`${sumName(j + k, false)}\,a_{${k}}`).join(' + ')} &= ${sumName(j, true)}`,
+    ).join(String.raw` \\ `)} \end{aligned}`,
     substitution: texAugmented(system, 1, 8),
   });
 
@@ -136,16 +136,15 @@ export function solveLeastSquares(
     const [sy, sxy] = sumXY as [number, number];
     steps.push({
       title: 'Coeficientes de la recta',
-      formula:
-        'a_1 = \\frac{n \\sum x_i y_i - \\sum x_i \\sum y_i}{n \\sum x_i^2 - \\left(\\sum x_i\\right)^2}, \\qquad a_0 = \\bar{y} - a_1 \\bar{x}',
-      substitution: `a_1 = \\frac{${n(s0)}(${n(sxy)}) - ${op(s1)}${op(sy)}}{${n(s0)}(${n(s2)}) - ${op(s1)}^2}, \\qquad a_0 = ${n(sy / s0)} - ${op(a[1]!)}${op(s1 / s0)}`,
-      result: `a_1 = ${n(a[1]!)}, \\quad a_0 = ${n(a[0]!)}`,
+      formula: String.raw`a_1 = \frac{n \sum x_i y_i - \sum x_i \sum y_i}{n \sum x_i^2 - \left(\sum x_i\right)^2}, \qquad a_0 = \bar{y} - a_1 \bar{x}`,
+      substitution: String.raw`a_1 = \frac{${n(s0)}(${n(sxy)}) - ${op(s1)}${op(sy)}}{${n(s0)}(${n(s2)}) - ${op(s1)}^2}, \qquad a_0 = ${n(sy / s0)} - ${op(a[1]!)}${op(s1 / s0)}`,
+      result: String.raw`a_1 = ${n(a[1]!)}, \quad a_0 = ${n(a[0]!)}`,
     });
   } else {
     steps.push({
       title: 'Resolver el sistema',
       explanation: 'Se resuelve con eliminación de Gauss y pivoteo parcial.',
-      result: a.map((v, k) => `a_{${k}} = ${n(v)}`).join(',\\quad '),
+      result: a.map((v, k) => `a_{${k}} = ${n(v)}`).join(String.raw`,\quad `),
     });
   }
 
@@ -172,12 +171,12 @@ export function solveLeastSquares(
     children: [
       {
         title: 'Suma total de cuadrados',
-        formula: 'S_t = \\sum (y_i - \\bar{y})^2',
-        result: `\\bar{y} = ${n(mean)}, \\quad S_t = ${n(st)}`,
+        formula: String.raw`S_t = \sum (y_i - \bar{y})^2`,
+        result: String.raw`\bar{y} = ${n(mean)}, \quad S_t = ${n(st)}`,
       },
       {
         title: 'Suma de los cuadrados de los residuos',
-        formula: `S_r = \\sum (y_i - ${m === 1 ? 'a_0 - a_1 x_i' : '\\hat{y}_i'})^2`,
+        formula: String.raw`S_r = \sum (y_i - ${m === 1 ? 'a_0 - a_1 x_i' : String.raw`\hat{y}_i`})^2`,
         result: `S_r = ${n(sr)}`,
       },
       ...(sy === null
@@ -185,8 +184,8 @@ export function solveLeastSquares(
         : [
             {
               title: 'Desviación estándar',
-              formula: 's_y = \\sqrt{\\frac{S_t}{n - 1}}',
-              substitution: `s_y = \\sqrt{\\frac{${n(st)}}{${count - 1}}}`,
+              formula: String.raw`s_y = \sqrt{\frac{S_t}{n - 1}}`,
+              substitution: String.raw`s_y = \sqrt{\frac{${n(st)}}{${count - 1}}}`,
               result: `s_y = ${n(sy)}`,
             },
           ]),
@@ -195,8 +194,8 @@ export function solveLeastSquares(
         : [
             {
               title: 'Error estándar de la estimación',
-              formula: `s_{y/x} = \\sqrt{\\frac{S_r}{n - (m + 1)}}`,
-              substitution: `s_{y/x} = \\sqrt{\\frac{${n(sr)}}{${count} - ${m + 1}}}`,
+              formula: String.raw`s_{y/x} = \sqrt{\frac{S_r}{n - (m + 1)}}`,
+              substitution: String.raw`s_{y/x} = \sqrt{\frac{${n(sr)}}{${count} - ${m + 1}}}`,
               result: `s_{y/x} = ${n(standardError)}`,
             },
           ]),
@@ -205,9 +204,9 @@ export function solveLeastSquares(
         : [
             {
               title: 'Coeficiente de determinación',
-              formula: 'r^2 = \\frac{S_t - S_r}{S_t}',
-              substitution: `r^2 = \\frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
-              result: `r^2 = ${n(r2)}, \\quad r = ${n(r!)}`,
+              formula: String.raw`r^2 = \frac{S_t - S_r}{S_t}`,
+              substitution: String.raw`r^2 = \frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
+              result: String.raw`r^2 = ${n(r2)}, \quad r = ${n(r!)}`,
             },
           ]),
     ],
@@ -253,10 +252,10 @@ export function solveLeastSquares(
           { key: 'i', header: 'i' },
           { key: 'x', header: 'x_i' },
           { key: 'y', header: 'y_i' },
-          { key: 'fit', header: '\\hat{y}_i' },
-          { key: 'e', header: 'e_i = y_i - \\hat{y}_i' },
+          { key: 'fit', header: String.raw`\hat{y}_i` },
+          { key: 'e', header: String.raw`e_i = y_i - \hat{y}_i` },
           { key: 'e2', header: 'e_i^2' },
-          { key: 'dev2', header: '(y_i - \\bar{y})^2' },
+          { key: 'dev2', header: String.raw`(y_i - \bar{y})^2` },
         ],
         rows: x.map((xi, i) => ({
           i: i + 1,

@@ -156,7 +156,7 @@ export function numeralLatex(
       .join('');
     const period =
       periodStart === null ? '' : fracDigits.slice(periodStart).map(digitChar).join('');
-    frac = `.${fixed}${period ? `\\overline{${period}}` : ''}${truncated ? '\\ldots' : ''}`;
+    frac = `.${fixed}${period ? String.raw`\overline{${period}}` : ''}${truncated ? String.raw`\ldots` : ''}`;
   }
   return `${negative ? '-' : ''}${int}${frac}_{${base}}`;
 }

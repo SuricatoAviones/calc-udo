@@ -46,19 +46,21 @@ function exponentialModel(
     pdf: (x) => (x < 0 ? 0 : Math.exp(-x / beta) / beta),
     cdf: (x) => (x <= 0 ? 0 : 1 - Math.exp(-x / beta)),
     pdfFormula: byRate
-      ? `\\lambda e^{-\\lambda x} = ${n(value)}\\,e^{-${n(value)}x}, \\quad x > 0`
-      : `\\frac{1}{\\beta} e^{-x/\\beta} = \\frac{1}{${n(beta)}} e^{-x/${n(beta)}}, \\quad x > 0`,
-    cdfFormula: byRate ? '1 - e^{-\\lambda x}' : '1 - e^{-x/\\beta}',
+      ? String.raw`\lambda e^{-\lambda x} = ${n(value)}\,e^{-${n(value)}x}, \quad x > 0`
+      : String.raw`\frac{1}{\beta} e^{-x/\beta} = \frac{1}{${n(beta)}} e^{-x/${n(beta)}}, \quad x > 0`,
+    cdfFormula: byRate ? String.raw`1 - e^{-\lambda x}` : String.raw`1 - e^{-x/\beta}`,
     cdfExplanation:
       'Integrando la densidad desde 0 hasta x. Su complemento, P(X > x), es la probabilidad de que no ocurra ningún evento de Poisson antes de x.',
     cdfSubstitution: (x) =>
       byRate ? `1 - e^{-(${n(value)})(${n(x)})}` : `1 - e^{-${n(x)}/${n(beta)}}`,
     mean: beta,
     variance: beta ** 2,
-    meanFormula: byRate ? `\\frac{1}{\\lambda} = \\frac{1}{${n(value)}}` : `\\beta = ${n(beta)}`,
+    meanFormula: byRate
+      ? String.raw`\frac{1}{\lambda} = \frac{1}{${n(value)}}`
+      : String.raw`\beta = ${n(beta)}`,
     varianceFormula: byRate
-      ? `\\frac{1}{\\lambda^2} = \\frac{1}{(${n(value)})^2}`
-      : `\\beta^2 = (${n(beta)})^2`,
+      ? String.raw`\frac{1}{\lambda^2} = \frac{1}{(${n(value)})^2}`
+      : String.raw`\beta^2 = (${n(beta)})^2`,
     explanation: byRate
       ? `X es el tiempo (o espacio) hasta el primer evento cuando ocurren en promedio λ = ${formatNumber(value)} eventos por unidad. Su media es 1/λ = ${formatNumber(beta)}.`
       : `X es el tiempo (o espacio) hasta el primer evento, con media β = ${formatNumber(beta)}. Equivale a una tasa de λ = 1/β = ${formatNumber(1 / beta)} eventos por unidad.`,

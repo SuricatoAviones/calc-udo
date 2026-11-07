@@ -82,47 +82,47 @@ export function solveErlangLoss({ lambda, mu, servers: s, maxBlocking }: ErlangL
 
   const shownTerms =
     s <= 4
-      ? terms.map((_, j) => `\\frac{(${n(r)})^{${j}}}{${j}!}`).join(' + ')
-      : `${terms
+      ? terms.map((_, j) => String.raw`\frac{(${n(r)})^{${j}}}{${j}!}`).join(' + ')
+      : String.raw`${terms
           .slice(0, 3)
-          .map((_, j) => `\\frac{(${n(r)})^{${j}}}{${j}!}`)
-          .join(' + ')} + \\cdots + \\frac{(${n(r)})^{${s}}}{${s}!}`;
+          .map((_, j) => String.raw`\frac{(${n(r)})^{${j}}}{${j}!}`)
+          .join(' + ')} + \cdots + \frac{(${n(r)})^{${s}}}{${s}!}`;
 
   const steps: Step[] = [
     {
       title: 'Carga ofrecida',
       explanation:
         'Es el número promedio de servidores que estarían ocupados si nadie se perdiera. No hace falta que sea menor que s: los clientes que no encuentran servidor se van.',
-      formula: 'r = \\frac{\\lambda}{\\mu}',
-      substitution: `r = \\frac{${n(lambda)}}{${n(mu)}}`,
+      formula: String.raw`r = \frac{\lambda}{\mu}`,
+      substitution: String.raw`r = \frac{${n(lambda)}}{${n(mu)}}`,
       result: `r = ${n(r)}`,
     },
     {
       title: 'Suma de los términos de cada estado',
-      formula: '\\sum_{i=0}^{s} \\frac{r^i}{i!}',
+      formula: String.raw`\sum_{i=0}^{s} \frac{r^i}{i!}`,
       substitution: shownTerms,
-      result: `\\sum_{i=0}^{${s}} \\frac{r^i}{i!} = ${n(total, 8)}`,
+      result: String.raw`\sum_{i=0}^{${s}} \frac{r^i}{i!} = ${n(total, 8)}`,
     },
     {
       title: 'Probabilidad de bloqueo (fórmula B de Erlang)',
       explanation: `Es la probabilidad de que los ${s} servidores estén ocupados: la fracción de clientes que llega y se pierde.`,
-      formula: 'p_s = \\frac{r^s / s!}{\\sum_{i=0}^{s} r^i / i!}',
-      substitution: `p_{${s}} = \\frac{(${n(r)})^{${s}} / ${s}!}{${n(total, 8)}}`,
+      formula: String.raw`p_s = \frac{r^s / s!}{\sum_{i=0}^{s} r^i / i!}`,
+      substitution: String.raw`p_{${s}} = \frac{(${n(r)})^{${s}} / ${s}!}{${n(total, 8)}}`,
       result: `p_{${s}} = ${n(blocking)}`,
     },
     {
       title: 'Servidores ocupados en promedio',
       explanation:
         'Sin cola, el número de clientes en el sistema es el número de servidores ocupados.',
-      formula: 'L = \\frac{\\lambda}{\\mu}\\,(1 - p_s)',
-      substitution: `L = ${n(r)}\\,(1 - ${n(blocking)})`,
+      formula: String.raw`L = \frac{\lambda}{\mu}\,(1 - p_s)`,
+      substitution: String.raw`L = ${n(r)}\,(1 - ${n(blocking)})`,
       result: `L = ${n(L)}`,
     },
     {
       title: 'Clientes atendidos y perdidos por unidad de tiempo',
-      formula: '\\lambda_{ef} = \\lambda\\,(1 - p_s), \\qquad \\lambda\\,p_s',
-      substitution: `\\lambda_{ef} = ${n(lambda)}\\,(1 - ${n(blocking)}), \\qquad ${n(lambda)}\\,(${n(blocking)})`,
-      result: `\\lambda_{ef} = ${n(lambdaEff)}, \\qquad \\lambda\\,p_s = ${n(lost)}`,
+      formula: String.raw`\lambda_{ef} = \lambda\,(1 - p_s), \qquad \lambda\,p_s`,
+      substitution: String.raw`\lambda_{ef} = ${n(lambda)}\,(1 - ${n(blocking)}), \qquad ${n(lambda)}\,(${n(blocking)})`,
+      result: String.raw`\lambda_{ef} = ${n(lambdaEff)}, \qquad \lambda\,p_s = ${n(lost)}`,
     },
   ];
 
@@ -152,13 +152,13 @@ export function solveErlangLoss({ lambda, mu, servers: s, maxBlocking }: ErlangL
     steps.push({
       title: 'Número de servidores para la meta de bloqueo',
       explanation: `Se busca el menor k con B(k) ≤ ${formatNumber(maxBlocking!)}. B(k) se calcula con la recursión de Erlang, sin factoriales grandes.`,
-      formula: 'B(0) = 1, \\qquad B(k) = \\frac{r\\,B(k-1)}{k + r\\,B(k-1)}',
+      formula: String.raw`B(0) = 1, \qquad B(k) = \frac{r\,B(k-1)}{k + r\,B(k-1)}`,
       substitution: blockingBy
         .slice(1)
         .map((b, i) => `B(${i + 1}) = ${n(b, 6)}`)
         .slice(0, 8)
-        .join(',\\ '),
-      result: `k = ${requiredServers} \\ \\text{servidores} \\ (B = ${n(blockingBy[requiredServers]!, 6)})`,
+        .join(String.raw`,\ `),
+      result: String.raw`k = ${requiredServers} \ \text{servidores} \ (B = ${n(blockingBy[requiredServers]!, 6)})`,
     });
   }
 
@@ -169,7 +169,7 @@ export function solveErlangLoss({ lambda, mu, servers: s, maxBlocking }: ErlangL
       columns: [
         { key: 'j', header: 'j' },
         { key: 'p', header: 'p_j' },
-        { key: 'cumulative', header: 'P(N \\le j)' },
+        { key: 'cumulative', header: String.raw`P(N \le j)` },
       ],
       rows: (() => {
         let cumulative = 0;
@@ -186,7 +186,7 @@ export function solveErlangLoss({ lambda, mu, servers: s, maxBlocking }: ErlangL
         { key: 'k', header: 'k' },
         { key: 'blocking', header: 'B(k)' },
         { key: 'served', header: '1 - B(k)' },
-        { key: 'lost', header: '\\lambda\\,B(k)' },
+        { key: 'lost', header: String.raw`\lambda\,B(k)` },
       ],
       rows: blockingBy.slice(1).map((b, i) => ({
         k: i + 1,
@@ -211,8 +211,8 @@ export function solveErlangLoss({ lambda, mu, servers: s, maxBlocking }: ErlangL
   const summary = [
     { label: 'Probabilidad de bloqueo', value: `p_{${s}} = ${n(blocking, 6)}`, emphasis: true },
     { label: 'Servidores ocupados en promedio', value: `L = ${n(L, 6)}` },
-    { label: 'Clientes atendidos', value: `\\lambda_{ef} = ${n(lambdaEff, 6)}` },
-    { label: 'Clientes perdidos', value: `\\lambda\\,p_{${s}} = ${n(lost, 6)}` },
+    { label: 'Clientes atendidos', value: String.raw`\lambda_{ef} = ${n(lambdaEff, 6)}` },
+    { label: 'Clientes perdidos', value: String.raw`\lambda\,p_{${s}} = ${n(lost, 6)}` },
   ];
   if (requiredServers !== null) {
     summary.push({

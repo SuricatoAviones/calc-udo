@@ -136,8 +136,8 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
         ? 'f es convexa si f″(x) ≥ 0 en todo punto y cóncava si f″(x) ≤ 0.'
         : 'f es convexa si la hessiana es semidefinida positiva en todo punto y cóncava si es semidefinida negativa.',
       formula: single
-        ? "f''(x) = \\frac{d^2 f}{dx^2}"
-        : `H = \\left[\\frac{\\partial^2 f}{\\partial ${variable(0)}\\,\\partial ${variable(1)}}\\right]`,
+        ? String.raw`f''(x) = \frac{d^2 f}{dx^2}`
+        : String.raw`H = \left[\frac{\partial^2 f}{\partial ${variable(0)}\,\partial ${variable(1)}}\right]`,
       result: hessianTex.replace(/x_\{1\}/g, single ? 'x' : 'x_{1}'),
     },
   ];
@@ -169,8 +169,8 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
         'La función es cuadrática (o lineal): la hessiana es la misma en todo punto, así que basta clasificarla una vez y el resultado vale en todo el dominio.',
       substitution: single
         ? `f''(x) = ${n(H[0]![0]!)}`
-        : `H = ${toLatexMatrix(H)}, \\quad ${minors.map((d, k) => `\\Delta_{${k + 1}} = ${n(d)}`).join(',\\ ')}`,
-      result: `H \\text{ es ${definiteness}} \\ \\Rightarrow\\ f \\text{ es ${classification}}`,
+        : String.raw`H = ${toLatexMatrix(H)}, \quad ${minors.map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d)}`).join(String.raw`,\ `)}`,
+      result: String.raw`H \text{ es ${definiteness}} \ \Rightarrow\ f \text{ es ${classification}}`,
     });
   } else {
     // Malla en [lower, upper]^size.
@@ -231,15 +231,15 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
             const H = evaluateMatrix(hessian, p);
             return single
               ? `f''(${n(p[0]!, 6)}) = ${n(H[0]![0]!, 6)}`
-              : `H${pointTex(p, 4)} = ${toLatexMatrix(H, 4)} \\ (\\text{${classifyMatrix(H)}})`;
+              : String.raw`H${pointTex(p, 4)} = ${toLatexMatrix(H, 4)} \ (\text{${classifyMatrix(H)}})`;
           })
-          .join(' \\\\ '),
+          .join(String.raw` \\ `),
       });
     } else {
       steps.push({
         title: 'Curvatura en la región',
         explanation: `La ${single ? 'segunda derivada' : 'hessiana'} no es constante. Se evaluó en una malla de ${classes.length} puntos de [${formatNumber(lower)}, ${formatNumber(upper)}]${size > 1 ? `^${size}` : ''} y en todos tiene el mismo signo: la función es ${classification} en esa región (verificación numérica).`,
-        result: `f \\text{ es ${classification} en la región}`,
+        result: String.raw`f \text{ es ${classification} en la región}`,
       });
     }
     const sample = [
@@ -266,14 +266,14 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
     summary: [
       {
         label: 'Clasificación',
-        value: `\\text{${classification}}`,
+        value: String.raw`\text{${classification}}`,
         emphasis: true,
       },
       {
         label: 'Alcance',
         value: constant
-          ? '\\text{en todo el dominio (hessiana constante)}'
-          : `\\text{en } [${n(lower)}, ${n(upper)}]${size > 1 ? `^{${size}}` : ''}`,
+          ? String.raw`\text{en todo el dominio (hessiana constante)}`
+          : String.raw`\text{en } [${n(lower)}, ${n(upper)}]${size > 1 ? `^{${size}}` : ''}`,
       },
     ],
     ...emptyTrace(),
@@ -285,9 +285,9 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
               id: 'muestra',
               title: 'Hessiana en algunos puntos de la región',
               columns: [
-                { key: 'point', header: '\\text{Punto}', format: 'text' },
-                { key: 'minors', header: '\\Delta_1;\\ \\Delta_2;\\ \\ldots', format: 'text' },
-                { key: 'definiteness', header: '\\text{Hessiana}', format: 'text' },
+                { key: 'point', header: String.raw`\text{Punto}`, format: 'text' },
+                { key: 'minors', header: String.raw`\Delta_1;\ \Delta_2;\ \ldots`, format: 'text' },
+                { key: 'definiteness', header: String.raw`\text{Hessiana}`, format: 'text' },
               ],
               rows,
             },

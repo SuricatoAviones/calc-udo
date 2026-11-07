@@ -130,9 +130,9 @@ export function solveCeAmplifier(
     title: 'Resistencia dinámica del emisor',
     explanation:
       'Con la corriente de emisor de cd se obtiene la resistencia de ca de la unión base-emisor.',
-    formula: 'r_e = \\frac{V_T}{I_E}',
-    substitution: `r_e = \\frac{${n(input.vt)}}{${n(dc.ie)}}`,
-    result: `r_e = ${engTex(re, 'Ω')},\\quad \\beta r_e = ${engTex(beta * re, 'Ω')}`,
+    formula: String.raw`r_e = \frac{V_T}{I_E}`,
+    substitution: String.raw`r_e = \frac{${n(input.vt)}}{${n(dc.ie)}}`,
+    result: String.raw`r_e = ${engTex(re, 'Ω')},\quad \beta r_e = ${engTex(beta * re, 'Ω')}`,
   });
 
   steps.push({
@@ -172,12 +172,14 @@ export function solveCeAmplifier(
     }. El pico máximo es el menor de los dos.`,
     formula:
       re1 > 0
-        ? 'MP = \\min\\left(I_{CQ}r_c,\\ V_{CEQ}\\frac{r_c}{r_c + R_{E1}}\\right),\\qquad MPP = 2\\,MP'
-        : 'MP = \\min\\left(I_{CQ}r_c,\\ V_{CEQ}\\right),\\qquad MPP = 2\\,MP',
-    substitution: `I_{CQ}r_c = (${n(dc.ic)})(${n(rcAc)}) = ${n(byCutoff)}\\ \\text{V},\\quad ${
-      re1 > 0 ? `V_{CEQ}\\frac{r_c}{r_c + R_{E1}} = ${n(bySaturation)}` : `V_{CEQ} = ${n(dc.vce)}`
-    }\\ \\text{V}`,
-    result: `MP = ${n(mp)}\\ \\text{V},\\quad MPP = ${n(mpp)}\\ \\text{V}`,
+        ? String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\frac{r_c}{r_c + R_{E1}}\right),\qquad MPP = 2\,MP`
+        : String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\right),\qquad MPP = 2\,MP`,
+    substitution: String.raw`I_{CQ}r_c = (${n(dc.ic)})(${n(rcAc)}) = ${n(byCutoff)}\ \text{V},\quad ${
+      re1 > 0
+        ? String.raw`V_{CEQ}\frac{r_c}{r_c + R_{E1}} = ${n(bySaturation)}`
+        : `V_{CEQ} = ${n(dc.vce)}`
+    }\ \text{V}`,
+    result: String.raw`MP = ${n(mp)}\ \text{V},\quad MPP = ${n(mpp)}\ \text{V}`,
   });
   const centered = Math.abs(byCutoff - bySaturation) <= 0.1 * Math.max(byCutoff, bySaturation);
   notices.push({
@@ -198,10 +200,10 @@ export function solveCeAmplifier(
       explanation: `Con ${engText(input.vin, 'V')} pico a pico ${input.rs !== undefined ? 'en la fuente' : 'en la base'}.`,
       formula:
         input.rs !== undefined
-          ? 'v_{o(pp)} = |A_{v_s}|\\,v_{s(pp)}'
-          : 'v_{o(pp)} = |A_v|\\,v_{i(pp)}',
+          ? String.raw`v_{o(pp)} = |A_{v_s}|\,v_{s(pp)}`
+          : String.raw`v_{o(pp)} = |A_v|\,v_{i(pp)}`,
       substitution: `v_{o(pp)} = (${n(Math.abs(gain))})(${n(input.vin)})`,
-      result: `v_{o(pp)} = ${n(vout)}\\ \\text{V}\\ ${vout <= mpp ? '\\le' : '>'}\\ MPP`,
+      result: String.raw`v_{o(pp)} = ${n(vout)}\ \text{V}\ ${vout <= mpp ? String.raw`\le` : '>'}\ MPP`,
     });
     if (vout > mpp) {
       notices.push({
@@ -238,12 +240,12 @@ export function solveCeAmplifier(
 
   const summary: SummaryItem[] = [
     { label: 'I_CQ', value: engTex(dc.ic, 'A'), emphasis: true },
-    { label: 'V_CEQ', value: `${n(dc.vce, 5)}\\ \\text{V}`, emphasis: true },
+    { label: 'V_CEQ', value: String.raw`${n(dc.vce, 5)}\ \text{V}`, emphasis: true },
     { label: rl !== undefined ? 'A_vL' : 'A_v', value: n(ac.av, 5), emphasis: true },
     ...(ac.avs !== undefined ? [{ label: 'A_vs', value: n(ac.avs, 5) }] : []),
     { label: 'Z_i', value: engTex(ac.zi, 'Ω') },
     { label: 'Z_o', value: engTex(ac.zo, 'Ω') },
-    { label: 'MPP', value: `${n(mpp, 5)}\\ \\text{V}` },
+    { label: 'MPP', value: String.raw`${n(mpp, 5)}\ \text{V}` },
   ];
 
   return {

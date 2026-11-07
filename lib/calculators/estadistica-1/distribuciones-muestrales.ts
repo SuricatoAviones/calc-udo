@@ -147,18 +147,18 @@ export function solveSampling(
         .join(
           ', ',
         )}${size > 12 ? ', …' : ''}. Como es toda la población, la varianza se divide entre N (no entre N − 1).`,
-      formula: '\\mu = \\frac{\\sum x}{N}, \\qquad \\sigma^2 = \\frac{\\sum (x - \\mu)^2}{N}',
-      substitution: `\\mu = \\frac{${n(values.reduce((s, v) => s + v, 0))}}{${size}}, \\qquad \\sigma^2 = \\frac{${n(values.reduce((s, v) => s + (v - mu) ** 2, 0))}}{${size}}`,
-      result: `\\mu = ${n(mu)}, \\qquad \\sigma^2 = ${n(sigma2)}, \\qquad \\sigma = ${n(Math.sqrt(sigma2))}`,
+      formula: String.raw`\mu = \frac{\sum x}{N}, \qquad \sigma^2 = \frac{\sum (x - \mu)^2}{N}`,
+      substitution: String.raw`\mu = \frac{${n(values.reduce((s, v) => s + v, 0))}}{${size}}, \qquad \sigma^2 = \frac{${n(values.reduce((s, v) => s + (v - mu) ** 2, 0))}}{${size}}`,
+      result: String.raw`\mu = ${n(mu)}, \qquad \sigma^2 = ${n(sigma2)}, \qquad \sigma = ${n(Math.sqrt(sigma2))}`,
     },
     {
       title: 'Muestras posibles',
       explanation: withReplacement
         ? `Con reemplazo, cada una de las n = ${k} extracciones puede ser cualquiera de los N elementos (y el orden cuenta): Nⁿ muestras.`
         : `Sin reemplazo, se eligen n = ${k} elementos distintos sin importar el orden: C(N, n) muestras.`,
-      formula: withReplacement ? 'N^n' : '\\binom{N}{n}',
-      substitution: withReplacement ? `${size}^{${k}}` : `\\binom{${size}}{${k}}`,
-      result: `${count}\\ \\text{muestras}`,
+      formula: withReplacement ? 'N^n' : String.raw`\binom{N}{n}`,
+      substitution: withReplacement ? `${size}^{${k}}` : String.raw`\binom{${size}}{${k}}`,
+      result: String.raw`${count}\ \text{muestras}`,
     },
     {
       title: 'Media de cada muestra',
@@ -166,24 +166,24 @@ export function solveSampling(
       result:
         samples
           .slice(0, 4)
-          .map((s) => `(${s.items.map((v) => n(v)).join(', ')}) \\to ${n(s.mean)}`)
-          .join(',\\quad ') + (count > 4 ? ',\\ \\ldots' : ''),
+          .map((s) => String.raw`(${s.items.map((v) => n(v)).join(', ')}) \to ${n(s.mean)}`)
+          .join(String.raw`,\quad `) + (count > 4 ? String.raw`,\ \ldots` : ''),
     },
     {
       title: 'Media de la distribución muestral',
       explanation:
         'El promedio de todas las medias muestrales coincide con la media de la población.',
-      formula: '\\mu_{\\bar{X}} = \\frac{\\sum \\bar{x}}{M} = \\mu',
-      substitution: `\\mu_{\\bar{X}} = \\frac{${n(samples.reduce((s, x) => s + x.mean, 0))}}{${count}}`,
-      result: `\\mu_{\\bar{X}} = ${n(meanOfMeans)}`,
+      formula: String.raw`\mu_{\bar{X}} = \frac{\sum \bar{x}}{M} = \mu`,
+      substitution: String.raw`\mu_{\bar{X}} = \frac{${n(samples.reduce((s, x) => s + x.mean, 0))}}{${count}}`,
+      result: String.raw`\mu_{\bar{X}} = ${n(meanOfMeans)}`,
     },
     {
       title: 'Varianza de la distribución muestral',
       explanation:
         'Se calcula con las medias de todas las muestras (divididas entre M, porque son todas).',
-      formula: '\\sigma^2_{\\bar{X}} = \\frac{\\sum (\\bar{x} - \\mu_{\\bar{X}})^2}{M}',
-      substitution: `\\sigma^2_{\\bar{X}} = \\frac{${n(varianceOfMeans * count)}}{${count}}`,
-      result: `\\sigma^2_{\\bar{X}} = ${n(varianceOfMeans)}`,
+      formula: String.raw`\sigma^2_{\bar{X}} = \frac{\sum (\bar{x} - \mu_{\bar{X}})^2}{M}`,
+      substitution: String.raw`\sigma^2_{\bar{X}} = \frac{${n(varianceOfMeans * count)}}{${count}}`,
+      result: String.raw`\sigma^2_{\bar{X}} = ${n(varianceOfMeans)}`,
     },
     {
       title: 'Comparar con la fórmula',
@@ -191,12 +191,12 @@ export function solveSampling(
         ? 'Con reemplazo las extracciones son independientes: la varianza de la media es σ²/n.'
         : 'Sin reemplazo se multiplica σ²/n por el factor de corrección para población finita (N − n)/(N − 1).',
       formula: withReplacement
-        ? '\\sigma^2_{\\bar{X}} = \\frac{\\sigma^2}{n}'
-        : '\\sigma^2_{\\bar{X}} = \\frac{\\sigma^2}{n} \\cdot \\frac{N - n}{N - 1}',
+        ? String.raw`\sigma^2_{\bar{X}} = \frac{\sigma^2}{n}`
+        : String.raw`\sigma^2_{\bar{X}} = \frac{\sigma^2}{n} \cdot \frac{N - n}{N - 1}`,
       substitution: withReplacement
-        ? `\\sigma^2_{\\bar{X}} = \\frac{${n(sigma2)}}{${k}}`
-        : `\\sigma^2_{\\bar{X}} = \\frac{${n(sigma2)}}{${k}} \\cdot \\frac{${size} - ${k}}{${size} - 1}`,
-      result: `\\sigma^2_{\\bar{X}} = ${n(theoretical)}, \\qquad \\sigma_{\\bar{X}} = ${n(Math.sqrt(theoretical))}`,
+        ? String.raw`\sigma^2_{\bar{X}} = \frac{${n(sigma2)}}{${k}}`
+        : String.raw`\sigma^2_{\bar{X}} = \frac{${n(sigma2)}}{${k}} \cdot \frac{${size} - ${k}}{${size} - 1}`,
+      result: String.raw`\sigma^2_{\bar{X}} = ${n(theoretical)}, \qquad \sigma_{\bar{X}} = ${n(Math.sqrt(theoretical))}`,
     },
   ];
 
@@ -219,17 +219,17 @@ export function solveSampling(
     summary: [
       {
         label: 'Media de las medias',
-        value: `\\mu_{\\bar{X}} = ${n(meanOfMeans, 6)}`,
+        value: String.raw`\mu_{\bar{X}} = ${n(meanOfMeans, 6)}`,
         emphasis: true,
       },
       {
         label: 'Error estándar',
-        value: `\\sigma_{\\bar{X}} = ${n(Math.sqrt(varianceOfMeans), 6)}`,
+        value: String.raw`\sigma_{\bar{X}} = ${n(Math.sqrt(varianceOfMeans), 6)}`,
         emphasis: true,
       },
       {
         label: 'Población',
-        value: `\\mu = ${n(mu, 6)}, \\quad \\sigma = ${n(Math.sqrt(sigma2), 6)}`,
+        value: String.raw`\mu = ${n(mu, 6)}, \quad \sigma = ${n(Math.sqrt(sigma2), 6)}`,
       },
       { label: 'Muestras', value: `M = ${count}` },
     ],
@@ -240,9 +240,9 @@ export function solveSampling(
         id: 'distribucion',
         title: 'Distribución muestral de la media',
         columns: [
-          { key: 'mean', header: '\\bar{x}' },
+          { key: 'mean', header: String.raw`\bar{x}` },
           { key: 'frequency', header: 'f' },
-          { key: 'probability', header: 'P(\\bar{X} = \\bar{x})', format: 'latex' },
+          { key: 'probability', header: String.raw`P(\bar{X} = \bar{x})`, format: 'latex' },
         ],
         rows: rows.map(([mean, frequency]) => ({
           mean,
@@ -255,13 +255,13 @@ export function solveSampling(
         title:
           count > MAX_LISTED ? `Primeras ${MAX_LISTED} muestras de ${count}` : 'Todas las muestras',
         columns: [
-          { key: 'index', header: '\\#' },
-          { key: 'sample', header: '\\text{Muestra}', format: 'latex' },
-          { key: 'mean', header: '\\bar{x}' },
+          { key: 'index', header: String.raw`\#` },
+          { key: 'sample', header: String.raw`\text{Muestra}`, format: 'latex' },
+          { key: 'mean', header: String.raw`\bar{x}` },
         ],
         rows: samples.slice(0, MAX_LISTED).map((s, i) => ({
           index: i + 1,
-          sample: `(${s.items.map((v) => n(v)).join(',\\ ')})`,
+          sample: `(${s.items.map((v) => n(v)).join(String.raw`,\ `)})`,
           mean: s.mean,
         })),
       },

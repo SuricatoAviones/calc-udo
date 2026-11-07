@@ -143,5 +143,5 @@ export function toLatexPolar(a: Complex, digits = 6): string {
   if (magnitude === 0) return '0';
   const angle = degrees(arg(a));
   // Las llaves evitan un doble superíndice si el ángulo sale en notación científica (10^{-13}).
-  return `${toLatexNumber(magnitude, digits)}\\angle {${toLatexNumber(angle, digits)}}^{\\circ}`;
+  return String.raw`${toLatexNumber(magnitude, digits)}\angle {${toLatexNumber(angle, digits)}}^{\circ}`;
 }

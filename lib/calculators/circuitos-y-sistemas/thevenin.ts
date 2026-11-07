@@ -189,40 +189,42 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
       title: 'Tensión de Thévenin (circuito abierto)',
       explanation:
         'Se retira la carga y se mide la tensión entre sus terminales. Al no circular corriente por la carga, es la tensión en circuito abierto.',
-      formula: 'V_{th} = v_a - v_b\\ \\text{(sin carga)}',
-      result: `V_{th} = ${formatNumber(vTh, 6)}\\text{ V}`,
+      formula: String.raw`V_{th} = v_a - v_b\ \text{(sin carga)}`,
+      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V}`,
     },
     {
       title: 'Resistencia de Thévenin',
       explanation:
         'Se apagan todas las fuentes independientes (V → 0 V, I → 0 A), se aplica una fuente de prueba de 1 A entre los terminales y se mide la tensión: R_th = V / I.',
-      formula: 'R_{th} = \\frac{V_{prueba}}{1\\text{ A}}',
-      result: finite ? `R_{th} = ${formatNumber(rTh, 6)}\\ \\Omega` : 'R_{th} = \\infty',
+      formula: String.raw`R_{th} = \frac{V_{prueba}}{1\text{ A}}`,
+      result: finite
+        ? String.raw`R_{th} = ${formatNumber(rTh, 6)}\ \Omega`
+        : String.raw`R_{th} = \infty`,
     },
     {
       title: 'Equivalente de Norton',
       explanation:
         'La fuente de Norton es la corriente de cortocircuito del equivalente de Thévenin.',
-      formula: 'I_{N} = \\frac{V_{th}}{R_{th}}',
+      formula: String.raw`I_{N} = \frac{V_{th}}{R_{th}}`,
       result:
         Number.isFinite(iN) && finite
-          ? `I_{N} = ${formatNumber(iN, 6)}\\text{ A}`
-          : 'I_{N} \\to \\infty',
+          ? String.raw`I_{N} = ${formatNumber(iN, 6)}\text{ A}`
+          : String.raw`I_{N} \to \infty`,
     },
     {
       title: 'Equivalentes resultantes',
       explanation:
         'El equivalente de Thévenin es una fuente V_th en serie con R_th; el de Norton, una fuente I_N en paralelo con R_th.',
-      formula: 'V_{th} = I_{N}\\,R_{th}',
-      result: `V_{th} = ${formatNumber(vTh, 6)}\\text{ V},\\ R_{th} = ${finite ? formatNumber(rTh, 6) : '\\infty'}\\ \\Omega`,
+      formula: String.raw`V_{th} = I_{N}\,R_{th}`,
+      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V},\ R_{th} = ${finite ? formatNumber(rTh, 6) : String.raw`\infty`}\ \Omega`,
     },
     {
       title: 'Con la carga conectada',
       explanation:
         'Al reconectar la carga, la corriente es la tensión de Thévenin entre R_th + R_L.',
-      formula: 'i_L = \\frac{V_{th}}{R_{th} + R_L}',
-      substitution: `i_L = \\frac{${formatNumber(vTh, 6)}}{${finite ? formatNumber(rTh, 6) : '\\infty'} + ${formatNumber(load.value, 6)}}`,
-      result: `i_L = ${formatNumber(loadCurrent, 6)}\\text{ A},\\quad P_L = ${formatNumber(loadPower, 6)}\\text{ W}`,
+      formula: String.raw`i_L = \frac{V_{th}}{R_{th} + R_L}`,
+      substitution: String.raw`i_L = \frac{${formatNumber(vTh, 6)}}{${finite ? formatNumber(rTh, 6) : String.raw`\infty`} + ${formatNumber(load.value, 6)}}`,
+      result: String.raw`i_L = ${formatNumber(loadCurrent, 6)}\text{ A},\quad P_L = ${formatNumber(loadPower, 6)}\text{ W}`,
     },
   ];
 

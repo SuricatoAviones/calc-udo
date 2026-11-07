@@ -201,13 +201,13 @@ function solveBjt(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     },
     summary: [
       { label: 'I_CQ', value: engTex(r.ic, 'A'), emphasis: true },
-      { label: 'V_CEQ', value: `${n(r.vce, 5)}\\ \\text{V}`, emphasis: true },
+      { label: 'V_CEQ', value: String.raw`${n(r.vce, 5)}\ \text{V}`, emphasis: true },
       { label: 'I_B', value: engTex(r.ib, 'A') },
-      { label: 'V_B', value: `${n(r.vb, 5)}\\ \\text{V}` },
-      { label: 'V_C', value: `${n(r.vc, 5)}\\ \\text{V}` },
-      { label: 'V_E', value: `${n(r.ve, 5)}\\ \\text{V}` },
-      { label: 'V_BC', value: `${n(r.vbc, 5)}\\ \\text{V}` },
-      { label: 'Región', value: `\\text{${BJT_REGION[r.region]}}` },
+      { label: 'V_B', value: String.raw`${n(r.vb, 5)}\ \text{V}` },
+      { label: 'V_C', value: String.raw`${n(r.vc, 5)}\ \text{V}` },
+      { label: 'V_E', value: String.raw`${n(r.ve, 5)}\ \text{V}` },
+      { label: 'V_BC', value: String.raw`${n(r.vbc, 5)}\ \text{V}` },
+      { label: 'Región', value: String.raw`\text{${BJT_REGION[r.region]}}` },
     ],
     steps: [
       {
@@ -223,9 +223,9 @@ function solveBjt(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
           'La malla de salida impone una recta en el plano I_C–V_CE: corta al eje de corriente en I_C(sat) (V_CE = 0) y al de voltaje en V_CC (I_C = 0). El punto Q está sobre ella.',
         formula:
           re > 0
-            ? 'I_C = \\frac{V_{CC} - V_{CE}}{R_C + R_E}'
-            : 'I_C = \\frac{V_{CC} - V_{CE}}{R_C}',
-        result: `I_{C(sat)} = ${engTex(r.icSat, 'A')},\\quad V_{CE(\\text{corte})} = ${n(input.vcc)}\\ \\text{V}`,
+            ? String.raw`I_C = \frac{V_{CC} - V_{CE}}{R_C + R_E}`
+            : String.raw`I_C = \frac{V_{CC} - V_{CE}}{R_C}`,
+        result: String.raw`I_{C(sat)} = ${engTex(r.icSat, 'A')},\quad V_{CE(\text{corte})} = ${n(input.vcc)}\ \text{V}`,
       },
     ],
     tables: [],
@@ -255,10 +255,9 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     steps.push({
       title: 'Constante del MOSFET de enriquecimiento',
       explanation: `Con el punto de la hoja de datos I_D(enc) = ${engText(input.idOn, 'A')} a V_GS(enc) = ${engText(input.vgsOn, 'V')} se despeja k.`,
-      formula:
-        'k = \\frac{I_{D(\\text{enc})}}{\\left(V_{GS(\\text{enc})} - V_{GS(\\text{Th})}\\right)^{2}},\\qquad I_D = k\\left(V_{GS} - V_{GS(\\text{Th})}\\right)^{2}',
-      substitution: `k = \\frac{${n(input.idOn)}}{(${n(input.vgsOn)} - ${n(input.vt)})^{2}}`,
-      result: `k = ${n(k)}\\ \\text{A/V}^{2}`,
+      formula: String.raw`k = \frac{I_{D(\text{enc})}}{\left(V_{GS(\text{enc})} - V_{GS(\text{Th})}\right)^{2}},\qquad I_D = k\left(V_{GS} - V_{GS(\text{Th})}\right)^{2}`,
+      substitution: String.raw`k = \frac{${n(input.idOn)}}{(${n(input.vgsOn)} - ${n(input.vt)})^{2}}`,
+      result: String.raw`k = ${n(k)}\ \text{A/V}^{2}`,
     });
   } else {
     vx = input.vp;
@@ -268,10 +267,9 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       title: `Curva de transferencia del ${name}`,
       explanation:
         'La ecuación de Shockley vale en la región de saturación (corriente constante) y para V_GS ≥ V_P. Equivale a I_D = (I_DSS/V_P²)(V_GS − V_P)², la forma que se usa abajo.',
-      formula:
-        'I_D = I_{DSS}\\left(1 - \\frac{V_{GS}}{V_P}\\right)^{2} = \\frac{I_{DSS}}{V_P^{2}}\\left(V_{GS} - V_P\\right)^{2}',
-      substitution: `I_D = ${n(input.idss)}\\left(1 - \\frac{V_{GS}}{${n(input.vp)}}\\right)^{2}`,
-      result: `\\frac{I_{DSS}}{V_P^{2}} = ${n(k)}\\ \\text{A/V}^{2}`,
+      formula: String.raw`I_D = I_{DSS}\left(1 - \frac{V_{GS}}{V_P}\right)^{2} = \frac{I_{DSS}}{V_P^{2}}\left(V_{GS} - V_P\right)^{2}`,
+      substitution: String.raw`I_D = ${n(input.idss)}\left(1 - \frac{V_{GS}}{${n(input.vp)}}\right)^{2}`,
+      result: String.raw`\frac{I_{DSS}}{V_P^{2}} = ${n(k)}\ \text{A/V}^{2}`,
     });
   }
 
@@ -288,7 +286,7 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       explanation:
         'I_G = 0, así que R_G no tiene caída: la fuente V_GG queda entre compuerta y fuente. Es una recta vertical.',
       formula: 'V_{GS} = -V_{GG}',
-      result: `V_{GSQ} = ${n(v0)}\\ \\text{V}`,
+      result: String.raw`V_{GSQ} = ${n(v0)}\ \text{V}`,
     });
   } else if (config === 'autopolarizacion') {
     v0 = 0;
@@ -308,9 +306,9 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     steps.push({
       title: 'Voltaje de compuerta',
       explanation: 'I_G = 0, así que R₁ y R₂ forman un divisor de voltaje sin carga.',
-      formula: 'V_G = \\frac{R_2 V_{DD}}{R_1 + R_2}',
-      substitution: `V_G = \\frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
-      result: `V_G = ${n(vg)}\\ \\text{V}`,
+      formula: String.raw`V_G = \frac{R_2 V_{DD}}{R_1 + R_2}`,
+      substitution: String.raw`V_G = \frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
+      result: String.raw`V_G = ${n(vg)}\ \text{V}`,
     });
     steps.push({
       title: 'Recta de polarización',
@@ -342,7 +340,7 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       explanation: `Con I_D = 0 el voltaje compuerta-fuente es ${engText(v0, 'V')}, que no supera ${
         enhancement ? 'V_GS(Th)' : 'V_P'
       } = ${engText(vx, 'V')}: el ${name} está en corte.`,
-      result: `V_{GSQ} = ${n(vgs)}\\ \\text{V},\\quad I_{DQ} = 0`,
+      result: String.raw`V_{GSQ} = ${n(vgs)}\ \text{V},\quad I_{DQ} = 0`,
     });
   } else if (r === 0) {
     vgs = v0;
@@ -351,8 +349,8 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     steps.push({
       title: 'Punto de operación',
       explanation: 'V_GS queda fijo por la red: basta sustituirlo en la ecuación del dispositivo.',
-      formula: 'I_{DQ} = I_{DSS}\\left(1 - \\frac{V_{GSQ}}{V_P}\\right)^{2}',
-      substitution: `I_{DQ} = ${n(input.idss)}\\left(1 - \\frac{${n(vgs)}}{${n(input.vp)}}\\right)^{2}`,
+      formula: String.raw`I_{DQ} = I_{DSS}\left(1 - \frac{V_{GSQ}}{V_P}\right)^{2}`,
+      substitution: String.raw`I_{DQ} = ${n(input.idss)}\left(1 - \frac{${n(vgs)}}{${n(input.vp)}}\right)^{2}`,
       result: `I_{DQ} = ${engTex(id, 'A')}`,
     });
   } else {
@@ -375,12 +373,12 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       rs > 0
         ? `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)} + ${n(rs)})`
         : `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)})`,
-    result: `V_{DS} = ${n(vds)}\\ \\text{V}`,
+    result: String.raw`V_{DS} = ${n(vds)}\ \text{V}`,
   });
   steps.push({
     title: 'Tensiones de los terminales',
-    formula: 'V_S = I_D R_S,\\qquad V_D = V_{DD} - I_D R_D',
-    result: `V_S = ${n(vs)}\\ \\text{V},\\ V_D = ${n(vd)}\\ \\text{V},\\ V_G = ${n(vg)}\\ \\text{V}`,
+    formula: String.raw`V_S = I_D R_S,\qquad V_D = V_{DD} - I_D R_D`,
+    result: String.raw`V_S = ${n(vs)}\ \text{V},\ V_D = ${n(vd)}\ \text{V},\ V_G = ${n(vg)}\ \text{V}`,
   });
 
   if (region === 'saturacion') {
@@ -392,9 +390,11 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
         region === 'saturacion'
           ? `V_DS supera V_GS − ${enhancement ? 'V_GS(Th)' : 'V_P'}: el canal está estrangulado y la ecuación usada es válida.`
           : `V_DS no alcanza V_GS − ${enhancement ? 'V_GS(Th)' : 'V_P'}: el punto queda a la izquierda del lugar geométrico del estrangulamiento, en la región óhmica, donde la ecuación de saturación solo es una aproximación.`,
-      formula: enhancement ? 'V_{DS} \\ge V_{GS} - V_{GS(\\text{Th})}' : 'V_{DS} \\ge V_{GS} - V_P',
-      substitution: `${n(vds)} ${region === 'saturacion' ? '\\ge' : '<'} ${n(vgs)} - (${n(vx)})`,
-      result: `${n(vds)}\\ \\text{V}\\ ${region === 'saturacion' ? '\\ge' : '<'}\\ ${n(limit)}\\ \\text{V}`,
+      formula: enhancement
+        ? String.raw`V_{DS} \ge V_{GS} - V_{GS(\text{Th})}`
+        : String.raw`V_{DS} \ge V_{GS} - V_P`,
+      substitution: `${n(vds)} ${region === 'saturacion' ? String.raw`\ge` : '<'} ${n(vgs)} - (${n(vx)})`,
+      result: String.raw`${n(vds)}\ \text{V}\ ${region === 'saturacion' ? String.raw`\ge` : '<'}\ ${n(limit)}\ \text{V}`,
     });
   }
 
@@ -424,8 +424,8 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       id: 'curva',
       title: 'Puntos de la curva de transferencia',
       columns: [
-        { key: 'vgs', header: 'V_{GS}\\ (\\text{V})' },
-        { key: 'id', header: 'I_D\\ (\\text{mA})' },
+        { key: 'vgs', header: String.raw`V_{GS}\ (\text{V})` },
+        { key: 'id', header: String.raw`I_D\ (\text{mA})` },
       ],
       rows: sample.map((u) => ({ vgs: u, id: k * (u - vx) ** 2 * toMa })),
     },
@@ -472,13 +472,13 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     value: { device: 'fet', vgs, id, vds, vd, vs, vg, k, region },
     summary: [
       { label: 'I_DQ', value: engTex(id, 'A'), emphasis: true },
-      { label: 'V_GSQ', value: `${n(vgs, 5)}\\ \\text{V}`, emphasis: true },
-      { label: 'V_DS', value: `${n(vds, 5)}\\ \\text{V}` },
-      { label: 'V_D', value: `${n(vd, 5)}\\ \\text{V}` },
-      { label: 'V_S', value: `${n(vs, 5)}\\ \\text{V}` },
+      { label: 'V_GSQ', value: String.raw`${n(vgs, 5)}\ \text{V}`, emphasis: true },
+      { label: 'V_DS', value: String.raw`${n(vds, 5)}\ \text{V}` },
+      { label: 'V_D', value: String.raw`${n(vd, 5)}\ \text{V}` },
+      { label: 'V_S', value: String.raw`${n(vs, 5)}\ \text{V}` },
       {
         label: 'Región',
-        value: `\\text{${region === 'saturacion' ? 'saturación' : region === 'ohmica' ? 'óhmica' : 'corte'}}`,
+        value: String.raw`\text{${region === 'saturacion' ? 'saturación' : region === 'ohmica' ? 'óhmica' : 'corte'}}`,
       },
     ],
     steps: [

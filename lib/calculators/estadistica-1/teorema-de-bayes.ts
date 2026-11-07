@@ -86,7 +86,7 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
     {
       title: 'Partición del espacio muestral',
       explanation: `Los eventos ${events.map((e) => `B${e.index} (${e.name})`).join(', ')} son mutuamente excluyentes y cubren todos los casos, así que sus probabilidades suman 1. A es el evento observado.`,
-      formula: '\\sum P(B_i) = 1',
+      formula: String.raw`\sum P(B_i) = 1`,
       substitution: `${events.map((e) => fractionToLatex(e.priorText)).join(' + ')} = ${n(
         events.reduce((s, e) => s + e.prior, 0),
         6,
@@ -96,11 +96,11 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
       title: 'Probabilidad de cada rama del árbol',
       explanation:
         'Por la regla de multiplicación, la probabilidad de que ocurran Bᵢ y A es P(Bᵢ) por la probabilidad condicional de A dado Bᵢ.',
-      formula: 'P(B_i \\cap A) = P(B_i)\\,P(A \\mid B_i)',
+      formula: String.raw`P(B_i \cap A) = P(B_i)\,P(A \mid B_i)`,
       substitution: latexLines(
         events.map(
           (e, i) =>
-            `P(B_{${e.index}})P(A \\mid B_{${e.index}}) = \\left(${fractionToLatex(e.priorText)}\\right)\\left(${fractionToLatex(e.likelihoodText)}\\right) = ${n(joints[i]!)}`,
+            String.raw`P(B_{${e.index}})P(A \mid B_{${e.index}}) = \left(${fractionToLatex(e.priorText)}\right)\left(${fractionToLatex(e.likelihoodText)}\right) = ${n(joints[i]!)}`,
         ),
       ),
     },
@@ -108,7 +108,7 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
       title: 'Probabilidad total de A',
       explanation:
         'A ocurre por alguna de las ramas, que son mutuamente excluyentes: se suman (regla de eliminación).',
-      formula: 'P(A) = \\sum_{i=1}^{k} P(B_i)\\,P(A \\mid B_i)',
+      formula: String.raw`P(A) = \sum_{i=1}^{k} P(B_i)\,P(A \mid B_i)`,
       substitution: `P(A) = ${joints.map((j) => n(j)).join(' + ')}`,
       result: `P(A) = ${n(evidence)}`,
     },
@@ -134,19 +134,18 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
       title: 'Regla de Bayes',
       explanation:
         'Dado que ocurrió A, la probabilidad de cada Bᵢ es la fracción de P(A) que aporta su rama.',
-      formula:
-        'P(B_r \\mid A) = \\frac{P(B_r)\\,P(A \\mid B_r)}{\\sum_{i=1}^{k} P(B_i)\\,P(A \\mid B_i)}',
+      formula: String.raw`P(B_r \mid A) = \frac{P(B_r)\,P(A \mid B_r)}{\sum_{i=1}^{k} P(B_i)\,P(A \mid B_i)}`,
       substitution: latexLines(
         events.map(
           (e, i) =>
-            `P(B_{${e.index}} \\mid A) = \\frac{${n(joints[i]!)}}{${n(evidence)}} = ${toLatexRational(posteriors[i]!)}`,
+            String.raw`P(B_{${e.index}} \mid A) = \frac{${n(joints[i]!)}}{${n(evidence)}} = ${toLatexRational(posteriors[i]!)}`,
         ),
       ),
     },
     {
       title: 'Conclusión',
       explanation: `Dado A, lo más probable es que haya ocurrido B${best + 1} (${events[best]!.name}), con probabilidad ${formatNumber(posteriors[best]!, 4)}. Las probabilidades a posteriori suman 1.`,
-      result: `P(B_{${best + 1}} \\mid A) = ${n(posteriors[best]!, 6)}`,
+      result: String.raw`P(B_{${best + 1}} \mid A) = ${n(posteriors[best]!, 6)}`,
     },
   );
 
@@ -157,7 +156,7 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
       { label: 'Probabilidad total', value: `P(A) = ${n(evidence, 6)}` },
       ...events.map((e, i) => ({
         label: `Dado A: ${e.name}`,
-        value: `P(B_{${e.index}} \\mid A) = ${n(posteriors[i]!, 6)}`,
+        value: String.raw`P(B_{${e.index}} \mid A) = ${n(posteriors[i]!, 6)}`,
         emphasis: i === best,
       })),
     ],
@@ -169,12 +168,12 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
         columns: [
           { key: 'event', header: 'B_i', format: 'latex' },
           { key: 'prior', header: 'P(B_i)' },
-          { key: 'likelihood', header: 'P(A \\mid B_i)' },
-          { key: 'joint', header: 'P(B_i \\cap A)' },
-          { key: 'posterior', header: 'P(B_i \\mid A)' },
+          { key: 'likelihood', header: String.raw`P(A \mid B_i)` },
+          { key: 'joint', header: String.raw`P(B_i \cap A)` },
+          { key: 'posterior', header: String.raw`P(B_i \mid A)` },
         ],
         rows: events.map((e, i) => ({
-          event: `B_{${e.index}}\\ ${toLatexText(`(${e.name})`)}`,
+          event: String.raw`B_{${e.index}}\ ${toLatexText(`(${e.name})`)}`,
           prior: e.prior,
           likelihood: e.likelihood,
           joint: joints[i]!,

@@ -93,43 +93,43 @@ export function solveLoop(input: LoopInput): CalculatorResult<LoopValue, LoopErr
   steps.push({
     title: 'Datos del sistema',
     explanation: `Controlador G₁(s), planta G₂(s) y realimentación H(s) ${sign === -1 ? 'negativa' : 'positiva'}. La perturbación D(s) entra entre el controlador y la planta (Ogata, fig. 3-7).`,
-    result: `G_1(s) = ${tfTex(G1.tf)},\\quad G_2(s) = ${tfTex(G2.tf)},\\quad H(s) = ${tfTex(H.tf)}`,
+    result: String.raw`G_1(s) = ${tfTex(G1.tf)},\quad G_2(s) = ${tfTex(G2.tf)},\quad H(s) = ${tfTex(H.tf)}`,
   });
   steps.push({
     title: 'Función de transferencia directa',
     explanation: 'Cociente entre la salida C(s) y la señal de error actuante E(s).',
-    formula: '\\frac{C(s)}{E(s)} = G_1(s)G_2(s)',
-    result: `\\frac{C(s)}{E(s)} = ${tfTex(forward)}`,
+    formula: String.raw`\frac{C(s)}{E(s)} = G_1(s)G_2(s)`,
+    result: String.raw`\frac{C(s)}{E(s)} = ${tfTex(forward)}`,
   });
   steps.push({
     title: 'Función de transferencia en lazo abierto',
     explanation:
       'Cociente entre la señal de realimentación B(s) y E(s). Si H(s) = 1, coincide con la directa.',
-    formula: '\\frac{B(s)}{E(s)} = G_1(s)G_2(s)H(s)',
-    result: `\\frac{B(s)}{E(s)} = ${tfTex(openLoop)}`,
+    formula: String.raw`\frac{B(s)}{E(s)} = G_1(s)G_2(s)H(s)`,
+    result: String.raw`\frac{B(s)}{E(s)} = ${tfTex(openLoop)}`,
   });
   steps.push({
     title: 'Función de transferencia en lazo cerrado',
     explanation: 'Con D(s) = 0: de C = G₁G₂E y E = R ∓ HC se elimina E.',
-    formula: `\\frac{C(s)}{R(s)} = \\frac{G_1(s)G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: `\\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+    formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_1(s)G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
+    result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
   });
   steps.push({
     title: 'Respuesta a la perturbación',
     explanation:
       'Con R(s) = 0. Si |G₁G₂H| ≫ 1, C/D se acerca a 0: el lazo cerrado rechaza la perturbación (Ogata, sec. 3-3).',
-    formula: `\\frac{C(s)}{D(s)} = \\frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: `\\frac{C(s)}{D(s)} = ${tfTex(disturbance)}`,
+    formula: String.raw`\frac{C(s)}{D(s)} = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
+    result: String.raw`\frac{C(s)}{D(s)} = ${tfTex(disturbance)}`,
   });
   steps.push({
     title: 'Señal de error actuante',
-    formula: `\\frac{E(s)}{R(s)} = \\frac{1}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: `\\frac{E(s)}{R(s)} = ${tfTex(error)}`,
+    formula: String.raw`\frac{E(s)}{R(s)} = \frac{1}{1 ${op} G_1(s)G_2(s)H(s)}`,
+    result: String.raw`\frac{E(s)}{R(s)} = ${tfTex(error)}`,
   });
   steps.push({
     title: 'Salida con las dos entradas',
     explanation: 'Por superposición se suman las respuestas a R(s) y a D(s).',
-    formula: `C(s) = \\frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}\\left[G_1(s)R(s) + D(s)\\right]`,
+    formula: String.raw`C(s) = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}\left[G_1(s)R(s) + D(s)\right]`,
   });
   steps.push({
     title: 'Polinomio característico',
@@ -171,11 +171,18 @@ export function solveLoop(input: LoopInput): CalculatorResult<LoopValue, LoopErr
     });
   }
   const summary: SummaryItem[] = [
-    { label: 'Lazo cerrado', value: `\\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`, emphasis: true },
+    {
+      label: 'Lazo cerrado',
+      value: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+      emphasis: true,
+    },
     { label: 'Lazo abierto', value: `G_1G_2H = ${tfTex(openLoop)}` },
     { label: 'Directa', value: `G_1G_2 = ${tfTex(forward)}` },
-    { label: 'Perturbación', value: `\\frac{C(s)}{D(s)} = ${tfTex(disturbance)}` },
-    { label: 'Estabilidad', value: `\\text{${stable ? 'estable' : 'inestable'} en lazo cerrado}` },
+    { label: 'Perturbación', value: String.raw`\frac{C(s)}{D(s)} = ${tfTex(disturbance)}` },
+    {
+      label: 'Estabilidad',
+      value: String.raw`\text{${stable ? 'estable' : 'inestable'} en lazo cerrado}`,
+    },
   ];
   return {
     ok: true,

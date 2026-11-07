@@ -142,7 +142,9 @@ export function restrictedTrace(
   });
   run.iterations.forEach((info, k) => {
     const t = run.tableaus[k]!;
-    const rejectedLines = info.rejected.map((r) => `${t.columns[r.column]!.latex}:\\ ${r.reason}`);
+    const rejectedLines = info.rejected.map(
+      (r) => String.raw`${t.columns[r.column]!.latex}:\ ${r.reason}`,
+    );
     if (info.entering < 0) {
       steps.push({
         title: 'Fin de la base restringida',
@@ -164,8 +166,8 @@ export function restrictedTrace(
       const basic = t.columns[t.basis[i]!]!.latex;
       const ratio = info.ratios[i];
       return ratio === null || ratio === undefined
-        ? `${basic}:\\ \\text{no aplica } (${row[info.entering]!.toLatex()} \\le 0)`
-        : `${basic}:\\ \\frac{${t.rhs[i]!.toLatex()}}{${row[info.entering]!.toLatex()}} = ${ratio.toLatex()}`;
+        ? String.raw`${basic}:\ \text{no aplica } (${row[info.entering]!.toLatex()} \le 0)`
+        : String.raw`${basic}:\ \frac{${t.rhs[i]!.toLatex()}}{${row[info.entering]!.toLatex()}} = ${ratio.toLatex()}`;
     });
     children.push(
       {
@@ -174,15 +176,15 @@ export function restrictedTrace(
           t.sense === 'max'
             ? `La más prometedora admisible: coeficiente más negativo en la fila ${t.objective}.`
             : `La más prometedora admisible: coeficiente más positivo en la fila ${t.objective}.`,
-        result: `${entering} \\ \\text{entra (coeficiente } ${info.enteringValue.toLatex()})`,
+        result: String.raw`${entering} \ \text{entra (coeficiente } ${info.enteringValue.toLatex()})`,
       },
       {
         title: 'Variable que sale (razón mínima)',
         substitution: latexLines(ratioLines),
         result:
           info.leaving === null
-            ? '\\text{Ningún coeficiente positivo}'
-            : `${t.columns[t.basis[info.leaving]!]!.latex} \\ \\text{sale; pivote } = ${info.pivot!.toLatex()}`,
+            ? String.raw`\text{Ningún coeficiente positivo}`
+            : String.raw`${t.columns[t.basis[info.leaving]!]!.latex} \ \text{sale; pivote } = ${info.pivot!.toLatex()}`,
       },
     );
     if (info.operations.length > 0) {

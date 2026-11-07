@@ -86,7 +86,10 @@ export function recognizeLaw(a: Formula, b: Formula): { name: string; statement:
     const l = schema(law.left);
     const r = schema(law.right);
     if (matchSchemas([l, r], [a, b]) || matchSchemas([l, r], [b, a])) {
-      return { name: law.name, statement: `${formulaLatex(l)} \\equiv ${formulaLatex(r)}` };
+      return {
+        name: law.name,
+        statement: String.raw`${formulaLatex(l)} \equiv ${formulaLatex(r)}`,
+      };
     }
   }
   return null;
@@ -134,15 +137,18 @@ export function solveEquivalence(
       title: 'Columnas de A y de B',
       explanation:
         'Se construye la tabla con las variables de ambas proposiciones y se evalúa cada una fila por fila.',
-      result: latexLines([`A:\\quad ${columnLatex(colA)}`, `B:\\quad ${columnLatex(colB)}`]),
+      result: latexLines([
+        String.raw`A:\quad ${columnLatex(colA)}`,
+        String.raw`B:\quad ${columnLatex(colB)}`,
+      ]),
     },
     {
       title: 'Comparación',
       explanation: equivalent
         ? `Las columnas coinciden en las ${rows.length} filas, así que A ↔ B es una tautología.`
         : `Las columnas difieren en ${differentRows.length === 1 ? 'la fila' : 'las filas'} ${differentRows.join(', ')}: A ↔ B es F allí, así que no es una tautología.`,
-      formula: 'A \\equiv B \\iff A \\leftrightarrow B \\text{ es tautología}',
-      result: equivalent ? `${A} \\equiv ${B}` : `${A} \\not\\equiv ${B}`,
+      formula: String.raw`A \equiv B \iff A \leftrightarrow B \text{ es tautología}`,
+      result: equivalent ? String.raw`${A} \equiv ${B}` : String.raw`${A} \not\equiv ${B}`,
     },
   );
   if (law) {
@@ -159,15 +165,17 @@ export function solveEquivalence(
     summary: [
       {
         label: equivalent ? 'Son equivalentes' : 'No son equivalentes',
-        value: equivalent ? `${A} \\equiv ${B}` : `${A} \\not\\equiv ${B}`,
+        value: equivalent ? String.raw`${A} \equiv ${B}` : String.raw`${A} \not\equiv ${B}`,
         emphasis: true,
       },
       equivalent
         ? {
             label: 'Ley',
-            value: law ? `\\text{${law.name}}` : '\\text{(no es una ley de la lista)}',
+            value: law
+              ? String.raw`\text{${law.name}}`
+              : String.raw`\text{(no es una ley de la lista)}`,
           }
-        : { label: 'Filas en que difieren', value: differentRows.join(',\\ ') },
+        : { label: 'Filas en que difieren', value: differentRows.join(String.raw`,\ `) },
     ],
     ...emptyTrace(),
     steps,

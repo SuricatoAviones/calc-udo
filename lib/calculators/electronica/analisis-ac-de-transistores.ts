@@ -13,7 +13,7 @@ import { approxAmplifier, completeAmplifier, type AcConfig } from './small-signa
 import { engTex, engText, parallel } from './units';
 
 const n = (v: number, d = 6) => toLatexNumber(v, d);
-const ohm = (v: number) => (Number.isFinite(v) ? engTex(v, 'Ω') : '\\infty');
+const ohm = (v: number) => (Number.isFinite(v) ? engTex(v, 'Ω') : String.raw`\infty`);
 
 const finite = (what: string) =>
   z.number({ error: `Escribe ${what}.` }).refine(Number.isFinite, `Escribe ${what}.`);
@@ -134,8 +134,8 @@ export function solveAc(input: AcInput): CalculatorResult<AcValue, AcErrorCode> 
       }.`,
       ...(divider
         ? {
-            formula: "R' = R_1 \\parallel R_2",
-            substitution: `R' = ${n(input.r1)} \\parallel ${n(input.r2)}`,
+            formula: String.raw`R' = R_1 \parallel R_2`,
+            substitution: String.raw`R' = ${n(input.r1)} \parallel ${n(input.r2)}`,
             result: `R' = ${ohm(rin)}`,
           }
         : {}),

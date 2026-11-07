@@ -100,21 +100,21 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
       title: 'Tasa total de llegadas y capacidad',
       explanation:
         'Si no se distingue la clase, las llegadas forman un proceso de Poisson con la suma de las tasas y el sistema es un M/M/s.',
-      formula: '\\lambda = \\sum_{i=1}^{N} \\lambda_i, \\qquad s\\mu',
-      substitution: `\\lambda = ${rates.map((r) => n(r)).join(' + ')}, \\qquad s\\mu = ${s}(${n(mu)})`,
-      result: `\\lambda = ${n(lambda)}, \\qquad s\\mu = ${n(capacity)}`,
+      formula: String.raw`\lambda = \sum_{i=1}^{N} \lambda_i, \qquad s\mu`,
+      substitution: String.raw`\lambda = ${rates.map((r) => n(r)).join(' + ')}, \qquad s\mu = ${s}(${n(mu)})`,
+      result: String.raw`\lambda = ${n(lambda)}, \qquad s\mu = ${n(capacity)}`,
     },
     {
       title: 'Coeficientes B_k',
       explanation:
         'B_k es la fracción de la capacidad que no usan las clases 1 a k. La clase k alcanza el estado estable solo si B_k > 0.',
-      formula: 'B_0 = 1, \\qquad B_k = 1 - \\frac{\\sum_{i=1}^{k} \\lambda_i}{s\\mu}',
+      formula: String.raw`B_0 = 1, \qquad B_k = 1 - \frac{\sum_{i=1}^{k} \lambda_i}{s\mu}`,
       substitution: B.slice(1)
-        .map((b, k) => `B_{${k + 1}} = 1 - \\frac{${n(cumulative[k]!)}}{${n(capacity)}}`)
-        .join(',\\ '),
+        .map((b, k) => String.raw`B_{${k + 1}} = 1 - \frac{${n(cumulative[k]!)}}{${n(capacity)}}`)
+        .join(String.raw`,\ `),
       result: B.slice(1)
         .map((b, k) => `B_{${k + 1}} = ${n(b, 6)}`)
-        .join(',\\ '),
+        .join(String.raw`,\ `),
     },
   ];
 
@@ -151,9 +151,8 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
     steps.push({
       title: 'Constante A',
       explanation: s === 1 ? 'Con un servidor, A se reduce a μ²/λ.' : undefined,
-      formula:
-        'A = \\frac{s!\\,(s\\mu - \\lambda)}{r^s} \\sum_{j=0}^{s-1} \\frac{r^j}{j!} + s\\mu, \\qquad r = \\frac{\\lambda}{\\mu}',
-      substitution: `A = \\frac{${s}!\\,(${n(capacity)} - ${n(lambda)})}{(${n(r)})^{${s}}}\\,(${n(sum, 8)}) + ${n(capacity)}`,
+      formula: String.raw`A = \frac{s!\,(s\mu - \lambda)}{r^s} \sum_{j=0}^{s-1} \frac{r^j}{j!} + s\mu, \qquad r = \frac{\lambda}{\mu}`,
+      substitution: String.raw`A = \frac{${s}!\,(${n(capacity)} - ${n(lambda)})}{(${n(r)})^{${s}}}\,(${n(sum, 8)}) + ${n(capacity)}`,
       result: `A = ${n(A)}`,
     });
     const classSteps: Step[] = rates.map((_, k) => {
@@ -161,8 +160,8 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
       W.push(Wk);
       return {
         title: `Clase ${k + 1}`,
-        formula: `W_{${k + 1}} = \\frac{1}{A\\,B_{${k}}\\,B_{${k + 1}}} + \\frac{1}{\\mu}`,
-        substitution: `W_{${k + 1}} = \\frac{1}{${n(A!)}\\,(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})} + \\frac{1}{${n(mu)}}`,
+        formula: String.raw`W_{${k + 1}} = \frac{1}{A\,B_{${k}}\,B_{${k + 1}}} + \frac{1}{\mu}`,
+        substitution: String.raw`W_{${k + 1}} = \frac{1}{${n(A!)}\,(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})} + \frac{1}{${n(mu)}}`,
         result: `W_{${k + 1}} = ${n(Wk)}`,
       };
     });
@@ -184,8 +183,8 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
       W.push(Wk);
       return {
         title: `Clase ${k + 1}`,
-        formula: `W_{${k + 1}} = \\frac{1/\\mu}{B_{${k}}\\,B_{${k + 1}}}`,
-        substitution: `W_{${k + 1}} = \\frac{1/${n(mu)}}{(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})}`,
+        formula: String.raw`W_{${k + 1}} = \frac{1/\mu}{B_{${k}}\,B_{${k + 1}}}`,
+        substitution: String.raw`W_{${k + 1}} = \frac{1/${n(mu)}}{(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})}`,
         result: `W_{${k + 1}} = ${n(Wk)}`,
       };
     });
@@ -215,12 +214,12 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
         explanation: `Las clases 1 a ${k + 1} se comportan como un M/M/${s} con Λ = ${formatNumber(total)}, cuyo tiempo en el sistema es W̄ = ${formatNumber(m.W, 8)}.`,
         formula:
           k === 0
-            ? 'W_1 = \\bar W_1'
-            : `W_{${k + 1}} = \\frac{\\Lambda_{${k + 1}}\\bar W_{${k + 1}} - \\Lambda_{${k}}\\bar W_{${k}}}{\\lambda_{${k + 1}}}`,
+            ? String.raw`W_1 = \bar W_1`
+            : String.raw`W_{${k + 1}} = \frac{\Lambda_{${k + 1}}\bar W_{${k + 1}} - \Lambda_{${k}}\bar W_{${k}}}{\lambda_{${k + 1}}}`,
         substitution:
           k === 0
             ? `W_1 = ${n(m.W)}`
-            : `W_{${k + 1}} = \\frac{(${n(total)})(${n(m.W, 8)}) - (${n(previousTotal)})(${n(previousW, 8)})}{${n(rate)}}`,
+            : String.raw`W_{${k + 1}} = \frac{(${n(total)})(${n(m.W, 8)}) - (${n(previousTotal)})(${n(previousW, 8)})}{${n(rate)}}`,
         result: `W_{${k + 1}} = ${n(Wk)}`,
       };
       previousTotal = total;
@@ -231,7 +230,7 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
       title: 'Tiempo promedio en el sistema de cada clase',
       explanation:
         'Las clases de mayor prioridad no se ven afectadas por las de menor prioridad. Por eso las clases 1 a k juntas se analizan como un M/M/s, y el tiempo de la clase k se despeja del promedio ponderado.',
-      formula: '\\Lambda_k \\bar W_k = \\sum_{i=1}^{k} \\lambda_i W_i',
+      formula: String.raw`\Lambda_k \bar W_k = \sum_{i=1}^{k} \lambda_i W_i`,
       children: classSteps,
     });
   }
@@ -250,12 +249,11 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
 
   steps.push({
     title: 'Medidas por clase (ley de Little)',
-    formula:
-      'W_{q,k} = W_k - \\frac{1}{\\mu}, \\qquad L_k = \\lambda_k W_k, \\qquad L_{q,k} = \\lambda_k W_{q,k}',
+    formula: String.raw`W_{q,k} = W_k - \frac{1}{\mu}, \qquad L_k = \lambda_k W_k, \qquad L_{q,k} = \lambda_k W_{q,k}`,
     result: classes
       .filter((c) => c.Wq !== null)
       .map((c) => `W_{q,${c.priority}} = ${n(c.Wq!, 6)}`)
-      .join(',\\ '),
+      .join(String.raw`,\ `),
   });
 
   const unstableClasses = classes.filter((c) => c.W === null).map((c) => c.priority);
@@ -276,7 +274,9 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
       ...classes.slice(0, 4).map((c, i) => ({
         label: `Espera de la clase ${c.priority}`,
         value:
-          c.Wq === null ? `W_{q,${c.priority}} = \\infty` : `W_{q,${c.priority}} = ${n(c.Wq, 6)}`,
+          c.Wq === null
+            ? String.raw`W_{q,${c.priority}} = \infty`
+            : `W_{q,${c.priority}} = ${n(c.Wq, 6)}`,
         emphasis: i === 0,
       })),
       ...(A === null ? [] : [{ label: 'Constante A', value: `A = ${n(A, 6)}` }]),
@@ -289,10 +289,10 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
         title: 'Medidas de desempeño por clase de prioridad',
         columns: [
           { key: 'priority', header: 'k' },
-          { key: 'lambda', header: '\\lambda_k' },
+          { key: 'lambda', header: String.raw`\lambda_k` },
           { key: 'B', header: 'B_k' },
           { key: 'W', header: 'W_k' },
-          { key: 'Wq', header: 'W_k - 1/\\mu' },
+          { key: 'Wq', header: String.raw`W_k - 1/\mu` },
           { key: 'L', header: 'L_k' },
           { key: 'Lq', header: 'L_{q,k}' },
         ],

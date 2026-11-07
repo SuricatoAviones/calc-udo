@@ -145,12 +145,12 @@ export function solveDualSimplex(input: LpInput): Result {
   const z = t.zRhs.a;
   const decisionLatex = original.variables
     .map((v, j) => `${variableLatex(v)} = ${decisions[j]!.toLatex()}`)
-    .join(',\\ ');
+    .join(String.raw`,\ `);
   trace.steps.push({
     title: 'Solución óptima',
     explanation:
       'Todos los lados derechos son no negativos: la tabla es factible y, como el dual simplex conserva la optimalidad, también es óptima.',
-    result: `${decisionLatex},\\qquad z^* = ${z.toLatex()}`,
+    result: String.raw`${decisionLatex},\qquad z^* = ${z.toLatex()}`,
   });
   const alternative = alternativeOptimaColumns(t);
   const degenerate = degenerateBasics(t);

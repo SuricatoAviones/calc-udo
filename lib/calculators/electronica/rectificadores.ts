@@ -66,7 +66,7 @@ export function solveRectifier(
   } else {
     steps.push({
       title: 'Tensión de pico del secundario',
-      result: `V_{p2} = ${n(vp2)}\\ \\text{V}`,
+      result: String.raw`V_{p2} = ${n(vp2)}\ \text{V}`,
     });
   }
 
@@ -96,28 +96,28 @@ export function solveRectifier(
       ? 'La onda completa aprovecha ambos semiciclos: el promedio es el doble que en media onda (63.6 % del pico).'
       : 'Solo pasa un semiciclo: el promedio es el 31.8 % del pico.',
     formula: r.fullWave
-      ? 'V_{cd} = \\frac{2V_{p(out)}}{\\pi} = 0.636\\,V_{p(out)}'
-      : 'V_{cd} = \\frac{V_{p(out)}}{\\pi} = 0.318\\,V_{p(out)}',
+      ? String.raw`V_{cd} = \frac{2V_{p(out)}}{\pi} = 0.636\,V_{p(out)}`
+      : String.raw`V_{cd} = \frac{V_{p(out)}}{\pi} = 0.318\,V_{p(out)}`,
     substitution: r.fullWave
-      ? `V_{cd} = \\frac{2(${n(vp)})}{\\pi}`
-      : `V_{cd} = \\frac{${n(vp)}}{\\pi}`,
-    result: `V_{cd} = ${n(vdc)}\\ \\text{V}`,
+      ? String.raw`V_{cd} = \frac{2(${n(vp)})}{\pi}`
+      : String.raw`V_{cd} = \frac{${n(vp)}}{\pi}`,
+    result: String.raw`V_{cd} = ${n(vdc)}\ \text{V}`,
   });
   steps.push({
     title: 'Valor eficaz y rizo',
     explanation:
       'El factor de rizo compara el valor eficaz de la componente de ca con el de cd (Boylestad, sec. 15.2): sin filtro es grande, por eso se agrega un capacitor.',
-    formula: `V_{rms} = ${r.fullWave ? '\\frac{V_p}{\\sqrt{2}}' : '\\frac{V_p}{2}'},\\qquad V_{r(rms)} = \\sqrt{V_{rms}^{2} - V_{cd}^{2}},\\qquad r = \\frac{V_{r(rms)}}{V_{cd}}`,
-    substitution: `V_{rms} = ${n(vrms)}\\ \\text{V},\\quad V_{r(rms)} = \\sqrt{(${n(vrms)})^{2} - (${n(vdc)})^{2}}`,
-    result: `V_{r(rms)} = ${n(vripple)}\\ \\text{V} = ${n(vripple / vp, 4)}\\,V_p,\\quad r = ${n(100 * rippleFactor, 4)}\\,\\%`,
+    formula: String.raw`V_{rms} = ${r.fullWave ? String.raw`\frac{V_p}{\sqrt{2}}` : String.raw`\frac{V_p}{2}`},\qquad V_{r(rms)} = \sqrt{V_{rms}^{2} - V_{cd}^{2}},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
+    substitution: String.raw`V_{rms} = ${n(vrms)}\ \text{V},\quad V_{r(rms)} = \sqrt{(${n(vrms)})^{2} - (${n(vdc)})^{2}}`,
+    result: String.raw`V_{r(rms)} = ${n(vripple)}\ \text{V} = ${n(vripple / vp, 4)}\,V_p,\quad r = ${n(100 * rippleFactor, 4)}\,\%`,
   });
   steps.push({
     title: 'Frecuencia de salida y PIV',
     explanation: `${r.fullWave ? 'La salida tiene dos pulsos por ciclo de la red' : 'La salida tiene un pulso por ciclo de la red'}. Cada diodo debe soportar en inversa el pico ${
       type === 'derivacion-central' ? 'del secundario completo (2V_m)' : 'del secundario'
     } (valor ideal).`,
-    formula: `f_{out} = ${r.fullWave ? '2f_{in}' : 'f_{in}'},\\qquad PIV = V_{p2}`,
-    result: `f_{out} = ${n(r.fOut)}\\ \\text{Hz},\\quad PIV = ${n(r.piv)}\\ \\text{V}`,
+    formula: String.raw`f_{out} = ${r.fullWave ? '2f_{in}' : 'f_{in}'},\qquad PIV = V_{p2}`,
+    result: String.raw`f_{out} = ${n(r.fOut)}\ \text{Hz},\quad PIV = ${n(r.piv)}\ \text{V}`,
   });
 
   let idc: number | undefined;
@@ -129,8 +129,8 @@ export function solveRectifier(
       explanation: r.fullWave
         ? 'Cada diodo conduce medio ciclo: lleva la mitad de la corriente continua de la carga.'
         : 'El único diodo lleva toda la corriente de la carga.',
-      formula: `I_{cd} = \\frac{V_{cd}}{R_L},\\qquad I_{diodo} = ${r.fullWave ? '\\frac{I_{cd}}{2}' : 'I_{cd}'},\\qquad I_p = \\frac{V_{p(out)}}{R_L}`,
-      result: `I_{cd} = ${engTex(idc, 'A')},\\quad I_{diodo} = ${engTex(idiode, 'A')},\\quad I_p = ${engTex(vp / input.rl, 'A')}`,
+      formula: String.raw`I_{cd} = \frac{V_{cd}}{R_L},\qquad I_{diodo} = ${r.fullWave ? String.raw`\frac{I_{cd}}{2}` : 'I_{cd}'},\qquad I_p = \frac{V_{p(out)}}{R_L}`,
+      result: String.raw`I_{cd} = ${engTex(idc, 'A')},\quad I_{diodo} = ${engTex(idiode, 'A')},\quad I_p = ${engTex(vp / input.rl, 'A')}`,
     });
   }
 
@@ -176,19 +176,19 @@ export function solveRectifier(
     id: 'resumen',
     title: 'Tabla 4-1 de Malvino con estos datos',
     columns: [
-      { key: 'magnitud', header: '\\text{Magnitud}', format: 'latex' },
-      { key: 'valor', header: '\\text{Valor}', format: 'latex' },
+      { key: 'magnitud', header: String.raw`\text{Magnitud}`, format: 'latex' },
+      { key: 'valor', header: String.raw`\text{Valor}`, format: 'latex' },
     ],
     rows: [
       {
-        magnitud: '\\text{Diodos}',
+        magnitud: String.raw`\text{Diodos}`,
         valor: type === 'media-onda' ? '1' : type === 'puente' ? '4' : '2',
       },
-      { magnitud: 'V_{p2}', valor: `${n(vp2, 5)}\\ \\text{V}` },
-      { magnitud: 'V_{p(in)}', valor: `${n(r.vpIn, 5)}\\ \\text{V}` },
-      { magnitud: 'V_{p(out)}', valor: `${n(vp, 5)}\\ \\text{V}` },
-      { magnitud: 'V_{cd}', valor: `${n(vdc, 5)}\\ \\text{V}` },
-      { magnitud: 'f_{out}', valor: `${n(r.fOut, 5)}\\ \\text{Hz}` },
+      { magnitud: 'V_{p2}', valor: String.raw`${n(vp2, 5)}\ \text{V}` },
+      { magnitud: 'V_{p(in)}', valor: String.raw`${n(r.vpIn, 5)}\ \text{V}` },
+      { magnitud: 'V_{p(out)}', valor: String.raw`${n(vp, 5)}\ \text{V}` },
+      { magnitud: 'V_{cd}', valor: String.raw`${n(vdc, 5)}\ \text{V}` },
+      { magnitud: 'f_{out}', valor: String.raw`${n(r.fOut, 5)}\ \text{Hz}` },
     ],
   };
 
@@ -196,12 +196,12 @@ export function solveRectifier(
     ok: true,
     value: { vp2, vpOut: vp, vdc, vrms, vripple, rippleFactor, fOut: r.fOut, piv: r.piv, idc },
     summary: [
-      { label: 'V_p(out)', value: `${n(vp, 5)}\\ \\text{V}` },
-      { label: 'V_cd', value: `${n(vdc, 5)}\\ \\text{V}`, emphasis: true },
-      { label: 'V_rms', value: `${n(vrms, 5)}\\ \\text{V}` },
-      { label: 'Rizo r', value: `${formatNumber(100 * rippleFactor, 3)}\\,\\%` },
-      { label: 'f_out', value: `${n(r.fOut, 5)}\\ \\text{Hz}` },
-      { label: 'PIV', value: `${n(r.piv, 5)}\\ \\text{V}` },
+      { label: 'V_p(out)', value: String.raw`${n(vp, 5)}\ \text{V}` },
+      { label: 'V_cd', value: String.raw`${n(vdc, 5)}\ \text{V}`, emphasis: true },
+      { label: 'V_rms', value: String.raw`${n(vrms, 5)}\ \text{V}` },
+      { label: 'Rizo r', value: String.raw`${formatNumber(100 * rippleFactor, 3)}\,\%` },
+      { label: 'f_out', value: String.raw`${n(r.fOut, 5)}\ \text{Hz}` },
+      { label: 'PIV', value: String.raw`${n(r.piv, 5)}\ \text{V}` },
       ...(idc !== undefined ? [{ label: 'I_cd', value: engTex(idc, 'A') }] : []),
     ],
     steps: [

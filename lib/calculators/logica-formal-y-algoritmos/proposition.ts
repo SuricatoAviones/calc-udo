@@ -196,11 +196,11 @@ export function evaluate(f: Formula, values: Map<string, boolean>): boolean {
 }
 
 const OP_LATEX: Record<BinaryOp, string> = {
-  and: '\\land',
-  or: '\\lor',
-  xor: '\\oplus',
-  implies: '\\rightarrow',
-  iff: '\\leftrightarrow',
+  and: String.raw`\land`,
+  or: String.raw`\lor`,
+  xor: String.raw`\oplus`,
+  implies: String.raw`\rightarrow`,
+  iff: String.raw`\leftrightarrow`,
 };
 
 /** LaTeX con paréntesis alrededor de cada subfórmula binaria. */
@@ -209,9 +209,9 @@ export function formulaLatex(f: Formula, top = true): string {
     case 'var':
       return f.name;
     case 'const':
-      return f.value ? '\\mathrm{V}' : '\\mathrm{F}';
+      return f.value ? String.raw`\mathrm{V}` : String.raw`\mathrm{F}`;
     case 'not':
-      return `\\neg ${formulaLatex(f.arg, false)}`;
+      return String.raw`\neg ${formulaLatex(f.arg, false)}`;
     case 'bin': {
       const inner = `${formulaLatex(f.left, false)} ${OP_LATEX[f.op]} ${formulaLatex(f.right, false)}`;
       return top ? inner : `(${inner})`;
@@ -266,12 +266,12 @@ export function connectiveRules(formulas: Formula[]): string[] {
   };
   formulas.forEach(walk);
   const rules: Record<string, string> = {
-    not: '\\neg p \\text{ tiene el valor contrario de } p',
-    and: 'p \\land q \\text{ es V solo si ambas son V}',
-    or: 'p \\lor q \\text{ es F solo si ambas son F}',
-    xor: 'p \\oplus q \\text{ es V si tienen valores distintos}',
-    implies: 'p \\rightarrow q \\text{ es F solo si } p \\text{ es V y } q \\text{ es F}',
-    iff: 'p \\leftrightarrow q \\text{ es V si tienen el mismo valor}',
+    not: String.raw`\neg p \text{ tiene el valor contrario de } p`,
+    and: String.raw`p \land q \text{ es V solo si ambas son V}`,
+    or: String.raw`p \lor q \text{ es F solo si ambas son F}`,
+    xor: String.raw`p \oplus q \text{ es V si tienen valores distintos}`,
+    implies: String.raw`p \rightarrow q \text{ es F solo si } p \text{ es V y } q \text{ es F}`,
+    iff: String.raw`p \leftrightarrow q \text{ es V si tienen el mismo valor}`,
   };
   return ['not', 'and', 'or', 'xor', 'implies', 'iff']
     .filter((k) => used.has(k))
@@ -339,7 +339,8 @@ export function truthTableRow(
 }
 
 /** «V, F, F, V» como texto LaTeX. */
-export const columnLatex = (column: boolean[]) => `\\text{${column.map(truth).join(', ')}}`;
+export const columnLatex = (column: boolean[]) =>
+  String.raw`\text{${column.map(truth).join(', ')}}`;
 
 /** Campo de formulario para una proposición, validada con el lector. */
 export const formulaField = (label: string) =>

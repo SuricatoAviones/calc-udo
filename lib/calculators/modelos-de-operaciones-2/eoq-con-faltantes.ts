@@ -95,38 +95,37 @@ export function solveEoqShortages(
         title: 'Costo por unidad de tiempo',
         explanation:
           'En cada ciclo el inventario sube hasta S y baja hasta −(Q − S): la parte positiva genera costo de mantener y la negativa, costo por faltante. Se deriva respecto de Q y de S y se iguala a cero.',
-        formula: 'T(Q, S) = \\frac{KD}{Q} + \\frac{hS^2}{2Q} + \\frac{p\\,(Q - S)^2}{2Q}',
+        formula: String.raw`T(Q, S) = \frac{KD}{Q} + \frac{hS^2}{2Q} + \frac{p\,(Q - S)^2}{2Q}`,
       },
       {
         title: 'Tamaño óptimo del lote',
-        formula: 'Q^* = \\sqrt{\\frac{2KD}{h}}\\,\\sqrt{\\frac{p + h}{p}}',
-        substitution: `Q^* = \\sqrt{\\frac{2(${n(K)})(${n(D)})}{${n(h)}}}\\,\\sqrt{\\frac{${n(p)} + ${n(h)}}{${n(p)}}} = ${n(base, 6)}\\,(${n(Math.sqrt((p + h) / p), 6)})`,
+        formula: String.raw`Q^* = \sqrt{\frac{2KD}{h}}\,\sqrt{\frac{p + h}{p}}`,
+        substitution: String.raw`Q^* = \sqrt{\frac{2(${n(K)})(${n(D)})}{${n(h)}}}\,\sqrt{\frac{${n(p)} + ${n(h)}}{${n(p)}}} = ${n(base, 6)}\,(${n(Math.sqrt((p + h) / p), 6)})`,
         result: `Q^* = ${n(Q, 6)}`,
       },
       {
         title: 'Nivel máximo de inventario',
-        formula: 'S^* = \\sqrt{\\frac{2KD}{h}}\\,\\sqrt{\\frac{p}{p + h}}',
-        substitution: `S^* = ${n(base, 6)}\\,\\sqrt{\\frac{${n(p)}}{${n(p)} + ${n(h)}}} = ${n(base, 6)}\\,(${n(Math.sqrt(ratio), 6)})`,
+        formula: String.raw`S^* = \sqrt{\frac{2KD}{h}}\,\sqrt{\frac{p}{p + h}}`,
+        substitution: String.raw`S^* = ${n(base, 6)}\,\sqrt{\frac{${n(p)}}{${n(p)} + ${n(h)}}} = ${n(base, 6)}\,(${n(Math.sqrt(ratio), 6)})`,
         result: `S^* = ${n(S, 6)}`,
       },
       {
         title: 'Faltante máximo y duración del ciclo',
-        formula:
-          'Q^* - S^*, \\qquad t^* = \\frac{Q^*}{D}, \\qquad t_1 = \\frac{S^*}{D}, \\qquad t_2 = \\frac{Q^* - S^*}{D}',
-        substitution: `Q^* - S^* = ${n(Q, 6)} - ${n(S, 6)}, \\qquad t^* = \\frac{${n(Q, 6)}}{${n(D)}}`,
-        result: `Q^* - S^* = ${n(shortage, 6)}, \\qquad t^* = ${n(cycle, 6)} \\quad (t_1 = ${n(S / D, 6)},\\ t_2 = ${n(shortage / D, 6)})`,
+        formula: String.raw`Q^* - S^*, \qquad t^* = \frac{Q^*}{D}, \qquad t_1 = \frac{S^*}{D}, \qquad t_2 = \frac{Q^* - S^*}{D}`,
+        substitution: String.raw`Q^* - S^* = ${n(Q, 6)} - ${n(S, 6)}, \qquad t^* = \frac{${n(Q, 6)}}{${n(D)}}`,
+        result: String.raw`Q^* - S^* = ${n(shortage, 6)}, \qquad t^* = ${n(cycle, 6)} \quad (t_1 = ${n(S / D, 6)},\ t_2 = ${n(shortage / D, 6)})`,
       },
       {
         title: 'Costos en el óptimo',
-        substitution: `\\frac{KD}{Q^*} = ${n(ordering, 6)}, \\qquad \\frac{hS^{*2}}{2Q^*} = ${n(holding, 6)}, \\qquad \\frac{p\\,(Q^* - S^*)^2}{2Q^*} = ${n(shortageCost, 6)}`,
+        substitution: String.raw`\frac{KD}{Q^*} = ${n(ordering, 6)}, \qquad \frac{hS^{*2}}{2Q^*} = ${n(holding, 6)}, \qquad \frac{p\,(Q^* - S^*)^2}{2Q^*} = ${n(shortageCost, 6)}`,
         result: `T(Q^*, S^*) = ${n(total, 6)}`,
       },
       {
         title: 'Comparación con el EOQ sin faltantes',
         explanation:
           'Sin faltantes el lote sería menor. Permitir faltantes conviene cuando p no es mucho mayor que h; si p es muy grande, Q* se acerca al EOQ clásico.',
-        formula: 'Q_{\\text{EOQ}} = \\sqrt{\\frac{2KD}{h}}, \\qquad T_{\\text{EOQ}} = \\sqrt{2KDh}',
-        result: `Q_{\\text{EOQ}} = ${n(base, 6)}, \\qquad T_{\\text{EOQ}} = ${n(Math.sqrt(2 * K * D * h), 6)}`,
+        formula: String.raw`Q_{\text{EOQ}} = \sqrt{\frac{2KD}{h}}, \qquad T_{\text{EOQ}} = \sqrt{2KDh}`,
+        result: String.raw`Q_{\text{EOQ}} = ${n(base, 6)}, \qquad T_{\text{EOQ}} = ${n(Math.sqrt(2 * K * D * h), 6)}`,
       },
     ],
     series: [

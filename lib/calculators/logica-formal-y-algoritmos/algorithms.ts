@@ -37,11 +37,11 @@ export function listLatex(
 ): string {
   const items = values.map((v, i) => {
     let tex = num(v);
-    if (options.bold?.(i)) tex = `\\mathbf{${tex}}`;
-    if (options.boxed?.includes(i)) tex = `\\boxed{${tex}}`;
+    if (options.bold?.(i)) tex = String.raw`\mathbf{${tex}}`;
+    if (options.boxed?.includes(i)) tex = String.raw`\boxed{${tex}}`;
     return tex;
   });
-  return `\\left[\\,${items.join(',\\ ')}\\,\\right]`;
+  return String.raw`\left[\,${items.join(String.raw`,\ `)}\,\right]`;
 }
 
 /**
@@ -54,9 +54,9 @@ export function pseudocode(lines: [number, string][]): string {
       const body = text
         .split(/(\*\*[^*]+\*\*)/)
         .filter((part) => part !== '')
-        .map((part) => (part.startsWith('**') ? `\\textbf{${part.slice(2, -2)}}` : part))
-        .join('\\ ');
-      return `${'\\quad '.repeat(indent)}${body}`;
+        .map((part) => (part.startsWith('**') ? String.raw`\textbf{${part.slice(2, -2)}}` : part))
+        .join(String.raw`\ `);
+      return `${String.raw`\quad `.repeat(indent)}${body}`;
     }),
   );
 }

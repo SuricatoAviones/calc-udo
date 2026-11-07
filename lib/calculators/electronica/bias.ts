@@ -66,8 +66,8 @@ export function bjtBias(p: BjtParams): BjtResult {
     ib = (vcc - vbe) / rb;
     steps.push({
       title: 'Corriente de base (malla base-emisor)',
-      formula: 'I_B = \\frac{V_{CC} - V_{BE}}{R_B}',
-      substitution: `I_B = \\frac{${n(vcc)} - ${n(vbe)}}{${n(rb)}}`,
+      formula: String.raw`I_B = \frac{V_{CC} - V_{BE}}{R_B}`,
+      substitution: String.raw`I_B = \frac{${n(vcc)} - ${n(vbe)}}{${n(rb)}}`,
       result: `I_B = ${engTex(ib, 'A')}`,
     });
   } else if (p.config === 'emisor') {
@@ -75,8 +75,8 @@ export function bjtBias(p: BjtParams): BjtResult {
     steps.push({
       title: 'Corriente de base (malla base-emisor)',
       explanation: 'R_E se refleja en la base multiplicada por (β + 1).',
-      formula: 'I_B = \\frac{V_{CC} - V_{BE}}{R_B + (\\beta + 1)R_E}',
-      substitution: `I_B = \\frac{${n(vcc)} - ${n(vbe)}}{${n(rb)} + (${n(beta + 1)})(${n(re)})}`,
+      formula: String.raw`I_B = \frac{V_{CC} - V_{BE}}{R_B + (\beta + 1)R_E}`,
+      substitution: String.raw`I_B = \frac{${n(vcc)} - ${n(vbe)}}{${n(rb)} + (${n(beta + 1)})(${n(re)})}`,
       result: `I_B = ${engTex(ib, 'A')}`,
     });
   } else if (p.config === 'realimentacion') {
@@ -85,8 +85,8 @@ export function bjtBias(p: BjtParams): BjtResult {
       title: 'Corriente de base (malla base-emisor)',
       explanation:
         'R_F va del colector a la base: la corriente de colector pasa por R_C y por R_E (I_C′ ≈ I_C).',
-      formula: 'I_B = \\frac{V_{CC} - V_{BE}}{R_F + \\beta(R_C + R_E)}',
-      substitution: `I_B = \\frac{${n(vcc)} - ${n(vbe)}}{${n(rb)} + ${n(beta)}(${n(rc)} + ${n(re)})}`,
+      formula: String.raw`I_B = \frac{V_{CC} - V_{BE}}{R_F + \beta(R_C + R_E)}`,
+      substitution: String.raw`I_B = \frac{${n(vcc)} - ${n(vbe)}}{${n(rb)} + ${n(beta)}(${n(rc)} + ${n(re)})}`,
       result: `I_B = ${engTex(ib, 'A')}`,
     });
   } else {
@@ -98,22 +98,22 @@ export function bjtBias(p: BjtParams): BjtResult {
       explanation: approxValid
         ? 'βR_E ≥ 10R₂: la corriente de base es pequeña frente a la del divisor y el análisis aproximado es válido.'
         : 'βR_E < 10R₂: la corriente de base no es despreciable; conviene el análisis exacto.',
-      formula: '\\beta R_E \\ge 10R_2',
-      substitution: `(${n(beta)})(${n(re)}) ${approxValid ? '\\ge' : '<'} 10(${n(r2)})`,
-      result: `${engTex(beta * re, 'Ω')}\\ ${approxValid ? '\\ge' : '<'}\\ ${engTex(10 * r2, 'Ω')}`,
+      formula: String.raw`\beta R_E \ge 10R_2`,
+      substitution: `(${n(beta)})(${n(re)}) ${approxValid ? String.raw`\ge` : '<'} 10(${n(r2)})`,
+      result: String.raw`${engTex(beta * re, 'Ω')}\ ${approxValid ? String.raw`\ge` : '<'}\ ${engTex(10 * r2, 'Ω')}`,
     });
     if (p.method === 'exacto') {
       ib = (eth - vbe) / (rth + (beta + 1) * re);
       steps.push({
         title: 'Equivalente de Thévenin de la base',
-        formula: 'R_{Th} = R_1 \\parallel R_2,\\qquad E_{Th} = \\frac{R_2 V_{CC}}{R_1 + R_2}',
-        substitution: `E_{Th} = \\frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
-        result: `R_{Th} = ${engTex(rth, 'Ω')},\\quad E_{Th} = ${n(eth)}\\ \\text{V}`,
+        formula: String.raw`R_{Th} = R_1 \parallel R_2,\qquad E_{Th} = \frac{R_2 V_{CC}}{R_1 + R_2}`,
+        substitution: String.raw`E_{Th} = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
+        result: String.raw`R_{Th} = ${engTex(rth, 'Ω')},\quad E_{Th} = ${n(eth)}\ \text{V}`,
       });
       steps.push({
         title: 'Corriente de base',
-        formula: 'I_B = \\frac{E_{Th} - V_{BE}}{R_{Th} + (\\beta + 1)R_E}',
-        substitution: `I_B = \\frac{${n(eth)} - ${n(vbe)}}{${n(rth)} + (${n(beta + 1)})(${n(re)})}`,
+        formula: String.raw`I_B = \frac{E_{Th} - V_{BE}}{R_{Th} + (\beta + 1)R_E}`,
+        substitution: String.raw`I_B = \frac{${n(eth)} - ${n(vbe)}}{${n(rth)} + (${n(beta + 1)})(${n(re)})}`,
         result: `I_B = ${engTex(ib, 'A')}`,
       });
     } else {
@@ -124,15 +124,15 @@ export function bjtBias(p: BjtParams): BjtResult {
       ib = ic / beta;
       steps.push({
         title: 'Tensión de base (divisor sin carga)',
-        formula: 'V_B = \\frac{R_2 V_{CC}}{R_1 + R_2},\\qquad V_E = V_B - V_{BE}',
-        substitution: `V_B = \\frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
-        result: `V_B = ${n(vb)}\\ \\text{V},\\quad V_E = ${n(ve)}\\ \\text{V}`,
+        formula: String.raw`V_B = \frac{R_2 V_{CC}}{R_1 + R_2},\qquad V_E = V_B - V_{BE}`,
+        substitution: String.raw`V_B = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
+        result: String.raw`V_B = ${n(vb)}\ \text{V},\quad V_E = ${n(ve)}\ \text{V}`,
       });
       steps.push({
         title: 'Corriente de emisor',
-        formula: 'I_C \\approx I_E = \\frac{V_E}{R_E}',
-        substitution: `I_E = \\frac{${n(ve)}}{${n(re)}}`,
-        result: `I_C \\approx I_E = ${engTex(ie, 'A')}`,
+        formula: String.raw`I_C \approx I_E = \frac{V_E}{R_E}`,
+        substitution: String.raw`I_E = \frac{${n(ve)}}{${n(re)}}`,
+        result: String.raw`I_C \approx I_E = ${engTex(ie, 'A')}`,
       });
     }
   }
@@ -142,9 +142,9 @@ export function bjtBias(p: BjtParams): BjtResult {
     ie = (beta + 1) * ib;
     steps.push({
       title: 'Corriente de colector',
-      formula: 'I_C = \\beta I_B,\\qquad I_E = (\\beta + 1)I_B',
+      formula: String.raw`I_C = \beta I_B,\qquad I_E = (\beta + 1)I_B`,
       substitution: `I_C = (${n(beta)})(${n(ib)})`,
-      result: `I_C = ${engTex(ic, 'A')},\\quad I_E = ${engTex(ie, 'A')}`,
+      result: String.raw`I_C = ${engTex(ic, 'A')},\quad I_E = ${engTex(ie, 'A')}`,
     });
   }
 
@@ -175,7 +175,7 @@ export function bjtBias(p: BjtParams): BjtResult {
       re > 0
         ? `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)} + ${n(re)})`
         : `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)})`,
-    result: `V_{CE} = ${n(vce)}\\ \\text{V}`,
+    result: String.raw`V_{CE} = ${n(vce)}\ \text{V}`,
   });
   steps.push({
     title: 'Tensiones de los terminales y región de trabajo',
@@ -185,9 +185,8 @@ export function bjtBias(p: BjtParams): BjtResult {
         : region === 'saturacion'
           ? 'La corriente calculada supera la de saturación: el transistor está saturado (V_CE ≈ 0).'
           : 'La base no recibe corriente: el transistor está en corte.',
-    formula:
-      'V_C = V_{CC} - I_C R_C,\\quad V_E = I_E R_E \\approx I_C R_E,\\quad V_B = V_E + V_{BE},\\quad I_{C(sat)} = \\frac{V_{CC}}{R_C + R_E}',
-    result: `V_C = ${n(vc)}\\ \\text{V},\\ V_E = ${n(ve)}\\ \\text{V},\\ V_B = ${n(vb)}\\ \\text{V},\\ I_{C(sat)} = ${engTex(icSat, 'A')}`,
+    formula: String.raw`V_C = V_{CC} - I_C R_C,\quad V_E = I_E R_E \approx I_C R_E,\quad V_B = V_E + V_{BE},\quad I_{C(sat)} = \frac{V_{CC}}{R_C + R_E}`,
+    result: String.raw`V_C = ${n(vc)}\ \text{V},\ V_E = ${n(ve)}\ \text{V},\ V_B = ${n(vb)}\ \text{V},\ I_{C(sat)} = ${engTex(icSat, 'A')}`,
   });
 
   return { ib, ic, ie, vce, vb, vc, ve, vbc: vb - vc, icSat, region, approxValid, steps };
@@ -225,7 +224,7 @@ export function solveFetBias(
         title: 'Punto de operación',
         explanation:
           'V_GS queda fijo por la red: basta sustituirlo en la ecuación del dispositivo.',
-        result: `V_{GSQ} = ${n(vgs)}\\ \\text{V},\\quad I_{DQ} = ${engTex(id, 'A')}`,
+        result: String.raw`V_{GSQ} = ${n(vgs)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A')}`,
       },
     };
   }
@@ -247,10 +246,9 @@ export function solveFetBias(
     step: {
       title: 'Intersección: ecuación de segundo grado',
       explanation: `Se sustituye la recta de polarización en la ecuación del dispositivo y se despeja V_GS. De las dos raíces vale la que deja al ${label} conduciendo (V_GS > ${n(vx, 4)} V).`,
-      formula:
-        'a\\,V_{GS}^{2} + b\\,V_{GS} + c = 0,\\qquad V_{GS} = \\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}',
-      substitution: `a = ${n(a)},\\ b = ${n(b)},\\ c = ${n(c)}`,
-      result: `V_{GS} = ${n(roots[0]!)}\\ \\text{V}\\ \\text{o}\\ ${n(roots[1]!)}\\ \\text{V}\\ \\Rightarrow\\ V_{GSQ} = ${n(vgs)}\\ \\text{V},\\quad I_{DQ} = ${engTex(id, 'A')}`,
+      formula: String.raw`a\,V_{GS}^{2} + b\,V_{GS} + c = 0,\qquad V_{GS} = \frac{-b \pm \sqrt{b^{2} - 4ac}}{2a}`,
+      substitution: String.raw`a = ${n(a)},\ b = ${n(b)},\ c = ${n(c)}`,
+      result: String.raw`V_{GS} = ${n(roots[0]!)}\ \text{V}\ \text{o}\ ${n(roots[1]!)}\ \text{V}\ \Rightarrow\ V_{GSQ} = ${n(vgs)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A')}`,
     },
   };
 }

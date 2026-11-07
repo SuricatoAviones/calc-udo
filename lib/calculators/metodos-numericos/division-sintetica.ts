@@ -70,7 +70,7 @@ function divisionStep(
     }
     return {
       title: i === degree ? 'Residuo' : `Coeficiente b${'₀₁₂₃₄₅₆₇₈₉'[k] ?? k}`,
-      formula: `b_{${k}} = a_{${k}} + r\\,b_{${k + 1}}`,
+      formula: String.raw`b_{${k}} = a_{${k}} + r\,b_{${k + 1}}`,
       substitution: `b_{${k}} = ${n(coefficients[i]!)} + ${op(r)}${op(division.b[i - 1]!)}`,
       result: `b_{${k}} = ${n(b)}`,
     };
@@ -83,10 +83,10 @@ function divisionStep(
       title,
       explanation:
         'Se baja el primer coeficiente; cada uno de los siguientes es el coeficiente de arriba más r por el último resultado. El último número es el residuo.',
-      formula: `${name} \\div (x ${r < 0 ? '+' : '-'} ${n(Math.abs(r))})`,
+      formula: String.raw`${name} \div (x ${r < 0 ? '+' : '-'} ${n(Math.abs(r))})`,
       substitution: ruffiniLatex(coefficients, r, division),
       children,
-      result: `Q(x) = ${quotientTex}, \\quad R = ${n(division.remainder)}`,
+      result: String.raw`Q(x) = ${quotientTex}, \quad R = ${n(division.remainder)}`,
     },
   };
 }
@@ -102,7 +102,7 @@ export function solveSyntheticDivision(
     {
       title: 'Polinomio y divisor',
       explanation: `P es de grado ${degree}. Se divide entre (x ${r < 0 ? '+' : '−'} ${formatNumber(Math.abs(r))}), es decir, r = ${formatNumber(r)}.`,
-      result: `P(x) = ${polynomialLatex(coefficients)}, \\qquad x - r = ${divisor}`,
+      result: String.raw`P(x) = ${polynomialLatex(coefficients)}, \qquad x - r = ${divisor}`,
     },
   ];
 
@@ -114,8 +114,8 @@ export function solveSyntheticDivision(
     explanation: isRoot
       ? `El residuo es 0: r = ${formatNumber(r)} es raíz de P y (x − r) es un factor. Q(x) es el polinomio deflactado, de un grado menos, que conserva las demás raíces.`
       : `El residuo es el valor del polinomio en r. Como no es 0, r = ${formatNumber(r)} no es raíz de P.`,
-    formula: 'P(x) = (x - r)\\,Q(x) + R, \\qquad R = P(r)',
-    result: `P(${n(r)}) = ${n(first.remainder)}${isRoot ? `, \\quad P(x) = (${divisor})(${polynomialLatex(first.quotient)})` : ''}`,
+    formula: String.raw`P(x) = (x - r)\,Q(x) + R, \qquad R = P(r)`,
+    result: `P(${n(r)}) = ${n(first.remainder)}${isRoot ? String.raw`, \quad P(x) = (${divisor})(${polynomialLatex(first.quotient)})` : ''}`,
   });
 
   const division = syntheticDivision(coefficients, r);
@@ -128,13 +128,13 @@ export function solveSyntheticDivision(
       id: 'division',
       title: 'División sintética',
       columns: [
-        { key: 'power', header: '\\text{Potencia}', format: 'latex' as const },
+        { key: 'power', header: String.raw`\text{Potencia}`, format: 'latex' as const },
         { key: 'a', header: 'a_k' },
-        { key: 'product', header: 'r\\,b_{k+1}' },
+        { key: 'product', header: String.raw`r\,b_{k+1}` },
         { key: 'b', header: 'b_k' },
       ],
       rows: coefficients.map((a, i) => ({
-        power: degree - i === 0 ? '\\text{residuo}' : `x^{${degree - i}}`,
+        power: degree - i === 0 ? String.raw`\text{residuo}` : `x^{${degree - i}}`,
         a,
         product: division.products[i] ?? null,
         b: division.b[i]!,
@@ -161,7 +161,7 @@ export function solveSyntheticDivision(
     const next = divisionStep(current, r, `División ${k + 1}`, `Q_{${k}}(x)`);
     repeated.push({
       ...next.step,
-      result: `${next.step.result} \\;\\Rightarrow\\; c_{${k}} = ${n(next.remainder)}`,
+      result: String.raw`${next.step.result} \;\Rightarrow\; c_{${k}} = ${n(next.remainder)}`,
     });
     shifted.push(next.remainder);
     current = next.quotient;
@@ -199,7 +199,7 @@ export function solveSyntheticDivision(
       .join(
         ', ',
       )} (coeficientes de mayor a menor grado). Además, cada c_k = P⁽ᵏ⁾(r)/k!, así que las divisiones dan también las derivadas de P en r.`,
-    formula: `P(x) = c_0 + c_1(x - r) + \\cdots + c_{${degree}}(x - r)^{${degree}}`,
+    formula: String.raw`P(x) = c_0 + c_1(x - r) + \cdots + c_{${degree}}(x - r)^{${degree}}`,
     result: `P(x) = ${shiftedTex || '0'}`,
   });
 
@@ -220,7 +220,7 @@ export function solveSyntheticDivision(
         columns: [
           { key: 'k', header: 'k' },
           { key: 'c', header: 'c_k' },
-          { key: 'derivative', header: 'P^{(k)}(r) = k!\\,c_k' },
+          { key: 'derivative', header: String.raw`P^{(k)}(r) = k!\,c_k` },
         ],
         rows: shifted.map((c, k) => ({ k, c, derivative: c * factorials[k]! })),
       },

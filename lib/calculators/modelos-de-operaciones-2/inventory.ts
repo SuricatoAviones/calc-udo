@@ -55,10 +55,10 @@ export function reorderStep(demand: number, leadTime: number, r: ReorderPoint): 
       ? `El tiempo de entrega (L = ${leadTime}) es mayor que un ciclo, así que cada pedido se hace ${r.fullCycles} ${r.fullCycles === 1 ? 'ciclo' : 'ciclos'} antes. Lo que importa para el punto de reorden es el tiempo de entrega efectivo.`
       : 'Se pide cuando el inventario alcanza lo que se consume durante el tiempo de entrega.',
     formula: shifted
-      ? 'L_e = L - \\left\\lfloor \\frac{L}{t_0} \\right\\rfloor t_0, \\qquad R = L_e\\,D'
-      : 'R = L\\,D',
+      ? String.raw`L_e = L - \left\lfloor \frac{L}{t_0} \right\rfloor t_0, \qquad R = L_e\,D`
+      : String.raw`R = L\,D`,
     substitution: shifted
-      ? `L_e = ${n(leadTime)} - ${r.fullCycles}(${n(r.cycle, 6)}) = ${n(r.effectiveLeadTime, 6)}, \\qquad R = ${n(r.effectiveLeadTime, 6)}(${n(demand)})`
+      ? String.raw`L_e = ${n(leadTime)} - ${r.fullCycles}(${n(r.cycle, 6)}) = ${n(r.effectiveLeadTime, 6)}, \qquad R = ${n(r.effectiveLeadTime, 6)}(${n(demand)})`
       : `R = ${n(leadTime)}(${n(demand)})`,
     result: `R = ${n(r.reorderPoint, 6)}`,
   };

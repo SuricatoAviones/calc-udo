@@ -72,7 +72,7 @@ export function solveDifferenceTable(
     {
       title: 'Datos',
       explanation: `${x.length} puntos. ${h !== null ? describeSpacing(h) : 'Los x no están igualmente espaciados.'}`,
-      result: x.map((xi, i) => `(${n(xi)},\\ ${n(y[i]!)})`).join(',\\ '),
+      result: x.map((xi, i) => String.raw`(${n(xi)},\ ${n(y[i]!)})`).join(String.raw`,\ `),
     },
   ];
 
@@ -90,8 +90,8 @@ export function solveDifferenceTable(
       }
       return {
         title: `Diferencia de orden ${k} en i = ${i}`,
-        formula: `${name(i, k)} = \\frac{${name(i + 1, k - 1)} - ${name(i, k - 1)}}{x_{${i + k}} - x_{${i}}}`,
-        substitution: `${name(i, k)} = \\frac{${n(prev[i + 1]!)} - ${op(prev[i]!)}}{${n(x[i + k]!)} - ${op(x[i]!)}}`,
+        formula: String.raw`${name(i, k)} = \frac{${name(i + 1, k - 1)} - ${name(i, k - 1)}}{x_{${i + k}} - x_{${i}}}`,
+        substitution: String.raw`${name(i, k)} = \frac{${n(prev[i + 1]!)} - ${op(prev[i]!)}}{${n(x[i + k]!)} - ${op(x[i]!)}}`,
         result: `${name(i, k)} = ${n(v)}`,
       };
     });
@@ -121,10 +121,10 @@ export function solveDifferenceTable(
       header: forward
         ? k === 0
           ? 'y_i'
-          : `\\Delta${k === 1 ? '' : `^{${k}}`} y_i`
+          : String.raw`\Delta${k === 1 ? '' : `^{${k}}`} y_i`
         : k === 0
           ? 'f[x_i]'
-          : `f[x_i, \\ldots, x_{i+${k}}]`,
+          : String.raw`f[x_i, \ldots, x_{i+${k}}]`,
     })),
   ];
   const rows = x.map((xi, i) => {
@@ -142,12 +142,12 @@ export function solveDifferenceTable(
       value: levels
         .slice(0, 5)
         .map((level, k) => `${name(0, k)} = ${n(level[0]!)}`)
-        .join(',\\ '),
+        .join(String.raw`,\ `),
       emphasis: true,
     },
   ];
   if (constant !== null) {
-    summary.push({ label: 'Diferencias constantes', value: `\\text{orden } ${constant}` });
+    summary.push({ label: 'Diferencias constantes', value: String.raw`\text{orden } ${constant}` });
   }
 
   return {

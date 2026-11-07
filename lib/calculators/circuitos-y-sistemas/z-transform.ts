@@ -160,7 +160,7 @@ export function evaluateSequence(terms: SequenceTerm[], k: number): number {
 
 /** Base de una potencia entre paréntesis, como en Kuo: `2.07(0.447)^{k}`, `3(-1)^{k}`. */
 function baseTex(p: number): string {
-  return `\\left(${n(p)}\\right)`;
+  return String.raw`\left(${n(p)}\right)`;
 }
 
 /** k − m en LaTeX. */
@@ -171,7 +171,7 @@ function shiftTex(m: number): string {
 function binomialTex(r: number): string {
   if (r === 1) return '';
   if (r === 2) return 'k';
-  return `\\binom{k}{${r - 1}}`;
+  return String.raw`\binom{k}{${r - 1}}`;
 }
 
 /** LaTeX de los términos de la sucesión (para unir con `joinTerms`). */
@@ -180,7 +180,7 @@ export function sequenceTermsTex(terms: SequenceTerm[]): { coef: number; body: s
   for (const t of terms) {
     const r = t.order;
     if (C.isZero(t.pole)) {
-      out.push({ coef: t.residue.re, body: `\\delta\\left(${shiftTex(r - 1)}\\right)` });
+      out.push({ coef: t.residue.re, body: String.raw`\delta\left(${shiftTex(r - 1)}\right)` });
       continue;
     }
     const exponent = r === 1 ? 'k' : `k - ${r - 1}`;
@@ -202,11 +202,11 @@ export function sequenceTermsTex(terms: SequenceTerm[]): { coef: number; body: s
       amplitude = -amplitude;
     }
     const radius = magnitude === 1 ? '' : `${baseTex(magnitude)}^{${exponent}}`;
-    const angle = r === 1 ? `${n(omega)}k` : `${n(omega)}\\left(k - ${r - 1}\\right)`;
+    const angle = r === 1 ? `${n(omega)}k` : String.raw`${n(omega)}\left(k - ${r - 1}\right)`;
     const phase = Math.abs(theta) < 1e-12 ? '' : ` ${theta < 0 ? '-' : '+'} ${n(Math.abs(theta))}`;
     out.push({
       coef: amplitude,
-      body: `${binom}${radius}\\cos\\left(${angle}${phase}\\right)`,
+      body: String.raw`${binom}${radius}\cos\left(${angle}${phase}\right)`,
     });
   }
   return out;

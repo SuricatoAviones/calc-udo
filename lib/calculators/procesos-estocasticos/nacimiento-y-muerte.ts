@@ -126,12 +126,12 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
           const to = segments[i + 1]
             ? `${segments[i + 1]!.from - 1}`
             : infinite
-              ? '\\infty'
+              ? String.raw`\infty`
               : `${capacity}`;
-          return `n = ${s.from}, \\ldots, ${to}:\\ \\lambda_n = ${n(s.lambda)},\\ \\mu_n = ${n(s.mu)}`;
+          return String.raw`n = ${s.from}, \ldots, ${to}:\ \lambda_n = ${n(s.lambda)},\ \mu_n = ${n(s.mu)}`;
         })
-        .join(' \\\\ '),
-      result: infinite ? undefined : `\\lambda_{${capacity}} = 0 \\ \\text{(sistema lleno)}`,
+        .join(String.raw` \\ `),
+      result: infinite ? undefined : String.raw`\lambda_{${capacity}} = 0 \ \text{(sistema lleno)}`,
     },
   ];
 
@@ -174,8 +174,8 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
       steps.push({
         title: 'Convergencia de la serie',
         explanation: `A partir de n = ${last.from} los términos crecen o se mantienen con razón ρ = λ/μ = ${formatNumber(tailRatio, 6)} ≥ 1: la suma no converge.`,
-        formula: '\\rho = \\frac{\\lambda}{\\mu} < 1',
-        result: `\\rho = ${n(tailRatio)} \\ge 1`,
+        formula: String.raw`\rho = \frac{\lambda}{\mu} < 1`,
+        result: String.raw`\rho = ${n(tailRatio)} \ge 1`,
       });
       return {
         ok: false,
@@ -206,19 +206,18 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
     title: 'Coeficientes C_n',
     explanation:
       'De las ecuaciones de balance λ_{n−1} p_{n−1} = μ_n p_n se obtiene cada p_n como un múltiplo de p₀. Cada coeficiente es el anterior por λ_{n−1}/μ_n.',
-    formula:
-      'C_0 = 1, \\qquad C_n = C_{n-1}\\,\\frac{\\lambda_{n-1}}{\\mu_n}, \\qquad p_n = C_n\\,p_0',
-    substitution: `C_1 = \\frac{${n(lambdaAt(0))}}{${n(muAt(1))}}${ratioTerms.length > 1 ? `, \\quad ${ratioTerms.slice(1).join(',\\ ')}` : ''}${C.length > 5 ? ', \\ldots' : ''}`,
-    result: ratioTerms.join(',\\ '),
+    formula: String.raw`C_0 = 1, \qquad C_n = C_{n-1}\,\frac{\lambda_{n-1}}{\mu_n}, \qquad p_n = C_n\,p_0`,
+    substitution: String.raw`C_1 = \frac{${n(lambdaAt(0))}}{${n(muAt(1))}}${ratioTerms.length > 1 ? String.raw`, \quad ${ratioTerms.slice(1).join(String.raw`,\ `)}` : ''}${C.length > 5 ? String.raw`, \ldots` : ''}`,
+    result: ratioTerms.join(String.raw`,\ `),
   });
 
   if (infinite) {
     steps.push({
       title: `Cola geométrica a partir de n = ${last.from}`,
       explanation: `Desde el último tramo, cada coeficiente es el anterior por ρ = λ/μ = ${formatNumber(tailRatio!, 6)} < 1, así que la suma infinita es una serie geométrica.`,
-      formula: '\\sum_{n > n_0} C_n = C_{n_0}\\,\\frac{\\rho}{1 - \\rho}',
-      substitution: `\\sum_{n > ${last.from}} C_n = ${n(C[last.from]!, 8)}\\,\\frac{${n(tailRatio!)}}{1 - ${n(tailRatio!)}}`,
-      result: `\\sum_{n > ${last.from}} C_n = ${n(tailMass, 8)}`,
+      formula: String.raw`\sum_{n > n_0} C_n = C_{n_0}\,\frac{\rho}{1 - \rho}`,
+      substitution: String.raw`\sum_{n > ${last.from}} C_n = ${n(C[last.from]!, 8)}\,\frac{${n(tailRatio!)}}{1 - ${n(tailRatio!)}}`,
+      result: String.raw`\sum_{n > ${last.from}} C_n = ${n(tailMass, 8)}`,
     });
   }
 
@@ -226,10 +225,10 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
     title: 'Probabilidad de que el sistema esté vacío',
     explanation:
       'Las probabilidades suman 1, así que p₀ es el recíproco de la suma de los coeficientes.',
-    formula: 'p_0 = \\left[\\sum_{n} C_n\\right]^{-1}',
+    formula: String.raw`p_0 = \left[\sum_{n} C_n\right]^{-1}`,
     substitution: infinite
-      ? `p_0 = \\left[${n(explicitSum, 8)} + ${n(tailMass, 8)}\\right]^{-1}`
-      : `p_0 = \\left[${n(explicitSum, 8)}\\right]^{-1}`,
+      ? String.raw`p_0 = \left[${n(explicitSum, 8)} + ${n(tailMass, 8)}\right]^{-1}`
+      : String.raw`p_0 = \left[${n(explicitSum, 8)}\right]^{-1}`,
     result: `p_0 = ${n(p0)}`,
   });
 
@@ -259,15 +258,15 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
   steps.push(
     {
       title: 'Número promedio en el sistema',
-      formula: 'L = \\sum_n n\\,p_n',
+      formula: String.raw`L = \sum_n n\,p_n`,
       result: `L = ${n(L)}`,
     },
     {
       title: 'Tasa promedio de llegadas y tiempo en el sistema',
       explanation:
         'Como λₙ depende del estado, la ley de Little usa la tasa promedio de llegadas que efectivamente entran.',
-      formula: '\\bar\\lambda = \\sum_n \\lambda_n\\,p_n, \\qquad W = \\frac{L}{\\bar\\lambda}',
-      result: `\\bar\\lambda = ${n(lambdaBar)}, \\qquad W = ${n(W)}`,
+      formula: String.raw`\bar\lambda = \sum_n \lambda_n\,p_n, \qquad W = \frac{L}{\bar\lambda}`,
+      result: String.raw`\bar\lambda = ${n(lambdaBar)}, \qquad W = ${n(W)}`,
     },
   );
 
@@ -300,7 +299,7 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
     summary: [
       { label: 'Sistema vacío', value: `p_0 = ${n(p0, 6)}`, emphasis: true },
       { label: 'Número promedio', value: `L = ${n(L, 6)}` },
-      { label: 'Tasa promedio de llegadas', value: `\\bar\\lambda = ${n(lambdaBar, 6)}` },
+      { label: 'Tasa promedio de llegadas', value: String.raw`\bar\lambda = ${n(lambdaBar, 6)}` },
       { label: 'Tiempo promedio en el sistema', value: `W = ${n(W, 6)}` },
     ],
     ...emptyTrace(),
@@ -311,11 +310,11 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
         title: 'Probabilidades de estado estable',
         columns: [
           { key: 'n', header: 'n' },
-          { key: 'lambda', header: '\\lambda_n' },
-          { key: 'mu', header: '\\mu_n' },
+          { key: 'lambda', header: String.raw`\lambda_n` },
+          { key: 'mu', header: String.raw`\mu_n` },
           { key: 'C', header: 'C_n' },
           { key: 'p', header: 'p_n' },
-          { key: 'cumulative', header: 'P(N \\le n)' },
+          { key: 'cumulative', header: String.raw`P(N \le n)` },
         ],
         rows,
       },

@@ -44,11 +44,11 @@ export function toLatexNumber(
   significantDigits = DEFAULT_SIGNIFICANT_DIGITS,
 ): string {
   const text = formatNumber(value, significantDigits);
-  if (text === 'indefinido') return '\\text{indefinido}';
-  if (text === '∞') return '\\infty';
-  if (text === '−∞') return '-\\infty';
+  if (text === 'indefinido') return String.raw`\text{indefinido}`;
+  if (text === '∞') return String.raw`\infty`;
+  if (text === '−∞') return String.raw`-\infty`;
   const match = /^(-?[\d.]+)e(-?\d+)$/.exec(text);
-  if (match) return `${match[1]} \\times 10^{${match[2]}}`;
+  if (match) return String.raw`${match[1]} \times 10^{${match[2]}}`;
   return text;
 }
 
@@ -61,7 +61,7 @@ export function toLatexOperand(
   significantDigits = DEFAULT_SIGNIFICANT_DIGITS,
 ): string {
   const tex = toLatexNumber(value, significantDigits);
-  return value < 0 || tex.includes('\\times') ? `\\left(${tex}\\right)` : tex;
+  return value < 0 || tex.includes(String.raw`\times`) ? String.raw`\left(${tex}\right)` : tex;
 }
 
 /**
@@ -93,7 +93,7 @@ export function fractionToLatex(text: string): string {
   const parts = text.split('/');
   if (parts.length === 2) {
     const [top, bottom] = parts.map((part) => toLatexNumber(parseDecimal(part)));
-    return `\\frac{${top}}{${bottom}}`;
+    return String.raw`\frac{${top}}{${bottom}}`;
   }
   return toLatexNumber(parseDecimal(text));
 }
@@ -101,31 +101,31 @@ export function fractionToLatex(text: string): string {
 /** Matriz → LaTeX (`bmatrix`), con `significantDigits` cifras por entrada. */
 export function toLatexMatrix(matrix: number[][], significantDigits = 6): string {
   const rows = matrix.map((row) => row.map((v) => toLatexNumber(v, significantDigits)).join(' & '));
-  return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** Vector fila → LaTeX: `(0.32,\ 0.68)`. */
 export function toLatexVector(vector: number[], significantDigits = 6): string {
-  return `\\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(',\\ ')}\\right)`;
+  return String.raw`\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(String.raw`,\ `)}\right)`;
 }
 
 /** Varias líneas de LaTeX, una debajo de otra (sirve en modo en línea y en bloque). */
 export function latexLines(lines: string[]): string {
   if (lines.length <= 1) return lines[0] ?? '';
-  return `\\begin{array}{l} ${lines.join(' \\\\ ')} \\end{array}`;
+  return String.raw`\begin{array}{l} ${lines.join(String.raw` \\ `)} \end{array}`;
 }
 
 const LATEX_TEXT_ESCAPES: Record<string, string> = {
-  '\\': '\\textbackslash{}',
-  '{': '\\{',
-  '}': '\\}',
-  $: '\\$',
-  '&': '\\&',
-  '#': '\\#',
-  '%': '\\%',
-  _: '\\_',
-  '^': '\\textasciicircum{}',
-  '~': '\\textasciitilde{}',
+  '\\': String.raw`\textbackslash{}`,
+  '{': String.raw`\{`,
+  '}': String.raw`\}`,
+  $: String.raw`\$`,
+  '&': String.raw`\&`,
+  '#': String.raw`\#`,
+  '%': String.raw`\%`,
+  _: String.raw`\_`,
+  '^': String.raw`\textasciicircum{}`,
+  '~': String.raw`\textasciitilde{}`,
 };
 
 /**
@@ -133,7 +133,7 @@ const LATEX_TEXT_ESCAPES: Record<string, string> = {
  * escapando los caracteres que LaTeX interpreta.
  */
 export function toLatexText(text: string): string {
-  return `\\text{${text.replace(/[\\{}$&#%_^~]/g, (c) => LATEX_TEXT_ESCAPES[c] ?? c)}}`;
+  return String.raw`\text{${text.replace(/[\\{}$&#%_^~]/g, (c) => LATEX_TEXT_ESCAPES[c] ?? c)}}`;
 }
 
 export interface Rational {
@@ -175,6 +175,6 @@ export function toLatexRational(value: number, significantDigits = 6): string {
   const rational = toRational(value);
   if (!rational || rational.denominator === 1) return toLatexNumber(value, significantDigits);
   const { numerator, denominator } = rational;
-  const fraction = `${numerator < 0 ? '-' : ''}\\frac{${Math.abs(numerator)}}{${denominator}}`;
-  return `${fraction} \\approx ${toLatexNumber(value, significantDigits)}`;
+  const fraction = String.raw`${numerator < 0 ? '-' : ''}\frac{${Math.abs(numerator)}}{${denominator}}`;
+  return String.raw`${fraction} \approx ${toLatexNumber(value, significantDigits)}`;
 }

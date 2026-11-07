@@ -171,7 +171,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     const factors = exponents[i]!.slice(0, size).flatMap((a, j) =>
       a === 0 ? [] : [a === 1 ? `x_{${j + 1}}` : `x_{${j + 1}}^{${n(a)}}`],
     );
-    return `${n(t.c)}${factors.length > 0 ? `\\,${factors.join('\\,')}` : ''}`;
+    return `${n(t.c)}${factors.length > 0 ? String.raw`\,${factors.join(String.raw`\,`)}` : ''}`;
   };
   const functionTex = (k: number) =>
     terms
@@ -185,9 +185,12 @@ export function solveGeometric({ terms }: GeometricInput): Result {
       explanation:
         'Cada término es un coeficiente positivo por un producto de potencias de las variables (posinomio).',
       substitution: [
-        `\\min g_0 = ${functionTex(0)}`,
-        ...Array.from({ length: K }, (_, k) => `g_{${k + 1}} = ${functionTex(k + 1)} \\le 1`),
-      ].join(' \\\\ '),
+        String.raw`\min g_0 = ${functionTex(0)}`,
+        ...Array.from(
+          { length: K },
+          (_, k) => String.raw`g_{${k + 1}} = ${functionTex(k + 1)} \le 1`,
+        ),
+      ].join(String.raw` \\ `),
     },
     {
       title: 'Grado de dificultad',
@@ -209,7 +212,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     ...Array.from({ length: size }, (_, j) => exponents.map((row) => row[j]!)),
   ];
   const e = [1, ...new Array<number>(size).fill(0)];
-  const deltaTex = (i: number) => `\\delta_{${i + 1}}`;
+  const deltaTex = (i: number) => String.raw`\delta_{${i + 1}}`;
   const equationTex = (row: number[], rhs: number) => {
     const parts = row.flatMap((a, i) =>
       a === 0 ? [] : [`${a === 1 ? '' : a === -1 ? '-' : n(a)}${deltaTex(i)}`],
@@ -221,9 +224,11 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     explanation:
       'Normalidad: los pesos del objetivo suman 1. Ortogonalidad: para cada variable, la suma de sus exponentes por los pesos es 0.',
     substitution: [
-      `\\text{Normalidad: } ${equationTex(M[0]!, 1)}`,
-      ...M.slice(1).map((row, j) => `\\text{Ortogonalidad } x_{${j + 1}}: ${equationTex(row, 0)}`),
-    ].join(' \\\\ '),
+      String.raw`\text{Normalidad: } ${equationTex(M[0]!, 1)}`,
+      ...M.slice(1).map(
+        (row, j) => String.raw`\text{Ortogonalidad } x_{${j + 1}}: ${equationTex(row, 0)}`,
+      ),
+    ].join(String.raw` \\ `),
   });
 
   let delta: number[] | null = null;
@@ -395,26 +400,27 @@ export function solveGeometric({ terms }: GeometricInput): Result {
         : 'Se maximiza ln v(δ), que es cóncava, sobre las soluciones de las ecuaciones (método de Newton); se parte de una solución con todos los pesos positivos.',
     result: delta
       .map((d, i) => `${deltaTex(i)} = ${deltaLatex ? deltaLatex[i] : n(d, 8)}`)
-      .join(',\\ ')
+      .join(String.raw`,\ `)
       .concat(
         lambda.length > 0
-          ? `, \\quad ${lambda.map((l, k) => `\\lambda_{${k + 1}} = ${n(l, 8)}`).join(',\\ ')}`
+          ? String.raw`, \quad ${lambda.map((l, k) => String.raw`\lambda_{${k + 1}} = ${n(l, 8)}`).join(String.raw`,\ `)}`
           : '',
       ),
   });
   steps.push({
     title: 'Valor óptimo (función dual)',
-    formula:
-      'v(\\delta) = \\prod_i \\left(\\frac{c_i}{\\delta_i}\\right)^{\\delta_i} \\prod_k \\lambda_k^{\\lambda_k}',
+    formula: String.raw`v(\delta) = \prod_i \left(\frac{c_i}{\delta_i}\right)^{\delta_i} \prod_k \lambda_k^{\lambda_k}`,
     substitution: `v = ${delta
       .map((d, i) =>
         d === 0
           ? null
-          : `\\left(\\frac{${n(terms[i]!.c)}}{${deltaLatex ? deltaLatex[i] : n(d, 6)}}\\right)^{${deltaLatex ? deltaLatex[i] : n(d, 6)}}`,
+          : String.raw`\left(\frac{${n(terms[i]!.c)}}{${deltaLatex ? deltaLatex[i] : n(d, 6)}}\right)^{${deltaLatex ? deltaLatex[i] : n(d, 6)}}`,
       )
       .filter(Boolean)
-      .join('')}${lambda.map((l) => (l > 0 ? `\\,(${n(l, 6)})^{${n(l, 6)}}` : '')).join('')}`,
-    result: `g_0(x^*) = v(\\delta^*) = ${n(dualValue)}`,
+      .join(
+        '',
+      )}${lambda.map((l) => (l > 0 ? String.raw`\,(${n(l, 6)})^{${n(l, 6)}}` : '')).join('')}`,
+    result: String.raw`g_0(x^*) = v(\delta^*) = ${n(dualValue)}`,
   });
 
   // Recuperar x*: Σ_j a_ij ln x_j = ln(δ_i v* / c_i) (objetivo) o ln(δ_i / (λ_k c_i)).
@@ -429,7 +435,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     rows.push(exponents[i]!.slice(0, size));
     rhs.push(Math.log(target / terms[i]!.c));
     recoveryLines.push(
-      `${termTex(i)} = ${k === 0 ? `${deltaTex(i)}\\,v^*` : `\\frac{${deltaTex(i)}}{\\lambda_{${k}}}`} = ${n(target, 8)}`,
+      `${termTex(i)} = ${k === 0 ? String.raw`${deltaTex(i)}\,v^*` : String.raw`\frac{${deltaTex(i)}}{\lambda_{${k}}}`} = ${n(target, 8)}`,
     );
   });
   const AtA = Array.from({ length: size }, (_, a) =>
@@ -464,8 +470,8 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     title: 'Recuperar las variables',
     explanation:
       'En el óptimo, cada término del objetivo vale δ_i·v* y cada término de la restricción k vale δ_i/λ_k. Tomando logaritmos quedan ecuaciones lineales en ln x_j.',
-    substitution: recoveryLines.join(' \\\\ '),
-    result: `x^* = \\left(${x.map((v) => n(v, 8)).join(',\\ ')}\\right), \\qquad g_0(x^*) = ${n(primalValue)}`,
+    substitution: recoveryLines.join(String.raw` \\ `),
+    result: String.raw`x^* = \left(${x.map((v) => n(v, 8)).join(String.raw`,\ `)}\right), \qquad g_0(x^*) = ${n(primalValue)}`,
   });
 
   const notices: Result['notices'] = [];
@@ -497,7 +503,10 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     value: { degreeOfDifficulty: D, delta, lambda, dualValue, x, primalValue },
     summary: [
       { label: 'Valor mínimo', value: `g_0(x^*) = ${n(dualValue, 8)}`, emphasis: true },
-      { label: 'Solución', value: `x^* = \\left(${x.map((v) => n(v, 6)).join(',\\ ')}\\right)` },
+      {
+        label: 'Solución',
+        value: String.raw`x^* = \left(${x.map((v) => n(v, 6)).join(String.raw`,\ `)}\right)`,
+      },
       { label: 'Grado de dificultad', value: `D = ${D}` },
     ],
     ...emptyTrace(),
@@ -508,10 +517,10 @@ export function solveGeometric({ terms }: GeometricInput): Result {
         title: 'Pesos y valor de cada término en el óptimo',
         columns: [
           { key: 'term', header: 'i' },
-          { key: 'fn', header: '\\text{Función}', format: 'text' },
+          { key: 'fn', header: String.raw`\text{Función}`, format: 'text' },
           { key: 'c', header: 'c_i' },
-          { key: 'delta', header: '\\delta_i^*' },
-          { key: 'value', header: '\\text{Término en } x^*' },
+          { key: 'delta', header: String.raw`\delta_i^*` },
+          { key: 'value', header: String.raw`\text{Término en } x^*` },
         ],
         rows: table,
       },

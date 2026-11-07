@@ -85,27 +85,26 @@ export function accuracySteps(points: ForecastPoint[], acc: ForecastAccuracy): S
     },
     {
       title: 'Desviación absoluta media (MAD)',
-      formula: '\\mathrm{MAD} = \\frac{\\sum |e_t|}{k}',
-      substitution: `\\mathrm{MAD} = \\frac{${n(sumAbs, 6)}}{${acc.count}}`,
-      result: `\\mathrm{MAD} = ${n(acc.mad, 6)}`,
+      formula: String.raw`\mathrm{MAD} = \frac{\sum |e_t|}{k}`,
+      substitution: String.raw`\mathrm{MAD} = \frac{${n(sumAbs, 6)}}{${acc.count}}`,
+      result: String.raw`\mathrm{MAD} = ${n(acc.mad, 6)}`,
     },
     {
       title: 'Error cuadrático medio (MSE)',
       explanation:
         'Penaliza más los errores grandes. Es el criterio más usado para comparar métodos.',
-      formula: '\\mathrm{MSE} = \\frac{\\sum e_t^2}{k}',
-      substitution: `\\mathrm{MSE} = \\frac{${n(sumSq, 6)}}{${acc.count}}`,
-      result: `\\mathrm{MSE} = ${n(acc.mse, 6)}`,
+      formula: String.raw`\mathrm{MSE} = \frac{\sum e_t^2}{k}`,
+      substitution: String.raw`\mathrm{MSE} = \frac{${n(sumSq, 6)}}{${acc.count}}`,
+      result: String.raw`\mathrm{MSE} = ${n(acc.mse, 6)}`,
     },
   ];
   if (acc.mape !== null) {
     const sumPct = measured.reduce((s, p) => s + Math.abs((p.actual! - p.forecast) / p.actual!), 0);
     steps.push({
       title: 'Error porcentual absoluto medio (MAPE)',
-      formula:
-        '\\mathrm{MAPE} = \\frac{1}{k}\\sum \\left|\\frac{e_t}{Y_t}\\right| \\times 100\\,\\%',
-      substitution: `\\mathrm{MAPE} = \\frac{${n(sumPct, 6)}}{${acc.count}} \\times 100\\,\\%`,
-      result: `\\mathrm{MAPE} = ${n(acc.mape, 4)}\\,\\%`,
+      formula: String.raw`\mathrm{MAPE} = \frac{1}{k}\sum \left|\frac{e_t}{Y_t}\right| \times 100\,\%`,
+      substitution: String.raw`\mathrm{MAPE} = \frac{${n(sumPct, 6)}}{${acc.count}} \times 100\,\%`,
+      result: String.raw`\mathrm{MAPE} = ${n(acc.mape, 4)}\,\%`,
     });
   }
   return steps;
@@ -113,14 +112,14 @@ export function accuracySteps(points: ForecastPoint[], acc: ForecastAccuracy): S
 
 export function accuracySummary(acc: ForecastAccuracy): SummaryItem[] {
   return [
-    { label: 'Desviación absoluta media', value: `\\mathrm{MAD} = ${n(acc.mad, 6)}` },
-    { label: 'Error cuadrático medio', value: `\\mathrm{MSE} = ${n(acc.mse, 6)}` },
+    { label: 'Desviación absoluta media', value: String.raw`\mathrm{MAD} = ${n(acc.mad, 6)}` },
+    { label: 'Error cuadrático medio', value: String.raw`\mathrm{MSE} = ${n(acc.mse, 6)}` },
     {
       label: 'Error porcentual absoluto medio',
       value:
         acc.mape === null
-          ? '\\mathrm{MAPE}\\ \\text{no definido}'
-          : `\\mathrm{MAPE} = ${n(acc.mape, 4)}\\,\\%`,
+          ? String.raw`\mathrm{MAPE}\ \text{no definido}`
+          : String.raw`\mathrm{MAPE} = ${n(acc.mape, 4)}\,\%`,
     },
   ];
 }
@@ -165,7 +164,7 @@ export function forecastOutput(
           { key: 'error', header: 'e_t' },
           { key: 'abs', header: '|e_t|' },
           { key: 'sq', header: 'e_t^2' },
-          { key: 'pct', header: '|e_t / Y_t|\\ (\\%)' },
+          { key: 'pct', header: String.raw`|e_t / Y_t|\ (\%)` },
         ],
         rows: data
           .map((y, k): Record<string, CellValue> => {

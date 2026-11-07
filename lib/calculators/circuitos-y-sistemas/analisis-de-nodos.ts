@@ -58,7 +58,7 @@ export function solveNodal(input: NodalInput): CalculatorResult<NodalValue, Noda
 
   const summary: SummaryItem[] = mna.result.branchResults.map((b) => ({
     label: b.label,
-    value: `${formatNumber(b.i, 4)}\\text{ A}`,
+    value: String.raw`${formatNumber(b.i, 4)}\text{ A}`,
   }));
   summary.unshift({
     label: 'Nodos',

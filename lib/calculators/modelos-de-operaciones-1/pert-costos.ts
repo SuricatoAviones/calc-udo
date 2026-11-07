@@ -218,22 +218,21 @@ export function solveCrashing(input: CrashingInput): Result {
       title: 'Costo de compresión por unidad de tiempo',
       explanation:
         'Entre el punto normal y el de compresión máxima se supone que el costo crece en línea recta.',
-      formula:
-        '\\text{Costo por unidad} = \\frac{\\text{costo comprimido} - \\text{costo normal}}{\\text{tiempo normal} - \\text{tiempo comprimido}}',
+      formula: String.raw`\text{Costo por unidad} = \frac{\text{costo comprimido} - \text{costo normal}}{\text{tiempo normal} - \text{tiempo comprimido}}`,
       substitution: activities
         .filter((a) => a.normalTime > a.crashTime)
         .slice(0, 8)
         .map(
           (a) =>
-            `${toLatexText(a.name)}: \\frac{${n(a.crashCost)} - ${n(a.normalCost)}}{${n(a.normalTime)} - ${n(a.crashTime)}} = ${n(slope[names.indexOf(a.name)]!)}`,
+            String.raw`${toLatexText(a.name)}: \frac{${n(a.crashCost)} - ${n(a.normalCost)}}{${n(a.normalTime)} - ${n(a.crashTime)}} = ${n(slope[names.indexOf(a.name)]!)}`,
         )
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
     {
       title: 'Duración normal',
       explanation:
         'Con todas las actividades en su tiempo normal (recorridos hacia adelante y hacia atrás).',
-      result: `T = ${n(first.duration)}, \\qquad \\text{costo directo} = ${n(normalCost)}`,
+      result: String.raw`T = ${n(first.duration)}, \qquad \text{costo directo} = ${n(normalCost)}`,
     },
   ];
 
@@ -318,9 +317,11 @@ export function solveCrashing(input: CrashingInput): Result {
       title: `Reducción ${history.length}: T = ${formatNumber(current.duration)} → ${formatNumber(next.duration)}`,
       explanation: `Rutas críticas: ${current.criticalPaths.slice(0, 4).map(criticalPathText).join('; ')}. Se elige el conjunto más barato de actividades críticas comprimibles que acorta todas: ${chosen.join(', ')}.`,
       substitution: chosen
-        .map((a) => `${toLatexText(a)}: ${n(slope[names.indexOf(a)]!)} \\text{ por unidad}`)
-        .join(',\\ '),
-      result: `\\text{costo del paso} = ${n(stepCost)}, \\qquad \\text{costo directo} = ${n(directCost)}`,
+        .map(
+          (a) => String.raw`${toLatexText(a)}: ${n(slope[names.indexOf(a)]!)} \text{ por unidad}`,
+        )
+        .join(String.raw`,\ `),
+      result: String.raw`\text{costo del paso} = ${n(stepCost)}, \qquad \text{costo directo} = ${n(directCost)}`,
     });
     recordPaths(chosen.join(', '), stepCost);
     current = next;
@@ -351,15 +352,15 @@ export function solveCrashing(input: CrashingInput): Result {
       title: 'Duración de costo total mínimo',
       explanation:
         'El costo total es el costo directo (normal más compresión) más el costo indirecto, proporcional a la duración. Al comprimir, el costo directo sube y el indirecto baja.',
-      formula: '\\text{CT}(T) = \\text{costo directo}(T) + c_{\\text{ind}}\\,T',
+      formula: String.raw`\text{CT}(T) = \text{costo directo}(T) + c_{\text{ind}}\,T`,
       substitution: totals
         .slice(0, 10)
         .map(
           (t) =>
-            `\\text{CT}(${n(t.duration)}) = ${n(t.direct)} + ${n(input.indirectCost!)}(${n(t.duration)}) = ${n(t.total)}`,
+            String.raw`\text{CT}(${n(t.duration)}) = ${n(t.direct)} + ${n(input.indirectCost!)}(${n(t.duration)}) = ${n(t.total)}`,
         )
-        .join(' \\\\ '),
-      result: `T^* = ${n(best.duration)}, \\qquad \\text{CT}(T^*) = ${n(best.total)}`,
+        .join(String.raw` \\ `),
+      result: String.raw`T^* = ${n(best.duration)}, \qquad \text{CT}(T^*) = ${n(best.total)}`,
     });
     series.push({
       id: 'costos',
@@ -391,8 +392,8 @@ export function solveCrashing(input: CrashingInput): Result {
       id: 'rutas',
       title: 'Longitud de cada ruta (tabla de costo marginal)',
       columns: [
-        { key: 'crashed', header: '\\text{Se comprime}', format: 'text' },
-        { key: 'cost', header: '\\text{Costo}' },
+        { key: 'crashed', header: String.raw`\text{Se comprime}`, format: 'text' },
+        { key: 'cost', header: String.raw`\text{Costo}` },
         ...paths.map((p, k) => ({
           key: `p${k}`,
           header: toLatexText(p.every((a) => a.length === 1) ? p.join('') : p.join('-')),
@@ -405,12 +406,12 @@ export function solveCrashing(input: CrashingInput): Result {
     id: 'actividades',
     title: 'Tiempos y costos de las actividades',
     columns: [
-      { key: 'name', header: '\\text{Actividad}', format: 'text' },
-      { key: 'normalTime', header: '\\text{T. normal}' },
-      { key: 'crashTime', header: '\\text{T. comprimido}' },
-      { key: 'slope', header: '\\text{Costo por unidad}' },
-      { key: 'final', header: '\\text{T. final}' },
-      { key: 'extra', header: '\\text{Costo de compresión}' },
+      { key: 'name', header: String.raw`\text{Actividad}`, format: 'text' },
+      { key: 'normalTime', header: String.raw`\text{T. normal}` },
+      { key: 'crashTime', header: String.raw`\text{T. comprimido}` },
+      { key: 'slope', header: String.raw`\text{Costo por unidad}` },
+      { key: 'final', header: String.raw`\text{T. final}` },
+      { key: 'extra', header: String.raw`\text{Costo de compresión}` },
     ],
     rows: activities.map((a, i) => ({
       name: a.name,
@@ -452,7 +453,7 @@ export function solveCrashing(input: CrashingInput): Result {
     summary: [
       {
         label: 'Duración final',
-        value: `T = ${n(finalAnalysis.duration)} \\ (\\text{normal } ${n(first.duration)})`,
+        value: String.raw`T = ${n(finalAnalysis.duration)} \ (\text{normal } ${n(first.duration)})`,
         emphasis: true,
       },
       { label: 'Costo de compresión', value: n(crashingCost) },

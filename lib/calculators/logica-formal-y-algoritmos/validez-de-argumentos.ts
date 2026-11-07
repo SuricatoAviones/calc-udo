@@ -152,7 +152,7 @@ export function recognizeForm(
       return {
         name: form.name,
         fallacy: form.fallacy ?? false,
-        statement: `${ps.map((p) => formulaLatex(p)).join(',\\ ')}\\ \\therefore\\ ${formulaLatex(c)}`,
+        statement: String.raw`${ps.map((p) => formulaLatex(p)).join(String.raw`,\ `)}\ \therefore\ ${formulaLatex(c)}`,
       };
     }
   }
@@ -212,15 +212,15 @@ export function solveArgument(
       explanation:
         'Se leen las premisas y la conclusión aplicando la jerarquía de los conectores (¬, ∧, ∨, →, ↔).',
       result: latexLines([
-        ...premises.map((p, k) => `P_{${k + 1}}:\\ ${formulaLatex(p)}`),
-        `\\therefore\\ C:\\ ${formulaLatex(conclusion)}`,
+        ...premises.map((p, k) => String.raw`P_{${k + 1}}:\ ${formulaLatex(p)}`),
+        String.raw`\therefore\ C:\ ${formulaLatex(conclusion)}`,
       ]),
     },
     {
       title: 'Criterio de validez',
       explanation:
         'El razonamiento es válido si es imposible que todas las premisas sean verdaderas y la conclusión falsa. Equivale a que la conjunción de las premisas implique la conclusión en todas las filas.',
-      formula: `(P_1 \\land \\cdots \\land P_{${premises.length}}) \\rightarrow C \\text{ es tautología}`,
+      formula: String.raw`(P_1 \land \cdots \land P_{${premises.length}}) \rightarrow C \text{ es tautología}`,
       result: formulaLatex(conditional),
     },
     rowsStep(variables),
@@ -235,10 +235,11 @@ export function solveArgument(
         : `En ${criticalRows.length === 1 ? 'la fila' : 'las filas'} ${criticalRows.join(', ')} todas las premisas son V. Se revisa la conclusión en ${criticalRows.length === 1 ? 'ella' : 'cada una'}.`,
     result:
       criticalRows.length === 0
-        ? '\\text{sin filas críticas}'
+        ? String.raw`\text{sin filas críticas}`
         : latexLines(
             criticalRows.map(
-              (r) => `\\text{fila } ${r}:\\ C = \\text{${truth(!counterexamples.includes(r))}}`,
+              (r) =>
+                String.raw`\text{fila } ${r}:\ C = \text{${truth(!counterexamples.includes(r))}}`,
             ),
           ),
   });
@@ -256,7 +257,7 @@ export function solveArgument(
     explanation: valid
       ? 'Ninguna fila crítica tiene la conclusión F: el razonamiento es válido.'
       : `En ${counterexamples.length === 1 ? 'la fila' : 'las filas'} ${counterexamples.join(', ')} las premisas son V y la conclusión es F: ${counterexamples.length === 1 ? 'es un contraejemplo' : 'son contraejemplos'}, así que el razonamiento no es válido.`,
-    result: valid ? '\\text{Válido}' : '\\text{No válido}',
+    result: valid ? String.raw`\text{Válido}` : String.raw`\text{No válido}`,
   });
 
   const columns = [...premises, conclusion];
@@ -276,16 +277,19 @@ export function solveArgument(
     summary: [
       {
         label: 'Razonamiento',
-        value: valid ? '\\text{Válido}' : '\\text{No válido}',
+        value: valid ? String.raw`\text{Válido}` : String.raw`\text{No válido}`,
         emphasis: true,
       },
-      ...(form ? [{ label: 'Forma', value: `\\text{${form.name}}` }] : []),
+      ...(form ? [{ label: 'Forma', value: String.raw`\text{${form.name}}` }] : []),
       valid
         ? {
             label: 'Filas críticas',
-            value: criticalRows.length === 0 ? '\\text{ninguna}' : criticalRows.join(',\\ '),
+            value:
+              criticalRows.length === 0
+                ? String.raw`\text{ninguna}`
+                : criticalRows.join(String.raw`,\ `),
           }
-        : { label: 'Contraejemplos (filas)', value: counterexamples.join(',\\ ') },
+        : { label: 'Contraejemplos (filas)', value: counterexamples.join(String.raw`,\ `) },
     ],
     ...emptyTrace(),
     steps,
@@ -305,7 +309,7 @@ export function solveArgument(
                       : `C: ${c.header}`,
                 },
           ),
-          { key: 'critical', header: '\\text{Fila crítica}', format: 'text' },
+          { key: 'critical', header: String.raw`\text{Fila crítica}`, format: 'text' },
         ],
         rows: table,
       },

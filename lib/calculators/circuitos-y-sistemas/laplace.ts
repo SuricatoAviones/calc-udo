@@ -436,7 +436,7 @@ export function piecesLatexTerms(
   variable = 't',
 ): { coef: number; body: string }[] {
   const terms: { coef: number; body: string }[] = [];
-  const grouped = variable.length > 1 ? `\\left(${variable}\\right)` : variable;
+  const grouped = variable.length > 1 ? String.raw`\left(${variable}\right)` : variable;
   for (const p of pieces) {
     const power = p.power === 0 ? '' : p.power === 1 ? grouped : `${grouped}^{${p.power}}`;
     const exp = p.sigma === 0 ? '' : `e^{${times(p.sigma, grouped)}}`;
@@ -446,8 +446,8 @@ export function piecesLatexTerms(
       continue;
     }
     const arg = times(p.omega, grouped);
-    if (p.a !== 0) terms.push({ coef: p.a, body: `${envelope}\\cos\\left(${arg}\\right)` });
-    if (p.b !== 0) terms.push({ coef: p.b, body: `${envelope}\\sin\\left(${arg}\\right)` });
+    if (p.a !== 0) terms.push({ coef: p.a, body: String.raw`${envelope}\cos\left(${arg}\right)` });
+    if (p.b !== 0) terms.push({ coef: p.b, body: String.raw`${envelope}\sin\left(${arg}\right)` });
   }
   return terms;
 }
@@ -474,7 +474,7 @@ export function impulseTerms(direct: Poly, variable = 't'): { coef: number; body
     if (q === 0) return;
     const order = degree - i;
     const prime = order === 0 ? '' : order === 1 ? "'" : order === 2 ? "''" : `^{(${order})}`;
-    terms.push({ coef: q, body: `\\delta${prime}\\left(${variable}\\right)` });
+    terms.push({ coef: q, body: String.raw`\delta${prime}\left(${variable}\right)` });
   });
   return terms.reverse();
 }
@@ -489,7 +489,7 @@ export function polyTex(p: Poly, variable = 's'): string {
 export function rationalTex(num: Poly, den: Poly, variable = 's'): string {
   const d = trimPoly(den);
   if (d.length === 1) return polyTex(scalePoly(num, 1 / d[0]!), variable);
-  return `\\frac{${polyTex(num, variable)}}{${polyTex(d, variable)}}`;
+  return String.raw`\frac{${polyTex(num, variable)}}{${polyTex(d, variable)}}`;
 }
 
 /** Denominador factorizado: `(s + 2)(s^{2} + 6s + 10)`, `s^{2}(s + 1)`. */
@@ -504,10 +504,10 @@ export function factoredTex(roots: PolyRoot[], lead: number, variable = 's'): st
       if (p === 0) {
         base = variable;
         simple = true;
-      } else base = `\\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\\right)`;
+      } else base = String.raw`\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\right)`;
     } else {
       const quad = polyFromRoots([r.value, C.conj(r.value)]);
-      base = `\\left(${polyTex(quad, variable)}\\right)`;
+      base = String.raw`\left(${polyTex(quad, variable)}\right)`;
     }
     if (r.multiplicity === 1) factors.push(base);
     else factors.push(simple ? `${base}^{${r.multiplicity}}` : `${base}^{${r.multiplicity}}`);
@@ -532,7 +532,7 @@ export function transformTex(
     .map((g, i) => {
       const body = rationalTex(g.num, g.den, variable);
       const factor = delayTex(g.delay, variable);
-      const term = factor ? `${factor}\\,\\left[${body}\\right]` : body;
+      const term = factor ? String.raw`${factor}\,\left[${body}\right]` : body;
       return i === 0 || term.startsWith('-') ? term : `+ ${term}`;
     })
     .join(' ');

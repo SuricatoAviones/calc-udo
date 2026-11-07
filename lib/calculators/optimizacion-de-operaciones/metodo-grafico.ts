@@ -60,7 +60,7 @@ interface Point {
 }
 
 const key = (p: Point) => `${p.x.toString()},${p.y.toString()}`;
-const pointLatex = (p: Point) => `(${p.x.toLatex()},\\ ${p.y.toLatex()})`;
+const pointLatex = (p: Point) => String.raw`(${p.x.toLatex()},\ ${p.y.toLatex()})`;
 
 function intersect(l1: Line, l2: Line): Point | null {
   const det = l1.a.mul(l2.b).sub(l2.a.mul(l1.b));
@@ -194,18 +194,18 @@ export function solveGraphical(input: LpInput): Result {
     children: lp.constraints.map((k, i) => {
       const line = constraintLines[i]!;
       const cuts: string[] = [];
-      if (!line.a.isZero()) cuts.push(`(${line.c.div(line.a).toLatex()},\\ 0)`);
-      if (!line.b.isZero()) cuts.push(`(0,\\ ${line.c.div(line.b).toLatex()})`);
+      if (!line.a.isZero()) cuts.push(String.raw`(${line.c.div(line.a).toLatex()},\ 0)`);
+      if (!line.b.isZero()) cuts.push(String.raw`(0,\ ${line.c.div(line.b).toLatex()})`);
       const test: Point = line.c.isZero() ? { x: one, y: one } : { x: zero, y: zero };
       const lhs = line.a.mul(test.x).add(line.b.mul(test.y));
       const holds = satisfies(lhs, k.relation, k.rhs);
       return {
         title: `R${i + 1}: ${k.relation === '=' ? 'recta' : `semiplano ${k.relation === '<=' ? '≤' : '≥'}`}`,
-        substitution: `${line.latex} \\quad \\text{corta los ejes en } ${cuts.join(' \\text{ y } ')}`,
+        substitution: String.raw`${line.latex} \quad \text{corta los ejes en } ${cuts.join(String.raw` \text{ y } `)}`,
         result:
           k.relation === '='
-            ? '\\text{La región factible está sobre la recta.}'
-            : `${pointLatex(test)}:\\ ${lhs.toLatex()} ${relationLatex[k.relation]} ${k.rhs.toLatex()} \\ \\text{es ${holds ? 'verdadero' : 'falso'}: la región ${holds ? 'contiene' : 'no contiene'} ese punto}`,
+            ? String.raw`\text{La región factible está sobre la recta.}`
+            : String.raw`${pointLatex(test)}:\ ${lhs.toLatex()} ${relationLatex[k.relation]} ${k.rhs.toLatex()} \ \text{es ${holds ? 'verdadero' : 'falso'}: la región ${holds ? 'contiene' : 'no contiene'} ese punto}`,
       };
     }),
   });
@@ -296,7 +296,7 @@ export function solveGraphical(input: LpInput): Result {
       const [l1, l2] = v.lines as [Line, Line];
       return {
         title: `Vértice ${v.label}: ${v.lines.map((l) => l.label).join(' ∩ ')}`,
-        substitution: `\\begin{cases} ${l1.latex} \\\\ ${l2.latex} \\end{cases}`,
+        substitution: String.raw`\begin{cases} ${l1.latex} \\ ${l2.latex} \end{cases}`,
         result: `${v.label} = ${pointLatex(v.point)}`,
       };
     }),
@@ -312,8 +312,8 @@ export function solveGraphical(input: LpInput): Result {
     formula: `z = ${objectiveLatex}`,
     substitution: labelled
       .map((v, i) => `z(${v.label}) = ${zValues[i]!.toLatex()}`)
-      .join(',\\quad '),
-    result: `z^* = ${best.toLatex()} \\ \\text{en } ${optimal.map((v) => v.label).join(',\\ ')}`,
+      .join(String.raw`,\quad `),
+    result: String.raw`z^* = ${best.toLatex()} \ \text{en } ${optimal.map((v) => v.label).join(String.raw`,\ `)}`,
   });
 
   const vertexRows = labelled.map((v, i) => ({
@@ -329,12 +329,12 @@ export function solveGraphical(input: LpInput): Result {
       id: 'vertices',
       title: 'Vértices de la región factible',
       columns: [
-        { key: 'vertex', header: '\\text{Vértice}', format: 'text' as const },
-        { key: 'lines', header: '\\text{Rectas}', format: 'text' as const },
+        { key: 'vertex', header: String.raw`\text{Vértice}`, format: 'text' as const },
+        { key: 'lines', header: String.raw`\text{Rectas}`, format: 'text' as const },
         { key: 'x', header: vx, format: 'latex' as const },
         { key: 'y', header: vy, format: 'latex' as const },
         { key: 'z', header: 'z', format: 'latex' as const },
-        { key: 'optimal', header: '\\text{¿Óptimo?}', format: 'text' as const },
+        { key: 'optimal', header: String.raw`\text{¿Óptimo?}`, format: 'text' as const },
       ],
       rows: vertexRows,
     },
@@ -368,8 +368,8 @@ export function solveGraphical(input: LpInput): Result {
       ? `La recta de z es paralela al lado ${optimal.map((v) => v.label).join('')} de la región: todos los puntos de ese lado dan z = ${best.toText()}.`
       : 'La recta de z toca la región en un solo vértice.',
     result: multiple
-      ? `z^* = ${best.toLatex()} \\ \\text{en todo el segmento } ${optimal.map((v) => `${v.label} = ${pointLatex(v.point)}`).join(' \\text{ a } ')}`
-      : `${vx} = ${point.x.toLatex()},\\ ${vy} = ${point.y.toLatex()},\\quad z^* = ${best.toLatex()}`,
+      ? String.raw`z^* = ${best.toLatex()} \ \text{en todo el segmento } ${optimal.map((v) => `${v.label} = ${pointLatex(v.point)}`).join(String.raw` \text{ a } `)}`
+      : String.raw`${vx} = ${point.x.toLatex()},\ ${vy} = ${point.y.toLatex()},\quad z^* = ${best.toLatex()}`,
   });
 
   return {
@@ -392,7 +392,7 @@ export function solveGraphical(input: LpInput): Result {
       { label: 'Valor óptimo', value: `z^* = ${best.toLatex()}`, emphasis: true },
       {
         label: multiple ? 'Soluciones (extremos del segmento)' : 'Solución',
-        value: optimal.map((v) => `${v.label} = ${pointLatex(v.point)}`).join(',\\ '),
+        value: optimal.map((v) => `${v.label} = ${pointLatex(v.point)}`).join(String.raw`,\ `),
       },
       { label: 'Vértices de la región', value: String(labelled.length) },
     ],

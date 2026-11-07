@@ -114,7 +114,7 @@ export function correctSignificantFigures(percentError: number): number {
 function errorSteps(
   trueValue: number,
   approx: number,
-  approxLabel = '\\text{aproximación}',
+  approxLabel = String.raw`\text{aproximación}`,
 ): Step[] {
   const et = trueValue - approx;
   const rel = relative(trueValue, et);
@@ -122,7 +122,7 @@ function errorSteps(
     {
       title: 'Error verdadero',
       explanation: 'Diferencia entre el valor verdadero y la aproximación (con signo).',
-      formula: `E_t = \\text{valor verdadero} - ${approxLabel}`,
+      formula: String.raw`E_t = \text{valor verdadero} - ${approxLabel}`,
       substitution: `E_t = ${n(trueValue)} - ${op(approx)}`,
       result: `E_t = ${n(et)}`,
     },
@@ -137,9 +137,9 @@ function errorSteps(
           title: 'Error relativo porcentual',
           explanation:
             'El error verdadero comparado con la magnitud del valor: permite comparar errores de cantidades de distinto tamaño.',
-          formula: '\\varepsilon_t = \\frac{E_t}{\\text{valor verdadero}} \\times 100\\%',
-          substitution: `\\varepsilon_t = \\frac{${n(et)}}{${n(trueValue)}} \\times 100\\%`,
-          result: `\\varepsilon_t = ${n(rel)}\\,\\%`,
+          formula: String.raw`\varepsilon_t = \frac{E_t}{\text{valor verdadero}} \times 100\%`,
+          substitution: String.raw`\varepsilon_t = \frac{${n(et)}}{${n(trueValue)}} \times 100\%`,
+          result: String.raw`\varepsilon_t = ${n(rel)}\,\%`,
         },
   );
   return steps;
@@ -157,7 +157,8 @@ function solveApproximation(input: NumericErrorsInput): Result {
     { label: 'Error verdadero', value: `E_t = ${n(et)}`, emphasis: true },
     {
       label: 'Error relativo porcentual',
-      value: rel === null ? '\\text{no definido}' : `\\varepsilon_t = ${n(rel)}\\,\\%`,
+      value:
+        rel === null ? String.raw`\text{no definido}` : String.raw`\varepsilon_t = ${n(rel)}\,\%`,
       emphasis: true,
     },
   ];
@@ -175,9 +176,9 @@ function solveApproximation(input: NumericErrorsInput): Result {
         explanation: meets
           ? `|εt| es menor que la tolerancia de Scarborough: la aproximación es correcta en al menos ${s} cifras significativas.`
           : `|εt| no es menor que la tolerancia de Scarborough: la aproximación no garantiza ${s} cifras significativas.`,
-        formula: '\\varepsilon_s = (0.5 \\times 10^{2-n})\\,\\%',
-        substitution: `\\varepsilon_s = (0.5 \\times 10^{2-${s}})\\,\\% = ${n(es)}\\,\\%`,
-        result: `|\\varepsilon_t| = ${n(Math.abs(rel))}\\,\\% ${meets ? '<' : '\\geq'} ${n(es)}\\,\\%`,
+        formula: String.raw`\varepsilon_s = (0.5 \times 10^{2-n})\,\%`,
+        substitution: String.raw`\varepsilon_s = (0.5 \times 10^{2-${s}})\,\% = ${n(es)}\,\%`,
+        result: String.raw`|\varepsilon_t| = ${n(Math.abs(rel))}\,\% ${meets ? '<' : String.raw`\geq`} ${n(es)}\,\%`,
       });
     }
   }
@@ -213,8 +214,8 @@ function solveRounding(input: NumericErrorsInput): Result {
   const k = input.digits!;
   const chopped = toSignificant(value, k, 'chop');
   const rounded = toSignificant(value, k, 'round');
-  const choppedSteps = errorSteps(value, chopped, '\\text{valor cortado}');
-  const roundedSteps = errorSteps(value, rounded, '\\text{valor redondeado}');
+  const choppedSteps = errorSteps(value, chopped, String.raw`\text{valor cortado}`);
+  const roundedSteps = errorSteps(value, rounded, String.raw`\text{valor redondeado}`);
   const etChop = value - chopped;
   const etRound = value - rounded;
   const steps: Step[] = [
@@ -222,14 +223,14 @@ function solveRounding(input: NumericErrorsInput): Result {
       title: `Cortar a ${k} cifras significativas`,
       explanation:
         'Se conservan las primeras cifras y se descartan las demás, sin mirarlas (en inglés, "chopping"; originalmente se le llamó truncamiento).',
-      result: `${n(value, 15)} \\;\\to\\; ${n(chopped, 15)}`,
+      result: String.raw`${n(value, 15)} \;\to\; ${n(chopped, 15)}`,
       children: choppedSteps,
     },
     {
       title: `Redondear a ${k} cifras significativas`,
       explanation:
         'Si la primera cifra descartada es 5 o más, la última cifra conservada aumenta en 1.',
-      result: `${n(value, 15)} \\;\\to\\; ${n(rounded, 15)}`,
+      result: String.raw`${n(value, 15)} \;\to\; ${n(rounded, 15)}`,
       children: roundedSteps,
     },
     {
@@ -238,7 +239,7 @@ function solveRounding(input: NumericErrorsInput): Result {
         Math.abs(etRound) <= Math.abs(etChop)
           ? 'El redondeo da un error de magnitud menor o igual que el corte: el error de corte puede llegar a una unidad de la última cifra conservada, el de redondeo a media unidad.'
           : 'En este caso el corte dio un error menor.',
-      result: `|E_t^{\\text{corte}}| = ${n(Math.abs(etChop))}, \\quad |E_t^{\\text{redondeo}}| = ${n(Math.abs(etRound))}`,
+      result: String.raw`|E_t^{\text{corte}}| = ${n(Math.abs(etChop))}, \quad |E_t^{\text{redondeo}}| = ${n(Math.abs(etRound))}`,
     },
   ];
   return {
@@ -254,12 +255,12 @@ function solveRounding(input: NumericErrorsInput): Result {
     summary: [
       {
         label: `Cortado a ${k} cifras`,
-        value: `${n(chopped, 15)} \\quad (E_t = ${n(etChop)})`,
+        value: String.raw`${n(chopped, 15)} \quad (E_t = ${n(etChop)})`,
         emphasis: true,
       },
       {
         label: `Redondeado a ${k} cifras`,
-        value: `${n(rounded, 15)} \\quad (E_t = ${n(etRound)})`,
+        value: String.raw`${n(rounded, 15)} \quad (E_t = ${n(etRound)})`,
         emphasis: true,
       },
     ],
@@ -270,10 +271,10 @@ function solveRounding(input: NumericErrorsInput): Result {
         id: 'redondeo',
         title: 'Corte y redondeo',
         columns: [
-          { key: 'method', header: '\\text{Método}', format: 'text' },
-          { key: 'value', header: '\\text{Valor}' },
+          { key: 'method', header: String.raw`\text{Método}`, format: 'text' },
+          { key: 'value', header: String.raw`\text{Valor}` },
           { key: 'et', header: 'E_t' },
-          { key: 'rel', header: '\\varepsilon_t\\,(\\%)' },
+          { key: 'rel', header: String.raw`\varepsilon_t\,(\%)` },
         ],
         rows: [
           { method: 'Corte', value: chopped, et: etChop, rel: relative(value, etChop) },
@@ -317,10 +318,10 @@ function solveTaylor(input: NumericErrorsInput): Result {
     {
       title: 'Serie de Taylor',
       explanation: `Se aproxima f en x = ${formatNumber(x)} a partir de su valor y sus derivadas en xᵢ = ${formatNumber(xi)}. Cada orden agrega un término; lo que falta de la serie es el error de truncamiento.`,
-      formula: `f(x) \\approx f(x_i) + f'(x_i)\\,h + \\frac{f''(x_i)}{2!}h^2 + \\cdots + \\frac{f^{(n)}(x_i)}{n!}h^n`,
-      substitution: `f(x) = ${f.tex}, \\quad h = x - x_i = ${n(x)} - ${op(xi)} = ${n(h)}`,
+      formula: String.raw`f(x) \approx f(x_i) + f'(x_i)\,h + \frac{f''(x_i)}{2!}h^2 + \cdots + \frac{f^{(n)}(x_i)}{n!}h^n`,
+      substitution: String.raw`f(x) = ${f.tex}, \quad h = x - x_i = ${n(x)} - ${op(xi)} = ${n(h)}`,
       result: Number.isFinite(trueValue)
-        ? `\\text{Valor verdadero: } f(${n(x)}) = ${n(trueValue)}`
+        ? String.raw`\text{Valor verdadero: } f(${n(x)}) = ${n(trueValue)}`
         : undefined,
     },
   ];
@@ -403,13 +404,13 @@ function solveTaylor(input: NumericErrorsInput): Result {
         title: 'Término y aproximación',
         formula:
           k === 0
-            ? 'f(x) \\approx f(x_i)'
-            : `\\text{término} = \\frac{${derivativeName(k)}}{${k}!}\\,h^{${k}}`,
+            ? String.raw`f(x) \approx f(x_i)`
+            : String.raw`\text{término} = \frac{${derivativeName(k)}}{${k}!}\,h^{${k}}`,
         substitution:
           k === 0
             ? undefined
-            : `\\frac{${n(dk)}}{${FACTORIALS[k]}}\\,(${n(h)})^{${k}} = ${n(term)}`,
-        result: `f(${n(x)}) \\approx ${n(approx)}`,
+            : String.raw`\frac{${n(dk)}}{${FACTORIALS[k]}}\,(${n(h)})^{${k}} = ${n(term)}`,
+        result: String.raw`f(${n(x)}) \approx ${n(approx)}`,
       },
       {
         title: 'Error de truncamiento',
@@ -417,8 +418,8 @@ function solveTaylor(input: NumericErrorsInput): Result {
           rel === null
             ? 'El valor verdadero es 0: solo se reporta el error verdadero.'
             : 'Lo que falta para llegar al valor verdadero: los términos de la serie que no se incluyeron.',
-        formula: 'E_t = \\text{valor verdadero} - \\text{aproximación}',
-        result: `E_t = ${n(et)}${rel === null ? '' : `, \\quad \\varepsilon_t = ${n(rel, 4)}\\,\\%`}${ea === null ? '' : `, \\quad \\varepsilon_a = ${n(ea, 4)}\\,\\%`}`,
+        formula: String.raw`E_t = \text{valor verdadero} - \text{aproximación}`,
+        result: `E_t = ${n(et)}${rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`}${ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`}`,
       },
     ];
     steps.push({ title: `Aproximación de orden ${k}`, children });
@@ -427,8 +428,8 @@ function solveTaylor(input: NumericErrorsInput): Result {
       steps.push({
         title: 'Criterio de parada',
         explanation: `|εa| = ${formatNumber(Math.abs(ea), 4)} % es menor que εs = ${formatNumber(es)} % (${input.significantFigures} cifras significativas): se detiene la serie.`,
-        formula: '\\varepsilon_s = (0.5 \\times 10^{2-n})\\,\\%',
-        substitution: `\\varepsilon_s = (0.5 \\times 10^{2-${input.significantFigures}})\\,\\% = ${n(es)}\\,\\%`,
+        formula: String.raw`\varepsilon_s = (0.5 \times 10^{2-n})\,\%`,
+        substitution: String.raw`\varepsilon_s = (0.5 \times 10^{2-${input.significantFigures}})\,\% = ${n(es)}\,\%`,
       });
       break;
     }
@@ -484,14 +485,14 @@ function solveTaylor(input: NumericErrorsInput): Result {
     summary: [
       {
         label: `Aproximación de orden ${lastOrder}`,
-        value: `f(${n(x)}) \\approx ${n(approx)}`,
+        value: String.raw`f(${n(x)}) \approx ${n(approx)}`,
         emphasis: true,
       },
       { label: 'Valor verdadero', value: `f(${n(x)}) = ${n(trueValue)}` },
       { label: 'Error de truncamiento', value: `E_t = ${n(et)}` },
       ...(rel === null
         ? []
-        : [{ label: 'Error relativo', value: `\\varepsilon_t = ${n(rel, 4)}\\,\\%` }]),
+        : [{ label: 'Error relativo', value: String.raw`\varepsilon_t = ${n(rel, 4)}\,\%` }]),
     ],
     ...emptyTrace(),
     steps,
@@ -500,13 +501,13 @@ function solveTaylor(input: NumericErrorsInput): Result {
         id: 'taylor',
         title: 'Aproximaciones por orden',
         columns: [
-          { key: 'order', header: '\\text{Orden } n' },
+          { key: 'order', header: String.raw`\text{Orden } n` },
           { key: 'derivative', header: 'f^{(n)}(x_i)' },
-          { key: 'term', header: '\\frac{f^{(n)}(x_i)}{n!}h^n' },
-          { key: 'approx', header: '\\text{Aproximación}' },
+          { key: 'term', header: String.raw`\frac{f^{(n)}(x_i)}{n!}h^n` },
+          { key: 'approx', header: String.raw`\text{Aproximación}` },
           { key: 'et', header: 'E_t' },
-          { key: 'rel', header: '\\varepsilon_t\\,(\\%)' },
-          { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+          { key: 'rel', header: String.raw`\varepsilon_t\,(\%)` },
+          { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
         ],
         rows,
       },

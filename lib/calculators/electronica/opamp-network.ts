@@ -92,7 +92,7 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
     title: 'Amplificador operacional ideal',
     explanation:
       'Ganancia en lazo abierto infinita, impedancia de entrada infinita y de salida nula: no entra corriente por las entradas y, con realimentación negativa, la salida toma el valor que deja v₊ = v₋ (cortocircuito virtual). En el análisis de nodos, la salida es una fuente a tierra cuya corriente es una incógnita más.',
-    formula: 'i_{+} = i_{-} = 0,\\qquad v_{+} = v_{-}',
+    formula: String.raw`i_{+} = i_{-} = 0,\qquad v_{+} = v_{-}`,
   });
 
   const grounded = opamps.find((op) => op.nodeC === topology.referenceNode);
@@ -126,10 +126,10 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
           : Math.abs(loop) <= 1e-9
             ? `Con las fuentes anuladas, 1 V en la salida de ${label(op)} no llega a sus entradas: no hay realimentación. Trabaja en lazo abierto, como comparador, y su salida se satura.`
             : `Con las fuentes anuladas, 1 V en la salida de ${label(op)} aumenta v₊ − v₋: la realimentación es positiva (disparador de Schmitt) y la salida se satura.`,
-      formula: '\\left.(v_{+} - v_{-})\\right|_{v_o = 1\\ \\text{V}}',
+      formula: String.raw`\left.(v_{+} - v_{-})\right|_{v_o = 1\ \text{V}}`,
       result: Number.isNaN(loop)
         ? undefined
-        : `v_{+} - v_{-} = ${n(Math.abs(loop) < 1e-12 ? 0 : loop)}\\ \\text{V}\\ ${negative ? '< 0\\ \\checkmark' : '\\ge 0\\ \\times'}`,
+        : String.raw`v_{+} - v_{-} = ${n(Math.abs(loop) < 1e-12 ? 0 : loop)}\ \text{V}\ ${negative ? String.raw`< 0\ \checkmark` : String.raw`\ge 0\ \times`}`,
     });
   }
   const bad = opamps.findIndex((_, i) => !(loops[i]! < -1e-9));
@@ -169,8 +169,8 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
       steps.push({
         title: `Saturación de ${label(op)}`,
         explanation: `El modelo lineal pide v_o = ${volts(vo)}, más que la saturación de ±${volts(vsat)}. La salida queda fija en ${volts(sign * vsat)} y las entradas ya no son iguales; se vuelve a resolver con la salida como fuente.`,
-        formula: '|v_o| \\le V_{sat}',
-        result: `v_o = ${n(sign * vsat)}\\ \\text{V}`,
+        formula: String.raw`|v_o| \le V_{sat}`,
+        result: String.raw`v_o = ${n(sign * vsat)}\ \text{V}`,
       });
       notices.push({
         level: 'warning',
@@ -192,7 +192,7 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
         ? {
             ...s,
             title: `${label(op)} saturado`,
-            formula: `${v(topology, op.nodeC!)} = \\pm V_{sat}`,
+            formula: String.raw`${v(topology, op.nodeC!)} = \pm V_{sat}`,
           }
         : s,
     );
@@ -232,8 +232,8 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
     result: latexLines(
       results.map(
         (r) =>
-          `${toLatexText(r.label)}:\\ v_o = ${n(r.vout)}\\ \\text{V},\\ v_{+} = ${n(r.vplus)}\\ \\text{V},\\ v_{-} = ${n(r.vminus)}\\ \\text{V},\\ i_o = ${engTex(r.iout, 'A')}${
-            r.gain !== undefined ? `,\\ A_v = ${n(r.gain)}` : ''
+          String.raw`${toLatexText(r.label)}:\ v_o = ${n(r.vout)}\ \text{V},\ v_{+} = ${n(r.vplus)}\ \text{V},\ v_{-} = ${n(r.vminus)}\ \text{V},\ i_o = ${engTex(r.iout, 'A')}${
+            r.gain !== undefined ? String.raw`,\ A_v = ${n(r.gain)}` : ''
           }`,
       ),
     ),
@@ -245,7 +245,7 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
       id: 'amplificadores',
       title: 'Amplificadores operacionales',
       columns: [
-        { key: 'u', header: '\\text{Amplificador}', format: 'text' },
+        { key: 'u', header: String.raw`\text{Amplificador}`, format: 'text' },
         { key: 'vp', header: 'v_{+}', format: 'text' },
         { key: 'vm', header: 'v_{-}', format: 'text' },
         { key: 'vo', header: 'v_o', format: 'text' },

@@ -70,7 +70,7 @@ interface Row {
 
 const n = toLatexNumber;
 const op = toLatexOperand;
-const SECANT_FORMULA = 'x_{i+1} = x_i - \\frac{f(x_i)\\,(x_{i-1} - x_i)}{f(x_{i-1}) - f(x_i)}';
+const SECANT_FORMULA = String.raw`x_{i+1} = x_i - \frac{f(x_i)\,(x_{i-1} - x_i)}{f(x_{i-1}) - f(x_i)}`;
 
 function buildTrace(steps: Step[], rows: Row[], notices: Trace['notices']): Trace {
   const trace = { ...emptyTrace(), steps, notices };
@@ -86,7 +86,7 @@ function buildTrace(steps: Step[], rows: Row[], notices: Trace['notices']): Trac
       { key: 'fCurr', header: 'f(x_i)' },
       { key: 'xNext', header: 'x_{i+1}' },
       { key: 'absoluteError', header: 'E_a' },
-      { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+      { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
     ],
     rows: rows.map((row) => ({ ...row })),
   });
@@ -204,7 +204,7 @@ export function solveSecant(input: SecantInput): Result {
       {
         title: 'Aplicar la fórmula de la secante',
         formula: SECANT_FORMULA,
-        substitution: `${nextLabel} = ${n(xCurr)} - \\frac{${op(fCurr)}\\,(${n(xPrev)} - ${op(xCurr)})}{${n(fPrev)} - ${op(fCurr)}}`,
+        substitution: String.raw`${nextLabel} = ${n(xCurr)} - \frac{${op(fCurr)}\,(${n(xPrev)} - ${op(xCurr)})}{${n(fPrev)} - ${op(fCurr)}}`,
         result: `${nextLabel} = ${n(xNext)}`,
       },
       errorStep,
@@ -221,7 +221,7 @@ export function solveSecant(input: SecantInput): Result {
       steps.push({
         title: 'Conclusión',
         explanation: `Después de ${i + 1} iteraciones el error relativo aproximado es menor que la tolerancia.`,
-        result: `x_r \\approx ${n(xNext)}`,
+        result: String.raw`x_r \approx ${n(xNext)}`,
       });
       return succeed(xNext);
     }

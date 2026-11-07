@@ -104,24 +104,24 @@ export function solveReorder(
       title: 'Demanda durante el tiempo de entrega',
       explanation:
         'Con demandas independientes en cada periodo, las medias y las varianzas de los L periodos se suman.',
-      formula: '\\mu_L = d\\,L, \\qquad \\sigma_L = \\sigma_d \\sqrt{L}',
-      substitution: `\\mu_L = ${n(d!)}(${n(L!)}), \\qquad \\sigma_L = ${n(sd!)}\\sqrt{${n(L!)}}`,
-      result: `\\mu_L = ${n(mean, 6)}, \\qquad \\sigma_L = ${n(sigma, 6)}`,
+      formula: String.raw`\mu_L = d\,L, \qquad \sigma_L = \sigma_d \sqrt{L}`,
+      substitution: String.raw`\mu_L = ${n(d!)}(${n(L!)}), \qquad \sigma_L = ${n(sd!)}\sqrt{${n(L!)}}`,
+      result: String.raw`\mu_L = ${n(mean, 6)}, \qquad \sigma_L = ${n(sigma, 6)}`,
     });
   }
   steps.push(
     {
       title: 'Valor z del nivel de servicio',
       explanation: `Se busca en la tabla de la normal el valor z que deja un área de ${formatNumber(level)} a su izquierda: la probabilidad de no quedarse sin inventario mientras llega el pedido.`,
-      formula: '\\Phi(z) = \\text{nivel de servicio} = 1 - \\alpha',
-      substitution: `\\Phi(z) = ${n(level)}`,
+      formula: String.raw`\Phi(z) = \text{nivel de servicio} = 1 - \alpha`,
+      substitution: String.raw`\Phi(z) = ${n(level)}`,
       result: `z = ${n(z, 4)}`,
     },
     {
       title: 'Stock de seguridad',
       explanation:
         'Inventario adicional que cubre la variación de la demanda durante el tiempo de entrega.',
-      formula: 'B = z\\,\\sigma_L',
+      formula: String.raw`B = z\,\sigma_L`,
       substitution: `B = ${n(z, 6)}(${n(sigma, 6)})`,
       result: `B = ${n(safety, 6)}`,
     },
@@ -129,7 +129,7 @@ export function solveReorder(
       title: 'Punto de reorden',
       explanation:
         'Se hace el pedido cuando el inventario baja a la demanda media del tiempo de entrega más el stock de seguridad.',
-      formula: 'R = \\mu_L + B',
+      formula: String.raw`R = \mu_L + B`,
       substitution: `R = ${n(mean, 6)} + ${n(safety, 6)}`,
       result: `R = ${n(R, 6)}`,
     },
@@ -151,7 +151,7 @@ export function solveReorder(
       { label: 'Valor z', value: `z = ${n(z, 4)}` },
       {
         label: 'Probabilidad de faltante en el tiempo de entrega',
-        value: `\\alpha = ${n(1 - level, 6)}`,
+        value: String.raw`\alpha = ${n(1 - level, 6)}`,
       },
     ],
     ...emptyTrace(),

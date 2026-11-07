@@ -62,7 +62,7 @@ export function bitsLatex(bits: string): string {
   const groups: string[] = [];
   for (let end = bits.length; end > 0; end -= 4)
     groups.unshift(bits.slice(Math.max(0, end - 4), end));
-  return `\\mathtt{${groups.join('\\,')}}`;
+  return String.raw`\mathtt{${groups.join(String.raw`\,`)}}`;
 }
 
 export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, BinaryErrorCode> {
@@ -70,8 +70,8 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
   const half = 2 ** (n - 1);
   const magnitude = Math.abs(x);
   const ranges = latexLines([
-    `\\text{Signo y magnitud y complemento a 1: } ${-(half - 1)} \\le x \\le ${half - 1}`,
-    `\\text{Complemento a 2 y exceso } 2^{${n - 1}}: ${-half} \\le x \\le ${half - 1}`,
+    String.raw`\text{Signo y magnitud y complemento a 1: } ${-(half - 1)} \le x \le ${half - 1}`,
+    String.raw`\text{Complemento a 2 y exceso } 2^{${n - 1}}: ${-half} \le x \le ${half - 1}`,
   ]);
   const steps: Step[] = [
     {
@@ -117,7 +117,7 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
       {
         title: 'Signo y magnitud',
         explanation: `El primer bit es el signo (${negative ? '1 porque x es negativo' : '0 porque x no es negativo'}) y los ${n - 1} restantes son la magnitud, completada con ceros a la izquierda.`,
-        result: `${negative ? '1' : '0'} \\mid ${bitsLatex(body)} \\;\\Rightarrow\\; ${bitsLatex(signMagnitude)}`,
+        result: String.raw`${negative ? '1' : '0'} \mid ${bitsLatex(body)} \;\Rightarrow\; ${bitsLatex(signMagnitude)}`,
       },
       {
         title: 'Complemento a 1',
@@ -125,7 +125,7 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
           ? `Se escribe |x| con ${n} bits y se invierten todos (cada 0 pasa a 1 y cada 1 a 0).`
           : 'Los positivos se escriben igual que en binario, con ceros a la izquierda.',
         result: negative
-          ? `\\overline{${bitsLatex(toBits(magnitude, n))}} = ${bitsLatex(onesComplement)}`
+          ? String.raw`\overline{${bitsLatex(toBits(magnitude, n))}} = ${bitsLatex(onesComplement)}`
           : bitsLatex(onesComplement),
       },
     );
@@ -163,7 +163,7 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
 
   const row = (name: string, bits: string | null, range: string) => ({
     name,
-    bits: bits === null ? '\\text{no representable}' : bitsLatex(bits),
+    bits: bits === null ? String.raw`\text{no representable}` : bitsLatex(bits),
     range,
   });
   return {
@@ -173,11 +173,11 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
       { label: 'Complemento a 2', value: bitsLatex(twosComplement), emphasis: true },
       {
         label: 'Signo y magnitud',
-        value: signMagnitude ? bitsLatex(signMagnitude) : '\\text{no representable}',
+        value: signMagnitude ? bitsLatex(signMagnitude) : String.raw`\text{no representable}`,
       },
       {
         label: 'Complemento a 1',
-        value: onesComplement ? bitsLatex(onesComplement) : '\\text{no representable}',
+        value: onesComplement ? bitsLatex(onesComplement) : String.raw`\text{no representable}`,
       },
       { label: `Exceso ${half}`, value: bitsLatex(excess) },
     ],
@@ -191,9 +191,9 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
               id: 'divisiones',
               title: `Divisiones sucesivas de ${magnitude} entre 2`,
               columns: [
-                { key: 'dividend', header: '\\text{Dividendo}', format: 'text' as const },
-                { key: 'quotient', header: '\\text{Cociente}', format: 'text' as const },
-                { key: 'remainder', header: '\\text{Residuo}', format: 'text' as const },
+                { key: 'dividend', header: String.raw`\text{Dividendo}`, format: 'text' as const },
+                { key: 'quotient', header: String.raw`\text{Cociente}`, format: 'text' as const },
+                { key: 'remainder', header: String.raw`\text{Residuo}`, format: 'text' as const },
               ],
               rows: divisions.map((r) => ({
                 dividend: String(r.dividend),
@@ -207,15 +207,15 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
         id: 'representaciones',
         title: `${x} con ${n} bits`,
         columns: [
-          { key: 'name', header: '\\text{Representación}', format: 'text' },
-          { key: 'bits', header: '\\text{Bits}', format: 'latex' },
-          { key: 'range', header: '\\text{Rango}', format: 'latex' },
+          { key: 'name', header: String.raw`\text{Representación}`, format: 'text' },
+          { key: 'bits', header: String.raw`\text{Bits}`, format: 'latex' },
+          { key: 'range', header: String.raw`\text{Rango}`, format: 'latex' },
         ],
         rows: [
-          row('Signo y magnitud', signMagnitude, `[${-(half - 1)},\\ ${half - 1}]`),
-          row('Complemento a 1', onesComplement, `[${-(half - 1)},\\ ${half - 1}]`),
-          row('Complemento a 2', twosComplement, `[${-half},\\ ${half - 1}]`),
-          row(`Exceso ${half}`, excess, `[${-half},\\ ${half - 1}]`),
+          row('Signo y magnitud', signMagnitude, String.raw`[${-(half - 1)},\ ${half - 1}]`),
+          row('Complemento a 1', onesComplement, String.raw`[${-(half - 1)},\ ${half - 1}]`),
+          row('Complemento a 2', twosComplement, String.raw`[${-half},\ ${half - 1}]`),
+          row(`Exceso ${half}`, excess, String.raw`[${-half},\ ${half - 1}]`),
         ],
       },
     ],

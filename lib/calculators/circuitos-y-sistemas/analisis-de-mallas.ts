@@ -36,7 +36,7 @@ export function solveMeshAnalysis(
 
   const summary: SummaryItem[] = outcome.result.meshCurrents.map((v, i) => ({
     label: `i_${i + 1}`,
-    value: `${formatNumber(v, 4)}\\text{ A}`,
+    value: String.raw`${formatNumber(v, 4)}\text{ A}`,
   }));
   summary.unshift({ label: 'Mallas', value: String(outcome.result.meshes.length) });
 

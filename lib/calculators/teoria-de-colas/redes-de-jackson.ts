@@ -91,16 +91,16 @@ export function solveJackson({ stations, routing }: JacksonInput): Result {
   const a = stations.map((s) => s.external);
   const equations = Array.from({ length: m }, (_, j) => {
     const terms = routing.flatMap((row, i) =>
-      row[j]! > 0 ? [`${n(row[j]!)}\\,\\lambda_{${i + 1}}`] : [],
+      row[j]! > 0 ? [String.raw`${n(row[j]!)}\,\lambda_{${i + 1}}`] : [],
     );
-    return `\\lambda_{${j + 1}} = ${n(a[j]!)}${terms.length ? ` + ${terms.join(' + ')}` : ''}`;
+    return String.raw`\lambda_{${j + 1}} = ${n(a[j]!)}${terms.length ? ` + ${terms.join(' + ')}` : ''}`;
   });
   const steps: Step[] = [
     {
       title: 'Ecuaciones de flujo',
       explanation:
         'La tasa total de llegadas a cada estación es la que viene de afuera más la fracción de las salidas de las otras estaciones que se dirigen a ella.',
-      formula: '\\lambda_j = a_j + \\sum_{i=1}^{m} \\lambda_i\\,p_{ij}',
+      formula: String.raw`\lambda_j = a_j + \sum_{i=1}^{m} \lambda_i\,p_{ij}`,
       substitution: latexLines(equations),
     },
   ];
@@ -123,7 +123,9 @@ export function solveJackson({ stations, routing }: JacksonInput): Result {
     };
   }
   const clean = lambdas.map((v) => (Math.abs(v) < 1e-12 ? 0 : v));
-  steps[0]!.result = clean.map((v, j) => `\\lambda_{${j + 1}} = ${n(v)}`).join(',\\ ');
+  steps[0]!.result = clean
+    .map((v, j) => String.raw`\lambda_{${j + 1}} = ${n(v)}`)
+    .join(String.raw`,\ `);
 
   const analysis = analyzeStations(stations, clean);
   steps.push(...analysis.steps);
@@ -146,9 +148,9 @@ export function solveJackson({ stations, routing }: JacksonInput): Result {
     title: 'Medidas de toda la red',
     explanation:
       'Los clientes en la red son la suma de los de cada estación. El tiempo en la red no es la suma de los W_j, porque un cliente puede visitar una estación varias veces o ninguna: se usa la ley de Little con la tasa de llegadas desde afuera.',
-    formula: 'L = \\sum_j L_j, \\qquad W = \\frac{L}{\\sum_j a_j}',
-    substitution: `L = ${results.map((r) => n(r.L, 6)).join(' + ')}, \\qquad W = \\frac{${n(L)}}{${n(externalRate)}}`,
-    result: `L = ${n(L)}, \\qquad W = ${n(W)}`,
+    formula: String.raw`L = \sum_j L_j, \qquad W = \frac{L}{\sum_j a_j}`,
+    substitution: String.raw`L = ${results.map((r) => n(r.L, 6)).join(' + ')}, \qquad W = \frac{${n(L)}}{${n(externalRate)}}`,
+    result: String.raw`L = ${n(L)}, \qquad W = ${n(W)}`,
   });
 
   return {
@@ -159,7 +161,9 @@ export function solveJackson({ stations, routing }: JacksonInput): Result {
       { label: 'Tiempo en la red', value: `W = ${n(W, 6)}` },
       {
         label: 'Tasas de llegada',
-        value: clean.map((v, j) => `\\lambda_{${j + 1}} = ${n(v, 6)}`).join(',\\ '),
+        value: clean
+          .map((v, j) => String.raw`\lambda_{${j + 1}} = ${n(v, 6)}`)
+          .join(String.raw`,\ `),
       },
     ],
     ...emptyTrace(),

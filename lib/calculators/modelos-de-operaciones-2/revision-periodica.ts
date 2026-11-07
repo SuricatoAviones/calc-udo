@@ -64,38 +64,38 @@ export function solvePeriodicReview(input: PeriodicReviewInput): Result {
       title: 'Desviación estándar en el periodo vulnerable',
       explanation:
         'El pedido debe cubrir la revisión T y el tiempo de entrega L. Si la demanda de cada periodo es independiente, las varianzas se suman.',
-      formula: '\\sigma_{T+L} = \\sqrt{(T + L)\\,\\sigma_d^2}',
-      substitution: `\\sigma_{T+L} = \\sqrt{(${n(T)} + ${n(L)})(${n(sigma)})^2}`,
-      result: `\\sigma_{T+L} = ${n(sigmaTL)}`,
+      formula: String.raw`\sigma_{T+L} = \sqrt{(T + L)\,\sigma_d^2}`,
+      substitution: String.raw`\sigma_{T+L} = \sqrt{(${n(T)} + ${n(L)})(${n(sigma)})^2}`,
+      result: String.raw`\sigma_{T+L} = ${n(sigmaTL)}`,
     },
     {
       title: 'Valor de z para la probabilidad de servicio',
       explanation: `Es el número de desviaciones estándar que deja una probabilidad ${formatNumber(P)} a la izquierda en la normal estándar (en las tablas se lee con 2 decimales).`,
-      formula: 'z = \\Phi^{-1}(P)',
-      substitution: `z = \\Phi^{-1}(${n(P)})`,
+      formula: String.raw`z = \Phi^{-1}(P)`,
+      substitution: String.raw`z = \Phi^{-1}(${n(P)})`,
       result: `z = ${n(z, 6)}`,
     },
     {
       title: 'Inventario de seguridad',
-      formula: '\\text{IS} = z\\,\\sigma_{T+L}',
-      substitution: `\\text{IS} = (${n(z, 6)})(${n(sigmaTL, 6)})`,
-      result: `\\text{IS} = ${n(safetyStock)}`,
+      formula: String.raw`\text{IS} = z\,\sigma_{T+L}`,
+      substitution: String.raw`\text{IS} = (${n(z, 6)})(${n(sigmaTL, 6)})`,
+      result: String.raw`\text{IS} = ${n(safetyStock)}`,
     },
     {
       title: 'Cantidad a pedir',
       explanation:
         'Demanda promedio del periodo vulnerable más el inventario de seguridad, menos lo que ya se tiene (incluido lo pedido).',
-      formula: 'q = \\bar d\\,(T + L) + z\\,\\sigma_{T+L} - I',
+      formula: String.raw`q = \bar d\,(T + L) + z\,\sigma_{T+L} - I`,
       substitution: `q = ${n(d)}(${n(T)} + ${n(L)}) + ${n(safetyStock, 6)} - ${n(I)}`,
-      result: `q = ${n(orderQuantity)} \\ \\Rightarrow\\ ${roundedQuantity} \\text{ unidades}`,
+      result: String.raw`q = ${n(orderQuantity)} \ \Rightarrow\ ${roundedQuantity} \text{ unidades}`,
     },
     {
       title: 'Inventario promedio',
       explanation:
         'En promedio se tiene la mitad de lo que se consume en un ciclo de revisión más el inventario de seguridad.',
-      formula: '\\bar I = \\frac{\\bar d\\,T}{2} + \\text{IS}',
-      substitution: `\\bar I = \\frac{${n(d)}(${n(T)})}{2} + ${n(safetyStock, 6)}`,
-      result: `\\bar I = ${n(averageInventory)}`,
+      formula: String.raw`\bar I = \frac{\bar d\,T}{2} + \text{IS}`,
+      substitution: String.raw`\bar I = \frac{${n(d)}(${n(T)})}{2} + ${n(safetyStock, 6)}`,
+      result: String.raw`\bar I = ${n(averageInventory)}`,
     },
   ];
 
@@ -113,12 +113,12 @@ export function solvePeriodicReview(input: PeriodicReviewInput): Result {
     summary: [
       {
         label: 'Cantidad a pedir',
-        value: `q = ${n(orderQuantity, 6)} \\approx ${roundedQuantity}`,
+        value: String.raw`q = ${n(orderQuantity, 6)} \approx ${roundedQuantity}`,
         emphasis: true,
       },
-      { label: 'Inventario de seguridad', value: `\\text{IS} = ${n(safetyStock, 6)}` },
-      { label: 'Nivel meta', value: `\\bar d(T + L) + \\text{IS} = ${n(targetLevel, 6)}` },
-      { label: 'Inventario promedio', value: `\\bar I = ${n(averageInventory, 6)}` },
+      { label: 'Inventario de seguridad', value: String.raw`\text{IS} = ${n(safetyStock, 6)}` },
+      { label: 'Nivel meta', value: String.raw`\bar d(T + L) + \text{IS} = ${n(targetLevel, 6)}` },
+      { label: 'Inventario promedio', value: String.raw`\bar I = ${n(averageInventory, 6)}` },
     ],
     ...emptyTrace(),
     steps,

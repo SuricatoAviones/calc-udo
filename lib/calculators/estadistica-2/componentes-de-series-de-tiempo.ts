@@ -49,8 +49,8 @@ export function solveSeriesComponents(
         ? `Cada dato se ve como el producto de la tendencia, el efecto estacional (ciclo de ${d.season} periodos), las fluctuaciones cíclicas y la irregularidad.`
         : 'Sin estacionalidad, cada dato se compara con la tendencia: lo que queda son las fluctuaciones cíclicas (y la irregularidad).',
       formula: d.season
-        ? 'Y_t = T_t \\times S_t \\times C_t \\times I_t'
-        : 'Y_t = T_t \\times C_t \\times I_t',
+        ? String.raw`Y_t = T_t \times S_t \times C_t \times I_t`
+        : String.raw`Y_t = T_t \times C_t \times I_t`,
     },
     ...decompositionSteps(d),
   ];
@@ -62,12 +62,12 @@ export function solveSeriesComponents(
     title: 'Fluctuaciones cíclicas',
     explanation: `${d.season ? 'Al dividir cada dato entre T × S queda el componente cíclico-irregular' : 'El porcentaje de la tendencia y el residuo cíclico relativo miden cuánto se aparta cada dato de la tendencia'}: por encima de 100 % la serie está sobre la tendencia y por debajo, bajo ella. El mayor valor está en t = ${peak + 1} (${formatNumber(d.cyclical[peak]!, 4)} %) y el menor en t = ${trough + 1} (${formatNumber(d.cyclical[trough]!, 4)} %).`,
     formula: d.season
-      ? 'C_t I_t = \\frac{Y_t}{T_t\\,S_t} \\times 100\\%'
-      : '\\frac{Y_t}{T_t} \\times 100\\%, \\qquad \\frac{Y_t - T_t}{T_t} \\times 100\\%',
+      ? String.raw`C_t I_t = \frac{Y_t}{T_t\,S_t} \times 100\%`
+      : String.raw`\frac{Y_t}{T_t} \times 100\%, \qquad \frac{Y_t - T_t}{T_t} \times 100\%`,
     substitution: d.season
-      ? `C_1 I_1 = \\frac{${n(y[0]!)}}{${n(d.trend[0]!)}(${n(d.periodIndex[0]!)})} \\times 100\\%`
-      : `\\frac{Y_1}{T_1} = \\frac{${n(y[0]!)}}{${n(d.trend[0]!)}} \\times 100\\%`,
-    result: `${n(d.cyclical[0]!)}\\,\\%`,
+      ? String.raw`C_1 I_1 = \frac{${n(y[0]!)}}{${n(d.trend[0]!)}(${n(d.periodIndex[0]!)})} \times 100\%`
+      : String.raw`\frac{Y_1}{T_1} = \frac{${n(y[0]!)}}{${n(d.trend[0]!)}} \times 100\%`,
+    result: String.raw`${n(d.cyclical[0]!)}\,\%`,
   });
 
   const summary: SummaryItem[] = [
@@ -76,7 +76,9 @@ export function solveSeriesComponents(
       ? [
           {
             label: 'Índices estacionales',
-            value: d.indices.map((v, j) => `S_{${j + 1}} = ${toLatexNumber(v, 4)}`).join(',\\ '),
+            value: d.indices
+              .map((v, j) => `S_{${j + 1}} = ${toLatexNumber(v, 4)}`)
+              .join(String.raw`,\ `),
             emphasis: true,
           },
         ]
@@ -106,8 +108,8 @@ export function solveSeriesComponents(
               id: 'indices',
               title: 'Índices estacionales',
               columns: [
-                { key: 'season', header: '\\text{Estación}' },
-                { key: 'raw', header: '\\bar{r}_j' },
+                { key: 'season', header: String.raw`\text{Estación}` },
+                { key: 'raw', header: String.raw`\bar{r}_j` },
                 { key: 'index', header: 'S_j' },
               ],
               rows: d.indices.map((v, j) => ({ season: j + 1, raw: d.rawIndices[j]!, index: v })),

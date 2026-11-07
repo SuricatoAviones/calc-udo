@@ -69,7 +69,7 @@ const op = (v: number) => toLatexOperand(v, 7);
 const DETAILED_ITERATIONS = 6;
 
 function listLatex(name: string, values: number[], degree: number): string {
-  return values.map((v, i) => `${name}_{${degree - i}} = ${n(v)}`).join(',\\ ');
+  return values.map((v, i) => `${name}_{${degree - i}} = ${n(v)}`).join(String.raw`,\ `);
 }
 
 /** Primera o segunda división de Bairstow (b a partir de a, o c a partir de b). */
@@ -92,8 +92,8 @@ function rootsFromCoefficients(coefficients: number[]): { roots: ComplexRoot[]; 
       roots: [{ re: root, im: 0 }],
       step: {
         title: 'Queda un polinomio de grado 1',
-        formula: `${polynomialLatex(coefficients)} = 0 \\;\\Rightarrow\\; x = -\\frac{a_0}{a_1}`,
-        substitution: `x = -\\frac{${n(a0)}}{${n(a1)}}`,
+        formula: String.raw`${polynomialLatex(coefficients)} = 0 \;\Rightarrow\; x = -\frac{a_0}{a_1}`,
+        substitution: String.raw`x = -\frac{${n(a0)}}{${n(a1)}}`,
         result: `x = ${n(root)}`,
       },
     };
@@ -109,9 +109,9 @@ function rootsFromCoefficients(coefficients: number[]): { roots: ComplexRoot[]; 
       title: 'Queda un polinomio de grado 2',
       explanation:
         'Se resuelve directamente: dividiendo entre el coeficiente principal queda x² − r x − s con r = −a₁/a₂ y s = −a₀/a₂.',
-      formula: 'x = \\frac{r \\pm \\sqrt{r^2 + 4s}}{2}',
-      substitution: `r = ${n(r)},\\ s = ${n(s)}: \\quad x = \\frac{${n(r)} \\pm \\sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
-      result: roots.map((root) => `x = ${complexLatex(root)}`).join(',\\quad '),
+      formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
+      substitution: String.raw`r = ${n(r)},\ s = ${n(s)}: \quad x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
+      result: roots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
     },
   };
 }
@@ -139,14 +139,14 @@ export function solveBairstow(input: BairstowInput): Result {
         id: 'iteraciones',
         title: 'Iteraciones',
         columns: [
-          { key: 'factor', header: '\\text{Factor}' },
-          { key: 'iteration', header: '\\text{Iteración}' },
-          { key: 'dr', header: '\\Delta r' },
-          { key: 'ds', header: '\\Delta s' },
+          { key: 'factor', header: String.raw`\text{Factor}` },
+          { key: 'iteration', header: String.raw`\text{Iteración}` },
+          { key: 'dr', header: String.raw`\Delta r` },
+          { key: 'ds', header: String.raw`\Delta s` },
           { key: 'r', header: 'r' },
           { key: 's', header: 's' },
-          { key: 'ear', header: '\\varepsilon_{a,r}\\,(\\%)' },
-          { key: 'eas', header: '\\varepsilon_{a,s}\\,(\\%)' },
+          { key: 'ear', header: String.raw`\varepsilon_{a,r}\,(\%)` },
+          { key: 'eas', header: String.raw`\varepsilon_{a,s}\,(\%)` },
         ],
         rows,
       },
@@ -175,12 +175,12 @@ export function solveBairstow(input: BairstowInput): Result {
       const children: Step[] = [
         {
           title: 'Primera división: coeficientes b',
-          formula: 'b_n = a_n,\\ b_{n-1} = a_{n-1} + r b_n,\\ b_i = a_i + r b_{i+1} + s b_{i+2}',
+          formula: String.raw`b_n = a_n,\ b_{n-1} = a_{n-1} + r b_n,\ b_i = a_i + r b_{i+1} + s b_{i+2}`,
           result: listLatex('b', b, degree),
         },
         {
           title: 'Segunda división: coeficientes c',
-          formula: 'c_n = b_n,\\ c_{n-1} = b_{n-1} + r c_n,\\ c_i = b_i + r c_{i+1} + s c_{i+2}',
+          formula: String.raw`c_n = b_n,\ c_{n-1} = b_{n-1} + r c_n,\ c_i = b_i + r c_{i+1} + s c_{i+2}`,
           result: listLatex('c', c.slice(0, degree), degree),
         },
       ];
@@ -237,24 +237,22 @@ export function solveBairstow(input: BairstowInput): Result {
       children.push(
         {
           title: 'Correcciones Δr y Δs',
-          formula:
-            '\\begin{aligned} c_2\\,\\Delta r + c_3\\,\\Delta s &= -b_1 \\\\ c_1\\,\\Delta r + c_2\\,\\Delta s &= -b_0 \\end{aligned}',
-          substitution: `\\begin{aligned} ${n(c2)}\\,\\Delta r + ${op(c3)}\\,\\Delta s &= ${n(-b1)} \\\\ ${n(c1)}\\,\\Delta r + ${op(c2)}\\,\\Delta s &= ${n(-b0)} \\end{aligned}`,
-          result: `\\Delta r = ${n(dr)},\\quad \\Delta s = ${n(ds)}`,
+          formula: String.raw`\begin{aligned} c_2\,\Delta r + c_3\,\Delta s &= -b_1 \\ c_1\,\Delta r + c_2\,\Delta s &= -b_0 \end{aligned}`,
+          substitution: String.raw`\begin{aligned} ${n(c2)}\,\Delta r + ${op(c3)}\,\Delta s &= ${n(-b1)} \\ ${n(c1)}\,\Delta r + ${op(c2)}\,\Delta s &= ${n(-b0)} \end{aligned}`,
+          result: String.raw`\Delta r = ${n(dr)},\quad \Delta s = ${n(ds)}`,
         },
         {
           title: 'Nuevos r y s',
-          formula: 'r \\leftarrow r + \\Delta r, \\qquad s \\leftarrow s + \\Delta s',
-          result: `r = ${n(r)},\\quad s = ${n(s)}`,
+          formula: String.raw`r \leftarrow r + \Delta r, \qquad s \leftarrow s + \Delta s`,
+          result: String.raw`r = ${n(r)},\quad s = ${n(s)}`,
         },
         {
           title: 'Errores aproximados',
           explanation: converged
             ? `Ambos errores son menores que εs = ${formatNumber(tolerance)} %: el factor convergió.`
             : `Algún error no es menor que εs = ${formatNumber(tolerance)} %: se sigue iterando.`,
-          formula:
-            '\\varepsilon_{a,r} = \\left|\\frac{\\Delta r}{r}\\right| 100\\%, \\quad \\varepsilon_{a,s} = \\left|\\frac{\\Delta s}{s}\\right| 100\\%',
-          result: `\\varepsilon_{a,r} = ${ear === null ? '\\text{—}' : `${n(ear)}\\,\\%`},\\quad \\varepsilon_{a,s} = ${eas === null ? '\\text{—}' : `${n(eas)}\\,\\%`}`,
+          formula: String.raw`\varepsilon_{a,r} = \left|\frac{\Delta r}{r}\right| 100\%, \quad \varepsilon_{a,s} = \left|\frac{\Delta s}{s}\right| 100\%`,
+          result: String.raw`\varepsilon_{a,r} = ${ear === null ? String.raw`\text{—}` : String.raw`${n(ear)}\,\%`},\quad \varepsilon_{a,s} = ${eas === null ? String.raw`\text{—}` : String.raw`${n(eas)}\,\%`}`,
         },
       );
       if (detailed || converged || iteration === input.maxIterations) {
@@ -289,20 +287,20 @@ export function solveBairstow(input: BairstowInput): Result {
     roots.push(...factorRoots);
     iterationSteps.push({
       title: 'Raíces del factor',
-      formula: 'x = \\frac{r \\pm \\sqrt{r^2 + 4s}}{2}',
-      substitution: `x = \\frac{${n(r)} \\pm \\sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
-      result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(',\\quad '),
+      formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
+      substitution: String.raw`x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
+      result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
     });
     iterationSteps.push({
       title: 'Polinomio deflactado',
       explanation:
         'El cociente de la división entre el factor cuadrático conserva las raíces restantes.',
-      result: `f(x) \\approx (x^2 ${r < 0 ? '+' : '-'} ${n(Math.abs(r))}x ${s < 0 ? '+' : '-'} ${n(Math.abs(s))})(${polynomialLatex(quotient)})`,
+      result: String.raw`f(x) \approx (x^2 ${r < 0 ? '+' : '-'} ${n(Math.abs(r))}x ${s < 0 ? '+' : '-'} ${n(Math.abs(s))})(${polynomialLatex(quotient)})`,
     });
     steps.push({
       title: `Factor ${factorNumber}: ${iteration} iteraciones`,
       children: iterationSteps,
-      result: `x^2 - r x - s \\text{ con } r = ${n(r)},\\ s = ${n(s)}`,
+      result: String.raw`x^2 - r x - s \text{ con } r = ${n(r)},\ s = ${n(s)}`,
     });
     coefficients = quotient;
   }
@@ -314,7 +312,7 @@ export function solveBairstow(input: BairstowInput): Result {
   const summary: SummaryItem[] = [
     {
       label: 'Raíces',
-      value: roots.map((root) => complexLatex(root)).join(',\\quad '),
+      value: roots.map((root) => complexLatex(root)).join(String.raw`,\quad `),
       emphasis: true,
     },
     ...factors.map((f, i) => ({
@@ -334,9 +332,9 @@ export function solveBairstow(input: BairstowInput): Result {
         id: 'raices',
         title: 'Raíces',
         columns: [
-          { key: 'root', header: '\\text{Raíz}', format: 'latex' },
-          { key: 're', header: '\\text{Parte real}' },
-          { key: 'im', header: '\\text{Parte imaginaria}' },
+          { key: 'root', header: String.raw`\text{Raíz}`, format: 'latex' },
+          { key: 're', header: String.raw`\text{Parte real}` },
+          { key: 'im', header: String.raw`\text{Parte imaginaria}` },
         ],
         rows: roots.map((root) => ({ root: complexLatex(root), re: root.re, im: root.im })),
       },

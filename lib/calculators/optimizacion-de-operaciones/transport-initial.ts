@@ -83,7 +83,7 @@ export function solveInitial(
             const [i, j] = parseKey(k);
             return `x_{${i + 1}${j + 1}} = ${q.toLatex()}`;
           })
-          .join(',\\ '),
+          .join(String.raw`,\ `),
       },
       {
         label: 'Variables básicas',
@@ -96,7 +96,7 @@ export function solveInitial(
       { title: 'Asignaciones', explanation: intro[method], children: steps },
       {
         title: 'Costo total',
-        formula: 'Z = \\sum c_{ij}\\,x_{ij}',
+        formula: String.raw`Z = \sum c_{ij}\,x_{ij}`,
         substitution: costLatex(b, allocation),
         result: `Z = ${cost.toLatex()}`,
       },

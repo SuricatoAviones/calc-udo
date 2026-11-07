@@ -39,7 +39,9 @@ function preview(text: string, multiline: boolean): string | null {
   const parsed = lines.map((line) => parseFormula(line));
   if (parsed.length === 0 || parsed.some((f) => typeof f === 'string')) return null;
   return latexLines(
-    parsed.map((f, k) => `P_{${k + 1}}:\\ ${formulaLatex(f as Exclude<typeof f, string>)}`),
+    parsed.map(
+      (f, k) => String.raw`P_{${k + 1}}:\ ${formulaLatex(f as Exclude<typeof f, string>)}`,
+    ),
   );
 }
 

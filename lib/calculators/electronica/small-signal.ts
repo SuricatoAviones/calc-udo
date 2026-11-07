@@ -22,7 +22,7 @@ import type { Step } from '../types';
 import { engTex, engText, parallel } from './units';
 
 const n = (v: number, d = 6) => toLatexNumber(v, d);
-const ohm = (v: number) => (Number.isFinite(v) ? engTex(v, 'Ω') : '\\infty');
+const ohm = (v: number) => (Number.isFinite(v) ? engTex(v, 'Ω') : String.raw`\infty`);
 
 export type AcConfig = 'emisor-comun' | 'emisor-sin-puentear' | 'seguidor' | 'base-comun';
 
@@ -48,10 +48,9 @@ export function commonBaseFromCE(h: HybridParams): { params: HybridParams; step:
       title: 'Parámetros en base común',
       explanation:
         'Las hojas de datos dan los parámetros en emisor común; se convierten con las ecuaciones aproximadas del apéndice A.',
-      formula:
-        'h_{ib} \\approx \\frac{h_{ie}}{1 + h_{fe}},\\quad h_{rb} \\approx \\frac{h_{ie}h_{oe}}{1 + h_{fe}} - h_{re},\\quad h_{fb} \\approx \\frac{-h_{fe}}{1 + h_{fe}},\\quad h_{ob} \\approx \\frac{h_{oe}}{1 + h_{fe}}',
-      substitution: `h_{ib} \\approx \\frac{${n(h.hi)}}{1 + ${n(h.hf)}}`,
-      result: `h_{ib} = ${ohm(params.hi)},\\ h_{rb} = ${n(params.hr, 4)},\\ h_{fb} = ${n(params.hf, 5)},\\ h_{ob} = ${engTex(params.ho, 'S')}`,
+      formula: String.raw`h_{ib} \approx \frac{h_{ie}}{1 + h_{fe}},\quad h_{rb} \approx \frac{h_{ie}h_{oe}}{1 + h_{fe}} - h_{re},\quad h_{fb} \approx \frac{-h_{fe}}{1 + h_{fe}},\quad h_{ob} \approx \frac{h_{oe}}{1 + h_{fe}}`,
+      substitution: String.raw`h_{ib} \approx \frac{${n(h.hi)}}{1 + ${n(h.hf)}}`,
+      result: String.raw`h_{ib} = ${ohm(params.hi)},\ h_{rb} = ${n(params.hr, 4)},\ h_{fb} = ${n(params.hf, 5)},\ h_{ob} = ${engTex(params.ho, 'S')}`,
     },
   };
 }
@@ -102,8 +101,8 @@ function loadSteps(
       title: 'Ganancia desde la fuente',
       explanation:
         'La resistencia de la fuente y Z_i forman un divisor de voltaje a la entrada (Boylestad, sec. 5.13).',
-      formula: 'A_{v_s} = \\frac{V_o}{V_s} = \\frac{Z_i}{Z_i + R_s}A_{v}',
-      substitution: `A_{v_s} = \\frac{${n(r.zi)}}{${n(r.zi)} + ${n(net.rs)}}(${n(r.av)})`,
+      formula: String.raw`A_{v_s} = \frac{V_o}{V_s} = \frac{Z_i}{Z_i + R_s}A_{v}`,
+      substitution: String.raw`A_{v_s} = \frac{${n(r.zi)}}{${n(r.zi)} + ${n(net.rs)}}(${n(r.av)})`,
       result: `A_{v_s} = ${n(avs)}`,
     });
   }
@@ -134,8 +133,8 @@ export function approxAmplifier(net: AcNetwork): AcResult {
       title: 'Impedancia de entrada',
       explanation:
         'Con R_E puenteada por C_E, la base ve h_ie en paralelo con la red de polarización.',
-      formula: `Z_i = ${rinTex} \\parallel h_{ie}`,
-      substitution: `Z_i = ${n(rin)} \\parallel ${n(h.hi)}`,
+      formula: String.raw`Z_i = ${rinTex} \parallel h_{ie}`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(h.hi)}`,
       result: `Z_i = ${ohm(zi)}`,
     });
     steps.push({
@@ -143,8 +142,8 @@ export function approxAmplifier(net: AcNetwork): AcResult {
       explanation: Number.isFinite(ro)
         ? 'Se apaga V_i: la fuente h_fe·I_b se abre y quedan 1/h_oe y R_C en paralelo.'
         : 'Sin h_oe (r_o infinita) la salida es solo R_C.',
-      formula: 'Z_o = R_C \\parallel \\frac{1}{h_{oe}}',
-      substitution: `Z_o = ${n(rc)} \\parallel ${Number.isFinite(ro) ? n(ro) : '\\infty'}`,
+      formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{oe}}`,
+      substitution: String.raw`Z_o = ${n(rc)} \parallel ${Number.isFinite(ro) ? n(ro) : String.raw`\infty`}`,
       result: `Z_o = ${ohm(zo)}`,
     });
     steps.push({
@@ -155,9 +154,9 @@ export function approxAmplifier(net: AcNetwork): AcResult {
           : 'V_o = −h_fe·I_b·(R_C ∥ 1/h_oe) e I_b = V_i/h_ie. El signo negativo indica un desfase de 180°.',
       formula:
         rl !== undefined
-          ? 'A_v = -\\frac{h_{fe}\\,(R_C \\parallel 1/h_{oe} \\parallel R_L)}{h_{ie}}'
-          : 'A_v = -\\frac{h_{fe}\\,(R_C \\parallel 1/h_{oe})}{h_{ie}}',
-      substitution: `A_v = -\\frac{(${n(h.hf)})(${n(rac)})}{${n(h.hi)}}`,
+          ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe} \parallel R_L)}{h_{ie}}`
+          : String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe})}{h_{ie}}`,
+      substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(h.hi)}}`,
       result: `A_v = ${n(av)}`,
     });
   } else if (config === 'emisor-sin-puentear' || config === 'seguidor') {
@@ -169,15 +168,15 @@ export function approxAmplifier(net: AcNetwork): AcResult {
       explanation: `R_E${config === 'seguidor' && rl !== undefined ? ' ∥ R_L' : ''} queda en el emisor sin puentear: se refleja en la base multiplicada por (1 + h_fe). El libro suele aproximarla a h_fe·R_E.`,
       formula:
         config === 'seguidor' && rl !== undefined
-          ? 'Z_b = h_{ie} + (1 + h_{fe})(R_E \\parallel R_L)'
+          ? String.raw`Z_b = h_{ie} + (1 + h_{fe})(R_E \parallel R_L)`
           : 'Z_b = h_{ie} + (1 + h_{fe})R_E',
       substitution: `Z_b = ${n(h.hi)} + (${n(1 + h.hf)})(${n(reac)})`,
       result: `Z_b = ${ohm(zb)}`,
     });
     steps.push({
       title: 'Impedancia de entrada',
-      formula: `Z_i = ${rinTex} \\parallel Z_b`,
-      substitution: `Z_i = ${n(rin)} \\parallel ${n(zb)}`,
+      formula: String.raw`Z_i = ${rinTex} \parallel Z_b`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(zb)}`,
       result: `Z_i = ${ohm(zi)}`,
     });
     if (config === 'emisor-sin-puentear') {
@@ -190,7 +189,7 @@ export function approxAmplifier(net: AcNetwork): AcResult {
         title: 'Impedancia de salida',
         explanation:
           'Se ignora r_o (Boylestad lo justifica cuando r_o ≥ 10(R_C + R_E)): la salida es R_C.',
-        formula: 'Z_o \\approx R_C',
+        formula: String.raw`Z_o \approx R_C`,
         result: `Z_o = ${ohm(zo)}`,
       });
       steps.push({
@@ -199,9 +198,9 @@ export function approxAmplifier(net: AcNetwork): AcResult {
           'I_b = V_i/Z_b y V_o = −h_fe·I_b·R_C. Si h_fe·R_E domina Z_b, A_v ≈ −R_C/R_E: casi no depende del transistor.',
         formula:
           rl !== undefined
-            ? 'A_v = -\\frac{h_{fe}\\,(R_C \\parallel R_L)}{Z_b}'
-            : 'A_v = -\\frac{h_{fe}R_C}{Z_b} \\approx -\\frac{R_C}{R_E}',
-        substitution: `A_v = -\\frac{(${n(h.hf)})(${n(rac)})}{${n(zb)}}`,
+            ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel R_L)}{Z_b}`
+            : String.raw`A_v = -\frac{h_{fe}R_C}{Z_b} \approx -\frac{R_C}{R_E}`,
+        substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(zb)}}`,
         result: `A_v = ${n(av)}`,
       });
     } else {
@@ -214,8 +213,8 @@ export function approxAmplifier(net: AcNetwork): AcResult {
         title: 'Impedancia de salida',
         explanation:
           'Vista desde el emisor, la resistencia de la base se divide entre (1 + h_fe): queda h_ie/(1 + h_fe) ≈ r_e en paralelo con R_E.',
-        formula: 'Z_o = R_E \\parallel \\frac{h_{ie}}{1 + h_{fe}}',
-        substitution: `Z_o = ${n(re)} \\parallel ${n(rIntr)}`,
+        formula: String.raw`Z_o = R_E \parallel \frac{h_{ie}}{1 + h_{fe}}`,
+        substitution: String.raw`Z_o = ${n(re)} \parallel ${n(rIntr)}`,
         result: `Z_o = ${ohm(zo)}`,
       });
       steps.push({
@@ -224,9 +223,9 @@ export function approxAmplifier(net: AcNetwork): AcResult {
           'Divisor de voltaje entre la resistencia de la salida y la del emisor: A_v es positiva y un poco menor que 1.',
         formula:
           rl !== undefined
-            ? 'A_v = \\frac{R_E \\parallel R_L}{R_E \\parallel R_L + h_{ie}/(1 + h_{fe})}'
-            : 'A_v = \\frac{R_E}{R_E + h_{ie}/(1 + h_{fe})}',
-        substitution: `A_v = \\frac{${n(reac)}}{${n(reac)} + ${n(rIntr)}}`,
+            ? String.raw`A_v = \frac{R_E \parallel R_L}{R_E \parallel R_L + h_{ie}/(1 + h_{fe})}`
+            : String.raw`A_v = \frac{R_E}{R_E + h_{ie}/(1 + h_{fe})}`,
+        substitution: String.raw`A_v = \frac{${n(reac)}}{${n(reac)} + ${n(rIntr)}}`,
         result: `A_v = ${n(av)}`,
       });
     }
@@ -245,13 +244,13 @@ export function approxAmplifier(net: AcNetwork): AcResult {
       title: 'Impedancia de entrada',
       explanation:
         'La señal entra por el emisor: R_E queda en paralelo con h_ib (≈ r_e), que es muy pequeña.',
-      formula: 'Z_i = R_E \\parallel h_{ib}',
-      substitution: `Z_i = ${n(rin)} \\parallel ${n(params.hi)}`,
+      formula: String.raw`Z_i = R_E \parallel h_{ib}`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(params.hi)}`,
       result: `Z_i = ${ohm(zi)}`,
     });
     steps.push({
       title: 'Impedancia de salida',
-      formula: 'Z_o = R_C \\parallel \\frac{1}{h_{ob}} \\approx R_C',
+      formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{ob}} \approx R_C`,
       result: `Z_o = ${ohm(zo)}`,
     });
     steps.push({
@@ -260,9 +259,9 @@ export function approxAmplifier(net: AcNetwork): AcResult {
         'I_e = V_i/h_ib y V_o = −h_fb·I_e·R_C. Como h_fb ≈ −1, la ganancia es positiva (sin desfase).',
       formula:
         rl !== undefined
-          ? 'A_v = -\\frac{h_{fb}\\,(R_C \\parallel R_L)}{h_{ib}}'
-          : 'A_v = -\\frac{h_{fb}R_C}{h_{ib}}',
-      substitution: `A_v = -\\frac{(${n(params.hf)})(${n(rac)})}{${n(params.hi)}}`,
+          ? String.raw`A_v = -\frac{h_{fb}\,(R_C \parallel R_L)}{h_{ib}}`
+          : String.raw`A_v = -\frac{h_{fb}R_C}{h_{ib}}`,
+      substitution: String.raw`A_v = -\frac{(${n(params.hf)})(${n(rac)})}{${n(params.hi)}}`,
       result: `A_v = ${n(av)}`,
     });
   }
@@ -272,8 +271,8 @@ export function approxAmplifier(net: AcNetwork): AcResult {
       title: 'Efecto de la carga',
       explanation:
         'La carga queda en paralelo con la salida y reduce la ganancia (Boylestad, sec. 5.13).',
-      formula: 'A_{v_L} = \\frac{R_L}{R_L + Z_o}A_{v_{NL}}',
-      substitution: `A_{v_L} = \\frac{${n(rl)}}{${n(rl)} + ${n(zo)}}(${n(avNL)})`,
+      formula: String.raw`A_{v_L} = \frac{R_L}{R_L + Z_o}A_{v_{NL}}`,
+      substitution: String.raw`A_{v_L} = \frac{${n(rl)}}{${n(rl)} + ${n(zo)}}(${n(avNL)})`,
       result: `A_{v_L} = ${n(av)}`,
     });
   }
@@ -281,8 +280,8 @@ export function approxAmplifier(net: AcNetwork): AcResult {
   steps.push({
     title: 'Ganancia de corriente',
     explanation: `Con I_o la corriente en ${rl !== undefined ? 'R_L' : config === 'seguidor' ? 'R_E' : 'R_C'}, A_i se obtiene de A_v (ecs. 5.147 y 5.153).`,
-    formula: `A_i = \\frac{I_o}{I_i} = -A_v\\frac{Z_i}{${rl !== undefined ? 'R_L' : config === 'seguidor' ? 'R_E' : 'R_C'}}`,
-    substitution: `A_i = -(${n(av)})\\frac{${n(zi)}}{${n(rOut)}}`,
+    formula: String.raw`A_i = \frac{I_o}{I_i} = -A_v\frac{Z_i}{${rl !== undefined ? 'R_L' : config === 'seguidor' ? 'R_E' : 'R_C'}}`,
+    substitution: String.raw`A_i = -(${n(av)})\frac{${n(zi)}}{${n(rOut)}}`,
     result: `A_i = ${n(ai)}`,
   });
   const avs = loadSteps(net, { zi, zo, av, avNL }, steps);
@@ -321,28 +320,31 @@ export function completeAmplifier(net: AcNetwork): AcResult {
   steps.push({
     title: 'Carga del transistor',
     explanation: `El modelo completo trata al transistor como un bipuerto cargado con R_L = ${rl !== undefined ? 'R_C ∥ R_L' : 'R_C'} (capacitores en cortocircuito para la señal).`,
-    formula: rl !== undefined ? 'R_L^{\\prime} = R_C \\parallel R_L' : 'R_L^{\\prime} = R_C',
-    result: `R_L^{\\prime} = ${ohm(rac)}`,
+    formula:
+      rl !== undefined
+        ? String.raw`R_L^{\prime} = R_C \parallel R_L`
+        : String.raw`R_L^{\prime} = R_C`,
+    result: String.raw`R_L^{\prime} = ${ohm(rac)}`,
   });
   steps.push({
     title: 'Ganancia de corriente del transistor',
-    formula: `A_i^{\\prime} = \\frac{${hf}}{1 + ${ho}R_L^{\\prime}}`,
-    substitution: `A_i^{\\prime} = \\frac{${n(h.hf)}}{1 + (${n(h.ho)})(${n(rac)})}`,
-    result: `A_i^{\\prime} = ${n(aiT)}\\quad(\\text{aproximado: } ${n(h.hf)})`,
+    formula: String.raw`A_i^{\prime} = \frac{${hf}}{1 + ${ho}R_L^{\prime}}`,
+    substitution: String.raw`A_i^{\prime} = \frac{${n(h.hf)}}{1 + (${n(h.ho)})(${n(rac)})}`,
+    result: String.raw`A_i^{\prime} = ${n(aiT)}\quad(\text{aproximado: } ${n(h.hf)})`,
   });
   steps.push({
     title: 'Ganancia de voltaje',
     explanation:
       'h_r realimenta parte de la salida a la entrada y h_o carga la salida; si (h_i h_o − h_f h_r)R_L′ es pequeño frente a h_i, vuelve la forma aproximada −h_f R_L′/h_i.',
-    formula: `A_v = \\frac{-${hf}R_L^{\\prime}}{${hi} + (${hi}${ho} - ${hf}${hr})R_L^{\\prime}}`,
-    substitution: `A_v = \\frac{-(${n(h.hf)})(${n(rac)})}{${n(h.hi)} + [(${n(h.hi)})(${n(h.ho)}) - (${n(h.hf)})(${n(h.hr)})](${n(rac)})}`,
-    result: `A_v = ${n(av)}\\quad(\\text{aproximado: } ${n((-h.hf * rac) / h.hi)})`,
+    formula: String.raw`A_v = \frac{-${hf}R_L^{\prime}}{${hi} + (${hi}${ho} - ${hf}${hr})R_L^{\prime}}`,
+    substitution: String.raw`A_v = \frac{-(${n(h.hf)})(${n(rac)})}{${n(h.hi)} + [(${n(h.hi)})(${n(h.ho)}) - (${n(h.hf)})(${n(h.hr)})](${n(rac)})}`,
+    result: String.raw`A_v = ${n(av)}\quad(\text{aproximado: } ${n((-h.hf * rac) / h.hi)})`,
   });
   steps.push({
     title: 'Impedancia de entrada',
-    formula: `Z_i^{\\prime} = ${hi} - \\frac{${hf}${hr}R_L^{\\prime}}{1 + ${ho}R_L^{\\prime}},\\qquad Z_i = ${rinTex} \\parallel Z_i^{\\prime}`,
-    substitution: `Z_i^{\\prime} = ${n(h.hi)} - \\frac{(${n(h.hf)})(${n(h.hr)})(${n(rac)})}{1 + (${n(h.ho)})(${n(rac)})}`,
-    result: `Z_i^{\\prime} = ${ohm(ziT)},\\quad Z_i = ${ohm(zi)}\\quad(\\text{aproximado: } Z_i^{\\prime} \\approx ${ohm(h.hi)})`,
+    formula: String.raw`Z_i^{\prime} = ${hi} - \frac{${hf}${hr}R_L^{\prime}}{1 + ${ho}R_L^{\prime}},\qquad Z_i = ${rinTex} \parallel Z_i^{\prime}`,
+    substitution: String.raw`Z_i^{\prime} = ${n(h.hi)} - \frac{(${n(h.hf)})(${n(h.hr)})(${n(rac)})}{1 + (${n(h.ho)})(${n(rac)})}`,
+    result: String.raw`Z_i^{\prime} = ${ohm(ziT)},\quad Z_i = ${ohm(zi)}\quad(\text{aproximado: } Z_i^{\prime} \approx ${ohm(h.hi)})`,
   });
   steps.push({
     title: 'Impedancia de salida',
@@ -350,14 +352,14 @@ export function completeAmplifier(net: AcNetwork): AcResult {
       net.rs !== undefined
         ? `Se anula la fuente: la entrada queda cerrada por la resistencia de Thévenin R_s ∥ ${rinTex} = ${engText(rsTh, 'Ω')}.`
         : 'Se anula la fuente (ideal, R_s = 0): la entrada queda en cortocircuito.',
-    formula: `Z_o^{\\prime} = \\frac{1}{${ho} - ${hf}${hr}/(${hi} + R_s)},\\qquad Z_o = R_C \\parallel Z_o^{\\prime}`,
-    substitution: `Z_o^{\\prime} = \\frac{1}{${n(h.ho)} - (${n(h.hf)})(${n(h.hr)})/(${n(h.hi)} + ${n(rsTh)})}`,
-    result: `Z_o^{\\prime} = ${ohm(zoT)},\\quad Z_o = ${ohm(zo)}`,
+    formula: String.raw`Z_o^{\prime} = \frac{1}{${ho} - ${hf}${hr}/(${hi} + R_s)},\qquad Z_o = R_C \parallel Z_o^{\prime}`,
+    substitution: String.raw`Z_o^{\prime} = \frac{1}{${n(h.ho)} - (${n(h.hf)})(${n(h.hr)})/(${n(h.hi)} + ${n(rsTh)})}`,
+    result: String.raw`Z_o^{\prime} = ${ohm(zoT)},\quad Z_o = ${ohm(zo)}`,
   });
   steps.push({
     title: 'Ganancia de corriente del amplificador',
     explanation: `La corriente de entrada se reparte entre ${rinTex} y Z_i′; si ${rinTex} ≫ Z_i′, A_i ≈ A_i′.`,
-    formula: `A_i = A_i^{\\prime}\\frac{${rinTex}}{${rinTex} + Z_i^{\\prime}}`,
+    formula: String.raw`A_i = A_i^{\prime}\frac{${rinTex}}{${rinTex} + Z_i^{\prime}}`,
     result: `A_i = ${n(ai)}`,
   });
   const avs = loadSteps(net, { zi, zo, av, avNL }, steps);

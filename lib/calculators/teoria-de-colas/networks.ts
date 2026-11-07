@@ -52,9 +52,9 @@ export function analyzeStations(
       steps.push({
         title,
         explanation: `ρ = λ/(sμ) = ${formatNumber(lambda / (s * mu), 6)} ≥ 1: esta estación no tiene capacidad para el flujo que recibe.`,
-        formula: '\\rho = \\frac{\\lambda}{s\\mu}',
-        substitution: `\\rho = \\frac{${n(lambda)}}{${s}(${n(mu)})}`,
-        result: `\\rho = ${n(lambda / (s * mu))} \\ge 1`,
+        formula: String.raw`\rho = \frac{\lambda}{s\mu}`,
+        substitution: String.raw`\rho = \frac{${n(lambda)}}{${s}(${n(mu)})}`,
+        result: String.raw`\rho = ${n(lambda / (s * mu))} \ge 1`,
       });
       return { unstable: j + 1, steps };
     }
@@ -64,32 +64,31 @@ export function analyzeStations(
       children: [
         {
           title: 'Utilización',
-          formula: '\\rho = \\frac{\\lambda}{s\\mu}',
-          substitution: `\\rho = \\frac{${n(lambda)}}{${s}(${n(mu)})}`,
-          result: `\\rho = ${n(m.rho)}`,
+          formula: String.raw`\rho = \frac{\lambda}{s\mu}`,
+          substitution: String.raw`\rho = \frac{${n(lambda)}}{${s}(${n(mu)})}`,
+          result: String.raw`\rho = ${n(m.rho)}`,
         },
         {
           title: 'Probabilidad de que la estación esté vacía',
-          formula:
-            'p_0 = \\left[\\sum_{n=0}^{s-1} \\frac{r^n}{n!} + \\frac{r^s}{s!\\,(1 - \\rho)}\\right]^{-1}, \\qquad r = \\frac{\\lambda}{\\mu}',
+          formula: String.raw`p_0 = \left[\sum_{n=0}^{s-1} \frac{r^n}{n!} + \frac{r^s}{s!\,(1 - \rho)}\right]^{-1}, \qquad r = \frac{\lambda}{\mu}`,
           result: `p_0 = ${n(m.p0)}`,
         },
         {
           title: 'Clientes en la cola y en la estación',
           formula:
             s === 1
-              ? 'L_q = \\frac{\\rho^2}{1 - \\rho}, \\qquad L = L_q + \\frac{\\lambda}{\\mu}'
-              : 'L_q = \\frac{P(n \\ge s)\\,\\rho}{1 - \\rho}, \\qquad L = L_q + \\frac{\\lambda}{\\mu}',
+              ? String.raw`L_q = \frac{\rho^2}{1 - \rho}, \qquad L = L_q + \frac{\lambda}{\mu}`
+              : String.raw`L_q = \frac{P(n \ge s)\,\rho}{1 - \rho}, \qquad L = L_q + \frac{\lambda}{\mu}`,
           substitution:
             s === 1
-              ? `L_q = \\frac{(${n(m.rho)})^2}{1 - ${n(m.rho)}}`
-              : `L_q = \\frac{(${n(m.waitProbability)})(${n(m.rho)})}{1 - ${n(m.rho)}}`,
-          result: `L_q = ${n(m.Lq)}, \\qquad L = ${n(m.L)}`,
+              ? String.raw`L_q = \frac{(${n(m.rho)})^2}{1 - ${n(m.rho)}}`
+              : String.raw`L_q = \frac{(${n(m.waitProbability)})(${n(m.rho)})}{1 - ${n(m.rho)}}`,
+          result: String.raw`L_q = ${n(m.Lq)}, \qquad L = ${n(m.L)}`,
         },
         {
           title: 'Tiempos en la cola y en la estación',
-          formula: 'W_q = \\frac{L_q}{\\lambda}, \\qquad W = W_q + \\frac{1}{\\mu}',
-          result: `W_q = ${n(m.Wq)}, \\qquad W = ${n(m.W)}`,
+          formula: String.raw`W_q = \frac{L_q}{\lambda}, \qquad W = W_q + \frac{1}{\mu}`,
+          result: String.raw`W_q = ${n(m.Wq)}, \qquad W = ${n(m.W)}`,
         },
       ],
     });
@@ -103,12 +102,12 @@ export function stationsTable(results: StationResult[]): ResultTable {
     id: 'estaciones',
     title: 'Medidas de desempeño de cada estación',
     columns: [
-      { key: 'station', header: '\\text{Estación}' },
+      { key: 'station', header: String.raw`\text{Estación}` },
       { key: 'servers', header: 's_j' },
-      { key: 'lambda', header: '\\lambda_j' },
-      { key: 'rho', header: '\\rho_j' },
+      { key: 'lambda', header: String.raw`\lambda_j` },
+      { key: 'rho', header: String.raw`\rho_j` },
       { key: 'p0', header: 'p_0' },
-      { key: 'waitProbability', header: 'P(n \\ge s_j)' },
+      { key: 'waitProbability', header: String.raw`P(n \ge s_j)` },
       { key: 'Lq', header: 'L_q' },
       { key: 'L', header: 'L' },
       { key: 'Wq', header: 'W_q' },

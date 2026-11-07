@@ -45,15 +45,15 @@ function weibullModel(alpha: number, beta: number): ContinuousModel {
     support: [0, Infinity],
     pdf: (x) => (x < 0 ? 0 : alpha * beta * x ** (beta - 1) * Math.exp(-alpha * x ** beta)),
     cdf: (x) => (x <= 0 ? 0 : 1 - Math.exp(-alpha * x ** beta)),
-    pdfFormula: `\\alpha\\beta x^{\\beta-1} e^{-\\alpha x^{\\beta}} = (${n(alpha)})(${n(beta)})\\,x^{${n(beta - 1)}} e^{-${n(alpha)}x^{${n(beta)}}}, \\quad x > 0`,
-    cdfFormula: '1 - e^{-\\alpha x^{\\beta}}',
+    pdfFormula: String.raw`\alpha\beta x^{\beta-1} e^{-\alpha x^{\beta}} = (${n(alpha)})(${n(beta)})\,x^{${n(beta - 1)}} e^{-${n(alpha)}x^{${n(beta)}}}, \quad x > 0`,
+    cdfFormula: String.raw`1 - e^{-\alpha x^{\beta}}`,
     cdfExplanation:
       'A diferencia de la gamma, la función de distribución de Weibull tiene forma cerrada: se integra la densidad con el cambio u = αx^β.',
     cdfSubstitution: (x) => `1 - e^{-(${n(alpha)})(${n(x)})^{${n(beta)}}}`,
     mean: alpha ** (-1 / beta) * g1,
     variance: alpha ** (-2 / beta) * (g2 - g1 ** 2),
-    meanFormula: `\\alpha^{-1/\\beta}\\,\\Gamma\\left(1 + \\tfrac{1}{\\beta}\\right) = (${n(alpha)})^{-1/${n(beta)}}\\,\\Gamma(${n(1 + 1 / beta)})`,
-    varianceFormula: `\\alpha^{-2/\\beta}\\left\\{\\Gamma\\left(1 + \\tfrac{2}{\\beta}\\right) - \\left[\\Gamma\\left(1 + \\tfrac{1}{\\beta}\\right)\\right]^2\\right\\} = (${n(alpha)})^{-2/${n(beta)}}\\left[\\Gamma(${n(1 + 2 / beta)}) - \\Gamma(${n(1 + 1 / beta)})^2\\right]`,
+    meanFormula: String.raw`\alpha^{-1/\beta}\,\Gamma\left(1 + \tfrac{1}{\beta}\right) = (${n(alpha)})^{-1/${n(beta)}}\,\Gamma(${n(1 + 1 / beta)})`,
+    varianceFormula: String.raw`\alpha^{-2/\beta}\left\{\Gamma\left(1 + \tfrac{2}{\beta}\right) - \left[\Gamma\left(1 + \tfrac{1}{\beta}\right)\right]^2\right\} = (${n(alpha)})^{-2/${n(beta)}}\left[\Gamma(${n(1 + 2 / beta)}) - \Gamma(${n(1 + 1 / beta)})^2\right]`,
     explanation: `X es el tiempo hasta la falla de un componente. β = ${formatNumber(beta)} da la forma: ${
       beta < 1
         ? 'con β < 1 la tasa de fallas disminuye con el tiempo (fallas tempranas).'

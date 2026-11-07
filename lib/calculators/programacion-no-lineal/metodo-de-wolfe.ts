@@ -177,17 +177,16 @@ export function solveWolfe(input: WolfeInput): Result {
         input.sense === 'max'
           ? 'Se identifican C (coeficientes lineales) y D (la parte cuadrática, simétrica) de z = CX + XᵀDX.'
           : 'Minimizar z equivale a maximizar −z; C y D son los de −z.',
-      formula: 'z = CX + X^{T} D X, \\qquad AX \\le b, \\qquad X \\ge 0',
-      result: `C = ${toLatexMatrix([C])}, \\quad D = ${toLatexMatrix(D)}, \\quad A = ${toLatexMatrix(
+      formula: String.raw`z = CX + X^{T} D X, \qquad AX \le b, \qquad X \ge 0`,
+      result: String.raw`C = ${toLatexMatrix([C])}, \quad D = ${toLatexMatrix(D)}, \quad A = ${toLatexMatrix(
         A.map((row) => row.map((a) => a.toNumber())),
-      )}, \\quad b = ${toLatexMatrix(b.map((v) => [v.toNumber()]))}`,
+      )}, \quad b = ${toLatexMatrix(b.map((v) => [v.toNumber()]))}`,
     },
     {
       title: 'Condiciones KKT',
       explanation:
         'Como z es cóncava y las restricciones lineales, las condiciones KKT son suficientes. Son lineales salvo las de holgura complementaria.',
-      formula:
-        '\\begin{bmatrix} -2D & A^{T} & -I & 0 \\\\ A & 0 & 0 & I \\end{bmatrix} \\begin{bmatrix} X \\\\ \\lambda \\\\ \\mu \\\\ S \\end{bmatrix} = \\begin{bmatrix} C^{T} \\\\ b \\end{bmatrix}, \\qquad \\mu_j x_j = 0 = \\lambda_i S_i',
+      formula: String.raw`\begin{bmatrix} -2D & A^{T} & -I & 0 \\ A & 0 & 0 & I \end{bmatrix} \begin{bmatrix} X \\ \lambda \\ \mu \\ S \end{bmatrix} = \begin{bmatrix} C^{T} \\ b \end{bmatrix}, \qquad \mu_j x_j = 0 = \lambda_i S_i`,
     },
   ];
 
@@ -200,12 +199,12 @@ export function solveWolfe(input: WolfeInput): Result {
     })),
     ...A.map((_, i) => ({
       name: `l${i + 1}`,
-      latex: `\\lambda_{${i + 1}}`,
+      latex: String.raw`\lambda_{${i + 1}}`,
       kind: 'decision' as const,
     })),
     ...model.names.map((_, j) => ({
       name: `m${j + 1}`,
-      latex: `\\mu_{${j + 1}}`,
+      latex: String.raw`\mu_{${j + 1}}`,
       kind: 'surplus' as const,
     })),
     ...model.names.map((_, j) => ({
@@ -260,8 +259,8 @@ export function solveWolfe(input: WolfeInput): Result {
     title: 'Tabla inicial de la fase I',
     explanation:
       'Se agrega una artificial R_j a cada una de las n primeras ecuaciones (si C_j < 0, antes se multiplica la fila por −1) y las holguras S_i son básicas en las restricciones. Se minimiza r = ΣR_j; la fila r se hace consistente con la base.',
-    formula: '\\min r = \\sum_j R_j',
-    substitution: operations.join(' \\\\ '),
+    formula: String.raw`\min r = \sum_j R_j`,
+    substitution: operations.join(String.raw` \\ `),
   });
 
   const complement = (col: number): number | null => {
@@ -276,7 +275,7 @@ export function solveWolfe(input: WolfeInput): Result {
     if (other === null) return null;
     const row = t.basis.indexOf(other);
     if (row === -1 || row === leavingRow) return null;
-    return `\\text{su complementaria } ${columns[other]!.latex} \\text{ está en la base}`;
+    return String.raw`\text{su complementaria } ${columns[other]!.latex} \text{ está en la base}`;
   };
   const run = runRestrictedSimplex(start, admissible);
   const trace = restrictedTrace(run, 'wolfe');
@@ -308,7 +307,7 @@ export function solveWolfe(input: WolfeInput): Result {
     title: 'Solución óptima',
     explanation:
       'La fase I terminó con r = 0: la solución cumple todas las condiciones KKT, que aquí son suficientes.',
-    result: `${model.names.map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`).join(',\\ ')}, \\qquad z = ${n(zValue)}`,
+    result: String.raw`${model.names.map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`).join(String.raw`,\ `)}, \qquad z = ${n(zValue)}`,
   });
 
   return {
@@ -319,15 +318,15 @@ export function solveWolfe(input: WolfeInput): Result {
         label: 'Solución óptima',
         value: model.names
           .map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`)
-          .join(',\\ '),
+          .join(String.raw`,\ `),
         emphasis: true,
       },
       { label: 'Valor óptimo', value: `z = ${n(zValue, 8)}` },
       {
         label: 'Multiplicadores',
-        value: A.map((_, i) => `\\lambda_{${i + 1}} = ${values[lambdaCol(i)]!.toLatex()}`).join(
-          ',\\ ',
-        ),
+        value: A.map(
+          (_, i) => String.raw`\lambda_{${i + 1}} = ${values[lambdaCol(i)]!.toLatex()}`,
+        ).join(String.raw`,\ `),
       },
     ],
     ...emptyTrace(),

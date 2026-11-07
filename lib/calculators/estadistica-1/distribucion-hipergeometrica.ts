@@ -73,14 +73,14 @@ function hypergeometricModel(lot: number, k: number, size: number): DiscreteMode
     min,
     max,
     pmf,
-    notation: (x) => `h(${x};\\ ${lot}, ${size}, ${k})`,
-    pmfFormula: '\\frac{\\binom{k}{x}\\binom{N-k}{n-x}}{\\binom{N}{n}}',
+    notation: (x) => String.raw`h(${x};\ ${lot}, ${size}, ${k})`,
+    pmfFormula: String.raw`\frac{\binom{k}{x}\binom{N-k}{n-x}}{\binom{N}{n}}`,
     pmfSubstitution: (x) =>
-      `\\frac{\\binom{${k}}{${x}}\\binom{${lot - k}}{${size - x}}}{\\binom{${lot}}{${size}}} = \\frac{(${C(k, x)})(${C(lot - k, size - x)})}{${C(lot, size)}}`,
+      String.raw`\frac{\binom{${k}}{${x}}\binom{${lot - k}}{${size - x}}}{\binom{${lot}}{${size}}} = \frac{(${C(k, x)})(${C(lot - k, size - x)})}{${C(lot, size)}}`,
     mean: size * ratio,
     variance: finite * size * ratio * (1 - ratio),
-    meanFormula: `\\frac{nk}{N} = \\frac{(${size})(${k})}{${lot}}`,
-    varianceFormula: `\\frac{N-n}{N-1} \\cdot n \\cdot \\frac{k}{N}\\left(1 - \\frac{k}{N}\\right) = \\frac{${lot - size}}{${lot - 1}} \\cdot ${size} \\cdot \\frac{${k}}{${lot}}\\left(1 - \\frac{${k}}{${lot}}\\right)`,
+    meanFormula: String.raw`\frac{nk}{N} = \frac{(${size})(${k})}{${lot}}`,
+    varianceFormula: String.raw`\frac{N-n}{N-1} \cdot n \cdot \frac{k}{N}\left(1 - \frac{k}{N}\right) = \frac{${lot - size}}{${lot - 1}} \cdot ${size} \cdot \frac{${k}}{${lot}}\left(1 - \frac{${k}}{${lot}}\right)`,
     explanation: `Se toman n = ${size} artículos sin reemplazo de un lote de N = ${lot}, de los cuales k = ${k} son éxitos. Todas las muestras de tamaño n son igualmente probables: se cuentan las que tienen x éxitos (de los k) y n − x fracasos (de los N − k) y se dividen entre el total. X va de ${min} a ${max}.`,
   };
 }

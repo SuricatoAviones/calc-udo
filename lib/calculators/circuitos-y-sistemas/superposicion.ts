@@ -35,7 +35,7 @@ export function solveSuperpositionAnalysis(
 
   const summary: SummaryItem[] = outcome.result.total.map((b) => ({
     label: b.label,
-    value: `${formatNumber(b.i, 4)}\\text{ A}`,
+    value: String.raw`${formatNumber(b.i, 4)}\text{ A}`,
   }));
   summary.unshift({ label: 'Fuentes', value: String(outcome.result.contributions.length) });
 

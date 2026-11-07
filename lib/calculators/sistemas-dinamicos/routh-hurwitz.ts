@@ -132,10 +132,10 @@ export function solveRouth(
       .join(' '),
     formula: `${
       zeroRoots
-        ? `s${zeroRoots > 1 ? `^{${zeroRoots}}` : ''}\\left(${polynomialTex(coefficients, pTex)}\\right)`
+        ? String.raw`s${zeroRoots > 1 ? `^{${zeroRoots}}` : ''}\left(${polynomialTex(coefficients, pTex)}\right)`
         : polynomialTex(coefficients, pTex)
     } = 0`,
-    result: `a_0, a_1, \\ldots = ${coefficients.map(coefTex).join(',\\ ')}`,
+    result: String.raw`a_0, a_1, \ldots = ${coefficients.map(coefTex).join(String.raw`,\ `)}`,
   });
   if (coefficients.length - 1 < 1) {
     return fail(
@@ -179,7 +179,7 @@ export function solveRouth(
       } signos de la primera columna son ${analysis.signs.map((s) => (s > 0 ? '+' : s < 0 ? '−' : '0')).join(', ')}: hay ${rightHalf} ${
         rightHalf === 1 ? 'cambio' : 'cambios'
       } de signo, así que ${rightHalf === 1 ? 'hay una raíz' : `hay ${rightHalf} raíces`} con parte real positiva.`,
-      result: `\\text{Primera columna: } ${firstColumn.join(',\\ ')}`,
+      result: String.raw`\text{Primera columna: } ${firstColumn.join(String.raw`,\ `)}`,
     });
     if (analysis.auxiliaryRoots.length) {
       steps.push({
@@ -211,7 +211,7 @@ export function solveRouth(
         ? `Inestable: ${rightHalf} ${rightHalf === 1 ? 'raíz' : 'raíces'} con parte real positiva.`
         : 'Marginalmente estable: hay raíces sobre el eje imaginario y ninguna en el semiplano derecho.';
     summary.push(
-      { label: 'Conclusión', value: `\\text{${verdict}}`, emphasis: true },
+      { label: 'Conclusión', value: String.raw`\text{${verdict}}`, emphasis: true },
       { label: 'Semiplano derecho', value: `${rightHalf}` },
       { label: 'Eje imaginario', value: `${imaginary}` },
       { label: 'Semiplano izquierdo', value: `${degree - rightHalf - imaginary}` },
@@ -245,14 +245,14 @@ export function solveRouth(
   summary.push({
     label: 'Estabilidad',
     value: intervals.length
-      ? intervals.map(([lo, hi]) => intervalTex(lo, hi)).join(',\\ ')
-      : `\\text{inestable para todo } ${pTex}`,
+      ? intervals.map(([lo, hi]) => intervalTex(lo, hi)).join(String.raw`,\ `)
+      : String.raw`\text{inestable para todo } ${pTex}`,
     emphasis: true,
   });
   for (const c of criticalInfo.filter((x) => x.omega.length)) {
     summary.push({
       label: `${parameter} crítico`,
-      value: `${pTex} = ${toLatexRational(c.value, DIGITS)},\\quad \\omega = ${c.omega.map(n).join(',\\ ')}\\ \\text{rad/s}`,
+      value: String.raw`${pTex} = ${toLatexRational(c.value, DIGITS)},\quad \omega = ${c.omega.map(n).join(String.raw`,\ `)}\ \text{rad/s}`,
     });
   }
   return {

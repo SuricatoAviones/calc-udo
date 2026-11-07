@@ -125,13 +125,13 @@ function bigLatex(value: bigint): Latex {
   const digits = value.toString();
   if (digits.length <= MAX_DIGITS) return digits;
   const mantissa = `${digits[0]}.${digits.slice(1, 7)}`;
-  return `${mantissa} \\times 10^{${digits.length - 1}}`;
+  return String.raw`${mantissa} \times 10^{${digits.length - 1}}`;
 }
 
 /** n (n − 1) ⋯ (n − r + 1) escrito con puntos, si no es muy largo. */
 function expandedProduct(m: number, r: number): Latex | undefined {
   if (r < 1 || r > MAX_EXPANDED) return undefined;
-  return Array.from({ length: r }, (_, i) => m - i).join(' \\cdot ');
+  return Array.from({ length: r }, (_, i) => m - i).join(String.raw` \cdot `);
 }
 
 const LABEL: Record<CountingType, string> = {
@@ -182,11 +182,11 @@ export function solveCounting(
           title: 'Identificar el conteo',
           explanation:
             'El orden importa y no se repiten objetos: se eligen r de n objetos distintos y se acomodan en r posiciones distinguibles (p. ej. presidente y tesorero). Con r = n es n!.',
-          formula: '{}_{n}P_{r} = \\frac{n!}{(n-r)!} = n(n-1)\\cdots(n-r+1)',
+          formula: String.raw`{}_{n}P_{r} = \frac{n!}{(n-r)!} = n(n-1)\cdots(n-r+1)`,
         },
         {
           title: 'Sustituir',
-          substitution: `${symbol} = \\frac{${n}!}{(${n} - ${r})!} = \\frac{${n}!}{${n - r}!}${expanded ? ` = ${expanded}` : ''}`,
+          substitution: String.raw`${symbol} = \frac{${n}!}{(${n} - ${r})!} = \frac{${n}!}{${n - r}!}${expanded ? ` = ${expanded}` : ''}`,
           result: `${symbol} = ${bigLatex(count)}`,
         },
       );
@@ -195,14 +195,14 @@ export function solveCounting(
     case 'combinaciones': {
       const k = Math.min(r, n - r);
       count = fallingFactorial(n, k) / factorial(k);
-      symbol = `\\binom{${n}}{${r}}`;
+      symbol = String.raw`\binom{${n}}{${r}}`;
       const expanded = expandedProduct(n, k);
       steps.push(
         {
           title: 'Identificar el conteo',
           explanation:
             'El orden no importa: solo cuenta qué r objetos se eligen de los n. Cada selección aparece r! veces entre las permutaciones, por eso se divide entre r!.',
-          formula: '\\binom{n}{r} = \\frac{n!}{r!\\,(n-r)!}',
+          formula: String.raw`\binom{n}{r} = \frac{n!}{r!\,(n-r)!}`,
         },
         {
           title: 'Sustituir',
@@ -210,7 +210,7 @@ export function solveCounting(
             k !== r && expanded
               ? `Como C(n, r) = C(n, n − r), se simplifica con el menor de r y n − r (${k}).`
               : undefined,
-          substitution: `${symbol} = \\frac{${n}!}{${r}!\\,(${n} - ${r})!}${expanded ? ` = \\frac{${expanded}}{${k}!}` : ''}`,
+          substitution: String.raw`${symbol} = \frac{${n}!}{${r}!\,(${n} - ${r})!}${expanded ? String.raw` = \frac{${expanded}}{${k}!}` : ''}`,
           result: `${symbol} = ${bigLatex(count)}`,
         },
       );
@@ -251,8 +251,8 @@ export function solveCounting(
     case 'objetos-repetidos':
     case 'particiones': {
       count = groups.reduce((acc, g) => acc / factorial(g), factorial(n));
-      symbol = `\\binom{${n}}{${groups.join(', ')}}`;
-      const denominators = groups.map((g) => `${g}!`).join('\\,');
+      symbol = String.raw`\binom{${n}}{${groups.join(', ')}}`;
+      const denominators = groups.map((g) => `${g}!`).join(String.raw`\,`);
       const values = n <= 20 ? groups.map((g) => factorial(g).toString()) : [];
       steps.push(
         {
@@ -263,21 +263,21 @@ export function solveCounting(
               : 'Permutaciones de n objetos donde n₁ son de una clase, n₂ de otra, etc. Los objetos de una misma clase no se distinguen, así que se divide n! entre las permutaciones de cada clase.',
           formula:
             type === 'particiones'
-              ? '\\binom{n}{n_1, n_2, \\ldots, n_r} = \\frac{n!}{n_1!\\,n_2!\\cdots n_r!}'
-              : '\\frac{n!}{n_1!\\,n_2!\\cdots n_k!}',
+              ? String.raw`\binom{n}{n_1, n_2, \ldots, n_r} = \frac{n!}{n_1!\,n_2!\cdots n_r!}`
+              : String.raw`\frac{n!}{n_1!\,n_2!\cdots n_k!}`,
         },
         {
           title: 'Total de objetos',
-          formula: 'n = n_1 + n_2 + \\cdots',
+          formula: String.raw`n = n_1 + n_2 + \cdots`,
           substitution: `n = ${groups.join(' + ')}`,
           result: `n = ${n}`,
         },
         {
           title: 'Sustituir',
           substitution:
-            `\\frac{${n}!}{${denominators}}` +
+            String.raw`\frac{${n}!}{${denominators}}` +
             (values.length > 0
-              ? ` = \\frac{${factorial(n)}}{${values.map((v) => `(${v})`).join('')}}`
+              ? String.raw` = \frac{${factorial(n)}}{${values.map((v) => `(${v})`).join('')}}`
               : ''),
           result: `${symbol} = ${bigLatex(count)}`,
         },

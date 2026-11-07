@@ -44,9 +44,9 @@ const rule: IntegrationRule<TrapezoidalInput> = {
             title: 'Aplicar la regla del trapecio',
             explanation:
               'Se aproxima el área bajo f con un solo trapecio que une (a, f(a)) y (b, f(b)).',
-            formula: 'I \\cong (b - a)\\,\\frac{f(a) + f(b)}{2}',
-            substitution: `I \\cong (${n(b)} - ${n(a)})\\,\\frac{${n(f0)} + ${n(fn)}}{2}`,
-            result: `I \\cong ${n(integral)}`,
+            formula: String.raw`I \cong (b - a)\,\frac{f(a) + f(b)}{2}`,
+            substitution: String.raw`I \cong (${n(b)} - ${n(a)})\,\frac{${n(f0)} + ${n(fn)}}{2}`,
+            result: String.raw`I \cong ${n(integral)}`,
           },
         ],
       };
@@ -57,15 +57,15 @@ const rule: IntegrationRule<TrapezoidalInput> = {
         {
           title: 'Sumar los valores interiores',
           explanation: `Los ${interior.length} nodos interiores (x₁ a x_${input.n - 1}) pertenecen a dos trapecios cada uno, por eso se cuentan dos veces.`,
-          formula: '\\sum_{i=1}^{n-1} f(x_i)',
-          substitution: `\\sum_{i=1}^{${input.n - 1}} f(x_i) = ${listOrSum(interior)}`,
-          result: `\\sum_{i=1}^{${input.n - 1}} f(x_i) = ${n(sumInterior)}`,
+          formula: String.raw`\sum_{i=1}^{n-1} f(x_i)`,
+          substitution: String.raw`\sum_{i=1}^{${input.n - 1}} f(x_i) = ${listOrSum(interior)}`,
+          result: String.raw`\sum_{i=1}^{${input.n - 1}} f(x_i) = ${n(sumInterior)}`,
         },
         {
           title: 'Aplicar la regla del trapecio de aplicación múltiple',
-          formula: 'I \\cong (b - a)\\,\\frac{f(x_0) + 2\\sum_{i=1}^{n-1} f(x_i) + f(x_n)}{2n}',
-          substitution: `I \\cong (${n(b)} - ${n(a)})\\,\\frac{${n(f0)} + 2(${n(sumInterior)}) + ${n(fn)}}{2(${input.n})}`,
-          result: `I \\cong ${n(integral)}`,
+          formula: String.raw`I \cong (b - a)\,\frac{f(x_0) + 2\sum_{i=1}^{n-1} f(x_i) + f(x_n)}{2n}`,
+          substitution: String.raw`I \cong (${n(b)} - ${n(a)})\,\frac{${n(f0)} + 2(${n(sumInterior)}) + ${n(fn)}}{2(${input.n})}`,
+          result: String.raw`I \cong ${n(integral)}`,
         },
       ],
     };

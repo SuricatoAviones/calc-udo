@@ -120,11 +120,11 @@ function basicSolutionsTable(
     id: 'soluciones-basicas',
     title: 'Soluciones básicas',
     columns: [
-      { key: 'nonbasic', header: '\\text{No básicas} = 0', format: 'latex' },
-      { key: 'basic', header: '\\text{Básicas}', format: 'latex' },
-      { key: 'feasible', header: '\\text{¿Factible?}', format: 'text' },
+      { key: 'nonbasic', header: String.raw`\text{No básicas} = 0`, format: 'latex' },
+      { key: 'basic', header: String.raw`\text{Básicas}`, format: 'latex' },
+      { key: 'feasible', header: String.raw`\text{¿Factible?}`, format: 'text' },
       { key: 'z', header: 'z', format: 'latex' },
-      { key: 'simplex', header: '\\text{Simplex}', format: 'text' },
+      { key: 'simplex', header: String.raw`\text{Simplex}`, format: 'text' },
     ],
     rows: solutions.map((s) => {
       const visit = path.findIndex((basis) => sameBasis(basis, s.basis));
@@ -136,10 +136,10 @@ function basicSolutionsTable(
           .join(', '),
         basic:
           s.values === null
-            ? `${s.basis.map((j) => names[j]).join(', ')}:\\ \\text{sin solución única}`
-            : s.basis.map((j) => `${names[j]} = ${s.values![j]!.toLatex()}`).join(',\\ '),
+            ? String.raw`${s.basis.map((j) => names[j]).join(', ')}:\ \text{sin solución única}`
+            : s.basis.map((j) => `${names[j]} = ${s.values![j]!.toLatex()}`).join(String.raw`,\ `),
         feasible: s.values === null ? '—' : s.feasible ? 'Sí' : 'No',
-        z: s.feasible && s.z !== null ? s.z.toLatex() : '\\text{—}',
+        z: s.feasible && s.z !== null ? s.z.toLatex() : String.raw`\text{—}`,
         simplex: visit < 0 ? '' : visit === 0 ? 'Inicio' : `Iteración ${visit}`,
       };
     }),
@@ -186,8 +186,8 @@ function currentSolution(t: Tableau): string {
   const values = basicSolution(t);
   const free = nonBasic(t);
   return latexLines([
-    `${free.map((j) => t.columns[j]!.latex).join(' = ')} = 0 \\ (\\text{no básicas})`,
-    `${t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(',\\ ')}, \\qquad z = ${t.zRhs.a.toLatex()}`,
+    String.raw`${free.map((j) => t.columns[j]!.latex).join(' = ')} = 0 \ (\text{no básicas})`,
+    String.raw`${t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(String.raw`,\ `)}, \qquad z = ${t.zRhs.a.toLatex()}`,
   ]);
 }
 
@@ -213,7 +213,7 @@ function iterationStep(
       explanation: max
         ? `z aumenta si crece una no básica con coeficiente positivo en la ecuación de z. Se aumenta una sola a la vez: la de mayor tasa de mejora.`
         : `z disminuye si crece una no básica con coeficiente negativo en la ecuación de z. Se aumenta una sola a la vez: la de mayor tasa de mejora (el coeficiente más negativo).`,
-      result: `${entering} \\ \\text{entra (tasa } ${rate.toLatex()})`,
+      result: String.raw`${entering} \ \text{entra (tasa } ${rate.toLatex()})`,
     },
     {
       title: '¿Cuánto puede crecer? (razón mínima)',
@@ -225,14 +225,14 @@ function iterationStep(
           const expression = `${basic} = ${affine(t.rhs[i]!, [{ coefficient: a.neg(), latex: entering }])}`;
           const ratio = info.ratios[i];
           return ratio === null || ratio === undefined
-            ? `${expression} \\ \\Rightarrow\\ \\text{no limita}`
-            : `${expression} \\ge 0 \\ \\Rightarrow\\ ${entering} \\le ${ratio.toLatex()}`;
+            ? String.raw`${expression} \ \Rightarrow\ \text{no limita}`
+            : String.raw`${expression} \ge 0 \ \Rightarrow\ ${entering} \le ${ratio.toLatex()}`;
         }),
       ),
       result:
         info.leaving === null
-          ? `\\text{Ninguna básica limita a } ${entering}`
-          : `${t.columns[t.basis[info.leaving]!]!.latex} \\ \\text{sale;}\\ ${entering} = ${info.ratios[info.leaving]!.toLatex()}`,
+          ? String.raw`\text{Ninguna básica limita a } ${entering}`
+          : String.raw`${t.columns[t.basis[info.leaving]!]!.latex} \ \text{sale;}\ ${entering} = ${info.ratios[info.leaving]!.toLatex()}`,
     },
   ];
   if (info.leaving !== null && next) {
@@ -257,15 +257,17 @@ function iterationsTable(tableaus: Tableau[]): ResultTable {
     id: 'recorrido',
     title: 'Recorrido del simplex',
     columns: [
-      { key: 'iteration', header: '\\text{Iteración}', format: 'text' },
-      { key: 'basis', header: '\\text{Solución básica}', format: 'latex' },
+      { key: 'iteration', header: String.raw`\text{Iteración}`, format: 'text' },
+      { key: 'basis', header: String.raw`\text{Solución básica}`, format: 'latex' },
       { key: 'z', header: 'z', format: 'latex' },
     ],
     rows: tableaus.map((t, k) => {
       const values = basicSolution(t);
       return {
         iteration: k === 0 ? 'Inicio' : String(k),
-        basis: t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(',\\ '),
+        basis: t.basis
+          .map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`)
+          .join(String.raw`,\ `),
         z: t.zRhs.a.toLatex(),
       };
     }),
@@ -299,9 +301,9 @@ export function solveAlgebraicSimplex(input: LpInput): LpResult {
     trace.steps.push({
       title: 'Soluciones básicas',
       explanation: `Hay ${m} ecuaciones y ${total} variables: cada solución básica iguala a 0 ${total - m} variables (no básicas) y resuelve las ${m} ecuaciones para las demás (básicas). Las factibles (todas ≥ 0) son los vértices de la región factible. El simplex no las revisa todas: parte del origen y pasa a una vecina que mejora z (ver la columna «Simplex» de la tabla).`,
-      formula: '\\binom{n}{m} = \\frac{n!}{m!\\,(n-m)!}',
-      substitution: `\\binom{${total}}{${m}} = ${Math.round(count)}`,
-      result: `${Math.round(count)}\\ \\text{soluciones básicas},\\ ${feasible}\\ \\text{factibles}`,
+      formula: String.raw`\binom{n}{m} = \frac{n!}{m!\,(n-m)!}`,
+      substitution: String.raw`\binom{${total}}{${m}} = ${Math.round(count)}`,
+      result: String.raw`${Math.round(count)}\ \text{soluciones básicas},\ ${feasible}\ \text{factibles}`,
     });
     trace.tables.push(basicSolutionsTable(sf, solutions, path));
   }

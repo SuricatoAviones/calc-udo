@@ -140,17 +140,14 @@ function derive(model: Exclude<LikelihoodModel, 'normal'>, values: number[]): De
         (size - sum === 0 ? 0 : (size - sum) * Math.log(1 - t));
       return {
         symbol: 'p',
-        density: 'f(x;\\ p) = p^x (1 - p)^{1 - x}, \\quad x = 0, 1',
-        likelihood:
-          'L(p) = \\prod p^{x_i}(1 - p)^{1 - x_i} = p^{\\sum x_i}(1 - p)^{\\,n - \\sum x_i}',
-        logLikelihood:
-          '\\ln L(p) = \\left(\\sum x_i\\right)\\ln p + \\left(n - \\sum x_i\\right)\\ln(1 - p)',
-        logSubstitution: `\\ln L(p) = ${n(sum)}\\ln p + ${n(size - sum)}\\ln(1 - p)`,
-        derivative: '\\frac{d\\ln L}{dp} = \\frac{\\sum x_i}{p} - \\frac{n - \\sum x_i}{1 - p} = 0',
-        solve: `\\hat{p} = \\frac{\\sum x_i}{n} = \\frac{${n(sum)}}{${size}}`,
+        density: String.raw`f(x;\ p) = p^x (1 - p)^{1 - x}, \quad x = 0, 1`,
+        likelihood: String.raw`L(p) = \prod p^{x_i}(1 - p)^{1 - x_i} = p^{\sum x_i}(1 - p)^{\,n - \sum x_i}`,
+        logLikelihood: String.raw`\ln L(p) = \left(\sum x_i\right)\ln p + \left(n - \sum x_i\right)\ln(1 - p)`,
+        logSubstitution: String.raw`\ln L(p) = ${n(sum)}\ln p + ${n(size - sum)}\ln(1 - p)`,
+        derivative: String.raw`\frac{d\ln L}{dp} = \frac{\sum x_i}{p} - \frac{n - \sum x_i}{1 - p} = 0`,
+        solve: String.raw`\hat{p} = \frac{\sum x_i}{n} = \frac{${n(sum)}}{${size}}`,
         estimate: p,
-        secondDerivative:
-          '\\frac{d^2\\ln L}{dp^2} = -\\frac{\\sum x_i}{p^2} - \\frac{n - \\sum x_i}{(1 - p)^2}',
+        secondDerivative: String.raw`\frac{d^2\ln L}{dp^2} = -\frac{\sum x_i}{p^2} - \frac{n - \sum x_i}{(1 - p)^2}`,
         secondValue: -sum / p ** 2 - (size - sum) / (1 - p) ** 2,
         logL,
         plotRange: [0.005, 0.995],
@@ -160,18 +157,15 @@ function derive(model: Exclude<LikelihoodModel, 'normal'>, values: number[]): De
     case 'poisson': {
       const lnFactorials = values.reduce((s, x) => s + lnFactorial(x), 0);
       return {
-        symbol: '\\lambda',
-        density:
-          'f(x;\\ \\lambda) = \\frac{e^{-\\lambda}\\lambda^x}{x!}, \\quad x = 0, 1, 2, \\ldots',
-        likelihood:
-          'L(\\lambda) = \\prod \\frac{e^{-\\lambda}\\lambda^{x_i}}{x_i!} = \\frac{e^{-n\\lambda}\\lambda^{\\sum x_i}}{\\prod x_i!}',
-        logLikelihood:
-          '\\ln L(\\lambda) = -n\\lambda + \\left(\\sum x_i\\right)\\ln\\lambda - \\sum \\ln x_i!',
-        logSubstitution: `\\ln L(\\lambda) = -${size}\\lambda + ${n(sum)}\\ln\\lambda - ${n(lnFactorials, 6)}`,
-        derivative: '\\frac{d\\ln L}{d\\lambda} = -n + \\frac{\\sum x_i}{\\lambda} = 0',
-        solve: `\\hat{\\lambda} = \\frac{\\sum x_i}{n} = \\bar{x} = \\frac{${n(sum)}}{${size}}`,
+        symbol: String.raw`\lambda`,
+        density: String.raw`f(x;\ \lambda) = \frac{e^{-\lambda}\lambda^x}{x!}, \quad x = 0, 1, 2, \ldots`,
+        likelihood: String.raw`L(\lambda) = \prod \frac{e^{-\lambda}\lambda^{x_i}}{x_i!} = \frac{e^{-n\lambda}\lambda^{\sum x_i}}{\prod x_i!}`,
+        logLikelihood: String.raw`\ln L(\lambda) = -n\lambda + \left(\sum x_i\right)\ln\lambda - \sum \ln x_i!`,
+        logSubstitution: String.raw`\ln L(\lambda) = -${size}\lambda + ${n(sum)}\ln\lambda - ${n(lnFactorials, 6)}`,
+        derivative: String.raw`\frac{d\ln L}{d\lambda} = -n + \frac{\sum x_i}{\lambda} = 0`,
+        solve: String.raw`\hat{\lambda} = \frac{\sum x_i}{n} = \bar{x} = \frac{${n(sum)}}{${size}}`,
         estimate: mean,
-        secondDerivative: '\\frac{d^2\\ln L}{d\\lambda^2} = -\\frac{\\sum x_i}{\\lambda^2}',
+        secondDerivative: String.raw`\frac{d^2\ln L}{d\lambda^2} = -\frac{\sum x_i}{\lambda^2}`,
         secondValue: -sum / mean ** 2,
         logL: (t) => -size * t + (sum === 0 ? 0 : sum * Math.log(t)) - lnFactorials,
         plotRange: [Math.max(mean / 4, 1e-3), Math.max(mean * 2.5, 1)],
@@ -182,15 +176,14 @@ function derive(model: Exclude<LikelihoodModel, 'normal'>, values: number[]): De
       const p = size / sum;
       return {
         symbol: 'p',
-        density: 'f(x;\\ p) = p(1 - p)^{x - 1}, \\quad x = 1, 2, \\ldots',
-        likelihood: 'L(p) = \\prod p(1 - p)^{x_i - 1} = p^n (1 - p)^{\\sum x_i - n}',
-        logLikelihood: '\\ln L(p) = n\\ln p + \\left(\\sum x_i - n\\right)\\ln(1 - p)',
-        logSubstitution: `\\ln L(p) = ${size}\\ln p + ${n(sum - size)}\\ln(1 - p)`,
-        derivative: '\\frac{d\\ln L}{dp} = \\frac{n}{p} - \\frac{\\sum x_i - n}{1 - p} = 0',
-        solve: `\\hat{p} = \\frac{n}{\\sum x_i} = \\frac{1}{\\bar{x}} = \\frac{${size}}{${n(sum)}}`,
+        density: String.raw`f(x;\ p) = p(1 - p)^{x - 1}, \quad x = 1, 2, \ldots`,
+        likelihood: String.raw`L(p) = \prod p(1 - p)^{x_i - 1} = p^n (1 - p)^{\sum x_i - n}`,
+        logLikelihood: String.raw`\ln L(p) = n\ln p + \left(\sum x_i - n\right)\ln(1 - p)`,
+        logSubstitution: String.raw`\ln L(p) = ${size}\ln p + ${n(sum - size)}\ln(1 - p)`,
+        derivative: String.raw`\frac{d\ln L}{dp} = \frac{n}{p} - \frac{\sum x_i - n}{1 - p} = 0`,
+        solve: String.raw`\hat{p} = \frac{n}{\sum x_i} = \frac{1}{\bar{x}} = \frac{${size}}{${n(sum)}}`,
         estimate: p,
-        secondDerivative:
-          '\\frac{d^2\\ln L}{dp^2} = -\\frac{n}{p^2} - \\frac{\\sum x_i - n}{(1 - p)^2}',
+        secondDerivative: String.raw`\frac{d^2\ln L}{dp^2} = -\frac{n}{p^2} - \frac{\sum x_i - n}{(1 - p)^2}`,
         secondValue: -size / p ** 2 - (sum - size) / (1 - p) ** 2,
         logL: (t) => size * Math.log(t) + (sum - size === 0 ? 0 : (sum - size) * Math.log(1 - t)),
         plotRange: [0.005, 0.995],
@@ -199,18 +192,15 @@ function derive(model: Exclude<LikelihoodModel, 'normal'>, values: number[]): De
     }
     case 'exponencial':
       return {
-        symbol: '\\beta',
-        density: 'f(x;\\ \\beta) = \\frac{1}{\\beta} e^{-x/\\beta}, \\quad x > 0',
-        likelihood:
-          'L(\\beta) = \\prod \\frac{1}{\\beta} e^{-x_i/\\beta} = \\beta^{-n} e^{-\\sum x_i / \\beta}',
-        logLikelihood: '\\ln L(\\beta) = -n\\ln\\beta - \\frac{\\sum x_i}{\\beta}',
-        logSubstitution: `\\ln L(\\beta) = -${size}\\ln\\beta - \\frac{${n(sum)}}{\\beta}`,
-        derivative:
-          '\\frac{d\\ln L}{d\\beta} = -\\frac{n}{\\beta} + \\frac{\\sum x_i}{\\beta^2} = 0',
-        solve: `\\hat{\\beta} = \\frac{\\sum x_i}{n} = \\bar{x} = \\frac{${n(sum)}}{${size}}`,
+        symbol: String.raw`\beta`,
+        density: String.raw`f(x;\ \beta) = \frac{1}{\beta} e^{-x/\beta}, \quad x > 0`,
+        likelihood: String.raw`L(\beta) = \prod \frac{1}{\beta} e^{-x_i/\beta} = \beta^{-n} e^{-\sum x_i / \beta}`,
+        logLikelihood: String.raw`\ln L(\beta) = -n\ln\beta - \frac{\sum x_i}{\beta}`,
+        logSubstitution: String.raw`\ln L(\beta) = -${size}\ln\beta - \frac{${n(sum)}}{\beta}`,
+        derivative: String.raw`\frac{d\ln L}{d\beta} = -\frac{n}{\beta} + \frac{\sum x_i}{\beta^2} = 0`,
+        solve: String.raw`\hat{\beta} = \frac{\sum x_i}{n} = \bar{x} = \frac{${n(sum)}}{${size}}`,
         estimate: mean,
-        secondDerivative:
-          '\\frac{d^2\\ln L}{d\\beta^2} = \\frac{n}{\\beta^2} - \\frac{2\\sum x_i}{\\beta^3}',
+        secondDerivative: String.raw`\frac{d^2\ln L}{d\beta^2} = \frac{n}{\beta^2} - \frac{2\sum x_i}{\beta^3}`,
         secondValue: size / mean ** 2 - (2 * sum) / mean ** 3,
         logL: (t) => -size * Math.log(t) - sum / t,
         plotRange: [mean / 4, mean * 3],
@@ -220,16 +210,15 @@ function derive(model: Exclude<LikelihoodModel, 'normal'>, values: number[]): De
       const sumLog = values.reduce((s, x) => s + Math.log(x), 0);
       const theta = size / sumLog;
       return {
-        symbol: '\\theta',
-        density: 'f(x;\\ \\theta) = \\frac{\\theta}{x^{\\theta + 1}}, \\quad x > 1',
-        likelihood:
-          'L(\\theta) = \\prod \\frac{\\theta}{x_i^{\\theta + 1}} = \\frac{\\theta^n}{\\left(\\prod x_i\\right)^{\\theta + 1}}',
-        logLikelihood: '\\ln L(\\theta) = n\\ln\\theta - (\\theta + 1)\\sum \\ln x_i',
-        logSubstitution: `\\ln L(\\theta) = ${size}\\ln\\theta - (\\theta + 1)(${n(sumLog, 8)})`,
-        derivative: '\\frac{d\\ln L}{d\\theta} = \\frac{n}{\\theta} - \\sum \\ln x_i = 0',
-        solve: `\\hat{\\theta} = \\frac{n}{\\sum \\ln x_i} = \\frac{${size}}{${n(sumLog, 8)}}`,
+        symbol: String.raw`\theta`,
+        density: String.raw`f(x;\ \theta) = \frac{\theta}{x^{\theta + 1}}, \quad x > 1`,
+        likelihood: String.raw`L(\theta) = \prod \frac{\theta}{x_i^{\theta + 1}} = \frac{\theta^n}{\left(\prod x_i\right)^{\theta + 1}}`,
+        logLikelihood: String.raw`\ln L(\theta) = n\ln\theta - (\theta + 1)\sum \ln x_i`,
+        logSubstitution: String.raw`\ln L(\theta) = ${size}\ln\theta - (\theta + 1)(${n(sumLog, 8)})`,
+        derivative: String.raw`\frac{d\ln L}{d\theta} = \frac{n}{\theta} - \sum \ln x_i = 0`,
+        solve: String.raw`\hat{\theta} = \frac{n}{\sum \ln x_i} = \frac{${size}}{${n(sumLog, 8)}}`,
         estimate: theta,
-        secondDerivative: '\\frac{d^2\\ln L}{d\\theta^2} = -\\frac{n}{\\theta^2}',
+        secondDerivative: String.raw`\frac{d^2\ln L}{d\theta^2} = -\frac{n}{\theta^2}`,
         secondValue: -size / theta ** 2,
         logL: (t) => size * Math.log(t) - (t + 1) * sumLog,
         plotRange: [theta / 4, theta * 3],
@@ -278,40 +267,37 @@ function solveNormalModel(values: number[]): Result {
     {
       title: 'Función de verosimilitud',
       explanation: `La muestra tiene n = ${size} datos independientes de una normal N(μ, σ²): la verosimilitud es el producto de las densidades.`,
-      formula:
-        'L(\\mu, \\sigma^2) = \\prod \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-(x_i - \\mu)^2/(2\\sigma^2)} = (2\\pi\\sigma^2)^{-n/2} e^{-\\sum (x_i - \\mu)^2 / (2\\sigma^2)}',
+      formula: String.raw`L(\mu, \sigma^2) = \prod \frac{1}{\sqrt{2\pi\sigma^2}} e^{-(x_i - \mu)^2/(2\sigma^2)} = (2\pi\sigma^2)^{-n/2} e^{-\sum (x_i - \mu)^2 / (2\sigma^2)}`,
     },
     {
       title: 'Logaritmo de la verosimilitud',
       explanation: 'Maximizar ln L es lo mismo que maximizar L, y los productos se vuelven sumas.',
-      formula:
-        '\\ln L = -\\frac{n}{2}\\ln(2\\pi) - \\frac{n}{2}\\ln\\sigma^2 - \\frac{\\sum (x_i - \\mu)^2}{2\\sigma^2}',
+      formula: String.raw`\ln L = -\frac{n}{2}\ln(2\pi) - \frac{n}{2}\ln\sigma^2 - \frac{\sum (x_i - \mu)^2}{2\sigma^2}`,
     },
     {
       title: 'Derivadas parciales iguales a cero',
-      formula:
-        '\\frac{\\partial \\ln L}{\\partial \\mu} = \\frac{\\sum (x_i - \\mu)}{\\sigma^2} = 0, \\qquad \\frac{\\partial \\ln L}{\\partial \\sigma^2} = -\\frac{n}{2\\sigma^2} + \\frac{\\sum (x_i - \\mu)^2}{2\\sigma^4} = 0',
+      formula: String.raw`\frac{\partial \ln L}{\partial \mu} = \frac{\sum (x_i - \mu)}{\sigma^2} = 0, \qquad \frac{\partial \ln L}{\partial \sigma^2} = -\frac{n}{2\sigma^2} + \frac{\sum (x_i - \mu)^2}{2\sigma^4} = 0`,
     },
     {
       title: 'Despejar μ',
       explanation: 'De la primera ecuación, Σxᵢ − nμ = 0.',
-      formula: '\\hat{\\mu} = \\frac{\\sum x_i}{n} = \\bar{x}',
-      substitution: `\\hat{\\mu} = \\frac{${n(sum)}}{${size}}`,
-      result: `\\hat{\\mu} = ${n(mean)}`,
+      formula: String.raw`\hat{\mu} = \frac{\sum x_i}{n} = \bar{x}`,
+      substitution: String.raw`\hat{\mu} = \frac{${n(sum)}}{${size}}`,
+      result: String.raw`\hat{\mu} = ${n(mean)}`,
     },
     {
       title: 'Despejar σ²',
       explanation:
         'De la segunda ecuación con μ = x̄. Se divide entre n, no entre n − 1: el estimador de máxima verosimilitud de σ² no es el insesgado s².',
-      formula: '\\hat{\\sigma}^2 = \\frac{\\sum (x_i - \\bar{x})^2}{n}',
-      substitution: `\\hat{\\sigma}^2 = \\frac{${n(squares)}}{${size}}`,
-      result: `\\hat{\\sigma}^2 = ${n(variance)}, \\qquad \\hat{\\sigma} = ${n(Math.sqrt(variance))}`,
+      formula: String.raw`\hat{\sigma}^2 = \frac{\sum (x_i - \bar{x})^2}{n}`,
+      substitution: String.raw`\hat{\sigma}^2 = \frac{${n(squares)}}{${size}}`,
+      result: String.raw`\hat{\sigma}^2 = ${n(variance)}, \qquad \hat{\sigma} = ${n(Math.sqrt(variance))}`,
     },
     {
       title: 'Verificar que es un máximo',
       explanation:
         'En (x̄, σ̂²) la matriz de segundas derivadas es diagonal con entradas negativas, −n/σ̂² y −n/(2σ̂⁴): es un máximo.',
-      result: `-\\frac{n}{\\hat{\\sigma}^2} = ${n(-size / variance)}, \\qquad -\\frac{n}{2\\hat{\\sigma}^4} = ${n(-size / (2 * variance ** 2))}`,
+      result: String.raw`-\frac{n}{\hat{\sigma}^2} = ${n(-size / variance)}, \qquad -\frac{n}{2\hat{\sigma}^4} = ${n(-size / (2 * variance ** 2))}`,
     },
   ];
   const sd = Math.sqrt(variance);
@@ -334,9 +320,9 @@ function solveNormalModel(values: number[]): Result {
       logLikelihood: logL(mean, variance),
     },
     summary: [
-      { label: 'Media', value: `\\hat{\\mu} = ${n(mean, 6)}`, emphasis: true },
-      { label: 'Varianza', value: `\\hat{\\sigma}^2 = ${n(variance, 6)}`, emphasis: true },
-      { label: 'Desviación estándar', value: `\\hat{\\sigma} = ${n(sd, 6)}` },
+      { label: 'Media', value: String.raw`\hat{\mu} = ${n(mean, 6)}`, emphasis: true },
+      { label: 'Varianza', value: String.raw`\hat{\sigma}^2 = ${n(variance, 6)}`, emphasis: true },
+      { label: 'Desviación estándar', value: String.raw`\hat{\sigma} = ${n(sd, 6)}` },
       { label: 'Datos', value: `n = ${size}` },
     ],
     ...emptyTrace(),
@@ -376,7 +362,7 @@ export function solveLikelihood(input: LikelihoodInput): Result {
     {
       title: 'Función de verosimilitud',
       explanation: `La muestra tiene n = ${size} datos independientes de una distribución ${MODEL_NAME[model]}: la verosimilitud es el producto de f(xᵢ) evaluada en cada dato, vista como función del parámetro.`,
-      formula: `${d.density} \\qquad ${d.likelihood}`,
+      formula: String.raw`${d.density} \qquad ${d.likelihood}`,
     },
     {
       title: 'Logaritmo de la verosimilitud',
@@ -391,7 +377,7 @@ export function solveLikelihood(input: LikelihoodInput): Result {
     {
       title: 'Despejar el parámetro',
       substitution: d.solve,
-      result: `\\hat{${d.symbol}} = ${n(d.estimate)}`,
+      result: String.raw`\hat{${d.symbol}} = ${n(d.estimate)}`,
     },
     {
       title: 'Verificar que es un máximo',
@@ -401,7 +387,7 @@ export function solveLikelihood(input: LikelihoodInput): Result {
       formula: d.secondDerivative,
       result: atBoundary
         ? undefined
-        : `\\left.\\frac{d^2\\ln L}{d${d.symbol}^2}\\right|_{\\hat{${d.symbol}}} = ${n(d.secondValue)} < 0`,
+        : String.raw`\left.\frac{d^2\ln L}{d${d.symbol}^2}\right|_{\hat{${d.symbol}}} = ${n(d.secondValue)} < 0`,
     },
   ];
   if (model === 'exponencial') {
@@ -409,7 +395,7 @@ export function solveLikelihood(input: LikelihoodInput): Result {
       title: 'Tasa equivalente',
       explanation:
         'Por la invariancia de los estimadores de máxima verosimilitud, el de la tasa λ = 1/β es 1/β̂.',
-      result: `\\hat{\\lambda} = \\frac{1}{\\hat{\\beta}} = ${n(1 / d.estimate)}`,
+      result: String.raw`\hat{\lambda} = \frac{1}{\hat{\beta}} = ${n(1 / d.estimate)}`,
     });
   }
 
@@ -422,10 +408,14 @@ export function solveLikelihood(input: LikelihoodInput): Result {
       logLikelihood: d.logL(d.estimate),
     },
     summary: [
-      { label: 'Estimador', value: `\\hat{${d.symbol}} = ${n(d.estimate, 6)}`, emphasis: true },
+      {
+        label: 'Estimador',
+        value: String.raw`\hat{${d.symbol}} = ${n(d.estimate, 6)}`,
+        emphasis: true,
+      },
       {
         label: 'Log-verosimilitud',
-        value: `\\ln L(\\hat{${d.symbol}}) = ${n(d.logL(d.estimate), 6)}`,
+        value: String.raw`\ln L(\hat{${d.symbol}}) = ${n(d.logL(d.estimate), 6)}`,
       },
       { label: 'Datos', value: `n = ${size}` },
     ],

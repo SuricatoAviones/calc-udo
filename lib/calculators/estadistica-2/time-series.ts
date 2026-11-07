@@ -151,7 +151,7 @@ const n = (v: number) => toLatexNumber(v, 6);
 const op = (v: number) => toLatexOperand(v, 6);
 
 export function trendLatex(d: Decomposition): string {
-  return `T_t = ${n(d.b0)} ${d.b1 < 0 ? '-' : '+'} ${n(Math.abs(d.b1))}\\,t`;
+  return String.raw`T_t = ${n(d.b0)} ${d.b1 < 0 ? '-' : '+'} ${n(Math.abs(d.b1))}\,t`;
 }
 
 /** Pasos de la descomposición, comunes a las dos calculadoras. */
@@ -168,29 +168,29 @@ export function decompositionSteps(d: Decomposition): Step[] {
         ? `Un promedio de ${L} periodos queda entre dos periodos; se promedian dos consecutivos para centrarlo. Los primeros y los últimos ${L / 2} periodos no tienen promedio móvil centrado.`
         : `Cada promedio de ${L} periodos queda centrado en el periodo del medio.`,
       formula: even
-        ? `PMC_t = \\frac{1}{2}\\left(\\frac{Y_{t-${L / 2}} + \\cdots + Y_{t+${L / 2 - 1}}}{${L}} + \\frac{Y_{t-${L / 2 - 1}} + \\cdots + Y_{t+${L / 2}}}{${L}}\\right)`
-        : `PMC_t = \\frac{Y_{t-${(L - 1) / 2}} + \\cdots + Y_{t+${(L - 1) / 2}}}{${L}}`,
+        ? String.raw`PMC_t = \frac{1}{2}\left(\frac{Y_{t-${L / 2}} + \cdots + Y_{t+${L / 2 - 1}}}{${L}} + \frac{Y_{t-${L / 2 - 1}} + \cdots + Y_{t+${L / 2}}}{${L}}\right)`
+        : String.raw`PMC_t = \frac{Y_{t-${(L - 1) / 2}} + \cdots + Y_{t+${(L - 1) / 2}}}{${L}}`,
       result: `PMC_{${firstIndex + 1}} = ${n(d.cma[firstIndex]!)}`,
     });
     steps.push({
       title: 'Valores estacional-irregulares',
       explanation:
         'Al dividir cada dato entre su promedio móvil centrado se elimina la tendencia (y el ciclo); queda el efecto estacional con la irregularidad.',
-      formula: '\\frac{Y_t}{PMC_t}',
-      substitution: `\\frac{Y_{${firstIndex + 1}}}{PMC_{${firstIndex + 1}}} = \\frac{${n(d.y[firstIndex]!)}}{${n(d.cma[firstIndex]!)}}`,
+      formula: String.raw`\frac{Y_t}{PMC_t}`,
+      substitution: String.raw`\frac{Y_{${firstIndex + 1}}}{PMC_{${firstIndex + 1}}} = \frac{${n(d.y[firstIndex]!)}}{${n(d.cma[firstIndex]!)}}`,
       result: `${n(d.ratios[firstIndex]!)}`,
     });
     const sum = d.rawIndices.reduce((s, v) => s + v, 0);
     steps.push({
       title: 'Índices estacionales',
       explanation: `Se promedian los valores estacional-irregulares de cada estación. Como deben sumar ${L}, se multiplican por ${L}/${formatNumber(sum, 6)}.`,
-      formula: `S_j = \\bar{r}_j \\cdot \\frac{${L}}{\\sum \\bar{r}_j}`,
-      result: d.indices.map((v, j) => `S_{${j + 1}} = ${n(v)}`).join(',\\ '),
+      formula: String.raw`S_j = \bar{r}_j \cdot \frac{${L}}{\sum \bar{r}_j}`,
+      result: d.indices.map((v, j) => `S_{${j + 1}} = ${n(v)}`).join(String.raw`,\ `),
     });
     steps.push({
       title: 'Serie desestacionalizada',
-      formula: '\\frac{Y_t}{S_t}',
-      substitution: `\\frac{Y_1}{S_1} = \\frac{${n(d.y[0]!)}}{${n(d.periodIndex[0]!)}}`,
+      formula: String.raw`\frac{Y_t}{S_t}`,
+      substitution: String.raw`\frac{Y_1}{S_1} = \frac{${n(d.y[0]!)}}{${n(d.periodIndex[0]!)}}`,
       result: `${n(d.deseasonalized[0]!)}`,
     });
   }
@@ -199,12 +199,12 @@ export function decompositionSteps(d: Decomposition): Step[] {
   const sumY = d.deseasonalized.reduce((s, v) => s + v, 0);
   const sumTY = ts.reduce((s, t, i) => s + t * d.deseasonalized[i]!, 0);
   const sumT2 = ts.reduce((s, t) => s + t * t, 0);
-  const yName = d.season ? '\\tilde{Y}' : 'Y';
+  const yName = d.season ? String.raw`\tilde{Y}` : 'Y';
   steps.push({
     title: d.season ? 'Tendencia de la serie desestacionalizada' : 'Tendencia lineal',
     explanation: `Recta de mínimos cuadrados con t = 1, 2, …, ${size}${d.season ? ' ajustada a los datos desestacionalizados' : ''}.`,
-    formula: `b_1 = \\frac{\\sum t\\,${yName}_t - (\\sum t)(\\sum ${yName}_t)/n}{\\sum t^2 - (\\sum t)^2/n}, \\qquad b_0 = \\bar{${yName}} - b_1\\bar{t}`,
-    substitution: `b_1 = \\frac{${n(sumTY)} - (${n(sumT)})(${n(sumY)})/${size}}{${n(sumT2)} - ${op(sumT)}^2/${size}}, \\qquad b_0 = ${n(sumY / size)} - ${op(d.b1)}${op(sumT / size)}`,
+    formula: String.raw`b_1 = \frac{\sum t\,${yName}_t - (\sum t)(\sum ${yName}_t)/n}{\sum t^2 - (\sum t)^2/n}, \qquad b_0 = \bar{${yName}} - b_1\bar{t}`,
+    substitution: String.raw`b_1 = \frac{${n(sumTY)} - (${n(sumT)})(${n(sumY)})/${size}}{${n(sumT2)} - ${op(sumT)}^2/${size}}, \qquad b_0 = ${n(sumY / size)} - ${op(d.b1)}${op(sumT / size)}`,
     result: trendLatex(d),
   });
   return steps;
@@ -213,7 +213,7 @@ export function decompositionSteps(d: Decomposition): Step[] {
 export function decompositionColumns(d: Decomposition, withCyclical: boolean): TableColumn[] {
   return [
     { key: 't', header: 't' },
-    ...(d.season ? [{ key: 'season', header: '\\text{Estación}' }] : []),
+    ...(d.season ? [{ key: 'season', header: String.raw`\text{Estación}` }] : []),
     { key: 'y', header: 'Y_t' },
     ...(d.season
       ? [
@@ -226,10 +226,10 @@ export function decompositionColumns(d: Decomposition, withCyclical: boolean): T
     { key: 'trend', header: 'T_t' },
     ...(withCyclical
       ? d.season
-        ? [{ key: 'cyclical', header: 'Y_t/(T_t S_t)\\ (\\%)' }]
+        ? [{ key: 'cyclical', header: String.raw`Y_t/(T_t S_t)\ (\%)` }]
         : [
-            { key: 'cyclical', header: 'Y_t/T_t\\ (\\%)' },
-            { key: 'residual', header: '(Y_t - T_t)/T_t\\ (\\%)' },
+            { key: 'cyclical', header: String.raw`Y_t/T_t\ (\%)` },
+            { key: 'residual', header: String.raw`(Y_t - T_t)/T_t\ (\%)` },
           ]
       : []),
   ];

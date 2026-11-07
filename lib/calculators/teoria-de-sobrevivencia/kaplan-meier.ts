@@ -128,30 +128,29 @@ export function solveKaplanMeier({ times }: KaplanMeierInput): Result {
       result: data
         .slice(0, 30)
         .map((o) => `${n(o.time)}${o.censored ? '^{+}' : ''}`)
-        .join(',\\ ')
-        .concat(total > 30 ? ',\\ \\ldots' : ''),
+        .join(String.raw`,\ `)
+        .concat(total > 30 ? String.raw`,\ \ldots` : ''),
     },
     {
       title: 'Producto límite',
       explanation:
         'En cada tiempo de falla se multiplica la supervivencia anterior por la proporción de las unidades en riesgo que no fallan.',
-      formula: '\\hat S(t_j) = \\hat S(t_{j-1})\\left(1 - \\frac{d_j}{n_j}\\right)',
+      formula: String.raw`\hat S(t_j) = \hat S(t_{j-1})\left(1 - \frac{d_j}{n_j}\right)`,
       substitution: rows
         .slice(0, 12)
         .map(
           (r, j) =>
-            `\\hat S(${n(r.time)}) = ${j === 0 ? '1' : n(rows[j - 1]!.survival, 6)}\\left(1 - \\frac{${r.failures}}{${r.atRisk}}\\right) = ${n(r.survival, 6)}`,
+            String.raw`\hat S(${n(r.time)}) = ${j === 0 ? '1' : n(rows[j - 1]!.survival, 6)}\left(1 - \frac{${r.failures}}{${r.atRisk}}\right) = ${n(r.survival, 6)}`,
         )
-        .join(' \\\\ '),
+        .join(String.raw` \\ `),
     },
     {
       title: 'Error estándar (Greenwood)',
-      formula:
-        '\\operatorname{EE}[\\hat S(t)] = \\hat S(t)\\sqrt{\\sum_{t_j \\le t} \\frac{d_j}{n_j(n_j - d_j)}}',
+      formula: String.raw`\operatorname{EE}[\hat S(t)] = \hat S(t)\sqrt{\sum_{t_j \le t} \frac{d_j}{n_j(n_j - d_j)}}`,
       result: rows
         .slice(0, 8)
-        .map((r) => `\\operatorname{EE}(${n(r.time)}) = ${n(r.standardError, 4)}`)
-        .join(',\\ '),
+        .map((r) => String.raw`\operatorname{EE}(${n(r.time)}) = ${n(r.standardError, 4)}`)
+        .join(String.raw`,\ `),
     },
     {
       title: 'Mediana de supervivencia',
@@ -159,7 +158,7 @@ export function solveKaplanMeier({ times }: KaplanMeierInput): Result {
         median === null
           ? 'Ŝ(t) no baja de 0.5 en el periodo observado: la mediana no se puede estimar.'
           : 'Es el menor tiempo en que la supervivencia estimada llega a 0.5 o menos.',
-      result: median === null ? '\\text{no estimable}' : `t_{0.5} = ${n(median)}`,
+      result: median === null ? String.raw`\text{no estimable}` : `t_{0.5} = ${n(median)}`,
     },
   ];
 
@@ -193,16 +192,16 @@ export function solveKaplanMeier({ times }: KaplanMeierInput): Result {
     summary: [
       {
         label: 'Mediana de supervivencia',
-        value: median === null ? '\\text{no estimable}' : `t_{0.5} = ${n(median)}`,
+        value: median === null ? String.raw`\text{no estimable}` : `t_{0.5} = ${n(median)}`,
         emphasis: true,
       },
       {
         label: 'Supervivencia al último tiempo de falla',
-        value: `\\hat S(${n(rows.at(-1)!.time)}) = ${n(rows.at(-1)!.survival, 6)}`,
+        value: String.raw`\hat S(${n(rows.at(-1)!.time)}) = ${n(rows.at(-1)!.survival, 6)}`,
       },
       {
         label: 'Observaciones',
-        value: `${total}\\ (${data.filter((o) => o.censored).length} \\text{ censuradas})`,
+        value: String.raw`${total}\ (${data.filter((o) => o.censored).length} \text{ censuradas})`,
       },
     ],
     ...emptyTrace(),
@@ -217,9 +216,9 @@ export function solveKaplanMeier({ times }: KaplanMeierInput): Result {
           { key: 'failures', header: 'd_j' },
           { key: 'censored', header: 'c_j' },
           { key: 'conditional', header: '1 - d_j/n_j' },
-          { key: 'survival', header: '\\hat S(t_j)' },
-          { key: 'failure', header: '\\hat F(t_j)' },
-          { key: 'standardError', header: '\\operatorname{EE}' },
+          { key: 'survival', header: String.raw`\hat S(t_j)` },
+          { key: 'failure', header: String.raw`\hat F(t_j)` },
+          { key: 'standardError', header: String.raw`\operatorname{EE}` },
         ],
         rows: rows.map((r): Record<string, CellValue> => ({ ...r })),
       },

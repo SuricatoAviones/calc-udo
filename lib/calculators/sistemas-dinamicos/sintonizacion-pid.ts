@@ -105,7 +105,7 @@ export function controllerTf({ kp, ti, td }: PidSettings): TransferFunction {
   return { num: trimPoly([kp * td, kp, kp / ti]), den: [1, 0] };
 }
 
-const tiTex = (ti: number) => (Number.isFinite(ti) ? n(ti) : '\\infty');
+const tiTex = (ti: number) => (Number.isFinite(ti) ? n(ti) : String.raw`\infty`);
 
 export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCode> {
   const steps: Step[] = [];
@@ -122,15 +122,14 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
       title: 'Primer método: curva de reacción',
       explanation:
         'La respuesta de la planta al escalón tiene forma de S. Con la tangente en el punto de inflexión se miden el tiempo de retardo L y la constante de tiempo T, y la planta se aproxima por Ke^{−Ls}/(Ts + 1) (Ogata, fig. 10-4).',
-      result: `L = ${n(L)}\\ \\text{s},\\quad T = ${n(T)}\\ \\text{s}`,
+      result: String.raw`L = ${n(L)}\ \text{s},\quad T = ${n(T)}\ \text{s}`,
     });
     table = firstMethod(L, T);
     steps.push({
       title: 'Tabla 10-1 de Ziegler-Nichols',
-      formula:
-        'P:\\ K_p = \\frac{T}{L};\\quad PI:\\ K_p = 0.9\\frac{T}{L},\\ T_i = \\frac{L}{0.3};\\quad PID:\\ K_p = 1.2\\frac{T}{L},\\ T_i = 2L,\\ T_d = 0.5L',
-      substitution: `K_p = 1.2\\frac{${n(T)}}{${n(L)}},\\ T_i = 2(${n(L)}),\\ T_d = 0.5(${n(L)})`,
-      result: `\\text{PID: } K_p = ${n(table.PID.kp)},\\ T_i = ${n(table.PID.ti)},\\ T_d = ${n(table.PID.td)}`,
+      formula: String.raw`P:\ K_p = \frac{T}{L};\quad PI:\ K_p = 0.9\frac{T}{L},\ T_i = \frac{L}{0.3};\quad PID:\ K_p = 1.2\frac{T}{L},\ T_i = 2L,\ T_d = 0.5L`,
+      substitution: String.raw`K_p = 1.2\frac{${n(T)}}{${n(L)}},\ T_i = 2(${n(L)}),\ T_d = 0.5(${n(L)})`,
+      result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
     });
   } else {
     if (input.method === 'oscilacion') {
@@ -140,7 +139,7 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
         title: 'Segundo método: oscilación sostenida',
         explanation:
           'Con Ti = ∞ y Td = 0 se aumenta Kp desde 0 hasta que la salida oscila con amplitud constante: esa es la ganancia crítica Kcr y el periodo de la oscilación es Pcr (Ogata, fig. 10-5 y 10-6).',
-        result: `K_{cr} = ${n(kcr)},\\quad P_{cr} = ${n(pcr)}\\ \\text{s}`,
+        result: String.raw`K_{cr} = ${n(kcr)},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
       });
     } else {
       const parsed = parseTf(input.plant, 'G(s)');
@@ -157,8 +156,8 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
         explanation:
           'Con control proporcional (Ti = ∞, Td = 0) la ecuación característica en lazo cerrado es D(s) + Kp N(s) = 0. La ganancia crítica es el valor de Kp que hace al sistema marginalmente estable; se obtiene con el criterio de Routh (Ogata, ejemplo 10-1).',
         formula: '1 + K_pG(s) = 0',
-        result: `G(s) = ${tfTex(plant)},\\quad ${polyTex(D)} + ${
-          N.length === 1 && N[0] === 1 ? 'K_p' : `K_p\\left(${polyTex(N)}\\right)`
+        result: String.raw`G(s) = ${tfTex(plant)},\quad ${polyTex(D)} + ${
+          N.length === 1 && N[0] === 1 ? 'K_p' : String.raw`K_p\left(${polyTex(N)}\right)`
         } = 0`,
       });
       const routh = routhArray(coefs, 'Kp');
@@ -188,18 +187,17 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
       pcr = (2 * Math.PI) / omega;
       steps.push({
         title: 'Ganancia y periodo críticos',
-        formula: 'P_{cr} = \\frac{2\\pi}{\\omega_{cr}}',
-        substitution: `P_{cr} = \\frac{2\\pi}{${n(omega)}}`,
-        result: `K_{cr} = ${n(kcr)},\\quad \\omega_{cr} = ${n(omega)}\\ \\text{rad/s},\\quad P_{cr} = ${n(pcr)}\\ \\text{s}`,
+        formula: String.raw`P_{cr} = \frac{2\pi}{\omega_{cr}}`,
+        substitution: String.raw`P_{cr} = \frac{2\pi}{${n(omega)}}`,
+        result: String.raw`K_{cr} = ${n(kcr)},\quad \omega_{cr} = ${n(omega)}\ \text{rad/s},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
       });
     }
     table = secondMethod(kcr, pcr);
     steps.push({
       title: 'Tabla 10-2 de Ziegler-Nichols',
-      formula:
-        'P:\\ K_p = 0.5K_{cr};\\quad PI:\\ K_p = 0.45K_{cr},\\ T_i = \\frac{P_{cr}}{1.2};\\quad PID:\\ K_p = 0.6K_{cr},\\ T_i = 0.5P_{cr},\\ T_d = 0.125P_{cr}',
-      substitution: `K_p = 0.6(${n(kcr)}),\\ T_i = 0.5(${n(pcr)}),\\ T_d = 0.125(${n(pcr)})`,
-      result: `\\text{PID: } K_p = ${n(table.PID.kp)},\\ T_i = ${n(table.PID.ti)},\\ T_d = ${n(table.PID.td)}`,
+      formula: String.raw`P:\ K_p = 0.5K_{cr};\quad PI:\ K_p = 0.45K_{cr},\ T_i = \frac{P_{cr}}{1.2};\quad PID:\ K_p = 0.6K_{cr},\ T_i = 0.5P_{cr},\ T_d = 0.125P_{cr}`,
+      substitution: String.raw`K_p = 0.6(${n(kcr)}),\ T_i = 0.5(${n(pcr)}),\ T_d = 0.125(${n(pcr)})`,
+      result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
     });
   }
 
@@ -212,13 +210,13 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
         ? 'Primer método de Ziegler-Nichols'
         : 'Segundo método de Ziegler-Nichols',
     columns: [
-      { key: 'tipo', header: '\\text{Controlador}', format: 'latex' },
+      { key: 'tipo', header: String.raw`\text{Controlador}`, format: 'latex' },
       { key: 'kp', header: 'K_p' },
       { key: 'ti', header: 'T_i', format: 'latex' },
       { key: 'td', header: 'T_d' },
     ],
     rows: (['P', 'PI', 'PID'] as const).map((k) => ({
-      tipo: `\\text{${k}}`,
+      tipo: String.raw`\text{${k}}`,
       kp: table[k].kp,
       ti: tiTex(table[k].ti),
       td: table[k].td,
@@ -233,8 +231,8 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
   steps.push({
     title: `Controlador ${input.controller}`,
     explanation: zeroNote,
-    formula: 'G_c(s) = K_p\\left(1 + \\frac{1}{T_is} + T_ds\\right)',
-    substitution: `G_c(s) = ${n(settings.kp)}\\left(1${Number.isFinite(settings.ti) ? ` + \\frac{1}{${n(settings.ti)}s}` : ''}${settings.td ? ` + ${n(settings.td)}s` : ''}\\right)`,
+    formula: String.raw`G_c(s) = K_p\left(1 + \frac{1}{T_is} + T_ds\right)`,
+    substitution: String.raw`G_c(s) = ${n(settings.kp)}\left(1${Number.isFinite(settings.ti) ? String.raw` + \frac{1}{${n(settings.ti)}s}` : ''}${settings.td ? ` + ${n(settings.td)}s` : ''}\right)`,
     result: `G_c(s) = ${tfTex(controller)}${input.controller === 'PID' ? ` = ${zpkTex(controller)}` : ''}`,
   });
 
@@ -251,8 +249,8 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
     steps.push({
       title: 'Lazo cerrado con el controlador',
       explanation: stable ? undefined : 'El lazo cerrado con este controlador no es estable.',
-      formula: '\\frac{C(s)}{R(s)} = \\frac{G_c(s)G(s)}{1 + G_c(s)G(s)}',
-      result: `\\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+      formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_c(s)G(s)}{1 + G_c(s)G(s)}`,
+      result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
     });
     if (stable) {
       const response = timeResponse(closedLoop, 'escalon');
@@ -264,7 +262,7 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
         steps.push({
           title: 'Respuesta al escalón unitario',
           explanation: `Sobrepaso máximo ≈ ${formatNumber(100 * specs.overshoot, 4)} %. Las reglas de Ziegler-Nichols suelen dar entre 10 y 60 % (25 % en promedio); si es excesivo se hace una sintonización fina (Ogata, sec. 10-2).`,
-          result: `M_p = ${n(100 * specs.overshoot)}\\,\\%${specs.peak ? `,\\quad t_p = ${n(specs.peak)}\\ \\text{s}` : ''}${specs.settling2 ? `,\\quad t_s = ${n(specs.settling2)}\\ \\text{s}\\ (2\\,\\%)` : ''}`,
+          result: String.raw`M_p = ${n(100 * specs.overshoot)}\,\%${specs.peak ? String.raw`,\quad t_p = ${n(specs.peak)}\ \text{s}` : ''}${specs.settling2 ? String.raw`,\quad t_s = ${n(specs.settling2)}\ \text{s}\ (2\,\%)` : ''}`,
         });
         if (specs.overshoot > 0.4)
           notices.push({
@@ -293,18 +291,18 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
     },
     {
       label: 'Parámetros',
-      value: `K_p = ${n(settings.kp)},\\ T_i = ${tiTex(settings.ti)},\\ T_d = ${n(settings.td)}`,
+      value: String.raw`K_p = ${n(settings.kp)},\ T_i = ${tiTex(settings.ti)},\ T_d = ${n(settings.td)}`,
     },
   ];
   if (kcr !== null && pcr !== null)
     summary.push({
       label: 'Críticos',
-      value: `K_{cr} = ${n(kcr)},\\ P_{cr} = ${n(pcr)}\\ \\text{s}`,
+      value: String.raw`K_{cr} = ${n(kcr)},\ P_{cr} = ${n(pcr)}\ \text{s}`,
     });
   if (overshoot !== null)
     summary.push({
       label: 'Sobrepaso en lazo cerrado',
-      value: `M_p = ${n(100 * overshoot)}\\,\\%`,
+      value: String.raw`M_p = ${n(100 * overshoot)}\,\%`,
     });
 
   return {

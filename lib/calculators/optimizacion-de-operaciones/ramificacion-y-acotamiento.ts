@@ -113,12 +113,13 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
       integer.length === lp.variables.length
         ? 'Programación entera pura: todas las variables deben ser enteras.'
         : 'Programación entera mixta: solo estas variables deben ser enteras; las demás pueden tomar valores fraccionarios.',
-    result: integer.map((j) => vars[j]).join(',\\ ') + '\\ \\in \\mathbb{Z}',
+    result: integer.map((j) => vars[j]).join(String.raw`,\ `) + String.raw`\ \in \mathbb{Z}`,
   });
 
   const boundLatex = (b: Bound) =>
-    `${vars[b.variable]} ${b.relation === '<=' ? '\\le' : '\\ge'} ${b.value.toLatex()}`;
-  const pointLatex = (x: Rational[]) => x.map((v, j) => `${vars[j]} = ${v.toLatex()}`).join(',\\ ');
+    `${vars[b.variable]} ${b.relation === '<=' ? String.raw`\le` : String.raw`\ge`} ${b.value.toLatex()}`;
+  const pointLatex = (x: Rational[]) =>
+    x.map((v, j) => `${vars[j]} = ${v.toLatex()}`).join(String.raw`,\ `);
 
   const nodes: BranchNode[] = [];
   /** Solución exacta de cada nodo, para la tabla. */
@@ -179,7 +180,7 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
       z: solved.z.toNumber(),
       x: solved.x.map((v) => v.toNumber()),
     };
-    const solution = `${pointLatex(solved.x)},\\quad z = ${solved.z.toLatex()}`;
+    const solution = String.raw`${pointLatex(solved.x)},\quad z = ${solved.z.toLatex()}`;
 
     const current = incumbent as { z: Rational; x: Rational[] } | null;
     const noBetter =
@@ -210,7 +211,7 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
       title,
       substitution: solution,
       explanation: `${lp.variables[fractional]} = ${value.toText()} no es entera: se ramifica con ${lp.variables[fractional]} ≤ ${floor.toText()} y ${lp.variables[fractional]} ≥ ${floor.add(Rational.ONE).toText()}.`,
-      result: `${vars[fractional]} \\le ${floor.toLatex()} \\quad \\text{o} \\quad ${vars[fractional]} \\ge ${floor.add(Rational.ONE).toLatex()}`,
+      result: String.raw`${vars[fractional]} \le ${floor.toLatex()} \quad \text{o} \quad ${vars[fractional]} \ge ${floor.add(Rational.ONE).toLatex()}`,
     });
     stack.push(
       {
@@ -235,19 +236,19 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
       id: 'nodos',
       title: 'Nodos explorados',
       columns: [
-        { key: 'node', header: '\\text{Nodo}' },
-        { key: 'parent', header: '\\text{Padre}' },
-        { key: 'bounds', header: '\\text{Cotas}', format: 'latex' as const },
-        { key: 'solution', header: '\\text{Solución}', format: 'latex' as const },
+        { key: 'node', header: String.raw`\text{Nodo}` },
+        { key: 'parent', header: String.raw`\text{Padre}` },
+        { key: 'bounds', header: String.raw`\text{Cotas}`, format: 'latex' as const },
+        { key: 'solution', header: String.raw`\text{Solución}`, format: 'latex' as const },
         { key: 'z', header: 'z', format: 'latex' as const },
-        { key: 'outcome', header: '\\text{Resultado}', format: 'text' as const },
+        { key: 'outcome', header: String.raw`\text{Resultado}`, format: 'text' as const },
       ],
       rows: nodes.map((n) => ({
         node: n.id,
         parent: n.parent,
-        bounds: n.bounds.length > 0 ? n.bounds.join(',\\ ') : '\\text{—}',
-        solution: exact[n.id]!.x ? pointLatex(exact[n.id]!.x!) : '\\text{—}',
-        z: exact[n.id]!.z?.toLatex() ?? '\\text{—}',
+        bounds: n.bounds.length > 0 ? n.bounds.join(String.raw`,\ `) : String.raw`\text{—}`,
+        solution: exact[n.id]!.x ? pointLatex(exact[n.id]!.x!) : String.raw`\text{—}`,
+        z: exact[n.id]!.z?.toLatex() ?? String.raw`\text{—}`,
         outcome:
           n.outcome === 'entera'
             ? 'Entera (candidata)'
@@ -276,7 +277,7 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
   trace.steps.push({
     title: 'Solución entera óptima',
     explanation: 'Ya no quedan nodos por explorar: la mejor solución candidata es la óptima.',
-    result: `${pointLatex(best.x)},\\quad z^* = ${best.z.toLatex()}`,
+    result: String.raw`${pointLatex(best.x)},\quad z^* = ${best.z.toLatex()}`,
   });
   return {
     ok: true,

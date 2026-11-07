@@ -283,24 +283,26 @@ export function solvePenalty(input: PenaltyInput): Result {
   const barrierTerms = [
     ...constraints.flatMap((c) =>
       c.relation === '<='
-        ? [`\\frac{1}{-\\left(${c.g.tex}\\right)}`]
+        ? [String.raw`\frac{1}{-\left(${c.g.tex}\right)}`]
         : c.relation === '>='
-          ? [`\\frac{1}{${c.g.tex}}`]
+          ? [String.raw`\frac{1}{${c.g.tex}}`]
           : [],
     ),
-    ...(nonNegative ? Array.from({ length: size }, (_, j) => `\\frac{1}{x_{${j + 1}}}`) : []),
+    ...(nonNegative
+      ? Array.from({ length: size }, (_, j) => String.raw`\frac{1}{x_{${j + 1}}}`)
+      : []),
   ];
   const equalityTerms = constraints
     .filter((c) => c.relation === '=')
-    .map((c) => `\\frac{\\left(${c.g.tex}\\right)^2}{\\sqrt{r}}`);
+    .map((c) => String.raw`\frac{\left(${c.g.tex}\right)^2}{\sqrt{r}}`);
   const sign = sense === 'max' ? '-' : '+';
   const steps: Step[] = [
     {
       title: 'Función barrera',
       explanation:
         'Cada término crece sin límite cuando el punto se acerca a la frontera de una restricción (o a xⱼ = 0), así que la búsqueda nunca sale de la región factible.',
-      formula: `P(x; r) = f(x) ${sign} r\\,B(x)`,
-      result: `P(x; r) = ${parsedF.expr.tex} ${barrierTerms.length > 0 ? `${sign} r\\left(${barrierTerms.join(' + ')}\\right)` : ''}${equalityTerms.length > 0 ? ` ${sign} ${equalityTerms.join(` ${sign} `)}` : ''}`,
+      formula: String.raw`P(x; r) = f(x) ${sign} r\,B(x)`,
+      result: `P(x; r) = ${parsedF.expr.tex} ${barrierTerms.length > 0 ? String.raw`${sign} r\left(${barrierTerms.join(' + ')}\right)` : ''}${equalityTerms.length > 0 ? ` ${sign} ${equalityTerms.join(` ${sign} `)}` : ''}`,
     },
   ];
 
@@ -309,7 +311,7 @@ export function solvePenalty(input: PenaltyInput): Result {
       title: 'Punto inicial',
       explanation:
         'El punto inicial debe ser interior: cumplir las desigualdades en forma estricta (y xⱼ > 0 si las variables son no negativas).',
-      result: `X_0 = ${pointTex(start)} \\ \\text{no es interior}`,
+      result: String.raw`X_0 = ${pointTex(start)} \ \text{no es interior}`,
     });
     return {
       ok: false,
@@ -373,7 +375,7 @@ export function solvePenalty(input: PenaltyInput): Result {
     steps.push({
       title: `Iteración ${k + 1}: r = ${formatNumber(r)}`,
       explanation: `Se ${sense === 'max' ? 'maximiza' : 'minimiza'} P(x; ${formatNumber(r)}) partiendo del punto anterior (${result.iterations} pasos de Newton).`,
-      result: `x^{(${k + 1})} = ${pointTex(x, 6)}, \\quad f = ${n(fx, 8)}, \\quad r\\,B(x) = ${n(r * barrierValue, 6)}`,
+      result: String.raw`x^{(${k + 1})} = ${pointTex(x, 6)}, \quad f = ${n(fx, 8)}, \quad r\,B(x) = ${n(r * barrierValue, 6)}`,
     });
     r *= theta;
   }
@@ -383,7 +385,7 @@ export function solvePenalty(input: PenaltyInput): Result {
     title: 'Estimación del óptimo',
     explanation:
       'Al reducir r, P(x; r) se acerca a f(x) y la sucesión de puntos converge a un óptimo del problema. Si el problema es convexo, r·B(x) acota el error en el valor de f.',
-    result: `x^* \\approx ${pointTex(last.point, 6)}, \\qquad f(x^*) \\approx ${n(last.objective, 8)}`,
+    result: String.raw`x^* \approx ${pointTex(last.point, 6)}, \qquad f(x^*) \approx ${n(last.objective, 8)}`,
   });
 
   const series: Series[] =
@@ -405,10 +407,10 @@ export function solvePenalty(input: PenaltyInput): Result {
     summary: [
       {
         label: 'Óptimo aproximado',
-        value: `x^* \\approx ${pointTex(last.point, 6)}`,
+        value: String.raw`x^* \approx ${pointTex(last.point, 6)}`,
         emphasis: true,
       },
-      { label: 'Valor de la función', value: `f(x^*) \\approx ${n(last.objective, 8)}` },
+      { label: 'Valor de la función', value: String.raw`f(x^*) \approx ${n(last.objective, 8)}` },
       { label: 'Último r', value: `r = ${n(last.r)}` },
     ],
     ...emptyTrace(),
@@ -422,7 +424,7 @@ export function solvePenalty(input: PenaltyInput): Result {
           { key: 'r', header: 'r' },
           ...Array.from({ length: size }, (_, j) => ({ key: `x${j}`, header: `x_{${j + 1}}` })),
           { key: 'f', header: 'f(x)' },
-          { key: 'bound', header: 'r\\,B(x)' },
+          { key: 'bound', header: String.raw`r\,B(x)` },
         ],
         rows: history.map((h, k) => ({
           k: k + 1,

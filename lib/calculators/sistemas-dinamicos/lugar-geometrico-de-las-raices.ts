@@ -38,7 +38,7 @@ import { polyRoots } from '@/lib/math/polynomials';
 
 const DIGITS = 6;
 const n = (v: number) => toLatexNumber(v, DIGITS);
-const deg = (v: number) => `${n(v)}^{\\circ}`;
+const deg = (v: number) => String.raw`${n(v)}^{\circ}`;
 const rect = (z: Complex) => C.toLatexRect(z, DIGITS);
 
 const inputSchema = z.object({
@@ -89,16 +89,20 @@ function fail(
 
 /** D_r(ω) + K·N_r(ω) (o la parte imaginaria), sin los términos nulos. */
 function partTex(d: number[], nn: number[]): string {
-  const dTex = d.every((c) => c === 0) ? '' : laplacePolyTex(d, '\\omega');
+  const dTex = d.every((c) => c === 0) ? '' : laplacePolyTex(d, String.raw`\omega`);
   const nZero = nn.every((c) => c === 0);
   const nIsOne = nn.length === 1 && nn[0] === 1;
-  const kTex = nZero ? '' : nIsOne ? 'K' : `K\\left(${laplacePolyTex(nn, '\\omega')}\\right)`;
+  const kTex = nZero
+    ? ''
+    : nIsOne
+      ? 'K'
+      : String.raw`K\left(${laplacePolyTex(nn, String.raw`\omega`)}\right)`;
   if (!dTex) return kTex || '0';
   return kTex ? `${dTex} + ${kTex}` : dTex;
 }
 
 const intervalTex = ([a, b]: [number, number]) =>
-  `${Number.isFinite(a) ? n(a) : '-\\infty'} < \\sigma < ${Number.isFinite(b) ? n(b) : '\\infty'}`;
+  String.raw`${Number.isFinite(a) ? n(a) : String.raw`-\infty`} < \sigma < ${Number.isFinite(b) ? n(b) : String.raw`\infty`}`;
 
 export function solveRootLocus(
   input: RootLocusInput,
@@ -118,16 +122,18 @@ export function solveRootLocus(
   steps.push({
     title: 'Ecuación característica',
     explanation: `Los polos en lazo cerrado son las raíces de 1 + KG(s)H(s) = 0 para K ≥ 0. Polos de lazo abierto (K = 0, inicio de las ramas): ${rootsText(polyRoots(F.den))}. Ceros de lazo abierto (fin de las ramas): ${data.m ? rootsText(polyRoots(F.num)) : 'ninguno'}. Hay ${data.n} ramas${data.n > data.m ? `; ${data.n - data.m} van al infinito` : ''}.`,
-    formula: '1 + KG(s)H(s) = 0 \\iff D(s) + K\\,N(s) = 0',
-    result: `G(s)H(s) = ${tfTex(F)},\\quad ${laplacePolyTex(F.den)} + ${
-      F.num.length === 1 && F.num[0] === 1 ? 'K' : `K\\left(${laplacePolyTex(F.num)}\\right)`
+    formula: String.raw`1 + KG(s)H(s) = 0 \iff D(s) + K\,N(s) = 0`,
+    result: String.raw`G(s)H(s) = ${tfTex(F)},\quad ${laplacePolyTex(F.den)} + ${
+      F.num.length === 1 && F.num[0] === 1
+        ? 'K'
+        : String.raw`K\left(${laplacePolyTex(F.num)}\right)`
     } = 0`,
   });
   steps.push({
     title: 'Condiciones de ángulo y de magnitud',
     explanation:
       'Un punto s está en el lugar si el ángulo de G(s)H(s) es un múltiplo impar de 180°; la ganancia en ese punto sale de la condición de magnitud.',
-    formula: '\\angle G(s)H(s) = \\pm 180^{\\circ}(2k + 1),\\qquad K = \\frac{1}{|G(s)H(s)|}',
+    formula: String.raw`\angle G(s)H(s) = \pm 180^{\circ}(2k + 1),\qquad K = \frac{1}{|G(s)H(s)|}`,
   });
 
   const segments = realAxisSegments(data);
@@ -135,7 +141,9 @@ export function solveRootLocus(
     title: 'Lugar sobre el eje real',
     explanation:
       'Un punto del eje real está en el lugar si a su derecha hay un número impar de polos y ceros reales (los complejos conjugados se cancelan).',
-    result: segments.length ? segments.map(intervalTex).join(',\\quad ') : '\\text{ningún tramo}',
+    result: segments.length
+      ? segments.map(intervalTex).join(String.raw`,\quad `)
+      : String.raw`\text{ningún tramo}`,
   });
 
   const asym = asymptotes(data);
@@ -143,9 +151,9 @@ export function solveRootLocus(
     steps.push({
       title: 'Asíntotas',
       explanation: `n − m = ${asym.count} ramas tienden al infinito siguiendo las asíntotas.`,
-      formula: `\\text{Ángulos} = \\frac{\\pm 180^{\\circ}(2k + 1)}{n - m},\\qquad \\sigma_a = \\frac{\\sum \\text{polos} - \\sum \\text{ceros}}{n - m}`,
-      substitution: `\\sigma_a = \\frac{(${n(data.poles.reduce((s, p) => s + p.re, 0))}) - (${n(data.zeros.reduce((s, z) => s + z.re, 0))})}{${asym.count}}`,
-      result: `\\text{Ángulos: } ${asym.angles.map(deg).join(',\\ ')},\\qquad \\sigma_a = ${n(asym.centroid)}`,
+      formula: String.raw`\text{Ángulos} = \frac{\pm 180^{\circ}(2k + 1)}{n - m},\qquad \sigma_a = \frac{\sum \text{polos} - \sum \text{ceros}}{n - m}`,
+      substitution: String.raw`\sigma_a = \frac{(${n(data.poles.reduce((s, p) => s + p.re, 0))}) - (${n(data.zeros.reduce((s, z) => s + z.re, 0))})}{${asym.count}}`,
+      result: String.raw`\text{Ángulos: } ${asym.angles.map(deg).join(String.raw`,\ `)},\qquad \sigma_a = ${n(asym.centroid)}`,
     });
   }
 
@@ -160,7 +168,7 @@ export function solveRootLocus(
             `s = ${C.toTextRect(p.s, DIGITS)} da K = ${formatNumber(p.K, DIGITS)}${p.valid ? ' (sí)' : ' (no está en el lugar)'}`,
         )
         .join('; ')}.`,
-      formula: "\\frac{dK}{ds} = 0 \\iff N(s)D'(s) - N'(s)D(s) = 0",
+      formula: String.raw`\frac{dK}{ds} = 0 \iff N(s)D'(s) - N'(s)D(s) = 0`,
       result: `${laplacePolyTex(breaks.polynomial)} = 0`,
     });
   }
@@ -175,10 +183,11 @@ export function solveRootLocus(
         title: `${d.kind === 'polo' ? 'Salida del polo' : 'Llegada al cero'} ${C.toTextRect(d.root, DIGITS)}`,
         substitution: d.others
           .map(
-            (o) => `\\angle(${rect(d.root)} - (${rect(o.from)})) = ${deg(o.angle)}\\ (${o.kind})`,
+            (o) =>
+              String.raw`\angle(${rect(d.root)} - (${rect(o.from)})) = ${deg(o.angle)}\ (${o.kind})`,
           )
-          .join(',\\ '),
-        result: `${d.kind === 'polo' ? '\\theta' : '\\phi'} = ${deg(d.angle)}`,
+          .join(String.raw`,\ `),
+        result: `${d.kind === 'polo' ? String.raw`\theta` : String.raw`\phi`} = ${deg(d.angle)}`,
       })),
     });
   }
@@ -192,12 +201,12 @@ export function solveRootLocus(
     explanation: crossings.length
       ? 'Se sustituye s = jω en la ecuación característica y se igualan a cero la parte real y la imaginaria (o se usa el arreglo de Routh). La ganancia del cruce es la ganancia crítica: para K mayores el sistema es inestable.'
       : 'Al sustituir s = jω no hay soluciones con K positiva y ω > 0: el lugar no cruza el eje imaginario.',
-    formula: 'D(j\\omega) + K\\,N(j\\omega) = 0',
-    substitution: `\\left(${partTex(dSplit.re, nSplit.re)}\\right) + j\\left(${partTex(dSplit.im, nSplit.im)}\\right) = 0`,
+    formula: String.raw`D(j\omega) + K\,N(j\omega) = 0`,
+    substitution: String.raw`\left(${partTex(dSplit.re, nSplit.re)}\right) + j\left(${partTex(dSplit.im, nSplit.im)}\right) = 0`,
     result: crossings.length
       ? crossings
-          .map((c) => `\\omega = \\pm ${n(c.omega)}\\ \\text{rad/s},\\ K = ${n(c.K)}`)
-          .join(';\\quad ')
+          .map((c) => String.raw`\omega = \pm ${n(c.omega)}\ \text{rad/s},\ K = ${n(c.K)}`)
+          .join(String.raw`;\quad `)
       : undefined,
   });
 
@@ -210,9 +219,11 @@ export function solveRootLocus(
       explanation: zetaPoints.length
         ? `Los polos con ese amortiguamiento están sobre la recta que forma ±cos⁻¹ζ = ±${formatNumber(beta, DIGITS)}° con el eje real negativo. Donde la recta corta el lugar se cumple la condición de ángulo; K sale de la condición de magnitud.`
         : 'La recta de ese factor de amortiguamiento no corta el lugar.',
-      formula: 'K = \\left|\\frac{D(s)}{N(s)}\\right|',
+      formula: String.raw`K = \left|\frac{D(s)}{N(s)}\right|`,
       result: zetaPoints.length
-        ? zetaPoints.map((p) => `s = ${rect(p.s)},\\ K = ${n(p.K)}`).join(';\\quad ')
+        ? zetaPoints
+            .map((p) => String.raw`s = ${rect(p.s)},\ K = ${n(p.K)}`)
+            .join(String.raw`;\quad `)
         : undefined,
       children: zetaPoints.map((p) => {
         const others = closedLoopRoots(data, p.K).filter(
@@ -237,11 +248,11 @@ export function solveRootLocus(
       explanation: unstable
         ? 'Hay polos con parte real positiva: el sistema es inestable con esta ganancia.'
         : undefined,
-      formula: 'D(s) + K\\,N(s) = 0',
+      formula: String.raw`D(s) + K\,N(s) = 0`,
       result: closedLoop
         .filter((r) => r.im >= -1e-12)
         .map((r) => `s = ${rect(r)}`)
-        .join(',\\ '),
+        .join(String.raw`,\ `),
     });
   }
 
@@ -321,18 +332,22 @@ export function solveRootLocus(
     id: 'puntos',
     title: 'Puntos notables',
     columns: [
-      { key: 'punto', header: '\\text{Punto}', format: 'latex' },
+      { key: 'punto', header: String.raw`\text{Punto}`, format: 'latex' },
       { key: 's', header: 's', format: 'latex' },
       { key: 'K', header: 'K' },
     ],
     rows: [
-      ...breakaway.map((b) => ({ punto: '\\text{Ruptura}', s: rect(b.s), K: b.K })),
+      ...breakaway.map((b) => ({ punto: String.raw`\text{Ruptura}`, s: rect(b.s), K: b.K })),
       ...crossings.map((c) => ({
-        punto: '\\text{Cruce con } j\\omega',
-        s: `\\pm j${n(c.omega)}`,
+        punto: String.raw`\text{Cruce con } j\omega`,
+        s: String.raw`\pm j${n(c.omega)}`,
         K: c.K,
       })),
-      ...zetaPoints.map((p) => ({ punto: `\\zeta = ${n(input.zeta!)}`, s: rect(p.s), K: p.K })),
+      ...zetaPoints.map((p) => ({
+        punto: String.raw`\zeta = ${n(input.zeta!)}`,
+        s: rect(p.s),
+        K: p.K,
+      })),
     ],
   });
 
@@ -340,29 +355,31 @@ export function solveRootLocus(
   if (asym)
     summary.push({
       label: 'Asíntotas',
-      value: `${asym.angles.map(deg).join(',\\ ')},\\ \\sigma_a = ${n(asym.centroid)}`,
+      value: String.raw`${asym.angles.map(deg).join(String.raw`,\ `)},\ \sigma_a = ${n(asym.centroid)}`,
     });
   if (breakaway.length)
     summary.push({
       label: 'Ruptura',
-      value: breakaway.map((b) => `s = ${rect(b.s)}\\ (K = ${n(b.K)})`).join(',\\ '),
+      value: breakaway
+        .map((b) => String.raw`s = ${rect(b.s)}\ (K = ${n(b.K)})`)
+        .join(String.raw`,\ `),
     });
   if (crossings.length) {
     summary.push({
       label: 'Ganancia crítica',
       value: crossings
-        .map((c) => `K = ${n(c.K)},\\ \\omega = ${n(c.omega)}\\ \\text{rad/s}`)
-        .join(';\\ '),
+        .map((c) => String.raw`K = ${n(c.K)},\ \omega = ${n(c.omega)}\ \text{rad/s}`)
+        .join(String.raw`;\ `),
       emphasis: true,
     });
   } else {
-    summary.push({ label: 'Cruces con el eje imaginario', value: '\\text{ninguno}' });
+    summary.push({ label: 'Cruces con el eje imaginario', value: String.raw`\text{ninguno}` });
   }
   if (zetaPoints.length)
     summary.push({
       // El rótulo se muestra en mayúsculas: la ζ va en el valor, no en el rótulo.
       label: 'Amortiguamiento pedido',
-      value: `\\zeta = ${n(input.zeta!)}:\\ ${zetaPoints.map((p) => `s = ${rect(p.s)},\\ K = ${n(p.K)}`).join(';\\ ')}`,
+      value: String.raw`\zeta = ${n(input.zeta!)}:\ ${zetaPoints.map((p) => String.raw`s = ${rect(p.s)},\ K = ${n(p.K)}`).join(String.raw`;\ `)}`,
     });
   if (summary.length && !summary.some((s) => s.emphasis)) summary[0]!.emphasis = true;
 

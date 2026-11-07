@@ -162,7 +162,7 @@ function linearCombination(coefficients: Rational[], names: Latex[]): Latex {
     .filter(({ c }) => !c.isZero())
     .map(({ c, j }, i) => {
       const abs = c.abs();
-      const body = `${abs.eq(Rational.ONE) ? '' : `${abs.toLatex()}\\,`}${names[j]}`;
+      const body = `${abs.eq(Rational.ONE) ? '' : String.raw`${abs.toLatex()}\,`}${names[j]}`;
       if (i === 0) return c.sign() < 0 ? `-${body}` : body;
       return c.sign() < 0 ? `- ${body}` : `+ ${body}`;
     });
@@ -186,8 +186,12 @@ export function solveUndeterminedCoefficients(
   const b = Rational.fromNumber(input.b);
   const lhsName = derivative
     ? `f^{(${d})}(x_i)`
-    : `\\int_{${nodeTermPoint(input.a)}}^{${nodeTermPoint(input.b)}} f(x)\\,dx`;
-  const scale = derivative ? (d === 1 ? '\\frac{1}{h}' : `\\frac{1}{h^{${d}}}`) : 'h';
+    : String.raw`\int_{${nodeTermPoint(input.a)}}^{${nodeTermPoint(input.b)}} f(x)\,dx`;
+  const scale = derivative
+    ? d === 1
+      ? String.raw`\frac{1}{h}`
+      : String.raw`\frac{1}{h^{${d}}}`
+    : 'h';
 
   const matrix = Array.from({ length: size }, (_, k) => t.map((tj) => power(tj, k)));
   const rhs = Array.from({ length: size }, (_, k) => moment(input.target, k, d, a, b));
@@ -196,7 +200,7 @@ export function solveUndeterminedCoefficients(
     {
       title: 'Forma de la fórmula',
       explanation: `Se buscan ${size} coeficientes c₀ … c${'₀₁₂₃₄₅₆₇₈₉'[size - 1]} para los nodos t = ${nodes.map((v) => formatNumber(v)).join(', ')} (en unidades de h, contados desde xᵢ).`,
-      formula: `${lhsName} \\approx ${scale} \\sum_{j} c_j\\, f(x_i + t_j h)`,
+      formula: String.raw`${lhsName} \approx ${scale} \sum_{j} c_j\, f(x_i + t_j h)`,
     },
     {
       title: 'Condiciones: exacta para 1, t, t², …',
@@ -225,7 +229,7 @@ export function solveUndeterminedCoefficients(
   steps.push({
     title: 'Resolver el sistema',
     explanation: 'Se resuelve con fracciones exactas (eliminación de Gauss-Jordan).',
-    result: solution.map((c, j) => `c_{${j}} = ${c.toLatex()}`).join(',\\quad '),
+    result: solution.map((c, j) => `c_{${j}} = ${c.toLatex()}`).join(String.raw`,\quad `),
   });
 
   // Primer k en que la fórmula deja de ser exacta: da el orden del error.
@@ -244,7 +248,7 @@ export function solveUndeterminedCoefficients(
     break;
   }
 
-  const formulaTex = `${lhsName} \\approx ${scale}\\left[${formulaSum(solution, nodes)}\\right]`;
+  const formulaTex = String.raw`${lhsName} \approx ${scale}\left[${formulaSum(solution, nodes)}\right]`;
   const derivativeK = errorPower === null ? null : derivative ? errorPower + d : errorPower - 1;
   steps.push({
     title: 'Fórmula',
@@ -259,11 +263,11 @@ export function solveUndeterminedCoefficients(
     formula:
       errorPower === null
         ? undefined
-        : `E = \\frac{M_{${exactDegree + 1}} - \\sum_j c_j t_j^{${exactDegree + 1}}}{${exactDegree + 1}!}\\, h^{${errorPower}} f^{(${derivativeK})}(\\xi)`,
+        : String.raw`E = \frac{M_{${exactDegree + 1}} - \sum_j c_j t_j^{${exactDegree + 1}}}{${exactDegree + 1}!}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
     result:
       errorPower === null || errorConstant === null
         ? undefined
-        : `E = ${errorConstant.toLatex()}\\, h^{${errorPower}} f^{(${derivativeK})}(\\xi) = O(h^{${errorPower}})`,
+        : String.raw`E = ${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi) = O(h^{${errorPower}})`,
   });
 
   let applied: number | null = null;
@@ -295,8 +299,8 @@ export function solveUndeterminedCoefficients(
       explanation: `Con xᵢ = ${formatNumber(x0)} y h = ${formatNumber(h)}.`,
       substitution: nodes
         .map((tj, j) => `f(${toLatexNumber(x0 + tj * h)}) = ${toLatexNumber(values[j]!)}`)
-        .join(',\\ '),
-      result: `${derivative ? `f^{(${d})}(${toLatexNumber(x0)})` : '\\int f(x)\\,dx'} \\approx ${toLatexNumber(applied)}`,
+        .join(String.raw`,\ `),
+      result: String.raw`${derivative ? `f^{(${d})}(${toLatexNumber(x0)})` : String.raw`\int f(x)\,dx`} \approx ${toLatexNumber(applied)}`,
     });
   }
 
@@ -307,7 +311,7 @@ export function solveUndeterminedCoefficients(
       : [
           {
             label: 'Error de truncamiento',
-            value: `${errorConstant.toLatex()}\\, h^{${errorPower}} f^{(${derivativeK})}(\\xi)`,
+            value: String.raw`${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
           },
         ]),
     ...(applied === null ? [] : [{ label: 'Valor aproximado', value: toLatexNumber(applied) }]),
@@ -332,7 +336,7 @@ export function solveUndeterminedCoefficients(
         title: 'Coeficientes',
         columns: [
           { key: 'node', header: 't_j', format: 'latex' },
-          { key: 'term', header: '\\text{Punto}', format: 'latex' },
+          { key: 'term', header: String.raw`\text{Punto}`, format: 'latex' },
           { key: 'c', header: 'c_j', format: 'latex' },
         ],
         rows: solution.map((c, j) => ({

@@ -65,7 +65,7 @@ const n = toLatexNumber;
 const op = toLatexOperand;
 
 function vectorTex(values: number[]): string {
-  return `\\begin{bmatrix} ${values.map((v) => n(v, 7)).join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${values.map((v) => n(v, 7)).join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 export function solveNewtonSystem(input: NewtonSystemInput): Result {
@@ -112,8 +112,8 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
     {
       title: 'Sistema y matriz jacobiana',
       explanation: `Se buscan ${names.join(', ')} tales que todas las funciones valgan 0. La jacobiana reúne las derivadas parciales de cada función respecto de cada variable.`,
-      formula: `\\begin{aligned} ${equations.map((e, i) => `f_{${i + 1}}(${names.join(', ')}) &= ${e.tex} = 0`).join(' \\\\ ')} \\end{aligned}`,
-      result: `J = \\begin{bmatrix} ${jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(' \\\\ ')} \\end{bmatrix}`,
+      formula: String.raw`\begin{aligned} ${equations.map((e, i) => `f_{${i + 1}}(${names.join(', ')}) &= ${e.tex} = 0`).join(String.raw` \\ `)} \end{aligned}`,
+      result: String.raw`J = \begin{bmatrix} ${jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`,
     },
   ];
   const trace = () => ({
@@ -126,7 +126,7 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         columns: [
           { key: 'i', header: 'i' },
           ...names.map((v) => ({ key: v, header: `${v}_i` })),
-          { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+          { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
         ],
         rows,
       },
@@ -160,11 +160,11 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         ...trace(),
       };
     }
-    const at = `(${point.map((v) => n(v)).join(',\\ ')})`;
+    const at = `(${point.map((v) => n(v)).join(String.raw`,\ `)})`;
     const children: Step[] = [
       {
         title: 'Evaluar las funciones',
-        result: F.map((v, k) => `f_{${k + 1}}${at} = ${n(v)}`).join(',\\quad '),
+        result: F.map((v, k) => `f_{${k + 1}}${at} = ${n(v)}`).join(String.raw`,\quad `),
       },
       {
         title: 'Evaluar la jacobiana',
@@ -197,30 +197,28 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
       const [[ux, uy], [vx, vy]] = J as [[number, number], [number, number]];
       children.push({
         title: 'Determinante de la jacobiana',
-        formula:
-          '\\det J = \\frac{\\partial f_1}{\\partial x}\\frac{\\partial f_2}{\\partial y} - \\frac{\\partial f_1}{\\partial y}\\frac{\\partial f_2}{\\partial x}',
-        substitution: `\\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
-        result: `\\det J = ${n(det!)}`,
+        formula: String.raw`\det J = \frac{\partial f_1}{\partial x}\frac{\partial f_2}{\partial y} - \frac{\partial f_1}{\partial y}\frac{\partial f_2}{\partial x}`,
+        substitution: String.raw`\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
+        result: String.raw`\det J = ${n(det!)}`,
       });
       children.push({
         title: 'Nuevos valores (ecuaciones 6.24)',
-        formula:
-          'x_{i+1} = x_i - \\frac{f_1 \\frac{\\partial f_2}{\\partial y} - f_2 \\frac{\\partial f_1}{\\partial y}}{\\det J}, \\quad y_{i+1} = y_i - \\frac{f_2 \\frac{\\partial f_1}{\\partial x} - f_1 \\frac{\\partial f_2}{\\partial x}}{\\det J}',
-        substitution: `x_{${it}} = ${n(point[0]!)} - \\frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det!)}}, \\quad y_{${it}} = ${n(point[1]!)} - \\frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det!)}}`,
-        result: `x_{${it}} = ${n(next[0]!)}, \\quad y_{${it}} = ${n(next[1]!)}`,
+        formula: String.raw`x_{i+1} = x_i - \frac{f_1 \frac{\partial f_2}{\partial y} - f_2 \frac{\partial f_1}{\partial y}}{\det J}, \quad y_{i+1} = y_i - \frac{f_2 \frac{\partial f_1}{\partial x} - f_1 \frac{\partial f_2}{\partial x}}{\det J}`,
+        substitution: String.raw`x_{${it}} = ${n(point[0]!)} - \frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det!)}}, \quad y_{${it}} = ${n(point[1]!)} - \frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det!)}}`,
+        result: String.raw`x_{${it}} = ${n(next[0]!)}, \quad y_{${it}} = ${n(next[1]!)}`,
       });
     } else {
       children.push({
         title: 'Resolver J Δ = −F',
         explanation: 'Se resuelve el sistema lineal con eliminación de Gauss y pivoteo parcial.',
-        formula: 'J\\,\\Delta = -F',
-        substitution: `${texMatrix(J, 7)} \\Delta = ${vectorTex(F.map((v) => -v))}`,
-        result: `\\Delta = ${vectorTex(delta)}`,
+        formula: String.raw`J\,\Delta = -F`,
+        substitution: String.raw`${texMatrix(J, 7)} \Delta = ${vectorTex(F.map((v) => -v))}`,
+        result: String.raw`\Delta = ${vectorTex(delta)}`,
       });
       children.push({
         title: 'Nuevos valores',
-        formula: 'x_{i+1} = x_i + \\Delta',
-        result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(',\\quad '),
+        formula: String.raw`x_{i+1} = x_i + \Delta`,
+        result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(String.raw`,\quad `),
       });
     }
     const errors = next.map((v, k) => (v === 0 ? null : Math.abs((v - point[k]!) / v) * 100));
@@ -233,17 +231,16 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         : ea === null
           ? 'No está definido para una variable que vale 0. Se sigue iterando.'
           : `El mayor error no es menor que εs = ${formatNumber(input.tolerance)} %: se sigue iterando.`,
-      formula:
-        '\\varepsilon_a = \\max_k \\left|\\frac{x_k^{(i+1)} - x_k^{(i)}}{x_k^{(i+1)}}\\right| 100\\%',
+      formula: String.raw`\varepsilon_a = \max_k \left|\frac{x_k^{(i+1)} - x_k^{(i)}}{x_k^{(i+1)}}\right| 100\%`,
       result:
         ea === null
           ? undefined
           : names
               .map(
                 (v, k) =>
-                  `\\varepsilon_{a,${v}} = ${errors[k] === null ? '\\text{—}' : n(errors[k]!, 6)}\\,\\%`,
+                  String.raw`\varepsilon_{a,${v}} = ${errors[k] === null ? String.raw`\text{—}` : n(errors[k]!, 6)}\,\%`,
               )
-              .join(',\\quad '),
+              .join(String.raw`,\quad `),
     });
     steps.push({ title: `Iteración ${it}`, children });
     point = next;
@@ -256,16 +253,18 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
       steps.push({
         title: 'Comprobación',
         explanation: 'Se sustituye la solución en las ecuaciones: deben dar prácticamente 0.',
-        result: residuals.map((v, k) => `f_{${k + 1}} = ${n(v, 4)}`).join(',\\quad '),
+        result: residuals.map((v, k) => `f_{${k + 1}} = ${n(v, 4)}`).join(String.raw`,\quad `),
       });
       const summary: SummaryItem[] = [
         {
           label: 'Solución aproximada',
-          value: names.map((v, k) => `${v} \\approx ${n(point[k]!)}`).join(',\\quad '),
+          value: names
+            .map((v, k) => String.raw`${v} \approx ${n(point[k]!)}`)
+            .join(String.raw`,\quad `),
           emphasis: true,
         },
         { label: 'Iteraciones', value: String(it) },
-        { label: 'Error aproximado', value: `\\varepsilon_a = ${n(ea, 4)}\\,\\%` },
+        { label: 'Error aproximado', value: String.raw`\varepsilon_a = ${n(ea, 4)}\,\%` },
       ];
       return {
         ok: true,

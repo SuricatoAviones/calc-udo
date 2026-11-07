@@ -331,8 +331,8 @@ export function solveDiodeNetwork(
     explanation: `${modelText} Se supone el estado de cada diodo, se resuelve el circuito lineal y se verifica: un diodo encendido debe conducir en el sentido de su flecha (I_D ≥ 0) y uno apagado no debe alcanzar su umbral (V_AK ≤ V_K). Se empieza con todos apagados.`,
     formula:
       model === 'ideal'
-        ? '\\text{encendido: } I_D \\ge 0,\\qquad \\text{apagado: } V_{AK} \\le 0'
-        : '\\text{encendido: } I_D \\ge 0,\\qquad \\text{apagado: } V_{AK} \\le V_K',
+        ? String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le 0`
+        : String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le V_K`,
   });
 
   const solveFor = (state: readonly boolean[], zeroVk?: ReadonlySet<number>) =>
@@ -442,12 +442,12 @@ export function solveDiodeNetwork(
       const label = texLabel(units[c.unit]!.label);
       if (c.on) {
         const i = Math.abs(c.value) < tolI ? 0 : c.value;
-        return `${label}:\\ I_D = ${engTex(i, 'A')}\\ ${c.ok ? '\\ge 0\\ \\checkmark' : '< 0\\ \\times'}`;
+        return String.raw`${label}:\ I_D = ${engTex(i, 'A')}\ ${c.ok ? String.raw`\ge 0\ \checkmark` : String.raw`< 0\ \times`}`;
       }
       const vk = units[c.unit]!.vk;
       // Los residuos de la conductancia de los diodos apagados (10⁻⁸ V) se muestran como 0.
       const vak = Math.abs(c.value) < tolV ? 0 : c.value;
-      return `${label}:\\ V_{AK} = ${n(vak, 5)}\\ \\text{V}\\ ${c.ok ? '\\le' : '>'}\\ ${n(vk, 4)}\\ ${c.ok ? '\\checkmark' : '\\times'}`;
+      return String.raw`${label}:\ V_{AK} = ${n(vak, 5)}\ \text{V}\ ${c.ok ? String.raw`\le` : '>'}\ ${n(vk, 4)}\ ${c.ok ? String.raw`\checkmark` : String.raw`\times`}`;
     });
     const failText = first
       ? first.on
@@ -464,9 +464,9 @@ export function solveDiodeNetwork(
         : `${intro} Falla: ${failText}. Se cambia el estado de ese diodo y se repite.`,
       formula: checkLines.length ? latexLines(checkLines) : undefined,
       result: ev.consistent
-        ? '\\text{Suposición correcta}'
+        ? String.raw`\text{Suposición correcta}`
         : first
-          ? `\\Rightarrow\\ \\text{se cambia } ${texLabel(units[first.unit]!.label)}`
+          ? String.raw`\Rightarrow\ \text{se cambia } ${texLabel(units[first.unit]!.label)}`
           : undefined,
     });
     assumptionRows.push({
@@ -482,9 +482,9 @@ export function solveDiodeNetwork(
       title: 'Suposiciones',
       columns: [
         { key: 'k', header: 'k', format: 'text' },
-        { key: 'estados', header: '\\text{Estados supuestos}', format: 'text' },
-        { key: 'verificacion', header: '\\text{Verificación}', format: 'text' },
-        { key: 'resultado', header: '\\text{Resultado}', format: 'text' },
+        { key: 'estados', header: String.raw`\text{Estados supuestos}`, format: 'text' },
+        { key: 'verificacion', header: String.raw`\text{Verificación}`, format: 'text' },
+        { key: 'resultado', header: String.raw`\text{Resultado}`, format: 'text' },
       ],
       rows: assumptionRows,
     },
@@ -603,9 +603,11 @@ export function solveDiodeNetwork(
     result: latexLines(
       diodes.map(
         (d) =>
-          `${texLabel(d.label)}:\\ ${d.on ? '\\text{encendido}' : '\\text{apagado}'},\\ V_D = ${
-            Number.isFinite(d.vd) ? `${n(d.vd, 5)}\\ \\text{V}` : '\\text{indeterminado}'
-          },\\ I_D = ${engTex(d.current, 'A')}`,
+          String.raw`${texLabel(d.label)}:\ ${d.on ? String.raw`\text{encendido}` : String.raw`\text{apagado}`},\ V_D = ${
+            Number.isFinite(d.vd)
+              ? String.raw`${n(d.vd, 5)}\ \text{V}`
+              : String.raw`\text{indeterminado}`
+          },\ I_D = ${engTex(d.current, 'A')}`,
       ),
     ),
   });
@@ -624,8 +626,8 @@ export function solveDiodeNetwork(
     id: 'diodos',
     title: 'Diodos',
     columns: [
-      { key: 'diodo', header: '\\text{Diodo}', format: 'text' },
-      { key: 'estado', header: '\\text{Estado}', format: 'text' },
+      { key: 'diodo', header: String.raw`\text{Diodo}`, format: 'text' },
+      { key: 'estado', header: String.raw`\text{Estado}`, format: 'text' },
       { key: 'vd', header: 'V_D', format: 'text' },
       { key: 'id', header: 'I_D', format: 'text' },
       { key: 'pd', header: 'P_D', format: 'text' },

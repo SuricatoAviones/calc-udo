@@ -207,5 +207,5 @@ function polyTexR(p: RPoly, variable: string): string {
 export function uTex(a: URat, variable: string): string {
   const den = trim(a.den);
   if (den.length === 1) return polyTexR(scale(a.num, R1.div(den[0]!)), variable);
-  return `\\frac{${polyTexR(a.num, variable)}}{${polyTexR(den, variable)}}`;
+  return String.raw`\frac{${polyTexR(a.num, variable)}}{${polyTexR(den, variable)}}`;
 }

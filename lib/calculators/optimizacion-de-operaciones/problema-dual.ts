@@ -61,8 +61,8 @@ export function buildDual(lp: LinearProgram): DualModel {
 const dualName = (i: number) => `y_{${i + 1}}`;
 
 function signLatex(sign: DualSign, i: number): string {
-  if (sign === 'libre') return `${dualName(i)}\\ \\text{libre}`;
-  return `${dualName(i)} ${sign === '>=0' ? '\\ge' : '\\le'} 0`;
+  if (sign === 'libre') return String.raw`${dualName(i)}\ \text{libre}`;
+  return `${dualName(i)} ${sign === '>=0' ? String.raw`\ge` : String.raw`\le`} 0`;
 }
 
 export function dualLatex(dual: DualModel): string {
@@ -70,7 +70,7 @@ export function dualLatex(dual: DualModel): string {
   const rows = dual.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(' \\\\ ')} \\\\ &${dual.signs.map(signLatex).join(',\\ ')} \\end{aligned}`;
+  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ &${dual.signs.map(signLatex).join(String.raw`,\ `)} \\end{aligned}`;
 }
 
 /**
@@ -137,11 +137,11 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
     children: [
       ...lp.constraints.map((c, i): Step => ({
         title: `Restricción ${i + 1} (${c.relation === '<=' ? '≤' : c.relation === '>=' ? '≥' : '='})`,
-        result: `\\Rightarrow\\ ${signLatex(dual.signs[i]!, i)},\\quad \\text{coeficiente en } w:\\ ${c.rhs.toLatex()}`,
+        result: String.raw`\Rightarrow\ ${signLatex(dual.signs[i]!, i)},\quad \text{coeficiente en } w:\ ${c.rhs.toLatex()}`,
       })),
       ...lp.variables.map((_, j): Step => ({
         title: `Variable ${lp.variables[j]} ≥ 0`,
-        result: `\\Rightarrow\\ ${linearLatex(
+        result: String.raw`\Rightarrow\ ${linearLatex(
           dual.constraints[j]!.coefficients,
           dual.objective.map((__, i) => dualName(i)),
         )} ${relationLatex[dual.constraints[j]!.relation]} ${lp.objective[j]!.toLatex()}`,
@@ -158,7 +158,7 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
       title: 'Relación entre las soluciones',
       explanation:
         'Por el teorema de dualidad fuerte, si el primal tiene solución óptima el dual también, y los valores óptimos coinciden. Cada yᵢ es el precio dual (valor marginal) del recurso i.',
-      result: `\\begin{array}{l} ${lp.variables.map((_, j) => `${xNames[j]} = ${primal.x[j]!.toLatex()}`).join(',\\ ')},\\quad z^* = ${primal.z.toLatex()} \\\\ ${solvedDual.y.map((y, i) => `${dualName(i)} = ${y.toLatex()}`).join(',\\ ')},\\quad w^* = ${solvedDual.w!.toLatex()} \\end{array}`,
+      result: String.raw`\begin{array}{l} ${lp.variables.map((_, j) => `${xNames[j]} = ${primal.x[j]!.toLatex()}`).join(String.raw`,\ `)},\quad z^* = ${primal.z.toLatex()} \\ ${solvedDual.y.map((y, i) => `${dualName(i)} = ${y.toLatex()}`).join(String.raw`,\ `)},\quad w^* = ${solvedDual.w!.toLatex()} \end{array}`,
     });
   } else {
     trace.steps.push({
@@ -169,12 +169,12 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
 
   const correspondence = [
     ...lp.constraints.map((c, i) => ({
-      primal: `\\text{Restricción } ${i + 1}\\ (${relationLatex[c.relation]})`,
+      primal: String.raw`\text{Restricción } ${i + 1}\ (${relationLatex[c.relation]})`,
       dual: signLatex(dual.signs[i]!, i),
     })),
     ...lp.variables.map((v, j) => ({
-      primal: `${xNames[j]} \\ge 0`,
-      dual: `\\text{Restricción dual } ${j + 1}\\ (${relationLatex[dual.constraints[j]!.relation]} ${lp.objective[j]!.toLatex()})`,
+      primal: String.raw`${xNames[j]} \ge 0`,
+      dual: String.raw`\text{Restricción dual } ${j + 1}\ (${relationLatex[dual.constraints[j]!.relation]} ${lp.objective[j]!.toLatex()})`,
     })),
   ];
 
@@ -206,7 +206,9 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
             },
             {
               label: 'Solución dual (precios duales)',
-              value: solvedDual.y.map((y, i) => `${dualName(i)} = ${y.toLatex()}`).join(',\\ '),
+              value: solvedDual.y
+                .map((y, i) => `${dualName(i)} = ${y.toLatex()}`)
+                .join(String.raw`,\ `),
             },
           ]
         : []),
@@ -218,8 +220,8 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
         id: 'correspondencia',
         title: 'Correspondencia primal–dual',
         columns: [
-          { key: 'primal', header: '\\text{Primal}', format: 'latex' },
-          { key: 'dual', header: '\\text{Dual}', format: 'latex' },
+          { key: 'primal', header: String.raw`\text{Primal}`, format: 'latex' },
+          { key: 'dual', header: String.raw`\text{Dual}`, format: 'latex' },
         ],
         rows: correspondence,
       },

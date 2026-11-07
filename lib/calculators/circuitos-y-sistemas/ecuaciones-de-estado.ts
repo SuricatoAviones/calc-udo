@@ -74,16 +74,15 @@ export function solveStateEquations(
         ? 'Todas tienen parte real negativa: la respuesta natural se extingue y la red es estable.'
         : 'Hay raíces con parte real no negativa: la respuesta natural no se extingue.'
     }`,
-    formula: `\\det(sI - A) = \\det ${sIminusATex(model.A)} = 0`,
+    formula: String.raw`\det(sI - A) = \det ${sIminusATex(model.A)} = 0`,
     result: `${polyTex(charPoly, 's')} = 0`,
   });
   steps.push({
     title: 'Solución con la transformada de Laplace',
     explanation:
       'Se transforma ẋ = Ax + Bu con las fuentes de cd como escalones: sX(s) − x(0) = AX(s) + B·u/s. La inversa de (sI − A) se calcula con el algoritmo de Faddeev-LeVerrier.',
-    formula:
-      '\\mathbf{X}(s) = (sI - A)^{-1}\\left[\\mathbf{x}(0) + \\frac{B\\mathbf{u}}{s}\\right],\\qquad (sI - A)^{-1} = \\frac{\\operatorname{adj}(sI - A)}{\\det(sI - A)}',
-    result: `\\operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
+    formula: String.raw`\mathbf{X}(s) = (sI - A)^{-1}\left[\mathbf{x}(0) + \frac{B\mathbf{u}}{s}\right],\qquad (sI - A)^{-1} = \frac{\operatorname{adj}(sI - A)}{\det(sI - A)}`,
+    result: String.raw`\operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
   });
 
   const transforms = stateTransforms(model, charPoly, M);
@@ -122,10 +121,10 @@ export function solveStateEquations(
       steady !== null
         ? 'Cuando t → ∞, ẋ = 0 y el estado tiende a x(∞) = −A⁻¹Bu (el circuito de cd con los capacitores abiertos y los inductores en corto).'
         : 'A es singular: hay un modo natural en s = 0 y el estado no tiene un único valor estable.',
-    result: model.states.map((s, k) => `${s.tex}(t) = ${solutions[k]}`).join(',\\quad '),
+    result: model.states.map((s, k) => `${s.tex}(t) = ${solutions[k]}`).join(String.raw`,\quad `),
     ...(steady !== null
       ? {
-          formula: `\\mathbf{x}(\\infty) = -A^{-1}B\\mathbf{u} = ${toLatexMatrix(
+          formula: String.raw`\mathbf{x}(\infty) = -A^{-1}B\mathbf{u} = ${toLatexMatrix(
             steady.map((v) => [v]),
             DIGITS,
           )}`,
@@ -139,7 +138,7 @@ export function solveStateEquations(
     id: 'estado',
     title: 'Estado en algunos instantes',
     columns: [
-      { key: 't', header: 't\\ (\\text{s})' },
+      { key: 't', header: String.raw`t\ (\text{s})` },
       ...model.states.map((s, k) => ({ key: `x${k}`, header: `${s.tex}(t)` })),
     ],
     rows: instants.map((t) => ({

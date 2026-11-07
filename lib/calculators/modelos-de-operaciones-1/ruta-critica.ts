@@ -86,7 +86,7 @@ export function solveCriticalPath(
       },
       {
         label: 'Actividades críticas',
-        value: `${critical.length}\\ \\text{de}\\ ${activities.length}`,
+        value: String.raw`${critical.length}\ \text{de}\ ${activities.length}`,
       },
     ],
     ...emptyTrace(),
@@ -97,8 +97,8 @@ export function solveCriticalPath(
         id: 'actividades',
         title: 'Programación de las actividades',
         columns: [
-          { key: 'name', header: '\\text{Actividad}', format: 'text' },
-          { key: 'predecessors', header: '\\text{Predecesoras}', format: 'text' },
+          { key: 'name', header: String.raw`\text{Actividad}`, format: 'text' },
+          { key: 'predecessors', header: String.raw`\text{Predecesoras}`, format: 'text' },
           { key: 'duration', header: 't' },
           ...scheduleColumns(),
         ],

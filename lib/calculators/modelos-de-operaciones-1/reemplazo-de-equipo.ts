@@ -111,8 +111,8 @@ export function solveReplacement(input: ReplacementInput): Result {
       title: 'Edades posibles al inicio de cada año',
       explanation: `Si se conserva, la máquina cumple un año más; si se reemplaza, la nueva tendrá 1 año al inicio del año siguiente. Una máquina de ${maxAge} años debe reemplazarse.`,
       substitution: ages
-        .map((list, i) => `\\text{Año } ${i + 1}: t \\in \\{${list.join(', ')}\\}`)
-        .join(' \\\\ '),
+        .map((list, i) => String.raw`\text{Año } ${i + 1}: t \in \{${list.join(', ')}\}`)
+        .join(String.raw` \\ `),
     },
   ];
 
@@ -156,14 +156,14 @@ export function solveReplacement(input: ReplacementInput): Result {
       f[i]!.set(t, { value: best, decisions: arg });
       rows.push({ state: String(t), values, best, argBest: arg });
       lines.push(
-        `t = ${t}:\\ ${parts.join(',\\ ')} \\ \\Rightarrow\\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${canKeep ? '' : t >= maxAge ? '\\ \\text{(debe reemplazarse)}' : ''}`,
+        String.raw`t = ${t}:\ ${parts.join(String.raw`,\ `)} \ \Rightarrow\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${canKeep ? '' : t >= maxAge ? String.raw`\ \text{(debe reemplazarse)}` : ''}`,
       );
     }
     stageSteps.push({
       title: `Etapa ${i} (año ${i})`,
       formula: last
-        ? 'f_n(t) = \\max\\{r(t) - c(t) + s(t+1),\\ r(0) + s(t) + s(1) - c(0) - I\\}'
-        : `f_{${i}}(t) = \\max\\{r(t) - c(t) + f_{${i + 1}}(t+1),\\ r(0) + s(t) - c(0) - I + f_{${i + 1}}(1)\\}`,
+        ? String.raw`f_n(t) = \max\{r(t) - c(t) + s(t+1),\ r(0) + s(t) + s(1) - c(0) - I\}`
+        : String.raw`f_{${i}}(t) = \max\{r(t) - c(t) + f_{${i + 1}}(t+1),\ r(0) + s(t) - c(0) - I + f_{${i + 1}}(1)\}`,
       substitution: latexLines(lines),
     });
     tables.push(
@@ -172,12 +172,12 @@ export function solveReplacement(input: ReplacementInput): Result {
         title: `Etapa ${i} (año ${i})`,
         stateHeader: 't',
         decisions: [
-          { key: 'K', header: '\\text{K (conservar)}' },
-          { key: 'R', header: '\\text{R (reemplazar)}' },
+          { key: 'K', header: String.raw`\text{K (conservar)}` },
+          { key: 'R', header: String.raw`\text{R (reemplazar)}` },
         ],
         rows,
         bestHeader: `f_{${i}}(t)`,
-        argHeader: '\\text{Decisión}',
+        argHeader: String.raw`\text{Decisión}`,
       }),
     );
   }
@@ -206,7 +206,7 @@ export function solveReplacement(input: ReplacementInput): Result {
       policies.length > 1
         ? 'Hay empates entre conservar y reemplazar, así que existen varias políticas con el mismo ingreso neto.'
         : 'Se recorren las decisiones óptimas desde el año 1.',
-    result: `${policies.map((p) => `(${p.join(', ')})`).join(' \\ \\text{o} \\ ')}, \\qquad f_1(${initialAge}) = ${n(total)}`,
+    result: String.raw`${policies.map((p) => `(${p.join(', ')})`).join(String.raw` \ \text{o} \ `)}, \qquad f_1(${initialAge}) = ${n(total)}`,
   });
 
   return {
@@ -220,7 +220,7 @@ export function solveReplacement(input: ReplacementInput): Result {
       { label: 'Ingreso neto máximo', value: `f_1(${initialAge}) = ${n(total)}`, emphasis: true },
       {
         label: policies.length > 1 ? 'Políticas óptimas' : 'Política óptima',
-        value: policies.map((p) => `(${p.join(', ')})`).join(' \\ \\text{o} \\ '),
+        value: policies.map((p) => `(${p.join(', ')})`).join(String.raw` \ \text{o} \ `),
       },
     ],
     ...emptyTrace(),

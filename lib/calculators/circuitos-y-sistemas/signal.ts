@@ -474,10 +474,10 @@ const TEX_HANDLERS: Record<string, string> = {
   u: 'u',
   escalon: 'u',
   heaviside: 'u',
-  delta: '\\delta',
-  impulso: '\\delta',
-  sen: '\\sin',
-  senh: '\\sinh',
+  delta: String.raw`\delta`,
+  impulso: String.raw`\delta`,
+  sen: String.raw`\sin`,
+  senh: String.raw`\sinh`,
 };
 
 /** LaTeX de una expresión de señal, con u(·) y δ(·) como en los libros. */
@@ -491,7 +491,7 @@ export function signalNodeTex(node: MathNode): string {
       const symbol = TEX_HANDLERS[fn.fn.name];
       if (!symbol) return undefined;
       const inner = fn.args.map((a) => a.toTex(options)).join(',');
-      return `${symbol}\\left(${inner}\\right)`;
+      return String.raw`${symbol}\left(${inner}\right)`;
     },
   });
 }

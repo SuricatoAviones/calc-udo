@@ -19,9 +19,10 @@ export type BisectionInput = BracketingInput;
 const rule: BracketingRule = {
   methodName: 'La bisección',
   pointTitle: 'Punto medio del intervalo',
-  formula: 'x_r = \\frac{x_l + x_u}{2}',
+  formula: String.raw`x_r = \frac{x_l + x_u}{2}`,
   compute: (xl, xu) => (xl + xu) / 2,
-  substitution: (xl, xu) => `x_r = \\frac{${toLatexNumber(xl)} + ${toLatexOperand(xu)}}{2}`,
+  substitution: (xl, xu) =>
+    String.raw`x_r = \frac{${toLatexNumber(xl)} + ${toLatexOperand(xu)}}{2}`,
 };
 
 export const bisection: Calculator<BracketingInput, BracketingValue, BracketingErrorCode> = {

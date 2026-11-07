@@ -74,17 +74,17 @@ export const evaluateMatrix = (M: ParsedExpression[][], x: number[]) =>
 
 /** Matriz de expresiones en LaTeX. */
 export function expressionMatrixTex(M: ParsedExpression[][]): string {
-  return `\\begin{bmatrix} ${M.map((row) => row.map((e) => e.tex).join(' & ')).join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${M.map((row) => row.map((e) => e.tex).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** Vector columna de expresiones en LaTeX. */
 export function expressionVectorTex(v: ParsedExpression[]): string {
-  return `\\begin{bmatrix} ${v.map((e) => e.tex).join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${v.map((e) => e.tex).join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** Punto (x1, …, xn) en LaTeX. */
 export function pointTex(x: number[], digits = 6): string {
-  return `\\left(${x.map((v) => toLatexNumber(clean(v), digits)).join(',\\ ')}\\right)`;
+  return String.raw`\left(${x.map((v) => toLatexNumber(clean(v), digits)).join(String.raw`,\ `)}\right)`;
 }
 
 export function pointText(x: number[], digits = 6): string {
@@ -265,8 +265,8 @@ export interface NlpConstraint {
 }
 
 export const relationTex: Record<ConstraintRelation, string> = {
-  '<=': '\\le',
-  '>=': '\\ge',
+  '<=': String.raw`\le`,
+  '>=': String.raw`\ge`,
   '=': '=',
 };
 

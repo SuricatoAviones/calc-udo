@@ -100,8 +100,8 @@ export function solveMovingAverage(input: MovingAverageInput): ForecastResult {
     children.push({
       title: t <= data.length ? `Periodo ${t}` : `Periodo ${t} (futuro)`,
       substitution: weighted
-        ? `F_{${t}} = \\frac{${window.map((y, k) => `${n(weights[k]!)}(${n(y)})`).join(' + ')}}{${n(weightSum)}}`
-        : `F_{${t}} = \\frac{${window.map((y) => n(y)).join(' + ')}}{${size}}`,
+        ? String.raw`F_{${t}} = \frac{${window.map((y, k) => `${n(weights[k]!)}(${n(y)})`).join(' + ')}}{${n(weightSum)}}`
+        : String.raw`F_{${t}} = \frac{${window.map((y) => n(y)).join(' + ')}}{${size}}`,
       result: `F_{${t}} = ${n(forecast, 6)}`,
     });
   }
@@ -115,8 +115,8 @@ export function solveMovingAverage(input: MovingAverageInput): ForecastResult {
         ? `El pronóstico de cada periodo es el promedio de los ${size} datos anteriores, dando más peso a los más recientes. Los pesos van del periodo más reciente al más antiguo: ${weights.join(', ')} (suman ${weightSum}).`
         : `El pronóstico de cada periodo es el promedio de los ${size} datos anteriores. El primer pronóstico posible es el del periodo ${size + 1}.`,
       formula: weighted
-        ? 'F_{t+1} = \\frac{w_1 Y_t + w_2 Y_{t-1} + \\cdots + w_n Y_{t-n+1}}{\\sum w}'
-        : 'F_{t+1} = \\frac{Y_t + Y_{t-1} + \\cdots + Y_{t-n+1}}{n}',
+        ? String.raw`F_{t+1} = \frac{w_1 Y_t + w_2 Y_{t-1} + \cdots + w_n Y_{t-n+1}}{\sum w}`
+        : String.raw`F_{t+1} = \frac{Y_t + Y_{t-1} + \cdots + Y_{t-n+1}}{n}`,
       children,
     },
     ...accuracySteps(points, acc),

@@ -81,7 +81,7 @@ export type FormulationOutcome =
 function labelTex(label: string): string {
   const m = /^([A-Za-z]+)(\d+)$/.exec(label);
   if (m) return `${m[1]}_{${m[2]}}`;
-  return `\\text{${label.replace(/[\\{}$&#%_^~]/g, '')}}`;
+  return String.raw`\text{${label.replace(/[\\{}$&#%_^~]/g, '')}}`;
 }
 
 function stateTex(c: CircuitComponent): string {
@@ -292,17 +292,17 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     title: 'Variables de estado y entradas',
     explanation:
       'Las variables de estado son los voltajes de los capacitores (+ en el terminal marcado) y las corrientes de los inductores (del terminal marcado hacia el otro): describen la energía almacenada. Las entradas son las fuentes independientes, de cd a partir de t = 0.',
-    formula: `\\mathbf{x} = \\begin{bmatrix} ${states.map((s) => s.tex).join(' \\\\ ')} \\end{bmatrix}${
+    formula: String.raw`\mathbf{x} = \begin{bmatrix} ${states.map((s) => s.tex).join(String.raw` \\ `)} \end{bmatrix}${
       inputs.length
-        ? `,\\quad \\mathbf{u} = \\begin{bmatrix} ${inputs.map((s) => s.tex).join(' \\\\ ')} \\end{bmatrix}`
+        ? String.raw`,\quad \mathbf{u} = \begin{bmatrix} ${inputs.map((s) => s.tex).join(String.raw` \\ `)} \end{bmatrix}`
         : ''
     }`,
-    result: `\\mathbf{x}(0) = ${toLatexMatrix(
+    result: String.raw`\mathbf{x}(0) = ${toLatexMatrix(
       states.map((s) => [s.initial]),
       DIGITS,
     )}${
       inputs.length
-        ? `,\\quad \\mathbf{u} = ${toLatexMatrix(
+        ? String.raw`,\quad \mathbf{u} = ${toLatexMatrix(
             inputs.map((s) => [s.value]),
             DIGITS,
           )}`
@@ -361,7 +361,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     return {
       title: `Capacitor ${componentLabel(c)}`,
       explanation: `Conjunto de corte fundamental: {${members.join(', ')}}. Por LCK, la corriente del capacitor es la suma con signo de las corrientes de las cuerdas del corte.`,
-      formula: `${labelTex(componentLabel(c))}\\frac{d${st.tex}}{dt} = i_{${st.label.replace(/[\\{}$&#%_^~]/g, '')}}`,
+      formula: String.raw`${labelTex(componentLabel(c))}\frac{d${st.tex}}{dt} = i_{${st.label.replace(/[\\{}$&#%_^~]/g, '')}}`,
     };
   });
   const loopSteps: Step[] = inductors.map((c) => {
@@ -371,7 +371,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     return {
       title: `Inductor ${componentLabel(c)}`,
       explanation: `Lazo fundamental: {${[componentLabel(c), ...path].join(', ')}}. Por LVK, el voltaje del inductor es la suma con signo de los voltajes de las ramas del árbol del lazo.`,
-      formula: `${labelTex(componentLabel(c))}\\frac{d${st.tex}}{dt} = v_{${st.label.replace(/[\\{}$&#%_^~]/g, '')}}`,
+      formula: String.raw`${labelTex(componentLabel(c))}\frac{d${st.tex}}{dt} = v_{${st.label.replace(/[\\{}$&#%_^~]/g, '')}}`,
     };
   });
   if (cutSteps.length) {
@@ -433,13 +433,13 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     children: states.map((s, k) => ({
       title: s.label,
       result: equationTex(
-        `\\frac{d${s.tex}}{dt}`,
+        String.raw`\frac{d${s.tex}}{dt}`,
         raw[k]!.map((v) => tidy(v, scale)),
         vars,
       ),
     })),
-    formula: '\\dot{\\mathbf{x}} = A\\,\\mathbf{x} + B\\,\\mathbf{u}',
-    result: `A = ${toLatexMatrix(A, DIGITS)}${inputs.length ? `,\\quad B = ${toLatexMatrix(B, DIGITS)}` : ''}`,
+    formula: String.raw`\dot{\mathbf{x}} = A\,\mathbf{x} + B\,\mathbf{u}`,
+    result: `A = ${toLatexMatrix(A, DIGITS)}${inputs.length ? String.raw`,\quad B = ${toLatexMatrix(B, DIGITS)}` : ''}`,
   });
 
   return {
@@ -493,7 +493,7 @@ export function adjugateTex(M: number[][][]): string {
       return polyTex(poly, 's');
     }).join(' & '),
   );
-  return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** sI − A en LaTeX. */
@@ -506,7 +506,7 @@ export function sIminusATex(A: number[][]): string {
       })
       .join(' & '),
   );
-  return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 /** Numerador y denominador de X_i(s) = [adj(sI − A)(x(0)·s + B·u)]_i / [s·det(sI − A)]. */

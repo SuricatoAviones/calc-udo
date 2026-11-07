@@ -62,7 +62,7 @@ export type RouthOutcome =
 
 /** LaTeX de la variable de los elementos. */
 export function variableTex(array: Pick<RouthArray, 'variable' | 'parameter'>): string {
-  if (array.variable === 'epsilon') return '\\varepsilon';
+  if (array.variable === 'epsilon') return String.raw`\varepsilon`;
   return array.parameter ? symbolTex(array.parameter) : 'K';
 }
 
@@ -73,7 +73,7 @@ function cellTex(a: URat, array: Pick<RouthArray, 'variable' | 'parameter'>): st
 function operand(a: URat, array: Pick<RouthArray, 'variable' | 'parameter'>): string {
   const tex = cellTex(a, array);
   const isSum = / [+-] /.test(tex);
-  return tex.startsWith('-') || isSum ? `\\left(${tex}\\right)` : tex;
+  return tex.startsWith('-') || isSum ? String.raw`\left(${tex}\right)` : tex;
 }
 
 const powerTex = (p: number) => (p === 0 ? 's^{0}' : p === 1 ? 's^{1}' : `s^{${p}}`);
@@ -96,7 +96,7 @@ export function auxiliaryPolyTex(
         : tex === '-1' && base
           ? '-'
           : /[+-]/.test(tex.slice(1))
-            ? `\\left(${tex}\\right)`
+            ? String.raw`\left(${tex}\right)`
             : tex;
     const term = `${coef}${base}`;
     terms.push(
@@ -139,8 +139,11 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
     explanation:
       'El renglón sⁿ lleva los coeficientes a₀, a₂, a₄, … y el renglón sⁿ⁻¹ los coeficientes a₁, a₃, a₅, …; donde faltan coeficientes se escribe 0.',
     result: array.rows
-      .map((r) => `${powerTex(r.power)}:\\ ${r.entries.map((e) => cellTex(e, array)).join(',\\ ')}`)
-      .join('\\qquad '),
+      .map(
+        (r) =>
+          String.raw`${powerTex(r.power)}:\ ${r.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
+      )
+      .join(String.raw`\qquad `),
   });
 
   // Un renglón todo ceros justo en el segundo renglón (p. ej. s⁴ + 4): se usa el auxiliar.
@@ -158,7 +161,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
       title: `Renglón ${powerTex(row.power)} de ceros: polinomio auxiliar`,
       explanation: `Todos los elementos del renglón son 0: hay raíces de igual magnitud y signo opuesto. Se forma el polinomio auxiliar con el renglón anterior (${powerTex(p)}) y el renglón de ceros se reemplaza por los coeficientes de su derivada.`,
       formula: `P(s) = ${auxiliaryPolyTex(prev.entries, p, array)}`,
-      result: `\\frac{dP}{ds} = ${auxiliaryPolyTex(derivative, p - 1, array)}`,
+      result: String.raw`\frac{dP}{ds} = ${auxiliaryPolyTex(derivative, p - 1, array)}`,
     };
   };
 
@@ -180,7 +183,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
       title: `Caso especial en el renglón ${powerTex(n - 1)}`,
       explanation:
         'El primer elemento es 0 pero el resto del renglón no: se reemplaza por un número positivo muy pequeño ε y se continúa (Ogata, sec. 5-5).',
-      result: `${powerTex(n - 1)}:\\ ${array.rows[1]!.entries.map((e) => cellTex(e, array)).join(',\\ ')}`,
+      result: String.raw`${powerTex(n - 1)}:\ ${array.rows[1]!.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
     });
   }
 
@@ -199,7 +202,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
       if (j < width - 1 && !(uIsZero(a) && uIsZero(b))) {
         children.push({
           title: `Elemento ${j + 1}`,
-          substitution: `\\frac{${operand(pivot, array)} \\cdot ${operand(a, array)} - ${operand(upper[0]!, array)} \\cdot ${operand(b, array)}}{${cellTex(pivot, array)}}`,
+          substitution: String.raw`\frac{${operand(pivot, array)} \cdot ${operand(a, array)} - ${operand(upper[0]!, array)} \cdot ${operand(b, array)}}{${cellTex(pivot, array)}}`,
           result: cellTex(value, array),
         });
       }
@@ -223,17 +226,17 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
         title: 'Caso especial: primer elemento nulo',
         explanation:
           'El primer elemento es 0 pero el resto del renglón no: se reemplaza por un número positivo muy pequeño ε y se continúa (Ogata, sec. 5-5).',
-        result: `${powerTex(row.power)}:\\ ${row.entries.map((e) => cellTex(e, array)).join(',\\ ')}`,
+        result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
       });
     }
     rowSteps.push({
       title: `Renglón ${powerTex(row.power)}`,
       formula:
         k === 2
-          ? 'b_j = \\frac{a_1a_{2j} - a_0a_{2j+1}}{a_1}'
-          : 'x_j = \\frac{p_1q_{j+1} - q_1p_{j+1}}{p_1}\\quad (p: \\text{renglón anterior},\\ q: \\text{dos renglones arriba})',
+          ? String.raw`b_j = \frac{a_1a_{2j} - a_0a_{2j+1}}{a_1}`
+          : String.raw`x_j = \frac{p_1q_{j+1} - q_1p_{j+1}}{p_1}\quad (p: \text{renglón anterior},\ q: \text{dos renglones arriba})`,
       children,
-      result: `${powerTex(row.power)}:\\ ${row.entries.map((e) => cellTex(e, array)).join(',\\ ')}`,
+      result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
     });
     if (zeroStep) rowSteps.push(zeroStep);
   }
@@ -332,7 +335,7 @@ export function polynomialTex(coefficients: URat[], variable: string): string {
       negative = uValue(c) < 0;
       if (negative) tex = tex.slice(1);
       if (tex === '1' && base) tex = '';
-    } else if (/ [+-] /.test(tex) && base) tex = `\\left(${tex}\\right)`;
+    } else if (/ [+-] /.test(tex) && base) tex = String.raw`\left(${tex}\right)`;
     const body = `${tex}${base}`;
     if (terms.length === 0) terms.push(negative ? `-${body}` : body);
     else terms.push(negative ? `- ${body}` : `+ ${body}`);
@@ -405,13 +408,13 @@ export function parameterStability(
     title: 'Condiciones de estabilidad',
     explanation: `No debe haber cambios de signo en la primera columna. Como el primer elemento es positivo, cada elemento que depende de ${parameter} debe ser positivo.`,
     result: conditions.length
-      ? conditions.map(({ tex }) => `${tex} > 0`).join(',\\quad ')
-      : '\\text{Ningún elemento depende del parámetro.}',
+      ? conditions.map(({ tex }) => `${tex} > 0`).join(String.raw`,\quad `)
+      : String.raw`\text{Ningún elemento depende del parámetro.}`,
   });
   const bound = (v: number | null, inf: string) => (v === null ? inf : toLatexRational(v, DIGITS));
   const intervalTex = (lo: number | null, hi: number | null) =>
     lo === null && hi === null
-      ? `${pTex} \\in \\mathbb{R}`
+      ? String.raw`${pTex} \in \mathbb{R}`
       : lo === null
         ? `${pTex} < ${bound(hi, '')}`
         : hi === null
@@ -424,7 +427,7 @@ export function parameterStability(
         ? `No hay ningún valor de ${parameter} que haga positivos todos los elementos: el sistema es inestable para todo ${parameter}.`
         : `Se prueban valores de ${parameter} entre los puntos donde algún elemento de la primera columna se anula (${critical.map((v) => formatNumber(v, DIGITS)).join(', ')}).`,
     result: intervals.length
-      ? intervals.map(([lo, hi]) => intervalTex(lo, hi)).join(',\\quad ')
+      ? intervals.map(([lo, hi]) => intervalTex(lo, hi)).join(String.raw`,\quad `)
       : undefined,
   });
 
@@ -461,7 +464,7 @@ export function parameterStability(
           ? `P(s) = ${auxiliaryPolyTex(aux.auxiliary!.coefficients, aux.auxiliary!.power, numericArray.array)} = 0`
           : undefined,
       result: omegas.length
-        ? `s = \\pm j${omegas.map(n).join(',\\ \\pm j')},\\quad \\omega = ${omegas.map(n).join(',\\ ')}\\ \\text{rad/s}`
+        ? String.raw`s = \pm j${omegas.map(n).join(String.raw`,\ \pm j`)},\quad \omega = ${omegas.map(n).join(String.raw`,\ `)}\ \text{rad/s}`
         : undefined,
     });
   }

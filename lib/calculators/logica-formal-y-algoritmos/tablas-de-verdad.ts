@@ -85,8 +85,8 @@ export function rowsStep(variables: string[]): Step {
         : `Con n variables hay 2ⁿ combinaciones de valores. Se listan de todas V a todas F: la primera variable alterna en bloques de ${2 ** (n - 1)} filas, la siguiente en bloques de la mitad, y la última alterna en cada fila.`,
     result:
       n === 0
-        ? '1 \\text{ fila}'
-        : `${variables.join(',\\ ')}:\\quad 2^{${n}} = ${2 ** n} \\text{ filas}`,
+        ? String.raw`1 \text{ fila}`
+        : String.raw`${variables.join(String.raw`,\ `)}:\quad 2^{${n}} = ${2 ** n} \text{ filas}`,
   };
 }
 
@@ -132,7 +132,7 @@ export function solveTruthTable(
         'Se evalúan las subfórmulas de adentro hacia afuera; cada una usa columnas ya calculadas. La última es la proposición completa.',
       children: subs.map((sub, k) => ({
         title: `Columna ${k + 1}`,
-        result: `${formulaLatex(sub)}:\\quad ${columnLatex(rows.map((values) => evaluate(sub, values)))}`,
+        result: String.raw`${formulaLatex(sub)}:\quad ${columnLatex(rows.map((values) => evaluate(sub, values)))}`,
       })),
     });
   }
@@ -144,7 +144,7 @@ export function solveTruthTable(
   steps.push({
     title: 'Clasificación',
     explanation: verdict[classification],
-    result: `\\text{${CLASSIFICATION_NAMES[classification]}}`,
+    result: String.raw`\text{${CLASSIFICATION_NAMES[classification]}}`,
   });
 
   return {
@@ -153,11 +153,14 @@ export function solveTruthTable(
     summary: [
       {
         label: 'Clasificación',
-        value: `\\text{${CLASSIFICATION_NAMES[classification]}}`,
+        value: String.raw`\text{${CLASSIFICATION_NAMES[classification]}}`,
         emphasis: true,
       },
       { label: 'Columna final', value: columnLatex(column) },
-      { label: 'Filas verdaderas', value: `${trueRows.length} \\text{ de } ${rows.length}` },
+      {
+        label: 'Filas verdaderas',
+        value: String.raw`${trueRows.length} \text{ de } ${rows.length}`,
+      },
     ],
     ...emptyTrace(),
     steps,

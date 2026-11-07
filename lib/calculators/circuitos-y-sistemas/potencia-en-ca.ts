@@ -80,17 +80,17 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
     i = C.div(v, zz);
     steps.push({
       title: 'Corriente',
-      formula: '\\mathbf{I} = \\frac{\\mathbf{V}}{\\mathbf{Z}}',
-      substitution: `\\mathbf{I} = \\frac{${polar(v)}}{${rect(zz)}}`,
-      result: `\\mathbf{I} = ${polar(i)}`,
+      formula: String.raw`\mathbf{I} = \frac{\mathbf{V}}{\mathbf{Z}}`,
+      substitution: String.raw`\mathbf{I} = \frac{${polar(v)}}{${rect(zz)}}`,
+      result: String.raw`\mathbf{I} = ${polar(i)}`,
     });
   } else if (input.given === 'iz') {
     v = C.mul(i, zz);
     steps.push({
       title: 'Voltaje',
-      formula: '\\mathbf{V} = \\mathbf{I}\\,\\mathbf{Z}',
-      substitution: `\\mathbf{V} = (${polar(i)})(${rect(zz)})`,
-      result: `\\mathbf{V} = ${polar(v)}`,
+      formula: String.raw`\mathbf{V} = \mathbf{I}\,\mathbf{Z}`,
+      substitution: String.raw`\mathbf{V} = (${polar(i)})(${rect(zz)})`,
+      result: String.raw`\mathbf{V} = ${polar(v)}`,
     });
   }
 
@@ -106,7 +106,7 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
   steps.unshift({
     title: 'Datos',
     explanation: `Los módulos dados son de ${label}. Convención pasiva: P > 0 significa potencia absorbida por la carga.`,
-    result: `\\mathbf{V} = ${polar(v)},\\quad \\mathbf{I} = ${polar(i)}`,
+    result: String.raw`\mathbf{V} = ${polar(v)},\quad \mathbf{I} = ${polar(i)}`,
   });
   steps.push({
     title: 'Valores eficaces',
@@ -114,26 +114,25 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
       input.values === 'amplitud'
         ? 'Para una senoide, el valor eficaz es la amplitud dividida entre √2.'
         : 'Los módulos ya son eficaces; las amplitudes son √2 veces mayores.',
-    formula: 'V_{ef} = \\frac{V_m}{\\sqrt{2}},\\quad I_{ef} = \\frac{I_m}{\\sqrt{2}}',
-    result: `V_{ef} = ${n(C.abs(vRms))}\\ \\text{V},\\quad I_{ef} = ${n(C.abs(iRms))}\\ \\text{A}`,
+    formula: String.raw`V_{ef} = \frac{V_m}{\sqrt{2}},\quad I_{ef} = \frac{I_m}{\sqrt{2}}`,
+    result: String.raw`V_{ef} = ${n(C.abs(vRms))}\ \text{V},\quad I_{ef} = ${n(C.abs(iRms))}\ \text{A}`,
   });
   steps.push({
     title: 'Ángulo del factor de potencia',
     explanation:
       'Es el ángulo por el que el voltaje adelanta a la corriente (el ángulo de la impedancia).',
-    formula: '\\theta = \\theta_v - \\theta_i',
-    substitution: `\\theta = ${n(C.degrees(thetaV))}^{\\circ} - (${n(C.degrees(thetaI))}^{\\circ})`,
-    result: `\\theta = ${n(thetaDeg)}^{\\circ}`,
+    formula: String.raw`\theta = \theta_v - \theta_i`,
+    substitution: String.raw`\theta = ${n(C.degrees(thetaV))}^{\circ} - (${n(C.degrees(thetaI))}^{\circ})`,
+    result: String.raw`\theta = ${n(thetaDeg)}^{\circ}`,
   });
   steps.push({
     title: 'Potencia instantánea',
     explanation:
       'Tiene un término constante (el promedio) y otro que oscila al doble de la frecuencia de la fuente.',
-    formula:
-      'p(t) = \\tfrac{1}{2}V_mI_m\\cos(\\theta_v - \\theta_i) + \\tfrac{1}{2}V_mI_m\\cos(2\\omega t + \\theta_v + \\theta_i)',
-    result: `p(t) = ${n(((vm * im) / 2) * Math.cos(theta))} + ${n((vm * im) / 2)}\\cos\\left(${n(2 * input.omega)}t ${
+    formula: String.raw`p(t) = \tfrac{1}{2}V_mI_m\cos(\theta_v - \theta_i) + \tfrac{1}{2}V_mI_m\cos(2\omega t + \theta_v + \theta_i)`,
+    result: String.raw`p(t) = ${n(((vm * im) / 2) * Math.cos(theta))} + ${n((vm * im) / 2)}\cos\left(${n(2 * input.omega)}t ${
       thetaV + thetaI < 0 ? '-' : '+'
-    } ${n(Math.abs(C.degrees(thetaV + thetaI)))}^{\\circ}\\right)\\ \\text{W}`,
+    } ${n(Math.abs(C.degrees(thetaV + thetaI)))}^{\circ}\right)\ \text{W}`,
   });
 
   const apparent = C.abs(vRms) * C.abs(iRms);
@@ -146,35 +145,35 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
 
   steps.push({
     title: 'Potencia promedio (activa)',
-    formula: 'P = V_{ef}\\,I_{ef}\\cos\\theta',
-    substitution: `P = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\\cos(${n(thetaDeg)}^{\\circ})`,
-    result: `P = ${n(average)}\\ \\text{W}`,
+    formula: String.raw`P = V_{ef}\,I_{ef}\cos\theta`,
+    substitution: String.raw`P = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\cos(${n(thetaDeg)}^{\circ})`,
+    result: String.raw`P = ${n(average)}\ \text{W}`,
   });
   if (input.given !== 'vi') {
     steps.push({
       title: 'Comprobación con la resistencia',
       explanation: 'Solo la parte real de Z absorbe potencia promedio; la reactancia no.',
-      formula: 'P = I_{ef}^{2}\\,R',
+      formula: String.raw`P = I_{ef}^{2}\,R`,
       substitution: `P = (${n(C.abs(iRms))})^{2}(${n(input.resistance)})`,
-      result: `P = ${n(C.abs(iRms) ** 2 * input.resistance)}\\ \\text{W}`,
+      result: String.raw`P = ${n(C.abs(iRms) ** 2 * input.resistance)}\ \text{W}`,
     });
   }
   steps.push({
     title: 'Potencia reactiva',
-    formula: 'Q = V_{ef}\\,I_{ef}\\sin\\theta',
-    substitution: `Q = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\\sin(${n(thetaDeg)}^{\\circ})`,
-    result: `Q = ${n(reactive)}\\ \\text{VAR}`,
+    formula: String.raw`Q = V_{ef}\,I_{ef}\sin\theta`,
+    substitution: String.raw`Q = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\sin(${n(thetaDeg)}^{\circ})`,
+    result: String.raw`Q = ${n(reactive)}\ \text{VAR}`,
   });
   steps.push({
     title: 'Potencia aparente',
-    formula: '|\\mathbf{S}| = V_{ef}\\,I_{ef} = \\sqrt{P^{2} + Q^{2}}',
-    result: `|\\mathbf{S}| = ${n(apparent)}\\ \\text{VA}`,
+    formula: String.raw`|\mathbf{S}| = V_{ef}\,I_{ef} = \sqrt{P^{2} + Q^{2}}`,
+    result: String.raw`|\mathbf{S}| = ${n(apparent)}\ \text{VA}`,
   });
   steps.push({
     title: 'Potencia compleja',
-    formula: '\\mathbf{S} = \\mathbf{V}_{ef}\\,\\mathbf{I}_{ef}^{*} = P + jQ',
-    substitution: `\\mathbf{S} = (${polar(vRms)})(${polar(C.conj(iRms))})`,
-    result: `\\mathbf{S} = ${rect(complexPower)} = ${polar(complexPower)}\\ \\text{VA}`,
+    formula: String.raw`\mathbf{S} = \mathbf{V}_{ef}\,\mathbf{I}_{ef}^{*} = P + jQ`,
+    substitution: String.raw`\mathbf{S} = (${polar(vRms)})(${polar(C.conj(iRms))})`,
+    result: String.raw`\mathbf{S} = ${rect(complexPower)} = ${polar(complexPower)}\ \text{VA}`,
   });
   steps.push({
     title: 'Factor de potencia',
@@ -184,24 +183,24 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
         : character === 'atrasado'
           ? 'La corriente se atrasa respecto del voltaje: carga inductiva (FP atrasado).'
           : 'La corriente se adelanta al voltaje: carga capacitiva (FP adelantado).',
-    formula: '\\text{FP} = \\frac{P}{|\\mathbf{S}|} = \\cos\\theta',
-    result: `\\text{FP} = ${n(powerFactor)}\\ \\text{(${character})}`,
+    formula: String.raw`\text{FP} = \frac{P}{|\mathbf{S}|} = \cos\theta`,
+    result: String.raw`\text{FP} = ${n(powerFactor)}\ \text{(${character})}`,
   });
 
   const table: ResultTable = {
     id: 'triangulo',
     title: 'Triángulo de potencias',
     columns: [
-      { key: 'magnitud', header: '\\text{Magnitud}', format: 'latex' },
-      { key: 'valor', header: '\\text{Valor}' },
-      { key: 'unidad', header: '\\text{Unidad}', format: 'text' },
+      { key: 'magnitud', header: String.raw`\text{Magnitud}`, format: 'latex' },
+      { key: 'valor', header: String.raw`\text{Valor}` },
+      { key: 'unidad', header: String.raw`\text{Unidad}`, format: 'text' },
     ],
     rows: [
       { magnitud: 'P', valor: average, unidad: 'W' },
       { magnitud: 'Q', valor: reactive, unidad: 'VAR' },
-      { magnitud: '|\\mathbf{S}|', valor: apparent, unidad: 'VA' },
-      { magnitud: '\\text{FP}', valor: powerFactor, unidad: character },
-      { magnitud: '\\theta', valor: thetaDeg, unidad: '°' },
+      { magnitud: String.raw`|\mathbf{S}|`, valor: apparent, unidad: 'VA' },
+      { magnitud: String.raw`\text{FP}`, valor: powerFactor, unidad: character },
+      { magnitud: String.raw`\theta`, valor: thetaDeg, unidad: '°' },
     ],
   };
 
@@ -239,11 +238,11 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
     ok: true,
     value: { vRms, iRms, average, reactive, apparent, complexPower, powerFactor, character },
     summary: [
-      { label: 'P', value: `${n(average)}\\ \\text{W}`, emphasis: true },
-      { label: 'Q', value: `${n(reactive)}\\ \\text{VAR}` },
-      { label: '|S|', value: `${n(apparent)}\\ \\text{VA}` },
-      { label: 'S', value: `${rect(complexPower)}\\ \\text{VA}` },
-      { label: 'FP', value: `${n(powerFactor)}\\ \\text{(${character})}` },
+      { label: 'P', value: String.raw`${n(average)}\ \text{W}`, emphasis: true },
+      { label: 'Q', value: String.raw`${n(reactive)}\ \text{VAR}` },
+      { label: '|S|', value: String.raw`${n(apparent)}\ \text{VA}` },
+      { label: 'S', value: String.raw`${rect(complexPower)}\ \text{VA}` },
+      { label: 'FP', value: String.raw`${n(powerFactor)}\ \text{(${character})}` },
     ],
     steps,
     tables: [table],

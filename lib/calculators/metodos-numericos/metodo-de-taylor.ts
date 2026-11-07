@@ -97,12 +97,14 @@ function taylorRule(order: number): OdeRuleFactory {
         formula:
           order === 1
             ? undefined
-            : "y'' = \\frac{\\partial f}{\\partial x} + \\frac{\\partial f}{\\partial y}\\,f",
+            : String.raw`y'' = \frac{\partial f}{\partial x} + \frac{\partial f}{\partial y}\,f`,
         result: latexLines(derivatives.map((d, k) => `${yDerivative(k + 1)} = ${d.tex}`)),
       },
     ];
     const terms = Array.from({ length: order }, (_, k) =>
-      k === 0 ? "y'_i\\,h" : `\\frac{${yDerivative(k + 1)}_i}{${k + 1}!}h^{${k + 1}}`,
+      k === 0
+        ? String.raw`y'_i\,h`
+        : String.raw`\frac{${yDerivative(k + 1)}_i}{${k + 1}!}h^{${k + 1}}`,
     );
     return {
       introSteps,
@@ -133,7 +135,7 @@ function taylorRule(order: number): OdeRuleFactory {
               .map((v, k) =>
                 k === 0
                   ? `${op(v)}(${n(h)})`
-                  : `\\frac{${n(v)}}{${FACTORIALS[k + 1]}}(${n(h)})^{${k + 1}}`,
+                  : String.raw`\frac{${n(v)}}{${FACTORIALS[k + 1]}}(${n(h)})^{${k + 1}}`,
               )
               .join(' + ')}`,
             result: `y_{${i + 1}} = ${n(yNext)}`,

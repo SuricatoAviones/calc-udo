@@ -122,7 +122,7 @@ function multistepRule(
         history.set(-k, { x: xk, y: yk, f: fk });
         earlier.push({
           title: `Punto x${subscriptIndex(-k)} = ${formatNumber(xk)}`,
-          result: `y_{-${k}} = y(${n(xk)}) = ${n(yk)}, \\quad f_{-${k}} = ${n(fk)}`,
+          result: String.raw`y_{-${k}} = y(${n(xk)}) = ${n(yk)}, \quad f_{-${k}} = ${n(fk)}`,
         });
       }
       if (earlier.length > 0) {
@@ -193,8 +193,8 @@ function multistepRule(
             slopes: [slopeF],
             update: {
               title: NAMES[method],
-              formula: `y_{i+1} = y_i + \\frac{h}{${divisor}}\\left(${weighted(weights, names)}\\right)`,
-              substitution: `y_{${i + 1}} = ${n(y)} + \\frac{${n(h)}}{${divisor}}\\left(${weighted(weights, names, fs)}\\right)`,
+              formula: String.raw`y_{i+1} = y_i + \frac{h}{${divisor}}\left(${weighted(weights, names)}\right)`,
+              substitution: String.raw`y_{${i + 1}} = ${n(y)} + \frac{${n(h)}}{${divisor}}\left(${weighted(weights, names, fs)}\right)`,
               result: `y_{${i + 1}} = ${n(yNext)}`,
             },
           };
@@ -209,8 +209,8 @@ function multistepRule(
           const names = weights.map((_, k) => fName(-k));
           predictorStep = {
             title: 'Predictor (Adams-Bashforth de 4 pasos)',
-            formula: `y^0_{i+1} = y_i + \\frac{h}{24}\\left(${weighted(weights, names)}\\right)`,
-            substitution: `y^0_{${i + 1}} = ${n(y)} + \\frac{${n(h)}}{24}\\left(${weighted(weights, names, fs)}\\right)`,
+            formula: String.raw`y^0_{i+1} = y_i + \frac{h}{24}\left(${weighted(weights, names)}\right)`,
+            substitution: String.raw`y^0_{${i + 1}} = ${n(y)} + \frac{${n(h)}}{24}\left(${weighted(weights, names, fs)}\right)`,
             result: `y^0_{${i + 1}} = ${n(predictor)}`,
           };
         } else {
@@ -220,8 +220,8 @@ function multistepRule(
           const names = [fName(0), fName(-1), fName(-2)];
           predictorStep = {
             title: 'Predictor de Milne',
-            formula: `y^0_{i+1} = y_{i-3} + \\frac{4h}{3}\\left(${weighted(weights, names)}\\right)`,
-            substitution: `y^0_{${i + 1}} = ${n(y3)} + \\frac{4(${n(h)})}{3}\\left(${weighted(weights, names, fs.slice(0, 3))}\\right)`,
+            formula: String.raw`y^0_{i+1} = y_{i-3} + \frac{4h}{3}\left(${weighted(weights, names)}\right)`,
+            substitution: String.raw`y^0_{${i + 1}} = ${n(y3)} + \frac{4(${n(h)})}{3}\left(${weighted(weights, names, fs.slice(0, 3))}\right)`,
             result: `y^0_{${i + 1}} = ${n(predictor)}`,
           };
         }
@@ -235,8 +235,8 @@ function multistepRule(
           yNext = y + (h * weights.reduce((s, w, k) => s + w * values[k]!, 0)) / 24;
           update = {
             title: 'Corrector (Adams-Moulton)',
-            formula: `y_{i+1} = y_i + \\frac{h}{24}\\left(${weighted(weights, names)}\\right)`,
-            substitution: `y_{${i + 1}} = ${n(y)} + \\frac{${n(h)}}{24}\\left(${weighted(weights, names, values)}\\right)`,
+            formula: String.raw`y_{i+1} = y_i + \frac{h}{24}\left(${weighted(weights, names)}\right)`,
+            substitution: String.raw`y_{${i + 1}} = ${n(y)} + \frac{${n(h)}}{24}\left(${weighted(weights, names, values)}\right)`,
             result: `y_{${i + 1}} = ${n(yNext)}`,
           };
         } else {
@@ -247,8 +247,8 @@ function multistepRule(
           yNext = y1 + (h / 3) * (fs[1]! + 4 * fs[0]! + fp);
           update = {
             title: 'Corrector de Milne (Simpson 1/3)',
-            formula: `y_{i+1} = y_{i-1} + \\frac{h}{3}\\left(${weighted(weights, names)}\\right)`,
-            substitution: `y_{${i + 1}} = ${n(y1)} + \\frac{${n(h)}}{3}\\left(${weighted(weights, names, values)}\\right)`,
+            formula: String.raw`y_{i+1} = y_{i-1} + \frac{h}{3}\left(${weighted(weights, names)}\right)`,
+            substitution: String.raw`y_{${i + 1}} = ${n(y1)} + \frac{${n(h)}}{3}\left(${weighted(weights, names, values)}\right)`,
             result: `y_{${i + 1}} = ${n(yNext)}`,
           };
         }

@@ -112,7 +112,7 @@ const NAMES: Record<OpAmpInput['circuit'], string> = {
   schmitt: 'Disparador de Schmitt',
 };
 
-const volts = (v: number) => `${n(v)}\\ \\text{V}`;
+const volts = (v: number) => String.raw`${n(v)}\ \text{V}`;
 
 function clip(vo: number, vsat: number | undefined) {
   if (vsat === undefined || Math.abs(vo) <= vsat) return { vo, saturated: false };
@@ -161,9 +161,9 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
       title: 'Ganancia del inversor',
       explanation:
         'La entrada inversora está a 0 V: la corriente V₁/R₁ pasa toda por R_f, y la salida queda con la polaridad opuesta.',
-      formula: 'A_v = -\\frac{R_f}{R_1},\\qquad V_o = A_v V_1',
-      substitution: `A_v = -\\frac{${n(rf)}}{${n(r1)}}`,
-      result: `A_v = ${n(gain)},\\quad V_o = ${volts(ideal)}`,
+      formula: String.raw`A_v = -\frac{R_f}{R_1},\qquad V_o = A_v V_1`,
+      substitution: String.raw`A_v = -\frac{${n(rf)}}{${n(r1)}}`,
+      result: String.raw`A_v = ${n(gain)},\quad V_o = ${volts(ideal)}`,
     });
   } else if (circuit === 'no-inversor') {
     gain = 1 + rf / r1;
@@ -172,9 +172,9 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
       title: 'Ganancia del no inversor',
       explanation:
         'La entrada inversora sigue a V₁; el divisor R₁–R_f devuelve una fracción de V_o igual a V₁.',
-      formula: 'A_v = 1 + \\frac{R_f}{R_1},\\qquad V_o = A_v V_1',
-      substitution: `A_v = 1 + \\frac{${n(rf)}}{${n(r1)}}`,
-      result: `A_v = ${n(gain)},\\quad V_o = ${volts(ideal)}`,
+      formula: String.raw`A_v = 1 + \frac{R_f}{R_1},\qquad V_o = A_v V_1`,
+      substitution: String.raw`A_v = 1 + \frac{${n(rf)}}{${n(r1)}}`,
+      result: String.raw`A_v = ${n(gain)},\quad V_o = ${volts(ideal)}`,
     });
   } else if (circuit === 'seguidor') {
     gain = 1;
@@ -199,8 +199,8 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
       title: 'Suma ponderada',
       explanation:
         'Cada entrada aporta una corriente V_k/R_k hacia la tierra virtual; todas pasan por R_f.',
-      formula: `V_o = -\\left(${terms.map((t) => `\\frac{R_f}{R_${t.k}}V_${t.k}`).join(' + ')}\\right)`,
-      substitution: `V_o = -\\left(${terms.map((t) => `\\frac{${n(rf)}}{${n(t.r)}}(${n(t.v)})`).join(' + ')}\\right)`,
+      formula: String.raw`V_o = -\left(${terms.map((t) => String.raw`\frac{R_f}{R_${t.k}}V_${t.k}`).join(' + ')}\right)`,
+      substitution: String.raw`V_o = -\left(${terms.map((t) => String.raw`\frac{${n(rf)}}{${n(t.r)}}(${n(t.v)})`).join(' + ')}\right)`,
       result: `V_o = ${volts(ideal)}`,
     });
   } else {
@@ -213,8 +213,8 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
       title: 'Restador con un solo amplificador',
       explanation:
         'Por superposición: V₁ llega a la entrada no inversora por el divisor R₁–R₃ y se amplifica como en el no inversor; V₂ se amplifica como en el inversor.',
-      formula: 'V_o = \\frac{R_3}{R_1 + R_3}\\cdot\\frac{R_2 + R_4}{R_2}V_1 - \\frac{R_4}{R_2}V_2',
-      substitution: `V_o = \\frac{${n(r3)}}{${n(r1)} + ${n(r3)}}\\cdot\\frac{${n(r2)} + ${n(r4)}}{${n(r2)}}(${n(v1)}) - \\frac{${n(r4)}}{${n(r2)}}(${n(v2)})`,
+      formula: String.raw`V_o = \frac{R_3}{R_1 + R_3}\cdot\frac{R_2 + R_4}{R_2}V_1 - \frac{R_4}{R_2}V_2`,
+      substitution: String.raw`V_o = \frac{${n(r3)}}{${n(r1)} + ${n(r3)}}\cdot\frac{${n(r2)} + ${n(r4)}}{${n(r2)}}(${n(v1)}) - \frac{${n(r4)}}{${n(r2)}}(${n(v2)})`,
       result: `V_o = ${n(k1)}V_1 - ${n(k2)}V_2 = ${volts(ideal)}`,
     });
   }
@@ -225,7 +225,7 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
     steps.push({
       title: 'Saturación',
       explanation: `La salida ideal (${engText(ideal, 'V')}) supera el nivel de saturación: el amplificador queda recortado en ${engText(vo, 'V')}.`,
-      formula: '|V_o| \\le V_{sat}',
+      formula: String.raw`|V_o| \le V_{sat}`,
       result: `V_o = ${volts(vo)}`,
     });
     notices.push({
@@ -264,9 +264,9 @@ function solveComparator(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpE
           : 'inversora (la señal entra por la no inversora)'
       }.`,
       formula: inverting
-        ? 'v_{in} < V_{ref} \\Rightarrow V_o = +V_{sat},\\qquad v_{in} > V_{ref} \\Rightarrow V_o = -V_{sat}'
-        : 'v_{in} > V_{ref} \\Rightarrow V_o = +V_{sat},\\qquad v_{in} < V_{ref} \\Rightarrow V_o = -V_{sat}',
-      substitution: `v_{in} = ${n(vin)}\\ ${vin > vref ? '>' : vin < vref ? '<' : '='}\\ V_{ref} = ${n(vref)}`,
+        ? String.raw`v_{in} < V_{ref} \Rightarrow V_o = +V_{sat},\qquad v_{in} > V_{ref} \Rightarrow V_o = -V_{sat}`
+        : String.raw`v_{in} > V_{ref} \Rightarrow V_o = +V_{sat},\qquad v_{in} < V_{ref} \Rightarrow V_o = -V_{sat}`,
+      substitution: String.raw`v_{in} = ${n(vin)}\ ${vin > vref ? '>' : vin < vref ? '<' : '='}\ V_{ref} = ${n(vref)}`,
       result: `V_o = ${volts(vo)}`,
     },
   ];
@@ -288,10 +288,10 @@ function solveComparator(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpE
         title: 'Ciclo de trabajo con una entrada senoidal',
         explanation: `Con v_in = ${engText(vp, 'V')}·sen θ, la salida cambia cuando la senoidal cruza V_ref, en θ y 180° − θ. Ciclo de trabajo = ancho del pulso alto / periodo (Malvino, ejemplo 22-5).`,
         formula: inverting
-          ? '\\theta = \\operatorname{arcsen}\\frac{V_{ref}}{V_p},\\qquad D = 1 - \\frac{180^\\circ - 2\\theta}{360^\\circ}'
-          : '\\theta = \\operatorname{arcsen}\\frac{V_{ref}}{V_p},\\qquad D = \\frac{180^\\circ - 2\\theta}{360^\\circ}',
-        substitution: `\\theta = \\operatorname{arcsen}\\frac{${n(vref)}}{${n(vp)}} = ${n(theta, 5)}^\\circ`,
-        result: `D = ${n(duty, 5)} = ${n(100 * duty, 4)}\\,\\%`,
+          ? String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = 1 - \frac{180^\circ - 2\theta}{360^\circ}`
+          : String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = \frac{180^\circ - 2\theta}{360^\circ}`,
+        substitution: String.raw`\theta = \operatorname{arcsen}\frac{${n(vref)}}{${n(vp)}} = ${n(theta, 5)}^\circ`,
+        result: String.raw`D = ${n(duty, 5)} = ${n(100 * duty, 4)}\,\%`,
       });
     }
   }
@@ -319,7 +319,7 @@ function solveComparator(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpE
       { label: 'V_o', value: volts(vo), emphasis: true },
       { label: 'V_ref', value: volts(vref) },
       ...(duty !== undefined
-        ? [{ label: 'Ciclo de trabajo', value: `${n(100 * duty, 4)}\\,\\%` }]
+        ? [{ label: 'Ciclo de trabajo', value: String.raw`${n(100 * duty, 4)}\,\%` }]
         : []),
     ],
     steps,
@@ -347,16 +347,16 @@ function solveSchmitt(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
     pcs = b * vsat;
     steps.push({
       title: 'Fracción de realimentación',
-      formula: 'B = \\frac{R_1}{R_1 + R_2}',
-      substitution: `B = \\frac{${n(r1)}}{${n(r1)} + ${n(r2)}}`,
+      formula: String.raw`B = \frac{R_1}{R_1 + R_2}`,
+      substitution: String.raw`B = \frac{${n(r1)}}{${n(r1)} + ${n(r2)}}`,
       result: `B = ${n(b)}`,
     });
     steps.push({
       title: 'Puntos de conmutación',
       explanation: 'Con la salida en +V_sat la referencia es +BV_sat; con −V_sat es −BV_sat.',
-      formula: '\\text{PCS} = BV_{sat},\\qquad \\text{PCI} = -BV_{sat}',
-      substitution: `\\text{PCS} = (${n(b)})(${n(vsat)})`,
-      result: `\\text{PCS} = ${volts(pcs)},\\quad \\text{PCI} = ${volts(-pcs)}`,
+      formula: String.raw`\text{PCS} = BV_{sat},\qquad \text{PCI} = -BV_{sat}`,
+      substitution: String.raw`\text{PCS} = (${n(b)})(${n(vsat)})`,
+      result: String.raw`\text{PCS} = ${volts(pcs)},\quad \text{PCI} = ${volts(-pcs)}`,
     });
   } else {
     pcs = (r1 / r2) * vsat;
@@ -364,10 +364,9 @@ function solveSchmitt(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
       title: 'Puntos de conmutación (no inversor)',
       explanation:
         'La salida cambia cuando la entrada no inversora cruza 0 V: el divisor R₁–R₂ entre v_in y V_o fija los umbrales.',
-      formula:
-        '\\text{PCS} = \\frac{R_1}{R_2}V_{sat},\\qquad \\text{PCI} = -\\frac{R_1}{R_2}V_{sat}',
-      substitution: `\\text{PCS} = \\frac{${n(r1)}}{${n(r2)}}(${n(vsat)})`,
-      result: `\\text{PCS} = ${volts(pcs)},\\quad \\text{PCI} = ${volts(-pcs)}`,
+      formula: String.raw`\text{PCS} = \frac{R_1}{R_2}V_{sat},\qquad \text{PCI} = -\frac{R_1}{R_2}V_{sat}`,
+      substitution: String.raw`\text{PCS} = \frac{${n(r1)}}{${n(r2)}}(${n(vsat)})`,
+      result: String.raw`\text{PCS} = ${volts(pcs)},\quad \text{PCI} = ${volts(-pcs)}`,
     });
   }
   const pci = -pcs;
@@ -375,7 +374,7 @@ function solveSchmitt(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
   steps.push({
     title: 'Histéresis',
     explanation: `El circuito tolera ruido pico a pico menor que ${engText(h, 'V')} sin falsos disparos.`,
-    formula: 'H = \\text{PCS} - \\text{PCI}',
+    formula: String.raw`H = \text{PCS} - \text{PCI}`,
     substitution: `H = ${n(pcs)} - (${n(pci)})`,
     result: `H = ${volts(h)}`,
   });
@@ -447,7 +446,7 @@ function solveNetwork(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
   const summary: SummaryItem[] = outcome.value.opamps.flatMap((op) => [
     {
       label: `${op.label}: salida`,
-      value: `v_o = ${volts(op.vout)}${op.saturated ? '\\ (\\text{saturado})' : ''}`,
+      value: `v_o = ${volts(op.vout)}${op.saturated ? String.raw`\ (\text{saturado})` : ''}`,
       emphasis: true,
     },
     ...(op.gain !== undefined

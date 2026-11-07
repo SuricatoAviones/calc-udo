@@ -169,7 +169,7 @@ function zTex(num: Poly, den: Poly): string {
 function describeZPair(signal: Signal): { name: string; formula: string } {
   const generic = {
     name: 'Linealidad y tabla de pares',
-    formula: '\\mathcal{Z}\\{a x_1(k) + b x_2(k)\\} = a X_1(z) + b X_2(z)',
+    formula: String.raw`\mathcal{Z}\{a x_1(k) + b x_2(k)\} = a X_1(z) + b X_2(z)`,
   };
   if (signal.length === 0) return generic;
   const shifted = signal.some((t) => t.shift > 0);
@@ -177,11 +177,11 @@ function describeZPair(signal: Signal): { name: string; formula: string } {
     shifted
       ? {
           name: `${base.name} con traslación real`,
-          formula: `${base.formula},\\quad x(k - m)u(k - m) \\leftrightarrow z^{-m}X(z)`,
+          formula: String.raw`${base.formula},\quad x(k - m)u(k - m) \leftrightarrow z^{-m}X(z)`,
         }
       : base;
   if (signal.every((t) => t.kind === 'impulse')) {
-    return { name: 'Impulso', formula: '\\delta(k - m) \\leftrightarrow z^{-m}' };
+    return { name: 'Impulso', formula: String.raw`\delta(k - m) \leftrightarrow z^{-m}` };
   }
   if (signal.some((t) => t.kind === 'impulse')) return generic;
   const poles = signal.map((t) => (t.kind === 'exp' ? C.clean(C.exp(t.rate), 1e-12) : C.ZERO));
@@ -193,21 +193,22 @@ function describeZPair(signal: Signal): { name: string; formula: string } {
     if (powers.every((p) => p === 0)) {
       return withShift(
         a === 1
-          ? { name: 'Escalón', formula: 'u(k) \\leftrightarrow \\frac{z}{z - 1}' }
-          : { name: 'Sucesión geométrica', formula: 'a^{k} \\leftrightarrow \\frac{z}{z - a}' },
+          ? { name: 'Escalón', formula: String.raw`u(k) \leftrightarrow \frac{z}{z - 1}` }
+          : {
+              name: 'Sucesión geométrica',
+              formula: String.raw`a^{k} \leftrightarrow \frac{z}{z - a}`,
+            },
       );
     }
     return withShift({
       name: 'Multiplicación por k',
-      formula:
-        '\\mathcal{Z}\\{k\\,x(k)\\} = -z\\frac{dX}{dz},\\quad k\\,a^{k} \\leftrightarrow \\frac{az}{(z - a)^{2}}',
+      formula: String.raw`\mathcal{Z}\{k\,x(k)\} = -z\frac{dX}{dz},\quad k\,a^{k} \leftrightarrow \frac{az}{(z - a)^{2}}`,
     });
   }
   if (!real && powers.every((p) => p === 0) && poles.length <= 4) {
     return withShift({
       name: 'Seno y coseno muestreados',
-      formula:
-        'a^{k}\\sin\\Omega k \\leftrightarrow \\frac{az\\sin\\Omega}{z^{2} - 2az\\cos\\Omega + a^{2}},\\quad a^{k}\\cos\\Omega k \\leftrightarrow \\frac{z(z - a\\cos\\Omega)}{z^{2} - 2az\\cos\\Omega + a^{2}}',
+      formula: String.raw`a^{k}\sin\Omega k \leftrightarrow \frac{az\sin\Omega}{z^{2} - 2az\cos\Omega + a^{2}},\quad a^{k}\cos\Omega k \leftrightarrow \frac{z(z - a\cos\Omega)}{z^{2} - 2az\cos\Omega + a^{2}}`,
     });
   }
   return withShift(generic);
@@ -230,7 +231,7 @@ function forwardSteps(
     children.push({
       title: pair.name,
       formula: pair.formula,
-      result: `\\mathcal{Z}\\left\\{${sign < 0 ? '-' : ''}${signalNodeTex(node)}\\right\\} = ${sign < 0 ? `-\\left(${zTex(num, den)}\\right)` : zTex(num, den)}`,
+      result: String.raw`\mathcal{Z}\left\{${sign < 0 ? '-' : ''}${signalNodeTex(node)}\right\} = ${sign < 0 ? String.raw`-\left(${zTex(num, den)}\right)` : zTex(num, den)}`,
     });
   }
   const { num, den } = zRational(zFormOfSignal(parsed.signal));
@@ -265,7 +266,7 @@ function inverseZ(
       title: `Se expande ${fn}(z)/z`,
       explanation:
         'Casi todos los pares de la tabla tienen z en el numerador, así que se expande X(z)/z en fracciones parciales y al final se multiplica por z (Kuo, sec. 2-11-4).',
-      formula: `\\frac{${fn}(z)}{z} = ${rationalTex(zNum, zDen, 'z')}`,
+      formula: String.raw`\frac{${fn}(z)}{z} = ${rationalTex(zNum, zDen, 'z')}`,
     },
     {
       title: 'Polos',
@@ -280,16 +281,16 @@ function inverseZ(
     },
     {
       title: 'Forma de la expansión',
-      formula: `\\frac{${fn}(z)}{z} = ${expansionTemplate(pf.poles, 'z', [])}`,
+      formula: String.raw`\frac{${fn}(z)}{z} = ${expansionTemplate(pf.poles, 'z', [])}`,
     },
     {
       title: 'Cálculo de los residuos',
-      children: residueSteps(pf.remainder, zDen, pf.poles, 'z', `\\tfrac{${fn}}{z}`),
+      children: residueSteps(pf.remainder, zDen, pf.poles, 'z', String.raw`\tfrac{${fn}}{z}`),
     },
     {
       title: `Expansión de ${fn}(z)`,
       explanation: 'Se multiplica por z cada fracción.',
-      result: `${fn}(z) = z\\left[${expansionTex(pf.poles, 'z', [])}\\right]`,
+      result: String.raw`${fn}(z) = z\left[${expansionTex(pf.poles, 'z', [])}\right]`,
     },
   ];
   const terms = sequenceTerms(pf.poles);
@@ -298,7 +299,7 @@ function inverseZ(
     if (C.isZero(t.pole)) {
       return {
         title: 'Polo en z = 0',
-        formula: 'z^{-m} \\leftrightarrow \\delta(k - m)',
+        formula: String.raw`z^{-m} \leftrightarrow \delta(k - m)`,
         result: tex,
       };
     }
@@ -307,16 +308,15 @@ function inverseZ(
         title: `Polo real ${C.toTextRect(t.pole, DIGITS)}${t.order > 1 ? `, orden ${t.order}` : ''}`,
         formula:
           t.order === 1
-            ? '\\frac{Kz}{z - p} \\leftrightarrow K\\,p^{k}'
-            : '\\frac{Kz}{(z - p)^{r}} \\leftrightarrow K\\binom{k}{r - 1}p^{k - r + 1}',
+            ? String.raw`\frac{Kz}{z - p} \leftrightarrow K\,p^{k}`
+            : String.raw`\frac{Kz}{(z - p)^{r}} \leftrightarrow K\binom{k}{r - 1}p^{k - r + 1}`,
         result: tex,
       };
     }
     return {
       title: `Par complejo ${C.toTextRect(t.pole, DIGITS)} y su conjugado`,
       explanation: `p = ${formatNumber(C.abs(t.pole), DIGITS)}∠${formatNumber(C.arg(t.pole), DIGITS)} rad y K = ${formatNumber(C.abs(t.residue), DIGITS)}∠${formatNumber(C.arg(t.residue), DIGITS)} rad.`,
-      formula:
-        '\\frac{Kz}{z - p} + \\frac{K^{*}z}{z - p^{*}} \\leftrightarrow 2|K|\\,|p|^{k}\\cos(\\Omega k + \\theta)',
+      formula: String.raw`\frac{Kz}{z - p} + \frac{K^{*}z}{z - p^{*}} \leftrightarrow 2|K|\,|p|^{k}\cos(\Omega k + \theta)`,
       result: tex,
     };
   });
@@ -353,7 +353,7 @@ function solveSequence(input: ZInput): Result {
       title: 'Definición',
       explanation:
         'La transformada Z convierte la sucesión x(k), k = 0, 1, 2, …, en una función de la variable compleja z.',
-      formula: `X(z) = \\sum_{k=0}^{\\infty} x(k)\\,z^{-k},\\qquad x(k) = ${xTex}`,
+      formula: String.raw`X(z) = \sum_{k=0}^{\infty} x(k)\,z^{-k},\qquad x(k) = ${xTex}`,
     },
     ...forward.steps,
     {
@@ -364,11 +364,11 @@ function solveSequence(input: ZInput): Result {
       title: 'Comprobación por división larga',
       explanation:
         'Al dividir el numerador entre el denominador en potencias de z⁻¹, el coeficiente de z⁻ᵏ es x(k) (tabla de abajo).',
-      result: `X(z) = ${series
+      result: String.raw`X(z) = ${series
         .slice(0, 4)
         .map((v, k) => `${n(v)}${k === 0 ? '' : k === 1 ? 'z^{-1}' : `z^{-${k}}`}`)
         .join(' + ')
-        .replace(/\+ -/g, '- ')} + \\cdots`,
+        .replace(/\+ -/g, '- ')} + \cdots`,
     },
   ];
   const table: ResultTable = {
@@ -377,7 +377,7 @@ function solveSequence(input: ZInput): Result {
     columns: [
       { key: 'k', header: 'k' },
       { key: 'x', header: 'x(k)' },
-      { key: 'serie', header: '\\text{coef. de } z^{-k}' },
+      { key: 'serie', header: String.raw`\text{coef. de } z^{-k}` },
     ],
     rows: values.map((x, k) => ({ k, x, serie: series[k]! })),
   };
@@ -424,7 +424,7 @@ function solveInverse(input: ZInput): Result {
       title: 'Comprobación por división larga',
       explanation:
         'Los coeficientes de z⁻ᵏ de la división larga coinciden con x(k) (tabla de abajo).',
-      result: `x(k) = ${inverse.tex},\\quad k = 0, 1, 2, \\ldots`,
+      result: String.raw`x(k) = ${inverse.tex},\quad k = 0, 1, 2, \ldots`,
     },
   ];
   return {
@@ -441,8 +441,8 @@ function solveInverse(input: ZInput): Result {
         title: 'Muestras de x(k)',
         columns: [
           { key: 'k', header: 'k' },
-          { key: 'cerrada', header: 'x(k)\\ \\text{cerrada}' },
-          { key: 'division', header: '\\text{división larga}' },
+          { key: 'cerrada', header: String.raw`x(k)\ \text{cerrada}` },
+          { key: 'division', header: String.raw`\text{división larga}` },
         ],
         rows: closed.map((x, k) => ({ k, cerrada: x, division: division[k]! })),
       },
@@ -479,7 +479,7 @@ function solveEquation(input: ZInput): Result {
     {
       title: 'Ecuación en diferencias',
       formula: `${lhs} = ${xTex}`,
-      result: initial.map((v, k) => `y(${k}) = ${n(v)}`).join(',\\ '),
+      result: initial.map((v, k) => `y(${k}) = ${n(v)}`).join(String.raw`,\ `),
     },
   ];
 
@@ -491,7 +491,7 @@ function solveEquation(input: ZInput): Result {
     });
     shiftSteps.push({
       title: `Z{y(k + ${i})}`,
-      formula: `\\mathcal{Z}\\{${shiftName(i)}\\} = ${i === 1 ? 'z' : `z^{${i}}`}Y(z) - ${terms.join(' - ')}`,
+      formula: String.raw`\mathcal{Z}\{${shiftName(i)}\} = ${i === 1 ? 'z' : `z^{${i}}`}Y(z) - ${terms.join(' - ')}`,
     });
   }
   steps.push({
@@ -525,7 +525,7 @@ function solveEquation(input: ZInput): Result {
   const den = trimPoly(mulPoly(forward.den, p));
   steps.push({
     title: 'Ecuación algebraica en z',
-    formula: `\\left(${polyTex(p, 'z')}\\right)Y(z) - \\left(${polyTex(ip, 'z')}\\right) = X(z)`,
+    formula: String.raw`\left(${polyTex(p, 'z')}\right)Y(z) - \left(${polyTex(ip, 'z')}\right) = X(z)`,
     result: `Y(z) = ${zTex(num, den)}`,
   });
 
@@ -577,8 +577,8 @@ function solveEquation(input: ZInput): Result {
         title: 'Solución muestra por muestra',
         columns: [
           { key: 'k', header: 'k' },
-          { key: 'cerrada', header: 'y(k)\\ \\text{cerrada}' },
-          { key: 'recursion', header: 'y(k)\\ \\text{por recursión}' },
+          { key: 'cerrada', header: String.raw`y(k)\ \text{cerrada}` },
+          { key: 'recursion', header: String.raw`y(k)\ \text{por recursión}` },
         ],
         rows: closed.map((y, k) => ({ k, cerrada: y, recursion: recursion[k]! })),
       },

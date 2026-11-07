@@ -73,13 +73,13 @@ function multipliers(b: Balanced, allocation: Allocation) {
       if (u[i] !== null && v[j] === null) {
         v[j] = c.sub(u[i]!);
         equations.push(
-          `u_{${i + 1}} + v_{${j + 1}} = ${c.toLatex()} \\Rightarrow v_{${j + 1}} = ${v[j]!.toLatex()}`,
+          String.raw`u_{${i + 1}} + v_{${j + 1}} = ${c.toLatex()} \Rightarrow v_{${j + 1}} = ${v[j]!.toLatex()}`,
         );
         changed = true;
       } else if (v[j] !== null && u[i] === null) {
         u[i] = c.sub(v[j]!);
         equations.push(
-          `u_{${i + 1}} + v_{${j + 1}} = ${c.toLatex()} \\Rightarrow u_{${i + 1}} = ${u[i]!.toLatex()}`,
+          String.raw`u_{${i + 1}} + v_{${j + 1}} = ${c.toLatex()} \Rightarrow u_{${i + 1}} = ${u[i]!.toLatex()}`,
         );
         changed = true;
       }
@@ -159,7 +159,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         title: 'Multiplicadores',
         explanation: 'En cada celda básica uᵢ + vⱼ = cᵢⱼ; se fija u₁ = 0 y se despejan los demás.',
         substitution: latexLines(equations),
-        result: `${u.map((x, i) => `u_{${i + 1}} = ${x.toLatex()}`).join(',\\ ')};\\quad ${v.map((x, j) => `v_{${j + 1}} = ${x.toLatex()}`).join(',\\ ')}`,
+        result: String.raw`${u.map((x, i) => `u_{${i + 1}} = ${x.toLatex()}`).join(String.raw`,\ `)};\quad ${v.map((x, j) => `v_{${j + 1}} = ${x.toLatex()}`).join(String.raw`,\ `)}`,
       },
       {
         title: 'Evaluar las celdas no básicas',
@@ -168,12 +168,12 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         substitution: latexLines(
           evaluations.map(
             (e) =>
-              `(${e.i + 1},${e.j + 1}):\\ ${u[e.i]!.toLatex()} + ${v[e.j]!.toLatex()} - ${b.costs[e.i]![e.j]!.toLatex()} = ${e.value.toLatex()}`,
+              String.raw`(${e.i + 1},${e.j + 1}):\ ${u[e.i]!.toLatex()} + ${v[e.j]!.toLatex()} - ${b.costs[e.i]![e.j]!.toLatex()} = ${e.value.toLatex()}`,
           ),
         ),
         result: best
-          ? `x_{${best.i + 1}${best.j + 1}} \\ \\text{entra } (${best.value.toLatex()})`
-          : '\\text{Ninguna es positiva: la solución es óptima}',
+          ? String.raw`x_{${best.i + 1}${best.j + 1}} \ \text{entra } (${best.value.toLatex()})`
+          : String.raw`\text{Ninguna es positiva: la solución es óptima}`,
       },
     ];
 
@@ -217,7 +217,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
                 const [i, j] = parseKey(key);
                 return `x_{${i + 1}${j + 1}} = ${q.toLatex()}`;
               })
-              .join(',\\ '),
+              .join(String.raw`,\ `),
           },
           { label: 'Costo inicial', value: `Z_0 = ${initialCost.toLatex()}` },
           { label: 'Iteraciones', value: String(k) },
@@ -258,14 +258,14 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         result:
           loop
             .map((c, idx) => `(${c[0] + 1},${c[1] + 1})^{${idx % 2 === 0 ? '+' : '-'}}`)
-            .join(' \\to ') + ` \\to (${best.i + 1},${best.j + 1})`,
+            .join(String.raw` \to `) + String.raw` \to (${best.i + 1},${best.j + 1})`,
       },
       {
         title: 'Cantidad que se mueve (θ)',
         explanation:
           'θ es la menor asignación de las esquinas con signo −. Se suma en las esquinas + y se resta en las −; la básica que queda en 0 sale de la base.',
-        substitution: `\\theta = \\min\\{${minus.map((c) => allocation.get(cellKey(c[0], c[1]))!.toLatex()).join(',\\ ')}\\}`,
-        result: `\\theta = ${theta.toLatex()},\\quad x_{${leaving[0] + 1}${leaving[1] + 1}} \\ \\text{sale}`,
+        substitution: String.raw`\theta = \min\{${minus.map((c) => allocation.get(cellKey(c[0], c[1]))!.toLatex()).join(String.raw`,\ `)}\}`,
+        result: String.raw`\theta = ${theta.toLatex()},\quad x_{${leaving[0] + 1}${leaving[1] + 1}} \ \text{sale}`,
       },
     );
     const next: Allocation = new Map(allocation);
@@ -280,7 +280,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
     children.push({
       title: 'Nuevo costo',
       explanation: 'El costo baja en θ veces el valor de la celda que entró.',
-      substitution: `${before.toLatex()} - ${theta.toLatex()} \\times ${best.value.toLatex()}`,
+      substitution: String.raw`${before.toLatex()} - ${theta.toLatex()} \times ${best.value.toLatex()}`,
       result: `Z = ${totalCost(b, allocation).toLatex()}`,
     });
     steps.push({ title: `Iteración ${k + 1}`, children });

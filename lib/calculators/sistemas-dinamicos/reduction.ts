@@ -55,7 +55,7 @@ function reach(graph: Sfg, start: string, forward: boolean): Set<string> {
   return seen;
 }
 
-const branchTex = (b: SfgBranch) => `${nodeTex(b.from)} \\to ${nodeTex(b.to)}`;
+const branchTex = (b: SfgBranch) => String.raw`${nodeTex(b.from)} \to ${nodeTex(b.to)}`;
 
 /** ¿La ganancia es +1 o −1 (una entrada de un punto suma)? */
 function isUnit(f: FRat): boolean {
@@ -105,7 +105,7 @@ export function reduceDiagram(original: Sfg, input: string, output: string): Red
           explanation: `Hay ${p.parts.length} bloques de ${p.from} a ${p.to}: sus salidas se suman.`,
           formula: 'G_a + G_b',
           substitution: p.parts.map(frOperandTex).join(' + ').replace(/\+ -/g, '- '),
-          result: `${nodeTex(p.from)} \\to ${nodeTex(p.to)}:\\ ${frTex(p.total)}`,
+          result: String.raw`${nodeTex(p.from)} \to ${nodeTex(p.to)}:\ ${frTex(p.total)}`,
         });
       }
       g = merged;
@@ -123,12 +123,12 @@ export function reduceDiagram(original: Sfg, input: string, output: string): Red
       steps.push({
         title: `Eliminación del lazo de realimentación en ${node}`,
         explanation: `La señal ${node} vuelve sobre sí misma: la ganancia de lazo L es el producto de los bloques del lazo con el signo del punto suma. Cada bloque que llega a ${node} se divide entre 1 − L (con realimentación negativa, L = −GH y queda G/(1 + GH)).`,
-        formula: '\\frac{G}{1 - L}',
-        substitution: `L = ${frTex(L)},\\quad 1 - L = ${frTex(factor)}`,
+        formula: String.raw`\frac{G}{1 - L}`,
+        substitution: String.raw`L = ${frTex(L)},\quad 1 - L = ${frTex(factor)}`,
         children: updated.map((b, i) => ({
           title: `Bloque ${b.from} → ${b.to}`,
-          formula: `\\frac{${frTex(incoming[i]!.gain)}}{${frTex(factor)}}`,
-          result: `${branchTex(b)}:\\ ${frTex(b.gain)}`,
+          formula: String.raw`\frac{${frTex(incoming[i]!.gain)}}{${frTex(factor)}}`,
+          result: String.raw`${branchTex(b)}:\ ${frTex(b.gain)}`,
         })),
       });
       g = {
@@ -164,7 +164,7 @@ export function reduceDiagram(original: Sfg, input: string, output: string): Red
         const joined: SfgBranch = { from: a.from, to: c.to, gain: frMul(a.gain, c.gain) };
         children.push({
           title: chainTex([a.from, node, c.to]),
-          result: `${branchTex(joined)}:\\ ${frTex(joined.gain)}`,
+          result: String.raw`${branchTex(joined)}:\ ${frTex(joined.gain)}`,
         });
         g = {
           nodes: g.nodes.filter((n) => n !== node),
@@ -214,14 +214,16 @@ export function reduceDiagram(original: Sfg, input: string, output: string): Red
     steps.push({
       title,
       explanation,
-      formula: merging ? undefined : 'G_a\\,G_b',
+      formula: merging ? undefined : String.raw`G_a\,G_b`,
       children: created.map((b, k) => {
         const a = ins[Math.floor(k / outs.length)]!;
         const c = outs[k % outs.length]!;
         return {
           title: `${chainTex([a.from, node, c.to])}`,
-          substitution: merging ? undefined : `${frOperandTex(a.gain)}\\,${frOperandTex(c.gain)}`,
-          result: `${branchTex(b)}:\\ ${frTex(b.gain)}`,
+          substitution: merging
+            ? undefined
+            : String.raw`${frOperandTex(a.gain)}\,${frOperandTex(c.gain)}`,
+          result: String.raw`${branchTex(b)}:\ ${frTex(b.gain)}`,
         };
       }),
     });

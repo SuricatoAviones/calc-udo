@@ -197,7 +197,7 @@ Plantilla:
 - **Estado:** Aceptada
 - **Decisión:** `lib/calculators/contract.test.ts` resuelve el ejemplo de cada calculadora y falla
   si algún texto del resultado contiene caracteres de control (U+0000 a U+001F).
-- **Contexto:** En un string de JavaScript, `"egin"` o `"rac"` sin doble barra se
+- **Contexto:** En un string de JavaScript, `"\begin"` o `"\frac"` sin doble barra se
   convierten en backspace o salto de página, y KaTeX los muestra como □. Pasó con
   `toLatexMatrix`, y su test unitario no lo detectó porque el valor esperado tenía el mismo
   error. Un chequeo independiente del valor esperado cubre todas las calculadoras, las actuales
@@ -939,3 +939,24 @@ Plantilla:
   preparar el teléfono antes de salir sin wifi. _Descargar los 30 MB automáticamente_: gasta datos
   móviles sin consentimiento. _Activar la versión nueva con `skipWaiting` automático_: recarga la
   página en medio de un cálculo. _Manifest generado en el servidor_: el sitio no tiene servidor.
+
+## ADR-041 — LaTeX con `String.raw` y código limpio según SonarCloud
+
+- **Fecha:** 2026-11-06
+- **Estado:** Aceptada
+- **Contexto:** SonarCloud analiza `main` con el análisis automático de la app de GitHub (el repo
+  no tiene workflows de Actions; los checks son SonarCloud y Vercel). Tras la v1.2.0 el Quality
+  Gate fallaba por fiabilidad en código nuevo (D) y el proyecto acumulaba unos 4 450 avisos;
+  3 332 eran la regla S7780 (barras invertidas duplicadas en las cadenas LaTeX).
+- **Decisión:** el LaTeX se escribe con `String.raw`: `` String.raw`\frac{${a}}{${b}}` `` en lugar
+  de `` `\\frac{${a}}{${b}}` ``. Cada barra se escribe una vez, igual que en el libro, y desaparece
+  la clase de error de ADR-014 (`"\frac"` con un salto de página). La conversión se hizo con un
+  codemod sobre el AST de TypeScript que solo tocó literales cuyos únicos escapes eran `\\` o
+  comillas, y fuera de tipos literales, atributos JSX y `as const`; convirtió exactamente los
+  3 332 literales que señalaba Sonar. Un `String.raw` no puede terminar en `\` (escaparía la
+  comilla invertida de cierre); esos literales se quedan como estaban.
+- **Consecuencias:** `String.raw` devuelve `string`, no un tipo literal; `NetworkOptions.durationSymbol`
+  pasó de `'t' | '\\mu'` a `string`. El test de ADR-014 sigue siendo la red de seguridad.
+- **Alternativas descartadas:** _Desactivar S7780 en SonarCloud_: la regla señala justo la fuente
+  de los □ de ADR-014. _Convertir a mano_: 224 archivos; el codemod es verificable contra la lista
+  de Sonar.

@@ -91,7 +91,7 @@ function buildTrace(steps: Step[], rows: Row[], notices: Trace['notices']): Trac
       { key: 'fxl', header: 'f(x_l)' },
       { key: 'fxu', header: 'f(x_u)' },
       { key: 'fxr', header: 'f(x_r)' },
-      { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+      { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
     ],
     rows: rows.map((row) => ({ ...row })),
   });
@@ -155,9 +155,9 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
       {
         title: 'Producto de los valores en los extremos',
         explanation: 'Debe ser negativo.',
-        formula: 'f(x_l)\\,f(x_u) < 0',
-        substitution: `f(x_l)\\,f(x_u) = ${op(fxl)}\\,${op(fxu)}`,
-        result: `f(x_l)\\,f(x_u) = ${n(fxl * fxu)}`,
+        formula: String.raw`f(x_l)\,f(x_u) < 0`,
+        substitution: String.raw`f(x_l)\,f(x_u) = ${op(fxl)}\,${op(fxu)}`,
+        result: String.raw`f(x_l)\,f(x_u) = ${n(fxl * fxu)}`,
       },
     ],
   });
@@ -204,8 +204,8 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
         xr,
         xrOld,
         tolerance,
-        'x_r^{\\text{nuevo}}',
-        'x_r^{\\text{anterior}}',
+        String.raw`x_r^{\text{nuevo}}`,
+        String.raw`x_r^{\text{anterior}}`,
       );
       ({ ea, converged } = error);
       children.push(error.step);
@@ -215,8 +215,8 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
     const product = fxl * fxr;
     const testStep: Step = {
       title: 'Elegir el subintervalo que contiene la raíz',
-      formula: 'f(x_l)\\,f(x_r)',
-      substitution: `f(x_l)\\,f(x_r) = ${op(fxl)}\\,${op(fxr)} = ${n(product)}`,
+      formula: String.raw`f(x_l)\,f(x_r)`,
+      substitution: String.raw`f(x_l)\,f(x_r) = ${op(fxl)}\,${op(fxr)} = ${n(product)}`,
     };
     children.push(testStep);
 
@@ -229,13 +229,13 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
     if (product < 0) {
       testStep.explanation =
         'El producto es negativo: la raíz está en el primer subintervalo, así que xᵤ toma el valor de xᵣ.';
-      testStep.result = `[x_l,\\ x_u] = [${n(xl)},\\ ${n(xr)}]`;
+      testStep.result = String.raw`[x_l,\ x_u] = [${n(xl)},\ ${n(xr)}]`;
       xu = xr;
       fxu = fxr;
     } else {
       testStep.explanation =
         'El producto es positivo: la raíz está en el segundo subintervalo, así que xₗ toma el valor de xᵣ.';
-      testStep.result = `[x_l,\\ x_u] = [${n(xr)},\\ ${n(xu)}]`;
+      testStep.result = String.raw`[x_l,\ x_u] = [${n(xr)},\ ${n(xu)}]`;
       xl = xr;
       fxl = fxr;
     }
@@ -245,7 +245,7 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
       steps.push({
         title: 'Conclusión',
         explanation: `Después de ${i} iteraciones el error relativo aproximado es menor que la tolerancia.`,
-        result: `x_r \\approx ${n(xr)}`,
+        result: String.raw`x_r \approx ${n(xr)}`,
       });
       return succeed(xr);
     }

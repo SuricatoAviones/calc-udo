@@ -279,22 +279,22 @@ export function solveSeparable(input: SeparableInput): Result {
 
   const steps: Step[] = [];
   const modelLines = [
-    `\\text{Objetivo: } z = ${
+    String.raw`\text{Objetivo: } z = ${
       meta
         .flatMap((c, col) =>
           c.kind === 's' || objectiveCoef[col] === 0
             ? []
-            : [`${n(objectiveCoef[col]!)}\\,${columns[col]!.latex}`],
+            : [String.raw`${n(objectiveCoef[col]!)}\,${columns[col]!.latex}`],
         )
         .join(' + ') || '0'
     }`,
     ...constraintRows.map(
       (row, i) =>
-        `${row
+        String.raw`${row
           .flatMap((v, col) =>
-            meta[col]!.kind === 's' || v === 0 ? [] : [`${n(v)}\\,${columns[col]!.latex}`],
+            meta[col]!.kind === 's' || v === 0 ? [] : [String.raw`${n(v)}\,${columns[col]!.latex}`],
           )
-          .join(' + ')} \\le ${n(constraintRhs[i]!)}`,
+          .join(' + ')} \le ${n(constraintRhs[i]!)}`,
     ),
     ...approximated.map(
       (j) =>
@@ -310,22 +310,22 @@ export function solveSeparable(input: SeparableInput): Result {
       return {
         title: `Aproximación de x${j + 1} por tramos`,
         explanation: `Se usan los puntos de quiebre ${points.map((p) => formatNumber(p)).join(', ')}: x${j + 1} = Σ a·w y cada función de x${j + 1} se reemplaza por Σ f(a)·w.`,
-        formula: `x_{${j + 1}} = \\sum_k a_{${j + 1}k}\\,w_{${j + 1}k}, \\qquad f_{${j + 1}}(x_{${j + 1}}) \\approx \\sum_k f_{${j + 1}}(a_{${j + 1}k})\\,w_{${j + 1}k}`,
+        formula: String.raw`x_{${j + 1}} = \sum_k a_{${j + 1}k}\,w_{${j + 1}k}, \qquad f_{${j + 1}}(x_{${j + 1}}) \approx \sum_k f_{${j + 1}}(a_{${j + 1}k})\,w_{${j + 1}k}`,
         substitution: points
           .map(
             (a, k) =>
-              `a_{${j + 1}${k + 1}} = ${n(a)}:\\ f = ${n(model.fPart(j, a))}${constraints
-                .map((_, i) => `,\\ g_{${i + 1}} = ${n(model.gPart(i, j, a))}`)
+              String.raw`a_{${j + 1}${k + 1}} = ${n(a)}:\ f = ${n(model.fPart(j, a))}${constraints
+                .map((_, i) => String.raw`,\ g_{${i + 1}} = ${n(model.gPart(i, j, a))}`)
                 .join('')}`,
           )
-          .join(' \\\\ '),
+          .join(String.raw` \\ `),
       };
     }),
     {
       title: 'Modelo lineal aproximado',
       explanation:
         'Las variables lineales se conservan; las aproximadas se reemplazan por sus pesos, que deben sumar 1.',
-      substitution: modelLines.join(' \\\\ '),
+      substitution: modelLines.join(String.raw` \\ `),
     },
   );
 
@@ -370,7 +370,7 @@ export function solveSeparable(input: SeparableInput): Result {
     const adjacent =
       positive.length <= 1 || (positive.length === 2 && positive[1]! - positive[0]! === 1);
     if (adjacent) return null;
-    return `\\text{quedarían positivos } ${positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(',\\ ')} \\text{, que no son adyacentes}`;
+    return String.raw`\text{quedarían positivos } ${positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(String.raw`,\ `)} \text{, que no son adyacentes}`;
   };
   const run = runRestrictedSimplex(start, admissible);
   const trace = restrictedTrace(run, 'separable');
@@ -437,8 +437,8 @@ export function solveSeparable(input: SeparableInput): Result {
             .map(({ a, w }) => `${n(a)}(${w.toLatex()})`)
             .join(' + ')}`,
       )
-      .join(' \\\\ '),
-    result: `X \\approx \\left(${x.map((v) => n(v, 8)).join(',\\ ')}\\right), \\quad z_{\\text{aprox}} = ${n(approximateObjective, 8)}, \\quad f(X) = ${n(trueObjective, 8)}`,
+      .join(String.raw` \\ `),
+    result: String.raw`X \approx \left(${x.map((v) => n(v, 8)).join(String.raw`,\ `)}\right), \quad z_{\text{aprox}} = ${n(approximateObjective, 8)}, \quad f(X) = ${n(trueObjective, 8)}`,
   });
 
   return {
@@ -447,10 +447,13 @@ export function solveSeparable(input: SeparableInput): Result {
     summary: [
       {
         label: 'Solución aproximada',
-        value: `X \\approx \\left(${x.map((v) => n(v, 6)).join(',\\ ')}\\right)`,
+        value: String.raw`X \approx \left(${x.map((v) => n(v, 6)).join(String.raw`,\ `)}\right)`,
         emphasis: true,
       },
-      { label: 'Objetivo aproximado', value: `z_{\\text{aprox}} = ${n(approximateObjective, 8)}` },
+      {
+        label: 'Objetivo aproximado',
+        value: String.raw`z_{\text{aprox}} = ${n(approximateObjective, 8)}`,
+      },
       { label: 'Función original en X', value: `f(X) = ${n(trueObjective, 8)}` },
     ],
     ...emptyTrace(),

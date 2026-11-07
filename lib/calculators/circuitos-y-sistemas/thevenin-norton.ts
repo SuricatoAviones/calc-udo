@@ -33,12 +33,19 @@ export function solveThevenin(
   }
 
   const { vTh, rTh, iN, pMax } = outcome.result;
-  const omega = (v: number) => (Number.isFinite(v) ? `${formatNumber(v, 4)}\\ \\Omega` : '\\infty');
+  const omega = (v: number) =>
+    Number.isFinite(v) ? String.raw`${formatNumber(v, 4)}\ \Omega` : String.raw`\infty`;
   const summary: SummaryItem[] = [
-    { label: 'V_th', value: `${formatNumber(vTh, 4)}\\text{ V}`, emphasis: true },
+    { label: 'V_th', value: String.raw`${formatNumber(vTh, 4)}\text{ V}`, emphasis: true },
     { label: 'R_th', value: omega(rTh) },
-    { label: 'I_N', value: Number.isFinite(iN) ? `${formatNumber(iN, 4)}\\text{ A}` : '\\infty' },
-    { label: 'P_máx', value: Number.isFinite(pMax) ? `${formatNumber(pMax, 4)}\\text{ W}` : '—' },
+    {
+      label: 'I_N',
+      value: Number.isFinite(iN) ? String.raw`${formatNumber(iN, 4)}\text{ A}` : String.raw`\infty`,
+    },
+    {
+      label: 'P_máx',
+      value: Number.isFinite(pMax) ? String.raw`${formatNumber(pMax, 4)}\text{ W}` : '—',
+    },
   ];
 
   return {

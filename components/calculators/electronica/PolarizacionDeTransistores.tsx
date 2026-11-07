@@ -67,7 +67,7 @@ function BjtFields() {
             hint={config === 'realimentacion' ? '0 si no hay.' : undefined}
           />
         )}
-        <NumberField name="beta" label={tex('\\beta')} />
+        <NumberField name="beta" label={tex(String.raw`\beta`)} />
         <NumberField name="vbe" label={tex('V_{BE}', 'V')} hint="0.7 V en silicio." />
       </div>
     </>
@@ -125,9 +125,9 @@ function FetFields() {
       </div>
       {enhancement ? (
         <div className="grid grid-cols-3 gap-3">
-          <NumberField name="vt" label={tex('V_{GS(\\text{Th})}', 'V')} />
-          <QuantityField name="idOn" unit="A" label={tex('I_{D(\\text{enc})}', 'A')} />
-          <NumberField name="vgsOn" label={tex('V_{GS(\\text{enc})}', 'V')} />
+          <NumberField name="vt" label={tex(String.raw`V_{GS(\text{Th})}`, 'V')} />
+          <QuantityField name="idOn" unit="A" label={tex(String.raw`I_{D(\text{enc})}`, 'A')} />
+          <NumberField name="vgsOn" label={tex(String.raw`V_{GS(\text{enc})}`, 'V')} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

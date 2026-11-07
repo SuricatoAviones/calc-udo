@@ -16,13 +16,19 @@ export const INPUT_INFO: Record<
   InputKind,
   { name: string; r: string; R: string; power: number; at: (t: number) => number }
 > = {
-  impulso: { name: 'impulso unitario', r: '\\delta(t)', R: '1', power: 0, at: () => 0 },
-  escalon: { name: 'escalón unitario', r: 'u(t)', R: '\\frac{1}{s}', power: 1, at: () => 1 },
-  rampa: { name: 'rampa unitaria', r: 't', R: '\\frac{1}{s^{2}}', power: 2, at: (t) => t },
+  impulso: { name: 'impulso unitario', r: String.raw`\delta(t)`, R: '1', power: 0, at: () => 0 },
+  escalon: {
+    name: 'escalón unitario',
+    r: 'u(t)',
+    R: String.raw`\frac{1}{s}`,
+    power: 1,
+    at: () => 1,
+  },
+  rampa: { name: 'rampa unitaria', r: 't', R: String.raw`\frac{1}{s^{2}}`, power: 2, at: (t) => t },
   aceleracion: {
     name: 'parábola unitaria',
-    r: '\\frac{t^{2}}{2}',
-    R: '\\frac{1}{s^{3}}',
+    r: String.raw`\frac{t^{2}}{2}`,
+    R: String.raw`\frac{1}{s^{3}}`,
     power: 3,
     at: (t) => (t * t) / 2,
   },

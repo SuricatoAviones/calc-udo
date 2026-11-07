@@ -122,8 +122,8 @@ export function solveIntegration<TInput extends IntegrationInput>(
   const steps: Step[] = [
     {
       title: 'Ancho de cada segmento',
-      formula: 'h = \\frac{b - a}{n}',
-      substitution: `h = \\frac{${n(b)} - ${toLatexOperand(a)}}{${input.n}}`,
+      formula: String.raw`h = \frac{b - a}{n}`,
+      substitution: String.raw`h = \frac{${n(b)} - ${toLatexOperand(a)}}{${input.n}}`,
       result: `h = ${n(h)}`,
     },
   ];
@@ -185,7 +185,7 @@ export function solveIntegration<TInput extends IntegrationInput>(
   steps.push(...applied.steps);
 
   const summary: SummaryItem[] = [
-    { label: 'Integral aproximada', value: `I \\approx ${n(integral)}`, emphasis: true },
+    { label: 'Integral aproximada', value: String.raw`I \approx ${n(integral)}`, emphasis: true },
     { label: 'Segmentos', value: `n = ${input.n}` },
     { label: 'Ancho del segmento', value: `h = ${n(h)}` },
   ];
@@ -198,19 +198,18 @@ export function solveIntegration<TInput extends IntegrationInput>(
     steps.push({
       title: 'Error verdadero',
       explanation: 'Con el valor exacto se mide qué tan buena es la aproximación.',
-      formula:
-        'E_t = \\text{valor exacto} - I, \\qquad \\varepsilon_t = \\frac{E_t}{\\text{valor exacto}} \\times 100\\%',
+      formula: String.raw`E_t = \text{valor exacto} - I, \qquad \varepsilon_t = \frac{E_t}{\text{valor exacto}} \times 100\%`,
       substitution: `E_t = ${n(input.exact)} - ${toLatexOperand(integral)}`,
       result:
         trueRelativeError === null
           ? `E_t = ${n(trueError)}`
-          : `E_t = ${n(trueError)}, \\qquad \\varepsilon_t = ${n(trueRelativeError, 4)}\\,\\%`,
+          : String.raw`E_t = ${n(trueError)}, \qquad \varepsilon_t = ${n(trueRelativeError, 4)}\,\%`,
     });
     summary.push({ label: 'Error verdadero', value: `E_t = ${n(trueError, 6)}` });
     if (trueRelativeError !== null) {
       summary.push({
         label: 'Error relativo verdadero',
-        value: `\\varepsilon_t = ${n(trueRelativeError, 4)}\\,\\%`,
+        value: String.raw`\varepsilon_t = ${n(trueRelativeError, 4)}\,\%`,
       });
     }
   }

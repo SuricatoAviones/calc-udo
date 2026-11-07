@@ -118,8 +118,8 @@ export function solveStateFeedback(
       r.rank === size
         ? 'M tiene rango n: el sistema es de estado completamente controlable y los polos en lazo cerrado se pueden ubicar donde se quiera.'
         : 'M tiene rango menor que n: el sistema no es completamente controlable y no se pueden ubicar todos los polos.',
-    formula: 'M = [B \\mid AB \\mid \\cdots \\mid A^{n-1}B]',
-    result: `M = ${tex(M)},\\quad |M| = ${n(r.determinant ?? 0)},\\quad \\operatorname{rango} M = ${r.rank}`,
+    formula: String.raw`M = [B \mid AB \mid \cdots \mid A^{n-1}B]`,
+    result: String.raw`M = ${tex(M)},\quad |M| = ${n(r.determinant ?? 0)},\quad \operatorname{rango} M = ${r.rank}`,
   });
   if (r.rank < size)
     return fail(
@@ -132,14 +132,13 @@ export function solveStateFeedback(
   const desired = polyFromComplexRoots(parsed.values);
   steps.push({
     title: 'Polinomio característico del sistema',
-    formula: '|sI - A| = s^n + a_1s^{n-1} + \\cdots + a_n',
+    formula: String.raw`|sI - A| = s^n + a_1s^{n-1} + \cdots + a_n`,
     result: `|sI - A| = ${laplacePolyTex(charPoly)}`,
   });
   steps.push({
     title: 'Polinomio característico deseado',
     explanation: `Polos deseados: ${parsed.values.map((v) => C.toTextRect(v, DIGITS)).join(', ')}.`,
-    formula:
-      '(s - \\mu_1)(s - \\mu_2)\\cdots(s - \\mu_n) = s^n + \\alpha_1s^{n-1} + \\cdots + \\alpha_n',
+    formula: String.raw`(s - \mu_1)(s - \mu_2)\cdots(s - \mu_n) = s^n + \alpha_1s^{n-1} + \cdots + \alpha_n`,
     result: laplacePolyTex(desired),
   });
 
@@ -154,9 +153,8 @@ export function solveStateFeedback(
     title: 'Método 1: matriz de transformación T = MW',
     explanation:
       'T lleva el sistema a la forma canónica controlable, donde la ganancia es la diferencia de coeficientes de los polinomios característicos.',
-    formula:
-      'K = [\\alpha_n - a_n \\mid \\alpha_{n-1} - a_{n-1} \\mid \\cdots \\mid \\alpha_1 - a_1]\\,T^{-1}',
-    substitution: `W = ${tex(W)},\\quad T = ${tex(T)}`,
+    formula: String.raw`K = [\alpha_n - a_n \mid \alpha_{n-1} - a_{n-1} \mid \cdots \mid \alpha_1 - a_1]\,T^{-1}`,
+    substitution: String.raw`W = ${tex(W)},\quad T = ${tex(T)}`,
     result: K1 ? `K = ${tex([diff])}${tex(Tinv!)} = ${tex([K1])}` : undefined,
   });
 
@@ -167,9 +165,8 @@ export function solveStateFeedback(
   const K = tidyMatrix(matMul(matMul(last, Minv), phi))[0]!;
   steps.push({
     title: 'Método 3: fórmula de Ackermann',
-    formula:
-      'K = [0 \\ \\cdots \\ 0 \\ 1]\\,[B \\mid AB \\mid \\cdots \\mid A^{n-1}B]^{-1}\\,\\phi(A),\\quad \\phi(A) = A^n + \\alpha_1A^{n-1} + \\cdots + \\alpha_nI',
-    substitution: `\\phi(A) = ${tex(phi)},\\quad M^{-1} = ${tex(Minv)}`,
+    formula: String.raw`K = [0 \ \cdots \ 0 \ 1]\,[B \mid AB \mid \cdots \mid A^{n-1}B]^{-1}\,\phi(A),\quad \phi(A) = A^n + \alpha_1A^{n-1} + \cdots + \alpha_nI`,
+    substitution: String.raw`\phi(A) = ${tex(phi)},\quad M^{-1} = ${tex(Minv)}`,
     result: `K = ${tex([K])}`,
   });
   if (K1 && K1.some((v, i) => Math.abs(v - K[i]!) > 1e-6 * Math.max(1, Math.abs(v)))) {
@@ -187,7 +184,7 @@ export function solveStateFeedback(
     title: 'Verificación',
     explanation: `Valores característicos de A − BK: ${rootsText(eig)}.`,
     formula: 'A - BK',
-    result: `A - BK = ${tex(closedLoop)},\\quad |sI - A + BK| = ${laplacePolyTex(closedPoly)}`,
+    result: String.raw`A - BK = ${tex(closedLoop)},\quad |sI - A + BK| = ${laplacePolyTex(closedPoly)}`,
   });
 
   // Respuesta a condición inicial.
@@ -226,9 +223,8 @@ export function solveStateFeedback(
       title: 'Respuesta a la condición inicial',
       explanation:
         'Con u = −Kx el sistema queda ẋ = (A − BK)x; su respuesta es X(s) = (sI − A + BK)⁻¹x(0).',
-      formula:
-        '\\mathbf{X}(s) = \\frac{\\operatorname{adj}(sI - A + BK)}{|sI - A + BK|}\\,\\mathbf{x}(0)',
-      substitution: `\\operatorname{adj}(sI - A + BK) = ${adjugateTex(adj)}`,
+      formula: String.raw`\mathbf{X}(s) = \frac{\operatorname{adj}(sI - A + BK)}{|sI - A + BK|}\,\mathbf{x}(0)`,
+      substitution: String.raw`\operatorname{adj}(sI - A + BK) = ${adjugateTex(adj)}`,
       children,
     });
   }
@@ -240,8 +236,11 @@ export function solveStateFeedback(
       label: 'Polos en lazo cerrado',
       value: eig
         .filter((e) => e.value.im >= 0)
-        .map((e) => `s = ${C.toLatexRect(e.value, DIGITS)}${e.value.im > 0 ? '\\ (\\pm)' : ''}`)
-        .join(',\\ '),
+        .map(
+          (e) =>
+            `s = ${C.toLatexRect(e.value, DIGITS)}${e.value.im > 0 ? String.raw`\ (\pm)` : ''}`,
+        )
+        .join(String.raw`,\ `),
     },
   ];
   return {

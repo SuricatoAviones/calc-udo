@@ -38,13 +38,13 @@ function poissonModel(lambda: number): DiscreteModel {
     name: 'de Poisson',
     max: Infinity,
     pmf: (x) => (x < 0 ? 0 : Math.exp(-lambda + x * Math.log(lambda) - lnFactorial(x))),
-    notation: (x) => `p(${x};\\ ${n(lambda)})`,
-    pmfFormula: '\\frac{e^{-\\lambda} \\lambda^x}{x!}',
-    pmfSubstitution: (x) => `\\frac{e^{-${n(lambda)}}\\,(${n(lambda)})^{${x}}}{${x}!}`,
+    notation: (x) => String.raw`p(${x};\ ${n(lambda)})`,
+    pmfFormula: String.raw`\frac{e^{-\lambda} \lambda^x}{x!}`,
+    pmfSubstitution: (x) => String.raw`\frac{e^{-${n(lambda)}}\,(${n(lambda)})^{${x}}}{${x}!}`,
     mean: lambda,
     variance: lambda,
-    meanFormula: `\\lambda = ${n(lambda)}`,
-    varianceFormula: `\\lambda = ${n(lambda)}`,
+    meanFormula: String.raw`\lambda = ${n(lambda)}`,
+    varianceFormula: String.raw`\lambda = ${n(lambda)}`,
     explanation: `X cuenta los eventos en un intervalo en el que ocurren, en promedio, λ = ${n(lambda)} de forma independiente. Si te dan una tasa por unidad de tiempo, λ = tasa × duración del intervalo.`,
   };
 }

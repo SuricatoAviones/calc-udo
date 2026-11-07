@@ -77,8 +77,10 @@ function rankStep(
       title,
       explanation: `${what} El rango se obtiene llevando la matriz a la forma escalonada por eliminación de Gauss: es el número de filas no nulas. ${r.rank === target ? ok : notOk}`,
       formula: `${name} = ${tex(matrix)}`,
-      substitution: square ? `\\det ${name} = ${toLatexNumber(r.determinant!, DIGITS)}` : undefined,
-      result: `\\text{forma escalonada: } ${tex(tidyMatrix(r.echelon))},\\quad \\operatorname{rango} ${name} = ${r.rank}`,
+      substitution: square
+        ? String.raw`\det ${name} = ${toLatexNumber(r.determinant!, DIGITS)}`
+        : undefined,
+      result: String.raw`\text{forma escalonada: } ${tex(tidyMatrix(r.echelon))},\quad \operatorname{rango} ${name} = ${r.rank}`,
     },
   };
 }
@@ -100,9 +102,8 @@ export function solveControllability(
   steps.push({
     title: 'Sistema',
     explanation: `${n} variables de estado, ${B[0]!.length} ${B[0]!.length === 1 ? 'entrada' : 'entradas'} y ${m} ${m === 1 ? 'salida' : 'salidas'}.`,
-    formula:
-      '\\dot{\\mathbf{x}} = A\\mathbf{x} + B\\mathbf{u},\\qquad \\mathbf{y} = C\\mathbf{x} + D\\mathbf{u}',
-    result: `A = ${tex(A)},\\ B = ${tex(B)},\\ C = ${tex(Cm)},\\ D = ${tex(D)}`,
+    formula: String.raw`\dot{\mathbf{x}} = A\mathbf{x} + B\mathbf{u},\qquad \mathbf{y} = C\mathbf{x} + D\mathbf{u}`,
+    result: String.raw`A = ${tex(A)},\ B = ${tex(B)},\ C = ${tex(Cm)},\ D = ${tex(D)}`,
   });
 
   const ctrl = controllabilityMatrix(A, B);
@@ -166,21 +167,21 @@ export function solveControllability(
   const controllable = c.value === n;
   const observable = ob.value === n;
   const outputControllable = o.value === m;
-  const yes = (v: boolean) => (v ? '\\text{sí}' : '\\text{no}');
+  const yes = (v: boolean) => (v ? String.raw`\text{sí}` : String.raw`\text{no}`);
   const summary: SummaryItem[] = [
     {
       label: 'Controlable',
-      value: `${yes(controllable)}\\ (\\operatorname{rango} M = ${c.value})`,
+      value: String.raw`${yes(controllable)}\ (\operatorname{rango} M = ${c.value})`,
       emphasis: true,
     },
     {
       label: 'Observable',
-      value: `${yes(observable)}\\ (\\operatorname{rango} N = ${ob.value})`,
+      value: String.raw`${yes(observable)}\ (\operatorname{rango} N = ${ob.value})`,
       emphasis: true,
     },
     {
       label: 'Salida controlable',
-      value: `${yes(outputControllable)}\\ (\\operatorname{rango} = ${o.value})`,
+      value: String.raw`${yes(outputControllable)}\ (\operatorname{rango} = ${o.value})`,
     },
   ];
   return {

@@ -47,9 +47,9 @@ export function capacitorFilter(input: FilterInput): FilterResult {
       title: 'Corriente de carga (primera aproximación)',
       explanation:
         'Si el rizado es pequeño, la tensión en la carga es casi el pico del rectificador (Malvino, sec. 4-6).',
-      formula: 'I \\approx \\frac{V_m}{R_L}',
-      substitution: `I \\approx \\frac{${n(vm)}}{${n(input.load.rl)}}`,
-      result: `I \\approx ${engTex(idc, 'A')}`,
+      formula: String.raw`I \approx \frac{V_m}{R_L}`,
+      substitution: String.raw`I \approx \frac{${n(vm)}}{${n(input.load.rl)}}`,
+      result: String.raw`I \approx ${engTex(idc, 'A')}`,
     });
   }
   const vrpp = idc / (fr * c);
@@ -60,24 +60,24 @@ export function capacitorFilter(input: FilterInput): FilterResult {
   steps.push({
     title: 'Rizado pico a pico',
     explanation: `El condensador se descarga entre picos durante 1/f_r. Con ${fullWave ? 'onda completa hay dos picos por ciclo' : 'media onda hay un pico por ciclo'}: f_r = ${n(fr)} Hz.`,
-    formula: 'V_{r(pp)} = \\frac{I}{f_r\\,C}',
-    substitution: `V_{r(pp)} = \\frac{${n(idc)}}{(${n(fr)})(${n(c)})}`,
-    result: `V_{r(pp)} = ${n(vrpp)}\\ \\text{V}`,
+    formula: String.raw`V_{r(pp)} = \frac{I}{f_r\,C}`,
+    substitution: String.raw`V_{r(pp)} = \frac{${n(idc)}}{(${n(fr)})(${n(c)})}`,
+    result: String.raw`V_{r(pp)} = ${n(vrpp)}\ \text{V}`,
   });
   steps.push({
     title: 'Rizado eficaz',
     explanation:
       'El rizado del filtro es casi una onda triangular: su valor eficaz es el pico a pico entre 2√3.',
     formula: fullWave
-      ? 'V_{r(rms)} = \\frac{V_{r(pp)}}{2\\sqrt{3}} = \\frac{I_{cd}}{4\\sqrt{3}\\,f\\,C}'
-      : 'V_{r(rms)} = \\frac{V_{r(pp)}}{2\\sqrt{3}} = \\frac{I_{cd}}{2\\sqrt{3}\\,f\\,C}',
-    result: `V_{r(rms)} = ${n(vrrms)}\\ \\text{V}`,
+      ? String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{4\sqrt{3}\,f\,C}`
+      : String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{2\sqrt{3}\,f\,C}`,
+    result: String.raw`V_{r(rms)} = ${n(vrrms)}\ \text{V}`,
   });
   steps.push({
     title: 'Tensión de cd y factor de rizo',
-    formula: 'V_{cd} = V_m - \\frac{V_{r(pp)}}{2},\\qquad r = \\frac{V_{r(rms)}}{V_{cd}}',
-    substitution: `V_{cd} = ${n(vm)} - \\frac{${n(vrpp)}}{2}`,
-    result: `V_{cd} = ${n(vdc)}\\ \\text{V},\\quad r = ${n(100 * ripple)}\\,\\%`,
+    formula: String.raw`V_{cd} = V_m - \frac{V_{r(pp)}}{2},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
+    substitution: String.raw`V_{cd} = ${n(vm)} - \frac{${n(vrpp)}}{2}`,
+    result: String.raw`V_{cd} = ${n(vdc)}\ \text{V},\quad r = ${n(100 * ripple)}\,\%`,
   });
   return { fr, idc, vrpp, vrrms, vdc, vmin, ripple, steps };
 }

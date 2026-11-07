@@ -42,16 +42,16 @@ function uniformModel(a: number, b: number): ContinuousModel {
     support: [a, b],
     pdf: (x) => (x < a || x > b ? 0 : 1 / width),
     cdf: (x) => (x <= a ? 0 : x >= b ? 1 : (x - a) / width),
-    pdfFormula: `\\frac{1}{B - A} = \\frac{1}{${n(b)} - ${toLatexOperand(a)}}, \\quad ${n(a)} \\le x \\le ${n(b)}`,
-    cdfFormula: '\\frac{x - A}{B - A}',
+    pdfFormula: String.raw`\frac{1}{B - A} = \frac{1}{${n(b)} - ${toLatexOperand(a)}}, \quad ${n(a)} \le x \le ${n(b)}`,
+    cdfFormula: String.raw`\frac{x - A}{B - A}`,
     cdfExplanation:
       'La densidad es un rectángulo de altura 1/(B − A), así que el área a la izquierda de x es la base (x − A) por la altura.',
     cdfSubstitution: (x) =>
-      `\\frac{${n(x)} - ${toLatexOperand(a)}}{${n(b)} - ${toLatexOperand(a)}}`,
+      String.raw`\frac{${n(x)} - ${toLatexOperand(a)}}{${n(b)} - ${toLatexOperand(a)}}`,
     mean: (a + b) / 2,
     variance: width ** 2 / 12,
-    meanFormula: `\\frac{A + B}{2} = \\frac{${n(a)} + ${toLatexOperand(b)}}{2}`,
-    varianceFormula: `\\frac{(B - A)^2}{12} = \\frac{(${n(width)})^2}{12}`,
+    meanFormula: String.raw`\frac{A + B}{2} = \frac{${n(a)} + ${toLatexOperand(b)}}{2}`,
+    varianceFormula: String.raw`\frac{(B - A)^2}{12} = \frac{(${n(width)})^2}{12}`,
     explanation: `X es igualmente probable en todo el intervalo [${formatNumber(a)}, ${formatNumber(b)}]: la probabilidad de caer en un subintervalo solo depende de su longitud.`,
   };
 }

@@ -30,7 +30,8 @@ export interface GameLpValue {
 
 export type GameLpErrorCode = 'lp-failed';
 
-const vector = (xs: Rational[]) => `\\left(${xs.map((x) => x.toLatex()).join(',\\ ')}\\right)`;
+const vector = (xs: Rational[]) =>
+  String.raw`\left(${xs.map((x) => x.toLatex()).join(String.raw`,\ `)}\right)`;
 
 export function solveGameLp(input: GameLpInput): CalculatorResult<GameLpValue, GameLpErrorCode> {
   const a = input.payoff.map((row) => row.map(Rational.fromNumber));
@@ -114,7 +115,7 @@ export function solveGameLp(input: GameLpInput): CalculatorResult<GameLpValue, G
       ? 'Los dos programas dan el mismo valor óptimo: el valor del juego.'
       : `Los dos programas dan el mismo valor óptimo v′ = ${solA.z.toText()}; se le resta K para obtener el valor del juego.`,
     result: latexLines([
-      `x^* = ${vector(x)},\\qquad y^* = ${vector(y)}`,
+      String.raw`x^* = ${vector(x)},\qquad y^* = ${vector(y)}`,
       K.isZero()
         ? `v = ${value.toLatex()}`
         : `v = v' - K = ${solA.z.toLatex()} - ${K.toLatex()} = ${value.toLatex()}`,
@@ -141,9 +142,9 @@ export function solveGameLp(input: GameLpInput): CalculatorResult<GameLpValue, G
         id: 'estrategias',
         title: 'Estrategias óptimas',
         columns: [
-          { key: 'player', header: '\\text{Jugador}', format: 'text' },
-          { key: 'strategy', header: '\\text{Estrategia}', format: 'latex' },
-          { key: 'probability', header: '\\text{Probabilidad}', format: 'latex' },
+          { key: 'player', header: String.raw`\text{Jugador}`, format: 'text' },
+          { key: 'strategy', header: String.raw`\text{Estrategia}`, format: 'latex' },
+          { key: 'probability', header: String.raw`\text{Probabilidad}`, format: 'latex' },
         ],
         rows: [
           ...x.map((p, i) => ({ player: 'A', strategy: rowName(i), probability: p.toLatex() })),

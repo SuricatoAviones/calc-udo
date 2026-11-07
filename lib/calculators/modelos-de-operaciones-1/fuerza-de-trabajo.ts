@@ -109,10 +109,9 @@ export function solveWorkforce(
     {
       title: 'Elementos del modelo',
       explanation: `Etapa i = periodo i (${periods} etapas). La alternativa es x_i, los trabajadores que se mantienen en el periodo i (al menos b_i); el estado es x_{i−1}, los que había en el periodo anterior (x₀ = ${x0}). Mantener más de los necesarios cuesta C₁ y contratar cuesta C₂; despedir no cuesta. Se resuelve con recursión en reversa, desde el último periodo.`,
-      formula:
-        'f_i(x_{i-1}) = \\min_{x_i \\ge b_i} \\left\\{ C_1(x_i - b_i) + C_2(x_i - x_{i-1}) + f_{i+1}(x_i) \\right\\}, \\quad f_{n+1} = 0',
-      substitution: `C_1(x_i - b_i) = ${n(ce)}\\,(x_i - b_i), \\qquad C_2(x_i - x_{i-1}) = ${n(K)} + ${n(cc)}\\,(x_i - x_{i-1}) \\ \\text{si } x_i > x_{i-1}`,
-      result: `b = \\left(${b.join(',\\ ')}\\right), \\qquad x_i \\in [\\,b_i,\\ \\max\\{b_i, \\ldots, b_n\\}\\,]`,
+      formula: String.raw`f_i(x_{i-1}) = \min_{x_i \ge b_i} \left\{ C_1(x_i - b_i) + C_2(x_i - x_{i-1}) + f_{i+1}(x_i) \right\}, \quad f_{n+1} = 0`,
+      substitution: String.raw`C_1(x_i - b_i) = ${n(ce)}\,(x_i - b_i), \qquad C_2(x_i - x_{i-1}) = ${n(K)} + ${n(cc)}\,(x_i - x_{i-1}) \ \text{si } x_i > x_{i-1}`,
+      result: String.raw`b = \left(${b.join(String.raw`,\ `)}\right), \qquad x_i \in [\,b_i,\ \max\{b_i, \ldots, b_n\}\,]`,
     },
   ];
 
@@ -143,10 +142,10 @@ export function solveWorkforce(
           xs.map((x, k) => {
             const hire = x > s ? `${n(K)} + ${n(cc)}(${x - s})` : '0';
             const next = i === periods - 1 ? '0' : n(f[i + 1]!.get(x)!);
-            return `x_{${stage}} = ${x}:\\ ${n(ce)}(${x - b[i]!}) + ${hire} + ${next} = ${n(values[k]!)}`;
+            return String.raw`x_{${stage}} = ${x}:\ ${n(ce)}(${x - b[i]!}) + ${hire} + ${next} = ${n(values[k]!)}`;
           }),
         ),
-        result: `f_{${stage}}(${s}) = ${optimumLatex('min', values)} = ${n(bestValue)}, \\qquad x_{${stage}}^* = ${best.map((k) => xs[k]!).join('\\ \\text{o}\\ ')}`,
+        result: String.raw`f_{${stage}}(${s}) = ${optimumLatex('min', values)} = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => xs[k]!).join(String.raw`\ \text{o}\ `)}`,
       });
     }
     steps.push({
@@ -193,7 +192,7 @@ export function solveWorkforce(
     title: 'Plan óptimo',
     explanation:
       'Se parte de x₀ en la etapa 1 y se sigue, periodo a periodo, la decisión óptima del estado al que se llega.',
-    result: `x^* = \\left(${plan.map((p) => p.workers).join(',\\ ')}\\right), \\qquad f_1(${x0}) = ${n(totalCost)}`,
+    result: String.raw`x^* = \left(${plan.map((p) => p.workers).join(String.raw`,\ `)}\right), \qquad f_1(${x0}) = ${n(totalCost)}`,
   });
 
   return {
@@ -207,11 +206,11 @@ export function solveWorkforce(
       { label: 'Costo total mínimo', value: n(totalCost), emphasis: true },
       {
         label: 'Trabajadores por periodo',
-        value: `x^* = \\left(${plan.map((p) => p.workers).join(',\\ ')}\\right)`,
+        value: String.raw`x^* = \left(${plan.map((p) => p.workers).join(String.raw`,\ `)}\right)`,
       },
       {
         label: 'Requerimientos',
-        value: `b = \\left(${b.join(',\\ ')}\\right)`,
+        value: String.raw`b = \left(${b.join(String.raw`,\ `)}\right)`,
       },
     ],
     ...emptyTrace(),
@@ -221,13 +220,13 @@ export function solveWorkforce(
         id: 'plan',
         title: 'Plan óptimo de la fuerza de trabajo',
         columns: [
-          { key: 'period', header: '\\text{Periodo}' },
+          { key: 'period', header: String.raw`\text{Periodo}` },
           { key: 'required', header: 'b_i' },
           { key: 'workers', header: 'x_i' },
-          { key: 'decision', header: '\\text{Decisión}', format: 'text' },
+          { key: 'decision', header: String.raw`\text{Decisión}`, format: 'text' },
           { key: 'excessCost', header: 'C_1' },
           { key: 'hiringCost', header: 'C_2' },
-          { key: 'cost', header: '\\text{Costo}' },
+          { key: 'cost', header: String.raw`\text{Costo}` },
         ],
         rows: plan.map((p) => ({
           period: p.period,

@@ -54,25 +54,24 @@ export function solveEoq(input: EoqInput): CalculatorResult<EoqValue, EoqErrorCo
       title: 'Cantidad económica de pedido',
       explanation:
         'El costo total por unidad de tiempo suma el costo de pedir (baja cuando se piden lotes grandes) y el de mantener el inventario promedio Q/2 (sube con el lote). Se deriva e iguala a cero.',
-      formula:
-        '\\mathrm{TCU}(Q) = \\frac{KD}{Q} + \\frac{hQ}{2}, \\qquad Q^* = \\sqrt{\\frac{2KD}{h}}',
-      substitution: `Q^* = \\sqrt{\\frac{2(${n(K)})(${n(D)})}{${n(h)}}}`,
+      formula: String.raw`\mathrm{TCU}(Q) = \frac{KD}{Q} + \frac{hQ}{2}, \qquad Q^* = \sqrt{\frac{2KD}{h}}`,
+      substitution: String.raw`Q^* = \sqrt{\frac{2(${n(K)})(${n(D)})}{${n(h)}}}`,
       result: `Q^* = ${n(Q, 6)}`,
     },
     {
       title: 'Costos en el óptimo',
       explanation: 'En Q* el costo de pedir y el de mantener son iguales.',
-      formula: '\\frac{KD}{Q^*}, \\qquad \\frac{hQ^*}{2}',
-      substitution: `\\frac{${n(K)}(${n(D)})}{${n(Q, 6)}} = ${n(ordering, 6)}, \\qquad \\frac{${n(h)}(${n(Q, 6)})}{2} = ${n(holding, 6)}`,
-      result: `\\mathrm{TCU}(Q^*) = ${n(ordering, 6)} + ${n(holding, 6)} = ${n(total, 6)}`,
+      formula: String.raw`\frac{KD}{Q^*}, \qquad \frac{hQ^*}{2}`,
+      substitution: String.raw`\frac{${n(K)}(${n(D)})}{${n(Q, 6)}} = ${n(ordering, 6)}, \qquad \frac{${n(h)}(${n(Q, 6)})}{2} = ${n(holding, 6)}`,
+      result: String.raw`\mathrm{TCU}(Q^*) = ${n(ordering, 6)} + ${n(holding, 6)} = ${n(total, 6)}`,
     },
     {
       title: 'Duración del ciclo',
       explanation:
         'Tiempo que tarda en consumirse un lote, y número de pedidos por unidad de tiempo.',
-      formula: 't_0 = \\frac{Q^*}{D}, \\qquad N = \\frac{D}{Q^*}',
-      substitution: `t_0 = \\frac{${n(Q, 6)}}{${n(D)}}, \\qquad N = \\frac{${n(D)}}{${n(Q, 6)}}`,
-      result: `t_0 = ${n(cycle, 6)}, \\qquad N = ${n(D / Q, 6)}`,
+      formula: String.raw`t_0 = \frac{Q^*}{D}, \qquad N = \frac{D}{Q^*}`,
+      substitution: String.raw`t_0 = \frac{${n(Q, 6)}}{${n(D)}}, \qquad N = \frac{${n(D)}}{${n(Q, 6)}}`,
+      result: String.raw`t_0 = ${n(cycle, 6)}, \qquad N = ${n(D / Q, 6)}`,
     },
   ];
 
@@ -92,7 +91,7 @@ export function solveEoq(input: EoqInput): CalculatorResult<EoqValue, EoqErrorCo
     },
     summary: [
       { label: 'Cantidad económica de pedido', value: `Q^* = ${n(Q, 6)}`, emphasis: true },
-      { label: 'Costo por unidad de tiempo', value: `\\mathrm{TCU} = ${n(total, 6)}` },
+      { label: 'Costo por unidad de tiempo', value: String.raw`\mathrm{TCU} = ${n(total, 6)}` },
       { label: 'Duración del ciclo', value: `t_0 = ${n(cycle, 6)}` },
       ...(reorder
         ? [

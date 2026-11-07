@@ -116,8 +116,8 @@ export function solveCorrelation(
       steps.push({
         title: 'Rangos',
         explanation: `Se ordena cada variable por separado y se reemplaza cada dato por su rango (1 al menor)${ties ? '; los empates reciben el rango promedio' : ''}.`,
-        formula: 'd_i = \\text{rango}(x_i) - \\text{rango}(y_i)',
-        result: `\\sum d_i^2 = ${n(d2)}`,
+        formula: String.raw`d_i = \text{rango}(x_i) - \text{rango}(y_i)`,
+        result: String.raw`\sum d_i^2 = ${n(d2)}`,
       });
       if (!ties) {
         const rs = 1 - (6 * d2) / (size * (size * size - 1));
@@ -125,8 +125,8 @@ export function solveCorrelation(
           title: 'Coeficiente de Spearman',
           explanation:
             'Sin empates, el coeficiente de Pearson de los rangos se simplifica a esta fórmula.',
-          formula: 'r_s = 1 - \\frac{6\\sum d_i^2}{n(n^2 - 1)}',
-          substitution: `r_s = 1 - \\frac{6(${n(d2)})}{${size}(${size}^2 - 1)}`,
+          formula: String.raw`r_s = 1 - \frac{6\sum d_i^2}{n(n^2 - 1)}`,
+          substitution: String.raw`r_s = 1 - \frac{6(${n(d2)})}{${size}(${size}^2 - 1)}`,
           result: `r_s = ${n(rs)}`,
         });
       }
@@ -150,8 +150,8 @@ export function solveCorrelation(
         title: spearman
           ? 'Coeficiente de Spearman (Pearson de los rangos)'
           : 'Coeficiente de correlación de Pearson',
-        formula: `${symbol} = \\frac{S_{xy}}{\\sqrt{S_{xx} S_{yy}}}`,
-        substitution: `${symbol} = \\frac{${n(sums.sxy)}}{\\sqrt{${n(sums.sxx)}(${n(sums.syy)})}}`,
+        formula: String.raw`${symbol} = \frac{S_{xy}}{\sqrt{S_{xx} S_{yy}}}`,
+        substitution: String.raw`${symbol} = \frac{${n(sums.sxy)}}{\sqrt{${n(sums.sxx)}(${n(sums.syy)})}}`,
         result: `${symbol} = ${n(r)}`,
       });
     }
@@ -181,7 +181,7 @@ export function solveCorrelation(
   } else {
     r = input.r!;
     size = input.n!;
-    steps.push({ title: 'Datos', result: `${symbol} = ${n(r)}, \\quad n = ${size}` });
+    steps.push({ title: 'Datos', result: String.raw`${symbol} = ${n(r)}, \quad n = ${size}` });
   }
 
   steps.push({
@@ -190,7 +190,10 @@ export function solveCorrelation(
   });
 
   const rho = input.rho0;
-  steps.push({ title: 'Hipótesis', result: hypothesesLatex('\\rho', n(rho), input.alternative) });
+  steps.push({
+    title: 'Hipótesis',
+    result: hypothesesLatex(String.raw`\rho`, n(rho), input.alternative),
+  });
   let statistic: number;
   let kind: 't' | 'z';
   if (rho === 0) {
@@ -199,8 +202,8 @@ export function solveCorrelation(
     steps.push({
       title: 'Estadístico t',
       explanation: `Si ρ = 0, tiene distribución t con ν = n − 2 = ${size - 2} grados de libertad.${spearman ? ' Para Spearman es una aproximación, adecuada con n ≥ 10.' : ''}`,
-      formula: `t = \\frac{${symbol}\\sqrt{n - 2}}{\\sqrt{1 - ${symbol}^2}}`,
-      substitution: `t = \\frac{${op(r)}\\sqrt{${size} - 2}}{\\sqrt{1 - ${op(r)}^2}}`,
+      formula: String.raw`t = \frac{${symbol}\sqrt{n - 2}}{\sqrt{1 - ${symbol}^2}}`,
+      substitution: String.raw`t = \frac{${op(r)}\sqrt{${size} - 2}}{\sqrt{1 - ${op(r)}^2}}`,
       result: `t = ${n(statistic)}`,
     });
   } else {
@@ -209,9 +212,8 @@ export function solveCorrelation(
     steps.push({
       title: 'Estadístico z (transformación de Fisher)',
       explanation: 'Para ρ₀ ≠ 0 se usa la transformación de Fisher, aproximadamente normal.',
-      formula:
-        'z = \\frac{\\sqrt{n - 3}}{2}\\ln\\left[\\frac{(1 + r)(1 - \\rho_0)}{(1 - r)(1 + \\rho_0)}\\right]',
-      substitution: `z = \\frac{\\sqrt{${size} - 3}}{2}\\ln\\left[\\frac{(1 + ${op(r)})(1 - ${op(rho)})}{(1 - ${op(r)})(1 + ${op(rho)})}\\right]`,
+      formula: String.raw`z = \frac{\sqrt{n - 3}}{2}\ln\left[\frac{(1 + r)(1 - \rho_0)}{(1 - r)(1 + \rho_0)}\right]`,
+      substitution: String.raw`z = \frac{\sqrt{${size} - 3}}{2}\ln\left[\frac{(1 + ${op(r)})(1 - ${op(rho)})}{(1 - ${op(r)})(1 + ${op(rho)})}\right]`,
       result: `z = ${n(statistic)}`,
     });
   }

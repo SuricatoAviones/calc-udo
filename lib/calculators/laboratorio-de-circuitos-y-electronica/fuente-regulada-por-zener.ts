@@ -119,17 +119,21 @@ export function solveZenerSupply(
       input.bleeder !== undefined ? 'la resistencia de drenaje y ' : ''
     }la rama R_S–Zener–carga descargan el condensador entre picos.${zenerAtPeak ? '' : ' Con el pico, el Zener no alcanza la ruptura: la rama es R_S en serie con R_L.'}`,
     formula: [
-      ...(input.bleeder !== undefined ? ['I_{dren} = \\frac{V_p}{R_{dren}}'] : []),
-      zenerAtPeak ? 'I_S = \\frac{V_p - V_Z}{R_S}' : 'I_S = \\frac{V_p}{R_S + R_L}',
-      `I = ${input.bleeder !== undefined ? 'I_{dren} + ' : ''}I_S`,
-    ].join(',\\qquad '),
-    substitution: [
-      ...(input.bleeder !== undefined ? [`I_{dren} = \\frac{${n(vp)}}{${n(input.bleeder)}}`] : []),
+      ...(input.bleeder !== undefined ? [String.raw`I_{dren} = \frac{V_p}{R_{dren}}`] : []),
       zenerAtPeak
-        ? `I_S = \\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`
-        : `I_S = \\frac{${n(vp)}}{${n(rs)} + ${n(rl)}}`,
-    ].join(',\\qquad '),
-    result: `${input.bleeder !== undefined ? `I_{dren} = ${engTex(ib, 'A')},\\quad ` : ''}I_S = ${engTex(is, 'A')},\\quad I = ${engTex(idc, 'A')}`,
+        ? String.raw`I_S = \frac{V_p - V_Z}{R_S}`
+        : String.raw`I_S = \frac{V_p}{R_S + R_L}`,
+      `I = ${input.bleeder !== undefined ? 'I_{dren} + ' : ''}I_S`,
+    ].join(String.raw`,\qquad `),
+    substitution: [
+      ...(input.bleeder !== undefined
+        ? [String.raw`I_{dren} = \frac{${n(vp)}}{${n(input.bleeder)}}`]
+        : []),
+      zenerAtPeak
+        ? String.raw`I_S = \frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`
+        : String.raw`I_S = \frac{${n(vp)}}{${n(rs)} + ${n(rl)}}`,
+    ].join(String.raw`,\qquad `),
+    result: String.raw`${input.bleeder !== undefined ? String.raw`I_{dren} = ${engTex(ib, 'A')},\quad ` : ''}I_S = ${engTex(is, 'A')},\quad I = ${engTex(idc, 'A')}`,
   });
 
   const vrpp = idc / (rect.fOut * input.c);
@@ -138,10 +142,9 @@ export function solveZenerSupply(
   steps.push({
     title: 'Rizado y tensión de cd del filtro',
     explanation: `El condensador se descarga durante 1/f_r = ${engText(1 / rect.fOut, 's')} entre picos (Malvino, ec. 4-10). La tensión oscila entre V_p y V_p − V_r(pp).`,
-    formula:
-      'V_{r(pp)} = \\frac{I}{f_r C},\\qquad V_{cd} \\approx V_p - \\frac{V_{r(pp)}}{2},\\qquad V_{min} = V_p - V_{r(pp)}',
-    substitution: `V_{r(pp)} = \\frac{${n(idc)}}{(${n(rect.fOut)})(${n(input.c)})}`,
-    result: `V_{r(pp)} = ${n(vrpp)}\\ \\text{V},\\quad V_{cd} = ${n(vdc)}\\ \\text{V},\\quad V_{min} = ${n(vmin)}\\ \\text{V}`,
+    formula: String.raw`V_{r(pp)} = \frac{I}{f_r C},\qquad V_{cd} \approx V_p - \frac{V_{r(pp)}}{2},\qquad V_{min} = V_p - V_{r(pp)}`,
+    substitution: String.raw`V_{r(pp)} = \frac{${n(idc)}}{(${n(rect.fOut)})(${n(input.c)})}`,
+    result: String.raw`V_{r(pp)} = ${n(vrpp)}\ \text{V},\quad V_{cd} = ${n(vdc)}\ \text{V},\quad V_{min} = ${n(vmin)}\ \text{V}`,
   });
   if (vrpp > 0.25 * vp) {
     notices.push({
@@ -179,8 +182,8 @@ export function solveZenerSupply(
     explanation: regulates
       ? `R_S = ${engText(rs, 'Ω')} ≤ R_S(máx): el Zener sigue en ruptura incluso en el valle del rizado (V_min = ${engText(vmin, 'V')}).`
       : `R_S = ${engText(rs, 'Ω')} supera R_S(máx) o V_min no alcanza V_Z: en el valle del rizado el Zener sale de ruptura y la salida deja de estar regulada.`,
-    formula: 'R_S \\le R_{S(max)}',
-    result: `${engTex(rs, 'Ω')}\\ ${rs <= dropout.rsMax ? '\\le' : '>'}\\ ${engTex(dropout.rsMax, 'Ω')}`,
+    formula: String.raw`R_S \le R_{S(max)}`,
+    result: String.raw`${engTex(rs, 'Ω')}\ ${rs <= dropout.rsMax ? String.raw`\le` : '>'}\ ${engTex(dropout.rsMax, 'Ω')}`,
   });
   if (!regulates) {
     notices.push({
@@ -201,9 +204,9 @@ export function solveZenerSupply(
     steps.push({
       title: 'Potencia del Zener sin carga',
       explanation: 'Si se desconecta la carga, toda la corriente de R_S pasa por el Zener.',
-      formula: 'P_{Z(max)} \\approx V_Z\\frac{V_p - V_Z}{R_S}',
-      substitution: `P_{Z(max)} \\approx (${n(vz)})\\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`,
-      result: `P_{Z(max)} \\approx ${engTex(pzOpen, 'W')}\\ ${pzOpen <= input.pzm ? '\\le' : '>'}\\ P_{ZM} = ${engTex(input.pzm, 'W')}`,
+      formula: String.raw`P_{Z(max)} \approx V_Z\frac{V_p - V_Z}{R_S}`,
+      substitution: String.raw`P_{Z(max)} \approx (${n(vz)})\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`,
+      result: String.raw`P_{Z(max)} \approx ${engTex(pzOpen, 'W')}\ ${pzOpen <= input.pzm ? String.raw`\le` : '>'}\ P_{ZM} = ${engTex(input.pzm, 'W')}`,
     });
     if (pzOpen > input.pzm && zr.pz <= input.pzm) {
       notices.push({
@@ -218,17 +221,25 @@ export function solveZenerSupply(
       id: 'secciones',
       title: 'Tensiones por sección',
       columns: [
-        { key: 'section', header: '\\text{Sección}', format: 'text' },
-        { key: 'quantity', header: '\\text{Magnitud}', format: 'latex' },
-        { key: 'value', header: '\\text{Valor}', format: 'latex' },
+        { key: 'section', header: String.raw`\text{Sección}`, format: 'text' },
+        { key: 'quantity', header: String.raw`\text{Magnitud}`, format: 'latex' },
+        { key: 'value', header: String.raw`\text{Valor}`, format: 'latex' },
       ],
       rows: [
-        { section: 'Transformador', quantity: 'V_{p2}', value: `${n(tr.vp2, 5)}\\ \\text{V}` },
-        { section: 'Rectificador', quantity: 'V_p', value: `${n(vp, 5)}\\ \\text{V}` },
-        { section: 'Rectificador', quantity: 'f_r', value: `${n(rect.fOut, 5)}\\ \\text{Hz}` },
-        { section: 'Filtro', quantity: 'V_{r(pp)}', value: `${n(vrpp, 5)}\\ \\text{V}` },
-        { section: 'Filtro', quantity: 'V_{cd}', value: `${n(vdc, 5)}\\ \\text{V}` },
-        { section: 'Regulador', quantity: 'V_L', value: `${n(zr.vl, 5)}\\ \\text{V}` },
+        {
+          section: 'Transformador',
+          quantity: 'V_{p2}',
+          value: String.raw`${n(tr.vp2, 5)}\ \text{V}`,
+        },
+        { section: 'Rectificador', quantity: 'V_p', value: String.raw`${n(vp, 5)}\ \text{V}` },
+        {
+          section: 'Rectificador',
+          quantity: 'f_r',
+          value: String.raw`${n(rect.fOut, 5)}\ \text{Hz}`,
+        },
+        { section: 'Filtro', quantity: 'V_{r(pp)}', value: String.raw`${n(vrpp, 5)}\ \text{V}` },
+        { section: 'Filtro', quantity: 'V_{cd}', value: String.raw`${n(vdc, 5)}\ \text{V}` },
+        { section: 'Regulador', quantity: 'V_L', value: String.raw`${n(zr.vl, 5)}\ \text{V}` },
         { section: 'Regulador', quantity: 'I_Z', value: engTex(zr.iz, 'A') },
         ...(vrOut !== undefined
           ? [{ section: 'Regulador', quantity: 'V_{r(out)}', value: engTex(vrOut, 'V') }]
@@ -257,13 +268,13 @@ export function solveZenerSupply(
   };
 
   const summary: SummaryItem[] = [
-    { label: 'V_L', value: `${n(zr.vl, 5)}\\ \\text{V}`, emphasis: true },
-    { label: 'V_r(pp) del filtro', value: `${n(vrpp, 4)}\\ \\text{V}`, emphasis: true },
+    { label: 'V_L', value: String.raw`${n(zr.vl, 5)}\ \text{V}`, emphasis: true },
+    { label: 'V_r(pp) del filtro', value: String.raw`${n(vrpp, 4)}\ \text{V}`, emphasis: true },
     ...(vrOut !== undefined ? [{ label: 'V_r(out)', value: engTex(vrOut, 'V') }] : []),
-    { label: 'V_cd del filtro', value: `${n(vdc, 5)}\\ \\text{V}` },
+    { label: 'V_cd del filtro', value: String.raw`${n(vdc, 5)}\ \text{V}` },
     { label: 'I_Z', value: engTex(zr.iz, 'A') },
     { label: 'R_S(máx)', value: engTex(dropout.rsMax, 'Ω') },
-    { label: 'Regulación', value: regulates ? '\\text{sí}' : '\\text{no}' },
+    { label: 'Regulación', value: regulates ? String.raw`\text{sí}` : String.raw`\text{no}` },
   ];
 
   return {

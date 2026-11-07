@@ -52,19 +52,18 @@ export function stateSpaceToTf(
       title: 'Determinante y adjunta (Faddeev-LeVerrier)',
       explanation:
         'det(sI − A) es el polinomio característico: sus raíces (los valores característicos de A) son los polos de G(s). La adjunta se obtiene con M₀ = I, c_k = −tr(A·M_{k−1})/k y M_k = A·M_{k−1} + c_k·I.',
-      result: `\\det(sI - A) = ${polyTex(charPoly)},\\quad \\operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
+      result: String.raw`\det(sI - A) = ${polyTex(charPoly)},\quad \operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
     },
     {
       title: 'Función de transferencia',
       explanation: reduced
         ? 'Se cancelaron factores comunes del numerador y el denominador: el sistema tiene polos que no se ven desde la entrada o la salida (no es completamente controlable u observable).'
         : undefined,
-      formula:
-        'G(s) = C(sI - A)^{-1}B + D = \\frac{C\\,\\operatorname{adj}(sI - A)\\,B}{\\det(sI - A)} + D',
-      substitution: `C = ${toLatexMatrix([c], DIGITS)},\\quad B = ${toLatexMatrix(
+      formula: String.raw`G(s) = C(sI - A)^{-1}B + D = \frac{C\,\operatorname{adj}(sI - A)\,B}{\det(sI - A)} + D`,
+      substitution: String.raw`C = ${toLatexMatrix([c], DIGITS)},\quad B = ${toLatexMatrix(
         b.map((v) => [v]),
         DIGITS,
-      )},\\quad D = ${toLatexMatrix([[d]], DIGITS)}`,
+      )},\quad D = ${toLatexMatrix([[d]], DIGITS)}`,
       result: reduced ? `G(s) = ${tfTex(raw)} = ${tfTex(tf)}` : `G(s) = ${tfTex(tf)}`,
     },
   ];

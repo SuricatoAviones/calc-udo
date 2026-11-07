@@ -90,8 +90,8 @@ function poissonPmf(k: number, mean: number): number {
 
 const QUERY_LATEX: Record<CountQuery, string> = {
   igual: '=',
-  'a-lo-sumo': '\\le',
-  'al-menos': '\\ge',
+  'a-lo-sumo': String.raw`\le`,
+  'al-menos': String.raw`\ge`,
 };
 
 export function solvePoissonProcess(input: PoissonProcessInput): Result {
@@ -106,17 +106,17 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
     steps.push({
       title: 'Usar los incrementos independientes',
       explanation: `Lo que ocurre después de s = ${formatNumber(observedTime)} no depende de lo que ya ocurrió: tener ${target} eventos en t = ${formatNumber(t)} sabiendo que hubo ${observedCount} en los primeros ${formatNumber(observedTime)} equivale a tener ${target} − ${observedCount} eventos en un intervalo de longitud t − s.`,
-      formula: 'P\\{N(t) = n \\mid N(s) = m\\} = P\\{N(t - s) = n - m\\}',
-      substitution: `P\\{N(${n(t)}) = ${target} \\mid N(${n(observedTime)}) = ${observedCount}\\} = P\\{N(${n(length)}) = ${remaining}\\}`,
+      formula: String.raw`P\{N(t) = n \mid N(s) = m\} = P\{N(t - s) = n - m\}`,
+      substitution: String.raw`P\{N(${n(t)}) = ${target} \mid N(${n(observedTime)}) = ${observedCount}\} = P\{N(${n(length)}) = ${remaining}\}`,
     });
   }
 
   steps.push({
     title: 'Número esperado de eventos',
     explanation: 'En un intervalo de longitud t el número de eventos es Poisson con media λt.',
-    formula: 'E[N(t)] = \\lambda t',
+    formula: String.raw`E[N(t)] = \lambda t`,
     substitution: `E[N(${n(length)})] = ${n(lambda)}(${n(length)})`,
-    result: `\\lambda t = ${n(mean)}`,
+    result: String.raw`\lambda t = ${n(mean)}`,
   });
 
   const maxK = Math.max(
@@ -135,36 +135,38 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
   let probability: number;
   const r = remaining;
   const symbol = QUERY_LATEX[query];
-  const term = (k: number) => `\\frac{(${n(mean)})^{${k}} e^{-${n(mean)}}}{${k}!}`;
+  const term = (k: number) => String.raw`\frac{(${n(mean)})^{${k}} e^{-${n(mean)}}}{${k}!}`;
   if (query === 'igual') {
     probability = poissonPmf(r, mean);
     steps.push({
       title: 'Probabilidad de exactamente n eventos',
-      formula: 'P\\{N(t) = n\\} = \\frac{(\\lambda t)^n e^{-\\lambda t}}{n!}',
-      substitution: r < 0 ? `n - m = ${r} < 0` : `P\\{N = ${r}\\} = ${term(r)}`,
-      result: `P\\{N = ${r}\\} = ${n(probability)}`,
+      formula: String.raw`P\{N(t) = n\} = \frac{(\lambda t)^n e^{-\lambda t}}{n!}`,
+      substitution: r < 0 ? `n - m = ${r} < 0` : String.raw`P\{N = ${r}\} = ${term(r)}`,
+      result: String.raw`P\{N = ${r}\} = ${n(probability)}`,
     });
   } else if (query === 'a-lo-sumo') {
     probability = cdfAt(r);
     steps.push({
       title: 'Probabilidad de a lo sumo n eventos',
       explanation: 'Se suman las probabilidades de 0, 1, …, n eventos.',
-      formula: 'P\\{N(t) \\le n\\} = \\sum_{k=0}^{n} \\frac{(\\lambda t)^k e^{-\\lambda t}}{k!}',
+      formula: String.raw`P\{N(t) \le n\} = \sum_{k=0}^{n} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
       substitution:
         r < 0
           ? `n - m = ${r} < 0`
-          : `P\\{N \\le ${r}\\} = ${Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ')}${r > 3 ? ' + \\cdots' : ''}`,
-      result: `P\\{N \\le ${r}\\} = ${n(probability)}`,
+          : String.raw`P\{N \le ${r}\} = ${Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ')}${r > 3 ? String.raw` + \cdots` : ''}`,
+      result: String.raw`P\{N \le ${r}\} = ${n(probability)}`,
     });
   } else {
     probability = r <= 0 ? 1 : Math.max(0, 1 - cdfAt(r - 1));
     steps.push({
       title: 'Probabilidad de al menos n eventos',
       explanation: 'Es el complemento de tener a lo sumo n − 1 eventos.',
-      formula:
-        'P\\{N(t) \\ge n\\} = 1 - \\sum_{k=0}^{n-1} \\frac{(\\lambda t)^k e^{-\\lambda t}}{k!}',
-      substitution: r <= 0 ? `n - m = ${r} \\le 0` : `P\\{N \\ge ${r}\\} = 1 - ${n(cdfAt(r - 1))}`,
-      result: `P\\{N \\ge ${r}\\} = ${n(probability)}`,
+      formula: String.raw`P\{N(t) \ge n\} = 1 - \sum_{k=0}^{n-1} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
+      substitution:
+        r <= 0
+          ? String.raw`n - m = ${r} \le 0`
+          : String.raw`P\{N \ge ${r}\} = 1 - ${n(cdfAt(r - 1))}`,
+      result: String.raw`P\{N \ge ${r}\} = ${n(probability)}`,
     });
   }
 
@@ -176,17 +178,16 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
       title: 'Tiempo entre eventos',
       explanation:
         'El tiempo entre dos eventos consecutivos (o hasta el primero) es exponencial con media 1/λ. «Ningún evento en un intervalo de longitud a» equivale a «el tiempo hasta el siguiente evento es mayor que a».',
-      formula:
-        'P\\{T \\le a\\} = 1 - e^{-\\lambda a}, \\qquad P\\{T > a\\} = e^{-\\lambda a} = P\\{N(a) = 0\\}',
-      substitution: `P\\{T \\le ${n(waitingTime)}\\} = 1 - e^{-${n(lambda)}(${n(waitingTime)})}`,
-      result: `P\\{T \\le ${n(waitingTime)}\\} = ${n(atMost)}, \\qquad P\\{T > ${n(waitingTime)}\\} = ${n(interarrival.beyond)}`,
+      formula: String.raw`P\{T \le a\} = 1 - e^{-\lambda a}, \qquad P\{T > a\} = e^{-\lambda a} = P\{N(a) = 0\}`,
+      substitution: String.raw`P\{T \le ${n(waitingTime)}\} = 1 - e^{-${n(lambda)}(${n(waitingTime)})}`,
+      result: String.raw`P\{T \le ${n(waitingTime)}\} = ${n(atMost)}, \qquad P\{T > ${n(waitingTime)}\} = ${n(interarrival.beyond)}`,
     });
   }
 
   steps.push({
     title: 'Tiempo promedio entre eventos',
-    formula: 'E[T] = \\frac{1}{\\lambda}',
-    substitution: `E[T] = \\frac{1}{${n(lambda)}}`,
+    formula: String.raw`E[T] = \frac{1}{\lambda}`,
+    substitution: String.raw`E[T] = \frac{1}{${n(lambda)}}`,
     result: `E[T] = ${n(1 / lambda)}`,
   });
 
@@ -218,16 +219,16 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
   const summary = [
     {
       label: conditional ? 'Probabilidad condicional' : 'Probabilidad',
-      value: `P\\{N ${symbol} ${r}\\} = ${n(probability, 6)}`,
+      value: String.raw`P\{N ${symbol} ${r}\} = ${n(probability, 6)}`,
       emphasis: true,
     },
-    { label: 'Media del conteo', value: `\\lambda t = ${n(mean, 6)}` },
-    { label: 'Tiempo promedio entre eventos', value: `1/\\lambda = ${n(1 / lambda, 6)}` },
+    { label: 'Media del conteo', value: String.raw`\lambda t = ${n(mean, 6)}` },
+    { label: 'Tiempo promedio entre eventos', value: String.raw`1/\lambda = ${n(1 / lambda, 6)}` },
   ];
   if (interarrival) {
     summary.push({
       label: 'Tiempo entre eventos',
-      value: `P\\{T \\le ${n(interarrival.a)}\\} = ${n(interarrival.atMost, 6)}`,
+      value: String.raw`P\{T \le ${n(interarrival.a)}\} = ${n(interarrival.atMost, 6)}`,
     });
   }
 
@@ -243,8 +244,8 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
         title: 'Probabilidades del conteo',
         columns: [
           { key: 'k', header: 'k' },
-          { key: 'p', header: 'P\\{N = k\\}' },
-          { key: 'cumulative', header: 'P\\{N \\le k\\}' },
+          { key: 'p', header: String.raw`P\{N = k\}` },
+          { key: 'cumulative', header: String.raw`P\{N \le k\}` },
         ],
         rows,
       },

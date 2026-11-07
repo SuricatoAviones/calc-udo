@@ -49,9 +49,9 @@ export function solveMMS({ lambda, mu, servers: s }: MMSInput): QueueResult {
       title: 'Carga ofrecida y utilización',
       explanation:
         'r es el número promedio de servidores que haría falta tener ocupados; ρ es la fracción de tiempo que cada servidor está ocupado. Se necesita ρ < 1.',
-      formula: 'r = \\frac{\\lambda}{\\mu}, \\qquad \\rho = \\frac{r}{s}',
-      substitution: `r = \\frac{${n(lambda)}}{${n(mu)}}, \\qquad \\rho = \\frac{${n(r)}}{${s}}`,
-      result: `r = ${n(r)}, \\qquad \\rho = ${n(rho)}`,
+      formula: String.raw`r = \frac{\lambda}{\mu}, \qquad \rho = \frac{r}{s}`,
+      substitution: String.raw`r = \frac{${n(lambda)}}{${n(mu)}}, \qquad \rho = \frac{${n(r)}}{${s}}`,
+      result: String.raw`r = ${n(r)}, \qquad \rho = ${n(rho)}`,
     },
   ];
   if (rho >= 1) return unstable(steps, rho);
@@ -79,15 +79,14 @@ export function solveMMS({ lambda, mu, servers: s }: MMSInput): QueueResult {
   steps.push(
     {
       title: 'Probabilidad de que el sistema esté vacío',
-      formula:
-        'p_0 = \\left[\\sum_{n=0}^{s-1} \\frac{r^n}{n!} + \\frac{r^s}{s!\\,(1 - \\rho)}\\right]^{-1}',
-      substitution: `p_0 = \\left[${terms.map((t) => n(t)).join(' + ')} + \\frac{(${n(r)})^{${s}}}{${s}!\\,(1 - ${n(rho)})}\\right]^{-1} = \\left[${n(sum)} + ${n(tail)}\\right]^{-1}`,
+      formula: String.raw`p_0 = \left[\sum_{n=0}^{s-1} \frac{r^n}{n!} + \frac{r^s}{s!\,(1 - \rho)}\right]^{-1}`,
+      substitution: String.raw`p_0 = \left[${terms.map((t) => n(t)).join(' + ')} + \frac{(${n(r)})^{${s}}}{${s}!\,(1 - ${n(rho)})}\right]^{-1} = \left[${n(sum)} + ${n(tail)}\right]^{-1}`,
       result: `p_0 = ${n(p0)}`,
     },
     {
       title: 'Clientes promedio en la cola',
-      formula: 'L_q = \\frac{r^{s+1}}{(s-1)!\\,(s - r)^2}\\,p_0',
-      substitution: `L_q = \\frac{(${n(r)})^{${s + 1}}}{${s - 1}!\\,(${s} - ${n(r)})^2}\\,(${n(p0)})`,
+      formula: String.raw`L_q = \frac{r^{s+1}}{(s-1)!\,(s - r)^2}\,p_0`,
+      substitution: String.raw`L_q = \frac{(${n(r)})^{${s + 1}}}{${s - 1}!\,(${s} - ${n(r)})^2}\,(${n(p0)})`,
       result: `L_q = ${n(Lq)}`,
     },
     {
@@ -99,15 +98,15 @@ export function solveMMS({ lambda, mu, servers: s }: MMSInput): QueueResult {
     },
     {
       title: 'Tiempo promedio en la cola (ley de Little)',
-      formula: 'W_q = \\frac{L_q}{\\lambda}',
-      substitution: `W_q = \\frac{${n(Lq)}}{${n(lambda)}}`,
+      formula: String.raw`W_q = \frac{L_q}{\lambda}`,
+      substitution: String.raw`W_q = \frac{${n(Lq)}}{${n(lambda)}}`,
       result: `W_q = ${n(Wq)}`,
     },
     {
       title: 'Tiempo promedio en el sistema',
       explanation: 'Al tiempo de espera se suma el tiempo promedio de servicio, 1/μ.',
-      formula: 'W = W_q + \\frac{1}{\\mu}',
-      substitution: `W = ${n(Wq)} + \\frac{1}{${n(mu)}}`,
+      formula: String.raw`W = W_q + \frac{1}{\mu}`,
+      substitution: String.raw`W = ${n(Wq)} + \frac{1}{${n(mu)}}`,
       result: `W = ${n(value.W)}`,
     },
   );

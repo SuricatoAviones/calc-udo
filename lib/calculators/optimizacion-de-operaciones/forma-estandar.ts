@@ -76,7 +76,7 @@ export function solveStandardForm(
       ({ constraint: c }) =>
         `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
     )
-    .join(' \\\\ ')} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(String.raw` \\ `)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
   trace.steps.push({
     title: 'Forma canónica',
     explanation:
@@ -95,7 +95,7 @@ export function solveStandardForm(
   const objective = keep.map((j) => (j < lp.variables.length ? lp.objective[j]! : Rational.ZERO));
   const standardLatex = `\\begin{aligned} \\${lp.sense}\\ z &= ${linearLatex(objective, columnNames)} \\\\ ${rows
     .map((row, i) => `${linearLatex(row, columnNames)} &= ${sf.rhs[i]!.toLatex()}`)
-    .join(' \\\\ ')} \\\\ ${columnNames.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(String.raw` \\ `)} \\\\ ${columnNames.join(', ')} &\\ge 0 \\end{aligned}`;
   const slacks = columns.filter((c) => c.kind === 'slack').length;
   const surpluses = columns.filter((c) => c.kind === 'surplus').length;
   const needArtificial = sf.relations.filter((r) => r !== '<=').length;
@@ -120,7 +120,9 @@ export function solveStandardForm(
         : `${needArtificial} ${needArtificial === 1 ? 'restricción no tiene' : 'restricciones no tienen'} una holgura con coeficiente +1 que sirva de variable básica inicial (las ≥ y las =). Para ellas se agregan variables artificiales y se usa el método de la M grande o el de las dos fases.`,
     result:
       needArtificial === 0
-        ? sf.basis.map((b, i) => `${sf.columns[b]!.latex} = ${sf.rhs[i]!.toLatex()}`).join(',\\ ')
+        ? sf.basis
+            .map((b, i) => `${sf.columns[b]!.latex} = ${sf.rhs[i]!.toLatex()}`)
+            .join(String.raw`,\ `)
         : undefined,
   });
 
@@ -137,14 +139,14 @@ export function solveStandardForm(
       { label: 'Forma estándar', value: standardLatex, emphasis: true },
       {
         label: 'Holguras y excesos',
-        value: `${slacks}\\ \\text{holguras},\\ ${surpluses}\\ \\text{excesos}`,
+        value: String.raw`${slacks}\ \text{holguras},\ ${surpluses}\ \text{excesos}`,
       },
       {
         label: 'Base inicial',
         value:
           needArtificial === 0
-            ? '\\text{las holguras (simplex directo)}'
-            : `\\text{hacen falta ${needArtificial} artificiales}`,
+            ? String.raw`\text{las holguras (simplex directo)}`
+            : String.raw`\text{hacen falta ${needArtificial} artificiales}`,
       },
     ],
     ...emptyTrace(),

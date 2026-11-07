@@ -84,13 +84,15 @@ const bigLatex = (n: bigint) => String(n);
 /** Desarrollo posicional: 1·2⁴ + 1·2³ + … */
 function positionalLatex(intDigits: number[], fracDigits: number[], base: number): string {
   const terms = [
-    ...intDigits.map((d, k) => `${d}\\cdot ${base}^{${intDigits.length - 1 - k}}`),
-    ...fracDigits.map((d, k) => `${d}\\cdot ${base}^{-${k + 1}}`),
+    ...intDigits.map((d, k) => String.raw`${d}\cdot ${base}^{${intDigits.length - 1 - k}}`),
+    ...fracDigits.map((d, k) => String.raw`${d}\cdot ${base}^{-${k + 1}}`),
   ];
   // Con muchos dígitos se parte en renglones de 6 términos.
   const lines: string[] = [];
   for (let k = 0; k < terms.length; k += 6) lines.push(terms.slice(k, k + 6).join(' + '));
-  return latexLines(lines.map((line, k) => (k === 0 ? `N = ${line}` : `\\quad + ${line}`)));
+  return latexLines(
+    lines.map((line, k) => (k === 0 ? `N = ${line}` : String.raw`\quad + ${line}`)),
+  );
 }
 
 /** Decimal exacto o con puntos suspensivos (hasta 12 decimales), en LaTeX. */
@@ -118,11 +120,11 @@ function groupingStep(
   const bits = (d: number) => d.toString(2).padStart(size, '0');
   if (toBinary) {
     const part = (ds: number[]) =>
-      ds.map((d) => `\\underbrace{${bits(d)}}_{${digitChar(d)}}`).join('\\,');
+      ds.map((d) => String.raw`\underbrace{${bits(d)}}_{${digitChar(d)}}`).join(String.raw`\,`);
     return {
       title: `Atajo: cada dígito a ${size} bits`,
       explanation: `Como ${from} = ${POWER[size]}, cada dígito en base ${from} equivale exactamente a ${size} bits. Se reemplaza cada uno y se quitan los ceros de más a la izquierda (y a la derecha de la parte fraccionaria).`,
-      result: `${part(intDigits)}${fracDigits.length > 0 ? `\\,.\\,${part(fracDigits)}` : ''}`,
+      result: `${part(intDigits)}${fracDigits.length > 0 ? String.raw`\,.\,${part(fracDigits)}` : ''}`,
     };
   }
   const intBits = intDigits.join('');
@@ -132,12 +134,12 @@ function groupingStep(
   const chunks = (s: string) => s.match(new RegExp(`.{${size}}`, 'g')) ?? [];
   const part = (s: string) =>
     chunks(s)
-      .map((g) => `\\underbrace{${g}}_{${digitChar(parseInt(g, 2))}}`)
-      .join('\\,');
+      .map((g) => String.raw`\underbrace{${g}}_{${digitChar(parseInt(g, 2))}}`)
+      .join(String.raw`\,`);
   return {
     title: `Atajo: grupos de ${size} bits`,
     explanation: `Como ${to} = ${POWER[size]}, se agrupan los bits de a ${size} desde el punto (hacia la izquierda en la parte entera y hacia la derecha en la fraccionaria, completando con ceros) y cada grupo se convierte en un dígito.`,
-    result: `${part(padInt)}${padFrac ? `\\,.\\,${part(padFrac)}` : ''}`,
+    result: `${part(padInt)}${padFrac ? String.raw`\,.\,${part(padFrac)}` : ''}`,
   };
 }
 
@@ -173,7 +175,7 @@ export function solveNumeral(
     steps.push({
       title: 'Valor en base 10',
       explanation: `Cada dígito se multiplica por la potencia de ${from} que corresponde a su posición: ${from}⁰ para el primero a la izquierda del punto, ${from}¹ para el siguiente, y ${from}⁻¹, ${from}⁻², … a la derecha del punto.${from > 10 ? ` Las letras valen A = 10, B = 11, …` : ''}`,
-      formula: `N = \\sum_i d_i\\, ${from}^{i}`,
+      formula: String.raw`N = \sum_i d_i\, ${from}^{i}`,
       substitution: positionalLatex(intDigits, fracDigits, from),
       result: `${source} = ${decimal}`,
     });
@@ -200,10 +202,10 @@ export function solveNumeral(
         id: 'divisiones',
         title: `Divisiones sucesivas entre ${to}`,
         columns: [
-          { key: 'dividend', header: '\\text{Dividendo}', format: 'text' },
-          { key: 'quotient', header: '\\text{Cociente}', format: 'text' },
-          { key: 'remainder', header: '\\text{Residuo}', format: 'text' },
-          { key: 'digit', header: '\\text{Dígito}', format: 'text' },
+          { key: 'dividend', header: String.raw`\text{Dividendo}`, format: 'text' },
+          { key: 'quotient', header: String.raw`\text{Cociente}`, format: 'text' },
+          { key: 'remainder', header: String.raw`\text{Residuo}`, format: 'text' },
+          { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
         ],
         rows: divisions.map((r) => ({
           dividend: String(r.dividend),
@@ -231,9 +233,9 @@ export function solveNumeral(
         id: 'multiplicaciones',
         title: `Multiplicaciones sucesivas por ${to}`,
         columns: [
-          { key: 'fraction', header: '\\text{Fracción}', format: 'latex' },
-          { key: 'product', header: `\\times ${to}`, format: 'latex' },
-          { key: 'digit', header: '\\text{Dígito}', format: 'text' },
+          { key: 'fraction', header: String.raw`\text{Fracción}`, format: 'latex' },
+          { key: 'product', header: String.raw`\times ${to}`, format: 'latex' },
+          { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
         ],
         rows: expansion.rows.map((r) => ({
           fraction: r.fraction.toLatex(),
@@ -254,7 +256,10 @@ export function solveNumeral(
   const resultLatex = numeralLatex(negative, resultInt, expansion.digits, to, expansion);
   const shortcut = groupingStep(from, to, intDigits, fracDigits);
   if (shortcut)
-    steps.push({ ...shortcut, result: `${shortcut.result} \\;\\Rightarrow\\; ${resultLatex}` });
+    steps.push({
+      ...shortcut,
+      result: String.raw`${shortcut.result} \;\Rightarrow\; ${resultLatex}`,
+    });
   steps.push({
     title: 'Resultado',
     explanation:

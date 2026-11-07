@@ -148,11 +148,13 @@ export function solveNumericalDerivative(
       result:
         trueValue === null
           ? undefined
-          : `\\text{Valor verdadero: } ${symbol}(x) = ${trueTex}, \\quad ${symbol}(${n(x)}) = ${n(trueValue)}`,
+          : String.raw`\text{Valor verdadero: } ${symbol}(x) = ${trueTex}, \quad ${symbol}(${n(x)}) = ${n(trueValue)}`,
     },
     {
       title: 'Evaluar f en los puntos necesarios',
-      result: offsets.map((k) => `f(${n(x + k * h)}) = ${n(values.get(k)!)}`).join(',\\quad '),
+      result: offsets
+        .map((k) => `f(${n(x + k * h)}) = ${n(values.get(k)!)}`)
+        .join(String.raw`,\quad `),
     },
   ];
 
@@ -185,9 +187,9 @@ export function solveNumericalDerivative(
     );
     steps.push({
       title: `${form.name}, ${form.order.replace('O(h^2)', 'O(h²)').replace('O(h^4)', 'O(h⁴)')}`,
-      formula: `${symbol}(x_i) \\approx \\frac{${general}}{${form.divisor === 1 ? '' : form.divisor}${hPower}}`,
-      substitution: `${symbol}(${n(x)}) \\approx \\frac{${numeric}}{${form.divisor === 1 ? '' : `${form.divisor}\\,`}(${n(h)})${second ? '^2' : ''}}`,
-      result: `${symbol}(${n(x)}) \\approx ${n(value)}${rel === null ? '' : `, \\quad \\varepsilon_t = ${n(rel, 4)}\\,\\%`}`,
+      formula: String.raw`${symbol}(x_i) \approx \frac{${general}}{${form.divisor === 1 ? '' : form.divisor}${hPower}}`,
+      substitution: String.raw`${symbol}(${n(x)}) \approx \frac{${numeric}}{${form.divisor === 1 ? '' : String.raw`${form.divisor}\,`}(${n(h)})${second ? '^2' : ''}}`,
+      result: String.raw`${symbol}(${n(x)}) \approx ${n(value)}${rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`}`,
     });
     return { direction: form.direction, value, trueRelativeError: rel };
   });
@@ -202,7 +204,7 @@ export function solveNumericalDerivative(
   const summary: SummaryItem[] = [
     {
       label: `Diferencia centrada ${formulas[2]!.order.replace('^2', '²').replace('^4', '⁴')}`,
-      value: `${symbol}(${n(x)}) \\approx ${n(centered.value)}`,
+      value: String.raw`${symbol}(${n(x)}) \approx ${n(centered.value)}`,
       emphasis: true,
     },
     ...(trueValue === null
@@ -221,10 +223,10 @@ export function solveNumericalDerivative(
         id: 'estimaciones',
         title: 'Aproximaciones',
         columns: [
-          { key: 'name', header: '\\text{Fórmula}', format: 'text' },
-          { key: 'order', header: '\\text{Error}', format: 'latex' },
+          { key: 'name', header: String.raw`\text{Fórmula}`, format: 'text' },
+          { key: 'order', header: String.raw`\text{Error}`, format: 'latex' },
           { key: 'value', header: `${symbol}(x_i)` },
-          ...(trueValue === null ? [] : [{ key: 'et', header: '\\varepsilon_t\\,(\\%)' }]),
+          ...(trueValue === null ? [] : [{ key: 'et', header: String.raw`\varepsilon_t\,(\%)` }]),
         ],
         rows: estimates.map((e, j) => ({
           name: formulas[j]!.name,

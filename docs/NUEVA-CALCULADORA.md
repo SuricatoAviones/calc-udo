@@ -176,13 +176,14 @@ Si el método se hace a mano con fracciones (simplex, transporte, asignación), 
 
 **Cada iteración es un `Step` con subpasos**: evaluar f, evaluar f′, aplicar la fórmula y
 calcular el error. La fórmula general va en `formula`, la sustitución con números en
-`substitution` y el resultado en `result`:
+`substitution` y el resultado en `result`. El LaTeX va en `String.raw`, así las barras se
+escriben una sola vez (ADR-041):
 
 ```ts
 {
   title: 'Aplicar la fórmula de Newton-Raphson',
-  formula: "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}",
-  substitution: `${xn1} = ${n(x)} - \\frac{${n(fx)}}{${n(dfx)}}`,
+  formula: String.raw`x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}`,
+  substitution: String.raw`${xn1} = ${n(x)} - \frac{${n(fx)}}{${n(dfx)}}`,
   result: `${xn1} = ${n(xNext)}`,
 }
 ```

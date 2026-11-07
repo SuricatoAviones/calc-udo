@@ -126,27 +126,26 @@ export function solveMultinomial(
     {
       title: 'Distribución multinomial',
       explanation: `Cada uno de los n ensayos independientes produce exactamente uno de los k = ${k} resultados, con las mismas probabilidades en cada ensayo. Xᵢ cuenta cuántas veces ocurre el resultado i.`,
-      formula:
-        'f(x_1, \\ldots, x_k;\\ p_1, \\ldots, p_k, n) = \\binom{n}{x_1, x_2, \\ldots, x_k} p_1^{x_1} p_2^{x_2} \\cdots p_k^{x_k}',
+      formula: String.raw`f(x_1, \ldots, x_k;\ p_1, \ldots, p_k, n) = \binom{n}{x_1, x_2, \ldots, x_k} p_1^{x_1} p_2^{x_2} \cdots p_k^{x_k}`,
     },
     {
       title: 'Verificar los datos',
       explanation:
         'Las probabilidades de los resultados deben sumar 1, y el número de ensayos es la suma de los conteos.',
-      formula: '\\sum p_i = 1, \\qquad n = \\sum x_i',
-      substitution: `${outcomes.map(pTex).join(' + ')} = ${n(
+      formula: String.raw`\sum p_i = 1, \qquad n = \sum x_i`,
+      substitution: String.raw`${outcomes.map(pTex).join(' + ')} = ${n(
         outcomes.reduce((s, o) => s + o.p, 0),
         6,
-      )}, \\qquad n = ${outcomes.map((o) => o.x).join(' + ')}`,
+      )}, \qquad n = ${outcomes.map((o) => o.x).join(' + ')}`,
       result: `n = ${trials}`,
     },
     {
       title: 'Coeficiente multinomial',
       explanation:
         'Cuenta los órdenes distintos en que pueden salir los resultados: las particiones de los n ensayos en grupos de x₁, x₂, …, x_k.',
-      formula: `\\binom{n}{x_1, \\ldots, x_k} = \\frac{n!}{${indices.map((i) => `x_{${i}}!`).join('\\,')}}`,
-      substitution: `\\frac{${trials}!}{${outcomes.map((o) => `${o.x}!`).join('\\,')}}`,
-      result: `\\binom{${trials}}{${outcomes.map((o) => o.x).join(', ')}} = ${n(coefficient)}`,
+      formula: String.raw`\binom{n}{x_1, \ldots, x_k} = \frac{n!}{${indices.map((i) => `x_{${i}}!`).join(String.raw`\,`)}}`,
+      substitution: String.raw`\frac{${trials}!}{${outcomes.map((o) => `${o.x}!`).join(String.raw`\,`)}}`,
+      result: String.raw`\binom{${trials}}{${outcomes.map((o) => o.x).join(', ')}} = ${n(coefficient)}`,
     },
     {
       title: 'Probabilidad de un orden específico',
@@ -154,12 +153,12 @@ export function solveMultinomial(
         ? 'Un resultado con probabilidad 0 ocurre al menos una vez: esa muestra es imposible.'
         : 'Como los ensayos son independientes, la probabilidad de un orden concreto es el producto de las probabilidades.',
       formula: indices.map((i) => `p_{${i}}^{x_{${i}}}`).join(''),
-      substitution: outcomes.map((o) => `\\left(${pTex(o)}\\right)^{${o.x}}`).join(''),
+      substitution: outcomes.map((o) => String.raw`\left(${pTex(o)}\right)^{${o.x}}`).join(''),
       result: `= ${n(product)}`,
     },
     {
       title: 'Multiplicar',
-      formula: `f = \\binom{n}{x_1, \\ldots, x_k} ${indices.map((i) => `p_{${i}}^{x_{${i}}}`).join('')}`,
+      formula: String.raw`f = \binom{n}{x_1, \ldots, x_k} ${indices.map((i) => `p_{${i}}^{x_{${i}}}`).join('')}`,
       substitution: `f = (${n(coefficient)})(${n(product)})`,
       result: `f = ${n(probability)}`,
     },
@@ -167,7 +166,7 @@ export function solveMultinomial(
       title: 'Media y varianza de cada conteo',
       explanation:
         'Cada Xᵢ, por separado, es binomial: n ensayos con probabilidad de éxito pᵢ. Sus valores están en la tabla.',
-      formula: 'E(X_i) = np_i, \\qquad \\operatorname{Var}(X_i) = np_i(1 - p_i)',
+      formula: String.raw`E(X_i) = np_i, \qquad \operatorname{Var}(X_i) = np_i(1 - p_i)`,
     },
   ];
 
@@ -190,7 +189,7 @@ export function solveMultinomial(
         id: 'resultados',
         title: 'Resultados',
         columns: [
-          { key: 'name', header: '\\text{Resultado}', format: 'latex' },
+          { key: 'name', header: String.raw`\text{Resultado}`, format: 'latex' },
           { key: 'p', header: 'p_i' },
           { key: 'x', header: 'x_i' },
           { key: 'mean', header: 'np_i' },

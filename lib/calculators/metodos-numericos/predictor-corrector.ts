@@ -96,8 +96,8 @@ function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory 
       slopeColumns: [
         { key: 'k1', header: "y'_i" },
         { key: 'predictor', header: 'y^0_{i+1}' },
-        { key: 'iterations', header: '\\text{Iteraciones}' },
-        { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+        { key: 'iterations', header: String.raw`\text{Iteraciones}` },
+        { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
       ],
       stepTitle: (i) => (rkStart && i === 0 ? 'arranque con Runge-Kutta de 4.º orden' : undefined),
       advance(fn, i, x, y, h) {
@@ -120,16 +120,16 @@ function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory 
           predictor = yPrev + k1 * 2 * h;
           predictorStep = {
             title: 'Predictor del punto medio',
-            formula: "y^0_{i+1} = y_{i-1} + y'_i\\,2h",
-            substitution: `y^0_{${i + 1}} = ${n(yPrev)} + ${op(k1)}\\,(2)(${n(h)})`,
+            formula: String.raw`y^0_{i+1} = y_{i-1} + y'_i\,2h`,
+            substitution: String.raw`y^0_{${i + 1}} = ${n(yPrev)} + ${op(k1)}\,(2)(${n(h)})`,
             result: `y^0_{${i + 1}} = ${n(predictor)}`,
           };
         } else {
           predictor = y + k1 * h;
           predictorStep = {
             title: 'Predictor de Euler',
-            formula: "y^0_{i+1} = y_i + y'_i\\,h",
-            substitution: `y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\\,(${n(h)})`,
+            formula: String.raw`y^0_{i+1} = y_i + y'_i\,h`,
+            substitution: String.raw`y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\,(${n(h)})`,
             result: `y^0_{${i + 1}} = ${n(predictor)}`,
           };
         }
@@ -149,10 +149,10 @@ function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory 
               title: `Corrector, iteración ${j}`,
               formula:
                 j === 1
-                  ? "y^j_{i+1} = y_i + \\frac{y'_i + f(x_{i+1},\\ y^{j-1}_{i+1})}{2}\\,h"
+                  ? String.raw`y^j_{i+1} = y_i + \frac{y'_i + f(x_{i+1},\ y^{j-1}_{i+1})}{2}\,h`
                   : undefined,
-              substitution: `y^{${j}}_{${i + 1}} = ${n(y)} + \\frac{${n(k1)} + f(${n(x1)},\\ ${n(current)})}{2}\\,(${n(h)}) = ${n(y)} + \\frac{${n(k1)} + ${op(slope)}}{2}\\,(${n(h)})`,
-              result: `y^{${j}}_{${i + 1}} = ${n(next)}${ea === null ? '' : `, \\quad \\varepsilon_a = ${n(ea, 4)}\\,\\%`}`,
+              substitution: String.raw`y^{${j}}_{${i + 1}} = ${n(y)} + \frac{${n(k1)} + f(${n(x1)},\ ${n(current)})}{2}\,(${n(h)}) = ${n(y)} + \frac{${n(k1)} + ${op(slope)}}{2}\,(${n(h)})`,
+              result: `y^{${j}}_{${i + 1}} = ${n(next)}${ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`}`,
             });
           } else if (j === DETAILED_ITERATIONS + 1) {
             iterationSteps.push({
@@ -188,7 +188,7 @@ function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory 
                     value: ea,
                     step: {
                       title: 'Error aproximado final',
-                      result: `\\varepsilon_a = ${n(ea, 4)}\\,\\%`,
+                      result: String.raw`\varepsilon_a = ${n(ea, 4)}\,\%`,
                     },
                   },
                 ]),

@@ -118,7 +118,7 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
     {
       title: 'Datos',
       explanation: `Hay n = ${count} datos, registrados con ${decimals === 0 ? 'precisión de enteros' : `${decimals} decimal${decimals === 1 ? '' : 'es'}`} (u = ${formatNumber(unit)}).`,
-      formula: 'R = x_{\\max} - x_{\\min}',
+      formula: String.raw`R = x_{\max} - x_{\min}`,
       substitution: `R = ${n(max)} - ${n(min)}`,
       result: `R = ${n(round(max - min))}`,
     },
@@ -156,8 +156,8 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
       title: 'Número de clases (regla de Sturges)',
       explanation:
         'Una guía común: entre 5 y 20 clases, menos cuantos menos datos haya. La regla de Sturges da un valor inicial; se redondea hacia arriba.',
-      formula: 'k = 1 + 3.322 \\log_{10} n',
-      substitution: `k = 1 + 3.322 \\log_{10} ${count} = ${n(sturges, 4)}`,
+      formula: String.raw`k = 1 + 3.322 \log_{10} n`,
+      substitution: String.raw`k = 1 + 3.322 \log_{10} ${count} = ${n(sturges, 4)}`,
       result: `k = ${k}`,
     });
   }
@@ -177,8 +177,8 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
     steps.push({
       title: 'Ancho de clase',
       explanation: `Se divide el rango entre el número de clases y se redondea hacia arriba a la precisión de los datos (u = ${formatNumber(unit)}), de modo que las k clases cubran todos los datos.`,
-      formula: 'c \\ge \\frac{R}{k}',
-      substitution: `\\frac{${n(round(range))}}{${k}} = ${n(range / k, 6)}`,
+      formula: String.raw`c \ge \frac{R}{k}`,
+      substitution: String.raw`\frac{${n(round(range))}}{${k}} = ${n(range / k, 6)}`,
       result: `c = ${n(width)}`,
     });
   }
@@ -197,8 +197,8 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
   steps.push({
     title: 'Límites y fronteras de clase',
     explanation: `La primera clase empieza en ${formatNumber(start)}. Cada límite superior es el inferior más c − u, para que ningún dato caiga en dos clases; las fronteras están a media unidad (u/2) de los límites, y la marca de clase es el punto medio.`,
-    formula: 'L_i = L_1 + (i - 1)c, \\qquad U_i = L_i + c - u, \\qquad m_i = \\frac{L_i + U_i}{2}',
-    substitution: `L_1 = ${fixed(lowers[0]!)}, \\quad U_1 = ${fixed(lowers[0]!)} + ${n(width)} - ${n(unit)} = ${fixed(uppers[0]!)}, \\quad m_1 = ${n(tidy((lowers[0]! + uppers[0]!) / 2))}`,
+    formula: String.raw`L_i = L_1 + (i - 1)c, \qquad U_i = L_i + c - u, \qquad m_i = \frac{L_i + U_i}{2}`,
+    substitution: String.raw`L_1 = ${fixed(lowers[0]!)}, \quad U_1 = ${fixed(lowers[0]!)} + ${n(width)} - ${n(unit)} = ${fixed(uppers[0]!)}, \quad m_1 = ${n(tidy((lowers[0]! + uppers[0]!) / 2))}`,
   });
 
   const frequencies = Array<number>(k).fill(0);
@@ -224,8 +224,8 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
     title: 'Contar las frecuencias',
     explanation:
       'Se cuenta cuántos datos caen en cada clase (entre sus fronteras). La frecuencia relativa es f/n y la acumulada suma las frecuencias hasta esa clase.',
-    formula: 'f_i, \\qquad \\frac{f_i}{n}, \\qquad F_i = f_1 + \\cdots + f_i',
-    result: `f = ${frequencies.join(',\\ ')}, \\qquad \\sum f_i = ${count}`,
+    formula: String.raw`f_i, \qquad \frac{f_i}{n}, \qquad F_i = f_1 + \cdots + f_i`,
+    result: String.raw`f = ${frequencies.join(String.raw`,\ `)}, \qquad \sum f_i = ${count}`,
   });
 
   const sumFm = classes.reduce((s, c) => s + c.frequency * c.midpoint, 0);
@@ -238,27 +238,27 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
       title: 'Media de los datos agrupados',
       explanation:
         'Si solo se tuviera la tabla, cada dato se representa con la marca de su clase. Es una aproximación de la media de los datos originales.',
-      formula: '\\bar{x} \\approx \\frac{\\sum f_i m_i}{n}',
-      substitution: `\\bar{x} \\approx \\frac{${n(tidy(sumFm))}}{${count}}`,
-      result: `\\bar{x} \\approx ${n(groupedMean)} \\quad (\\text{con los datos: } ${n(mean)})`,
+      formula: String.raw`\bar{x} \approx \frac{\sum f_i m_i}{n}`,
+      substitution: String.raw`\bar{x} \approx \frac{${n(tidy(sumFm))}}{${count}}`,
+      result: String.raw`\bar{x} \approx ${n(groupedMean)} \quad (\text{con los datos: } ${n(mean)})`,
     },
     {
       title: 'Varianza de los datos agrupados',
-      formula: 's^2 \\approx \\frac{\\sum f_i m_i^2 - \\left(\\sum f_i m_i\\right)^2 / n}{n - 1}',
-      substitution: `s^2 \\approx \\frac{${n(tidy(sumFm2))} - (${n(tidy(sumFm))})^2 / ${count}}{${count - 1}}`,
-      result: `s^2 \\approx ${n(groupedVariance)}, \\qquad s \\approx ${n(Math.sqrt(Math.max(0, groupedVariance)))}`,
+      formula: String.raw`s^2 \approx \frac{\sum f_i m_i^2 - \left(\sum f_i m_i\right)^2 / n}{n - 1}`,
+      substitution: String.raw`s^2 \approx \frac{${n(tidy(sumFm2))} - (${n(tidy(sumFm))})^2 / ${count}}{${count - 1}}`,
+      result: String.raw`s^2 \approx ${n(groupedVariance)}, \qquad s \approx ${n(Math.sqrt(Math.max(0, groupedVariance)))}`,
     },
   );
 
   const label = (a: number, b: number, extra = 0) =>
-    `${fixed(a, extra)}\\text{–}${fixed(b, extra)}`;
+    String.raw`${fixed(a, extra)}\text{–}${fixed(b, extra)}`;
   return {
     ok: true,
     value: { n: count, width, classes, groupedMean, groupedVariance, mean },
     summary: [
-      { label: 'Clases', value: `k = ${k}, \\quad c = ${n(width)}`, emphasis: true },
-      { label: 'Media agrupada', value: `\\bar{x} \\approx ${n(groupedMean, 6)}` },
-      { label: 'Media de los datos', value: `\\bar{x} = ${n(mean, 6)}` },
+      { label: 'Clases', value: String.raw`k = ${k}, \quad c = ${n(width)}`, emphasis: true },
+      { label: 'Media agrupada', value: String.raw`\bar{x} \approx ${n(groupedMean, 6)}` },
+      { label: 'Media de los datos', value: String.raw`\bar{x} = ${n(mean, 6)}` },
       { label: 'Datos', value: `n = ${count}` },
     ],
     ...emptyTrace(),
@@ -268,8 +268,8 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
         id: 'frecuencias',
         title: 'Distribución de frecuencias',
         columns: [
-          { key: 'limits', header: '\\text{Clase}', format: 'latex' },
-          { key: 'boundaries', header: '\\text{Fronteras}', format: 'latex' },
+          { key: 'limits', header: String.raw`\text{Clase}`, format: 'latex' },
+          { key: 'boundaries', header: String.raw`\text{Fronteras}`, format: 'latex' },
           { key: 'midpoint', header: 'm_i' },
           { key: 'frequency', header: 'f_i' },
           { key: 'relative', header: 'f_i / n' },

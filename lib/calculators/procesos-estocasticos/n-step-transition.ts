@@ -58,7 +58,7 @@ export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NSte
       title: 'Matriz de transición de un paso',
       explanation:
         'p_ij es la probabilidad de pasar del estado i al estado j en una transición. Por las ecuaciones de Chapman-Kolmogorov, la matriz de n pasos es la potencia n de P.',
-      formula: `P = ${toLatexMatrix(P)}, \\qquad P^{(n)} = P^n`,
+      formula: String.raw`P = ${toLatexMatrix(P)}, \qquad P^{(n)} = P^n`,
     },
   ];
 
@@ -75,8 +75,8 @@ export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NSte
           k === 2
             ? 'Cada entrada es la suma, sobre todos los estados intermedios m, de ir de i a m y luego de m a j.'
             : undefined,
-        formula: `P^{${k}} = P^{${k - 1}}\\,P`,
-        substitution: `p^{(${k})}_{11} = \\sum_m p^{(${k - 1})}_{1m}\\,p_{m1} = ${entry}`,
+        formula: String.raw`P^{${k}} = P^{${k - 1}}\,P`,
+        substitution: String.raw`p^{(${k})}_{11} = \sum_m p^{(${k - 1})}_{1m}\,p_{m1} = ${entry}`,
         result: `P^{${k}} = ${toLatexMatrix(power)}`,
       });
     } else if (k === DETAILED_POWERS + 1) {
@@ -99,7 +99,7 @@ export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NSte
     steps.push({
       title: `Distribución después de ${count} transiciones`,
       explanation: 'Se multiplica el vector de probabilidades iniciales por la matriz de n pasos.',
-      formula: 'a^{(n)} = a^{(0)} P^n, \\qquad a^{(n)}_j = \\sum_i a^{(0)}_i\\,p^{(n)}_{ij}',
+      formula: String.raw`a^{(n)} = a^{(0)} P^n, \qquad a^{(n)}_j = \sum_i a^{(0)}_i\,p^{(n)}_{ij}`,
       substitution: `a^{(${count})}_1 = ${component}`,
       result: `a^{(${count})} = ${toLatexVector(distribution)}`,
     });
@@ -107,7 +107,7 @@ export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NSte
       id: 'distribucion',
       title: `Distribución después de ${count} transiciones`,
       columns: [
-        { key: 'state', header: '\\text{Estado}' },
+        { key: 'state', header: String.raw`\text{Estado}` },
         { key: 'initial', header: 'a^{(0)}_j' },
         { key: 'final', header: `a^{(${count})}_j` },
       ],

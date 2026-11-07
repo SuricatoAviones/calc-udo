@@ -179,7 +179,7 @@ function sample(s: Sampler, R: number): number {
 
 /** «−15 ln(0.0589) = 42.48» o el valor constante. */
 function sampleLatex(s: Sampler, R: number | null, value: number): string {
-  if (s.distribution === 'exponencial') return `-${n(s.a)}\\ln(${n(R!)}) = ${n(value, 6)}`;
+  if (s.distribution === 'exponencial') return String.raw`-${n(s.a)}\ln(${n(R!)}) = ${n(value, 6)}`;
   if (s.distribution === 'uniforme') {
     return `${n(s.a)} + (${n(s.b!)} - ${n(s.a)})(${n(R!)}) = ${n(value, 6)}`;
   }
@@ -187,8 +187,8 @@ function sampleLatex(s: Sampler, R: number | null, value: number): string {
 }
 
 const DISTRIBUTION_LATEX: Record<TimeDistribution, string> = {
-  exponencial: 't = -\\beta \\ln R',
-  uniforme: 't = a + (b - a)\\,R',
+  exponencial: String.raw`t = -\beta \ln R`,
+  uniforme: String.raw`t = a + (b - a)\,R`,
   constante: 't = c',
 };
 
@@ -209,7 +209,7 @@ function congruential(
     u = (b * u + c) % m;
     if (lines.length < 6) {
       lines.push(
-        `u_{${k}} = (${b} \\cdot ${previous} + ${c}) \\bmod ${m} = ${u},\\ R_{${k}} = \\frac{${u}}{${m}} = ${n(u / m, 4)}`,
+        String.raw`u_{${k}} = (${b} \cdot ${previous} + ${c}) \bmod ${m} = ${u},\ R_{${k}} = \frac{${u}}{${m}} = ${n(u / m, 4)}`,
       );
     }
     // R = 0 no sirve para ln R: se descarta.
@@ -254,7 +254,7 @@ export function solveSimulation(input: SimulationInput): Result {
       result: `${supply
         .slice(0, 12)
         .map((r) => n(r))
-        .join(',\\ ')}${supply.length > 12 ? ',\\ \\ldots' : ''}`,
+        .join(String.raw`,\ `)}${supply.length > 12 ? String.raw`,\ \ldots` : ''}`,
     });
   } else {
     const generated = congruential(
@@ -268,9 +268,9 @@ export function solveSimulation(input: SimulationInput): Result {
     steps.push({
       title: 'Generar los números aleatorios (método congruencial multiplicativo)',
       explanation: `Cada número se obtiene del anterior y la sucesión se repite cada ${generated.cycle} números: con un módulo pequeño los «aleatorios» se repiten pronto.${generated.skipped > 0 ? ` Se descartaron ${generated.skipped} valores con u = 0, porque ln 0 no existe.` : ''}`,
-      formula: 'u_n = (b\\,u_{n-1} + c) \\bmod m, \\qquad R_n = \\frac{u_n}{m}',
-      substitution: generated.lines.join(' \\\\ '),
-      result: `\\text{ciclo de longitud } ${generated.cycle}`,
+      formula: String.raw`u_n = (b\,u_{n-1} + c) \bmod m, \qquad R_n = \frac{u_n}{m}`,
+      substitution: generated.lines.join(String.raw` \\ `),
+      result: String.raw`\text{ciclo de longitud } ${generated.cycle}`,
     });
   }
 
@@ -289,7 +289,7 @@ export function solveSimulation(input: SimulationInput): Result {
     title: 'Transformada inversa',
     explanation:
       'Cada tiempo se obtiene de un número aleatorio R con la inversa de su función de distribución.',
-    formula: `\\text{Llegadas: } ${DISTRIBUTION_LATEX[arrival.distribution]}, \\qquad \\text{servicio: } ${DISTRIBUTION_LATEX[service.distribution]}`,
+    formula: String.raw`\text{Llegadas: } ${DISTRIBUTION_LATEX[arrival.distribution]}, \qquad \text{servicio: } ${DISTRIBUTION_LATEX[service.distribution]}`,
   });
 
   // Simulación por eventos.
@@ -336,7 +336,7 @@ export function solveSimulation(input: SimulationInput): Result {
         : `R = ${fmt(draw.R)} → servicio ${fmt(draw.value)}`,
     );
     details.push(
-      `T_{\\text{salida } ${customer}} = ${n(time, 6)} + ${sampleLatex(service, draw.R, draw.value)} = ${n(record.departure, 6)}`,
+      String.raw`T_{\text{salida } ${customer}} = ${n(time, 6)} + ${sampleLatex(service, draw.R, draw.value)} = ${n(record.departure, 6)}`,
     );
     return true;
   };
@@ -369,22 +369,22 @@ export function solveSimulation(input: SimulationInput): Result {
           `${draw.R === null ? '' : `R = ${fmt(draw.R)} → `}llegada del ${customer + 1} en ${fmt(clock + draw.value)}`,
         );
         details.push(
-          `T_{\\text{llegada } ${customer + 1}} = ${n(clock, 6)} + ${sampleLatex(arrival, draw.R, draw.value)} = ${n(clock + draw.value, 6)}`,
+          String.raw`T_{\text{llegada } ${customer + 1}} = ${n(clock, 6)} + ${sampleLatex(arrival, draw.R, draw.value)} = ${n(clock + draw.value, 6)}`,
         );
       }
       if (!busy) {
-        details.push('\\text{Servidor libre: empieza el servicio}');
+        details.push(String.raw`\text{Servidor libre: empieza el servicio}`);
         if (!startService(customer, clock, generated, details)) return lack();
       } else {
         queue.push(customer);
-        details.push(`\\text{Servidor ocupado: el cliente ${customer} pasa a la cola}`);
+        details.push(String.raw`\text{Servidor ocupado: el cliente ${customer} pasa a la cola}`);
       }
     } else {
       schedule.departure = null;
       busy = false;
       const waiting = queue.shift();
       if (waiting === undefined) {
-        details.push('\\text{Cola vacía: el servidor queda libre}');
+        details.push(String.raw`\text{Cola vacía: el servidor queda libre}`);
       } else {
         const record = customers[waiting - 1]!;
         details.push(
@@ -406,8 +406,8 @@ export function solveSimulation(input: SimulationInput): Result {
     if (eventSteps.length < 40) {
       eventSteps.push({
         title: `${isArrival ? 'Llegada' : 'Salida'} del cliente ${event.customer} en T = ${fmt(clock)}`,
-        substitution: details.join(' \\\\ '),
-        result: `\\text{Cola} = ${queue.length}, \\quad \\text{servidor ${busy ? 'ocupado' : 'libre'}}`,
+        substitution: details.join(String.raw` \\ `),
+        result: String.raw`\text{Cola} = ${queue.length}, \quad \text{servidor ${busy ? 'ocupado' : 'libre'}}`,
       });
     }
   }
@@ -431,26 +431,26 @@ export function solveSimulation(input: SimulationInput): Result {
       title: 'Longitud promedio de la cola',
       explanation:
         'Es una variable basada en el tiempo: el área bajo la curva del largo de la cola dividida entre el tiempo simulado. Esa área es igual a la suma de las esperas.',
-      formula: '\\bar L_q = \\frac{\\text{área bajo la cola}}{T}',
-      substitution: `\\bar L_q = \\frac{${n(queueArea, 6)}}{${n(totalTime, 6)}}`,
-      result: `\\bar L_q = ${n(averageQueue, 6)}`,
+      formula: String.raw`\bar L_q = \frac{\text{área bajo la cola}}{T}`,
+      substitution: String.raw`\bar L_q = \frac{${n(queueArea, 6)}}{${n(totalTime, 6)}}`,
+      result: String.raw`\bar L_q = ${n(averageQueue, 6)}`,
     },
     {
       title: 'Utilización del servidor',
-      formula: '\\text{Utilización} = \\frac{\\text{tiempo ocupado}}{T}',
-      substitution: `\\frac{${n(busyTime, 6)}}{${n(totalTime, 6)}}`,
-      result: `\\text{Utilización} = ${n(utilization, 6)}`,
+      formula: String.raw`\text{Utilización} = \frac{\text{tiempo ocupado}}{T}`,
+      substitution: String.raw`\frac{${n(busyTime, 6)}}{${n(totalTime, 6)}}`,
+      result: String.raw`\text{Utilización} = ${n(utilization, 6)}`,
     },
     {
       title: 'Espera promedio en la cola',
       explanation:
         'Es una variable basada en observaciones: el promedio de las esperas de los clientes.',
-      formula: '\\bar W_q = \\frac{\\sum W_i}{N}',
-      substitution: `\\bar W_q = \\frac{${waits
+      formula: String.raw`\bar W_q = \frac{\sum W_i}{N}`,
+      substitution: String.raw`\bar W_q = \frac{${waits
         .slice(0, 8)
         .map((w) => n(w, 6))
-        .join(' + ')}${waits.length > 8 ? ' + \\cdots' : ''}}{${customers.length}}`,
-      result: `\\bar W_q = ${n(averageWait, 6)}`,
+        .join(' + ')}${waits.length > 8 ? String.raw` + \cdots` : ''}}{${customers.length}}`,
+      result: String.raw`\bar W_q = ${n(averageWait, 6)}`,
     },
   );
 
@@ -491,12 +491,18 @@ export function solveSimulation(input: SimulationInput): Result {
     summary: [
       {
         label: 'Espera promedio en la cola',
-        value: `\\bar W_q = ${n(averageWait, 6)}`,
+        value: String.raw`\bar W_q = ${n(averageWait, 6)}`,
         emphasis: true,
       },
-      { label: 'Longitud promedio de la cola', value: `\\bar L_q = ${n(averageQueue, 6)}` },
+      {
+        label: 'Longitud promedio de la cola',
+        value: String.raw`\bar L_q = ${n(averageQueue, 6)}`,
+      },
       { label: 'Utilización del servidor', value: n(utilization, 6) },
-      { label: 'Tiempo promedio en el sistema', value: `\\bar W = ${n(averageTimeInSystem, 6)}` },
+      {
+        label: 'Tiempo promedio en el sistema',
+        value: String.raw`\bar W = ${n(averageTimeInSystem, 6)}`,
+      },
       { label: 'Tiempo simulado', value: `T = ${n(totalTime, 6)}` },
     ],
     ...emptyTrace(),
@@ -506,11 +512,11 @@ export function solveSimulation(input: SimulationInput): Result {
         id: 'clientes',
         title: 'Clientes',
         columns: [
-          { key: 'customer', header: '\\text{Cliente}' },
-          { key: 'arrival', header: '\\text{Llegada}' },
-          { key: 'start', header: '\\text{Inicio del servicio}' },
-          { key: 'wait', header: '\\text{Espera}' },
-          { key: 'departure', header: '\\text{Salida}' },
+          { key: 'customer', header: String.raw`\text{Cliente}` },
+          { key: 'arrival', header: String.raw`\text{Llegada}` },
+          { key: 'start', header: String.raw`\text{Inicio del servicio}` },
+          { key: 'wait', header: String.raw`\text{Espera}` },
+          { key: 'departure', header: String.raw`\text{Salida}` },
         ],
         rows: customers.map((c) => ({ ...c })),
       },
@@ -519,10 +525,10 @@ export function solveSimulation(input: SimulationInput): Result {
         title: 'Lista de eventos',
         columns: [
           { key: 'time', header: 'T' },
-          { key: 'event', header: '\\text{Evento}', format: 'text' },
-          { key: 'generated', header: '\\text{Números usados}', format: 'text' },
-          { key: 'queue', header: '\\text{Cola}' },
-          { key: 'server', header: '\\text{Servidor}', format: 'text' },
+          { key: 'event', header: String.raw`\text{Evento}`, format: 'text' },
+          { key: 'generated', header: String.raw`\text{Números usados}`, format: 'text' },
+          { key: 'queue', header: String.raw`\text{Cola}` },
+          { key: 'server', header: String.raw`\text{Servidor}`, format: 'text' },
         ],
         rows: eventRows,
       },

@@ -33,9 +33,9 @@ export function solveMM1({ lambda, mu }: MM1Input): QueueResult {
       title: 'Factor de utilización',
       explanation:
         'Fracción del tiempo que el servidor está ocupado. Debe ser menor que 1 para que el sistema alcance el estado estable.',
-      formula: '\\rho = \\frac{\\lambda}{\\mu}',
-      substitution: `\\rho = \\frac{${n(lambda)}}{${n(mu)}}`,
-      result: `\\rho = ${n(rho)}`,
+      formula: String.raw`\rho = \frac{\lambda}{\mu}`,
+      substitution: String.raw`\rho = \frac{${n(lambda)}}{${n(mu)}}`,
+      result: String.raw`\rho = ${n(rho)}`,
     },
   ];
   if (rho >= 1) return unstable(steps, rho);
@@ -57,7 +57,7 @@ export function solveMM1({ lambda, mu }: MM1Input): QueueResult {
   steps.push(
     {
       title: 'Probabilidad de que el sistema esté vacío',
-      formula: 'p_0 = 1 - \\rho',
+      formula: String.raw`p_0 = 1 - \rho`,
       substitution: `p_0 = 1 - ${n(rho)}`,
       result: `p_0 = ${n(p0)}`,
     },
@@ -65,23 +65,23 @@ export function solveMM1({ lambda, mu }: MM1Input): QueueResult {
       title: 'Probabilidad de n clientes en el sistema',
       explanation:
         'La tabla de resultados tiene los valores hasta que la probabilidad acumulada llega a ≈ 1.',
-      formula: 'p_n = (1 - \\rho)\\,\\rho^n',
+      formula: String.raw`p_n = (1 - \rho)\,\rho^n`,
       substitution: `p_1 = (${n(p0)})(${n(rho)})^1`,
       result: `p_1 = ${n(value.probabilities[1] ?? p0 * rho)}`,
     },
     {
       title: 'Clientes promedio en el sistema',
-      formula: 'L = \\frac{\\rho}{1 - \\rho}',
-      substitution: `L = \\frac{${n(rho)}}{1 - ${n(rho)}}`,
+      formula: String.raw`L = \frac{\rho}{1 - \rho}`,
+      substitution: String.raw`L = \frac{${n(rho)}}{1 - ${n(rho)}}`,
       result: `L = ${n(L)}`,
     },
     {
       title: 'Clientes promedio en la cola',
-      formula: 'L_q = \\frac{\\rho^2}{1 - \\rho}',
-      substitution: `L_q = \\frac{(${n(rho)})^2}{1 - ${n(rho)}}`,
+      formula: String.raw`L_q = \frac{\rho^2}{1 - \rho}`,
+      substitution: String.raw`L_q = \frac{(${n(rho)})^2}{1 - ${n(rho)}}`,
       result: `L_q = ${n(Lq)}`,
     },
-    ...littleSteps(value, '\\lambda'),
+    ...littleSteps(value, String.raw`\lambda`),
   );
 
   return { ok: true, value, summary: queueSummary(value), ...probabilityTrace(steps, value) };

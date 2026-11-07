@@ -76,8 +76,8 @@ export function solveGaussElimination(
     {
       title: 'Sistema de ecuaciones',
       explanation: `${size} ecuaciones con ${size} incógnitas, escritas como la matriz aumentada [A | b].`,
-      formula: `\\begin{aligned} ${system.map((row) => linearEquationLatex(row.slice(0, size), row[size]!).replace('=', '&=')).join(' \\\\ ')} \\end{aligned}`,
-      result: `[A \\mid b] = ${texAugmented(system, 1)}`,
+      formula: String.raw`\begin{aligned} ${system.map((row) => linearEquationLatex(row.slice(0, size), row[size]!).replace('=', '&=')).join(String.raw` \\ `)} \end{aligned}`,
+      result: String.raw`[A \mid b] = ${texAugmented(system, 1)}`,
     },
   ];
 
@@ -156,7 +156,7 @@ export function solveGaussElimination(
         .slice(0, size)
         .map((coef, j) => `(${n(coef)})(${n(x[j]!)})`)
         .join(' + ')}`,
-      result: `${n(ax[i]!)} \\approx ${n(b[i]!)}`,
+      result: String.raw`${n(ax[i]!)} \approx ${n(b[i]!)}`,
     })),
   });
 
@@ -170,13 +170,13 @@ export function solveGaussElimination(
   const summary: SummaryItem[] = [
     {
       label: 'Solución',
-      value: x.map((v, i) => `x_{${i + 1}} = ${n(v)}`).join(',\\quad '),
+      value: x.map((v, i) => `x_{${i + 1}} = ${n(v)}`).join(String.raw`,\quad `),
       emphasis: true,
     },
-    { label: 'Determinante', value: `\\det A = ${n(det.value)}` },
+    { label: 'Determinante', value: String.raw`\det A = ${n(det.value)}` },
     {
       label: 'Intercambios de filas',
-      value: pivoting ? String(elimination.swaps) : '\\text{sin pivoteo}',
+      value: pivoting ? String(elimination.swaps) : String.raw`\text{sin pivoteo}`,
     },
   ];
 
@@ -191,8 +191,8 @@ export function solveGaussElimination(
         id: 'solucion',
         title: 'Solución del sistema',
         columns: [
-          { key: 'variable', header: '\\text{Incógnita}', format: 'latex' },
-          { key: 'value', header: '\\text{Valor}' },
+          { key: 'variable', header: String.raw`\text{Incógnita}`, format: 'latex' },
+          { key: 'value', header: String.raw`\text{Valor}` },
           { key: 'residual', header: '(Ax - b)_i' },
         ],
         rows: x.map((v, i) => ({

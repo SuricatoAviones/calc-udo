@@ -132,7 +132,7 @@ export function solveDeterminant(input: DeterminantInput) {
       steps.push({
         title: 'No hay pivote distinto de cero',
         explanation: `En la columna ${k}, todos los elementos desde la fila ${k} hacia abajo son 0. La matriz triangular tendría un 0 en la diagonal, así que el determinante es 0.`,
-        result: '\\det A = 0',
+        result: String.raw`\det A = 0`,
       });
       determinant = 0;
     } else {
@@ -154,18 +154,18 @@ export function solveDeterminant(input: DeterminantInput) {
     explanation: singular
       ? 'El determinante es 0: la matriz es singular (no tiene inversa) y un sistema con esta matriz no tiene solución única.'
       : 'El determinante es distinto de 0: la matriz tiene inversa y un sistema con esta matriz tiene solución única.',
-    result: `\\det A = ${n(determinant)}`,
+    result: String.raw`\det A = ${n(determinant)}`,
   });
 
   const summary: SummaryItem[] = [
-    { label: 'Determinante', value: `\\det A = ${n(determinant)}`, emphasis: true },
+    { label: 'Determinante', value: String.raw`\det A = ${n(determinant)}`, emphasis: true },
     {
       label: 'Método',
-      value: `\\text{${method === 'cofactores' ? 'cofactores' : 'eliminación de Gauss'}}`,
+      value: String.raw`\text{${method === 'cofactores' ? 'cofactores' : 'eliminación de Gauss'}}`,
     },
     {
       label: 'La matriz',
-      value: singular ? '\\text{es singular}' : '\\text{tiene inversa}',
+      value: singular ? String.raw`\text{es singular}` : String.raw`\text{tiene inversa}`,
     },
   ];
   return {

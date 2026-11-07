@@ -105,12 +105,12 @@ const op = (v: number) => toLatexOperand(v, MATRIX_DIGITS);
 const MAX_DETAILED_ENTRIES = 16;
 
 function dims(m: Matrix): string {
-  return `${m.length} \\times ${m[0]?.length ?? 0}`;
+  return String.raw`${m.length} \times ${m[0]?.length ?? 0}`;
 }
 
 /** Matriz de expresiones LaTeX ya armadas (p. ej. `1 + 5`). */
 function texMatrixOf(cells: Latex[][]): Latex {
-  return `\\begin{bmatrix} ${cells.map((row) => row.join(' & ')).join(' \\\\ ')} \\end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${cells.map((row) => row.join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
 }
 
 function success(result: Matrix, steps: Step[], summaryLabel: Latex): Result {
@@ -127,7 +127,7 @@ function elementwise(A: Matrix, B: Matrix, sign: 1 | -1): Result {
   return success(
     C,
     [
-      { title: 'Matrices', result: `A = ${texMatrix(A)}, \\quad B = ${texMatrix(B)}` },
+      { title: 'Matrices', result: String.raw`A = ${texMatrix(A)}, \quad B = ${texMatrix(B)}` },
       {
         title: sign === 1 ? 'Sumar elemento a elemento' : 'Restar elemento a elemento',
         explanation: `A y B tienen las mismas dimensiones (${formatNumber(A.length)} × ${formatNumber(A[0]!.length)}), así que se opera cada par de elementos que ocupan la misma posición.`,
@@ -145,10 +145,10 @@ function scalar(A: Matrix, k: number): Result {
   return success(
     C,
     [
-      { title: 'Matriz y escalar', result: `A = ${texMatrix(A)}, \\quad k = ${n(k)}` },
+      { title: 'Matriz y escalar', result: String.raw`A = ${texMatrix(A)}, \quad k = ${n(k)}` },
       {
         title: 'Multiplicar cada elemento por k',
-        formula: 'c_{ij} = k\\,a_{ij}',
+        formula: String.raw`c_{ij} = k\,a_{ij}`,
         substitution: `kA = ${texMatrixOf(A.map((row) => row.map((a) => `${op(k)}${op(a)}`)))}`,
         result: `kA = ${texMatrix(C)}`,
       },
@@ -186,19 +186,19 @@ function product(A: Matrix, B: Matrix): Result {
     [
       {
         title: 'Matrices',
-        result: `A_{${dims(A)}} = ${texMatrix(A)}, \\quad B_{${dims(B)}} = ${texMatrix(B)}`,
+        result: String.raw`A_{${dims(A)}} = ${texMatrix(A)}, \quad B_{${dims(B)}} = ${texMatrix(B)}`,
       },
       {
         title: 'Dimensiones del producto',
         explanation: `A tiene ${inner} columnas y B tiene ${inner} filas, así que el producto existe. El resultado tiene las filas de A y las columnas de B.`,
-        result: `C = AB \\text{ es de } ${m} \\times ${p}`,
+        result: String.raw`C = AB \text{ es de } ${m} \times ${p}`,
       },
       {
         title: 'Cada elemento: fila de A por columna de B',
         explanation: detailed
           ? 'Cada c_ij es la suma de los productos de la fila i de A por la columna j de B, término a término.'
           : `Cada c_ij es la suma de los productos de la fila i de A por la columna j de B. Se detallan los primeros ${MAX_DETAILED_ENTRIES} elementos.`,
-        formula: `c_{ij} = \\sum_{k=1}^{${inner}} a_{ik}\\,b_{kj}`,
+        formula: String.raw`c_{ij} = \sum_{k=1}^{${inner}} a_{ik}\,b_{kj}`,
         children: detailed ? entries : entries.slice(0, MAX_DETAILED_ENTRIES),
       },
       { title: 'Producto', result: `C = AB = ${texMatrix(C)}` },
@@ -234,7 +234,7 @@ function inverse(A: Matrix): Result {
       title: 'Matriz aumentada con la identidad',
       explanation:
         'Se aplican a [A | I] operaciones de fila hasta convertir A en la identidad (método de Gauss-Jordan). Las mismas operaciones convierten I en A⁻¹.',
-      result: `[A \\mid I] = ${texAugmented(m, size)}`,
+      result: String.raw`[A \mid I] = ${texAugmented(m, size)}`,
     },
   ];
 
@@ -269,9 +269,9 @@ function inverse(A: Matrix): Result {
     m[k]![k] = 1;
     children.push({
       title: `Normalizar la fila ${k + 1}`,
-      formula: `R_{${k + 1}} \\leftarrow \\frac{R_{${k + 1}}}{a_{${k + 1}${k + 1}}}`,
-      substitution: `R_{${k + 1}} \\leftarrow \\frac{R_{${k + 1}}}{${n(pivot)}}`,
-      result: `R_{${k + 1}} = (${m[k]!.map(n).join(',\\ ')})`,
+      formula: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{a_{${k + 1}${k + 1}}}`,
+      substitution: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{${n(pivot)}}`,
+      result: `R_{${k + 1}} = (${m[k]!.map(n).join(String.raw`,\ `)})`,
     });
     for (let i = 0; i < size; i++) {
       if (i === k) continue;
@@ -281,9 +281,9 @@ function inverse(A: Matrix): Result {
       m[i]![k] = 0;
       children.push({
         title: `Hacer cero el elemento de la fila ${i + 1}`,
-        formula: `R_{${i + 1}} \\leftarrow R_{${i + 1}} - a_{${i + 1}${k + 1}}\\,R_{${k + 1}}`,
-        substitution: `R_{${i + 1}} \\leftarrow R_{${i + 1}} - ${op(factor)}\\,R_{${k + 1}}`,
-        result: `R_{${i + 1}} = (${m[i]!.map(n).join(',\\ ')})`,
+        formula: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - a_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
+        substitution: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - ${op(factor)}\,R_{${k + 1}}`,
+        result: `R_{${i + 1}} = (${m[i]!.map(n).join(String.raw`,\ `)})`,
       });
     }
     steps.push({

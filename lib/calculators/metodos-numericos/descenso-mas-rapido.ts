@@ -252,8 +252,8 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
         ? 'Para maximizar se avanza en la dirección del gradiente (ascenso más rápido).'
         : 'Para minimizar se avanza en la dirección contraria al gradiente (descenso más rápido).',
       formula: `f(x, y) = ${f.tex}`,
-      substitution: `\\frac{\\partial f}{\\partial x} = ${fx.expr.tex}, \\qquad \\frac{\\partial f}{\\partial y} = ${fy.expr.tex}`,
-      result: `(x_0, y_0) = (${n(x)},\\ ${n(y)}), \\quad f(x_0, y_0) = ${n(fValue)}`,
+      substitution: String.raw`\frac{\partial f}{\partial x} = ${fx.expr.tex}, \qquad \frac{\partial f}{\partial y} = ${fy.expr.tex}`,
+      result: String.raw`(x_0, y_0) = (${n(x)},\ ${n(y)}), \quad f(x_0, y_0) = ${n(fValue)}`,
     },
   ];
   const trace = () => ({
@@ -265,13 +265,13 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
         title: 'Iteraciones',
         columns: [
           { key: 'i', header: 'i' },
-          { key: 'gx', header: '\\partial f/\\partial x' },
-          { key: 'gy', header: '\\partial f/\\partial y' },
+          { key: 'gx', header: String.raw`\partial f/\partial x` },
+          { key: 'gy', header: String.raw`\partial f/\partial y` },
           { key: 'h', header: 'h^*' },
           { key: 'x', header: 'x_{i+1}' },
           { key: 'y', header: 'y_{i+1}' },
           { key: 'f', header: 'f(x_{i+1}, y_{i+1})' },
-          { key: 'ea', header: '\\varepsilon_a\\,(\\%)' },
+          { key: 'ea', header: String.raw`\varepsilon_a\,(\%)` },
         ],
         rows,
       },
@@ -313,7 +313,7 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
     }
     const gradientStep: Step = {
       title: 'Gradiente en el punto actual',
-      substitution: `\\nabla f(${n(x)},\\ ${n(y)}) = \\left(${n(gx)},\\ ${n(gy)}\\right)`,
+      substitution: String.raw`\nabla f(${n(x)},\ ${n(y)}) = \left(${n(gx)},\ ${n(gy)}\right)`,
     };
     if (Math.hypot(gx, gy) <= STATIONARY * Math.max(1, Math.abs(fValue))) {
       steps.push({
@@ -335,8 +335,8 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
     const lineStep: Step = {
       title: 'Función a lo largo de la dirección',
       explanation: `Se sustituye x = ${formatNumber(x)} ${dx < 0 ? '−' : '+'} ${formatNumber(Math.abs(dx))}h y y = ${formatNumber(y)} ${dy < 0 ? '−' : '+'} ${formatNumber(Math.abs(dy))}h en f: queda una función de una sola variable, el tamaño de paso h.`,
-      formula: `g(h) = f\\left(x_i ${maximize ? '+' : '-'} h\\frac{\\partial f}{\\partial x},\\ y_i ${maximize ? '+' : '-'} h\\frac{\\partial f}{\\partial y}\\right)`,
-      substitution: `g(h) = f\\left(${n(x)} ${dx < 0 ? '-' : '+'} ${n(Math.abs(dx))}h,\\ ${n(y)} ${dy < 0 ? '-' : '+'} ${n(Math.abs(dy))}h\\right)`,
+      formula: String.raw`g(h) = f\left(x_i ${maximize ? '+' : '-'} h\frac{\partial f}{\partial x},\ y_i ${maximize ? '+' : '-'} h\frac{\partial f}{\partial y}\right)`,
+      substitution: String.raw`g(h) = f\left(${n(x)} ${dx < 0 ? '-' : '+'} ${n(Math.abs(dx))}h,\ ${n(y)} ${dy < 0 ? '-' : '+'} ${n(Math.abs(dy))}h\right)`,
       result: expanded ? `g(h) = ${expanded}` : undefined,
     };
     if (!best && Math.hypot(gx, gy) <= 1e-5 * Math.max(1, Math.abs(fValue))) {
@@ -390,9 +390,9 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
         },
         {
           title: 'Nuevo punto',
-          formula: `(x_{i+1}, y_{i+1}) = (x_i, y_i) ${maximize ? '+' : '-'} h^* \\nabla f`,
-          substitution: `x_{${i + 1}} = ${n(x)} + ${n(h)}${op(dx)}, \\quad y_{${i + 1}} = ${n(y)} + ${n(h)}${op(dy)}`,
-          result: `(x_{${i + 1}}, y_{${i + 1}}) = (${n(xNew)},\\ ${n(yNew)}), \\quad f = ${n(fNew)}`,
+          formula: String.raw`(x_{i+1}, y_{i+1}) = (x_i, y_i) ${maximize ? '+' : '-'} h^* \nabla f`,
+          substitution: String.raw`x_{${i + 1}} = ${n(x)} + ${n(h)}${op(dx)}, \quad y_{${i + 1}} = ${n(y)} + ${n(h)}${op(dy)}`,
+          result: String.raw`(x_{${i + 1}}, y_{${i + 1}}) = (${n(xNew)},\ ${n(yNew)}), \quad f = ${n(fNew)}`,
         },
         {
           title: 'Error aproximado',
@@ -401,9 +401,8 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
             : ea === null
               ? 'No está definido porque una coordenada nueva es 0. Se sigue iterando.'
               : `El mayor error de las coordenadas no es menor que εs = ${formatNumber(input.tolerance)} %: se sigue iterando.`,
-          formula:
-            '\\varepsilon_a = \\max\\left(\\left|\\frac{x_{i+1} - x_i}{x_{i+1}}\\right|, \\left|\\frac{y_{i+1} - y_i}{y_{i+1}}\\right|\\right) 100\\%',
-          result: ea === null ? undefined : `\\varepsilon_a = ${n(ea, 6)}\\,\\%`,
+          formula: String.raw`\varepsilon_a = \max\left(\left|\frac{x_{i+1} - x_i}{x_{i+1}}\right|, \left|\frac{y_{i+1} - y_i}{y_{i+1}}\right|\right) 100\%`,
+          result: ea === null ? undefined : String.raw`\varepsilon_a = ${n(ea, 6)}\,\%`,
         },
       ],
     });
@@ -433,10 +432,10 @@ export function solveSteepestDescent(input: SteepestDescentInput): Result {
     const summary: SummaryItem[] = [
       {
         label: maximize ? 'Máximo aproximado' : 'Mínimo aproximado',
-        value: `(x, y) \\approx (${n(x)},\\ ${n(y)})`,
+        value: String.raw`(x, y) \approx (${n(x)},\ ${n(y)})`,
         emphasis: true,
       },
-      { label: 'Valor de la función', value: `f \\approx ${n(fValue)}` },
+      { label: 'Valor de la función', value: String.raw`f \approx ${n(fValue)}` },
       { label: 'Iteraciones', value: String(iterations) },
     ];
     return { ok: true, value: { x, y, f: fValue, iterations, path }, summary, ...trace() };

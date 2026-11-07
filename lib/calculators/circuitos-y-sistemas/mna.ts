@@ -218,9 +218,9 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     for (const { component, nodeA, nodeB } of components) {
       if (component.kind !== 'current-source') continue;
       if (nodeA === nodeIdx) {
-        currents.push(`-${component.value}\\text{ A}`);
+        currents.push(String.raw`-${component.value}\text{ A}`);
       } else if (nodeB === nodeIdx) {
-        currents.push(`+${component.value}\\text{ A}`);
+        currents.push(String.raw`+${component.value}\text{ A}`);
       }
     }
     if (terms.length || currents.length) {
@@ -238,7 +238,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     kclSteps.push({
       title: `Fuente de voltaje ${label}`,
       formula: `v_${nodeA + 1} - v_${nodeB + 1} = E`,
-      substitution: `v_${nodeA + 1} - v_${nodeB + 1} = ${n(component.value)}\\text{ V}`,
+      substitution: String.raw`v_${nodeA + 1} - v_${nodeB + 1} = ${n(component.value)}\text{ V}`,
     });
   }
   // Ecuaciones de los amplificadores operacionales.
@@ -369,7 +369,9 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     {
       title: 'Voltajes de nodo',
       explanation: 'Se despejan los voltajes de cada nodo respecto a la referencia.',
-      result: rows.map((idx) => `v_${idx + 1} = ${n(nodeVoltages[idx]!)}\\text{ V}`).join(',\\ '),
+      result: rows
+        .map((idx) => String.raw`v_${idx + 1} = ${n(nodeVoltages[idx]!)}\text{ V}`)
+        .join(String.raw`,\ `),
     },
   ];
 

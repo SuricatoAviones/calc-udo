@@ -37,7 +37,7 @@ const n = toLatexNumber;
 const DESCRIPTION: Record<RectangleVariant, { where: string; label: string }> = {
   izquierda: { where: 'el extremo izquierdo', label: 'x' },
   derecha: { where: 'el extremo derecho', label: 'x' },
-  'punto-medio': { where: 'el punto medio', label: '\\bar{x}' },
+  'punto-medio': { where: 'el punto medio', label: String.raw`\bar{x}` },
 };
 
 const rule: IntegrationRule<RectangleInput> = {
@@ -68,17 +68,17 @@ const rule: IntegrationRule<RectangleInput> = {
       steps: [
         {
           title: 'Sumar las alturas',
-          formula: `\\sum f(${label}_i)`,
-          substitution: `\\sum f(${label}_i) = ${listOrSum(values)}`,
-          result: `\\sum f(${label}_i) = ${n(sum)}`,
+          formula: String.raw`\sum f(${label}_i)`,
+          substitution: String.raw`\sum f(${label}_i) = ${listOrSum(values)}`,
+          result: String.raw`\sum f(${label}_i) = ${n(sum)}`,
         },
         {
           title: 'Multiplicar por el ancho',
           explanation:
             'Todos los rectángulos tienen el mismo ancho h, así que el área total es h por la suma de las alturas.',
-          formula: `I \\cong h \\sum f(${label}_i)`,
-          substitution: `I \\cong ${n(h)}\\,(${n(sum)})`,
-          result: `I \\cong ${n(integral)}`,
+          formula: String.raw`I \cong h \sum f(${label}_i)`,
+          substitution: String.raw`I \cong ${n(h)}\,(${n(sum)})`,
+          result: String.raw`I \cong ${n(integral)}`,
         },
       ],
     };

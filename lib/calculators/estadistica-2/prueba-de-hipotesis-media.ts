@@ -94,7 +94,7 @@ export function solveMeanTest(
   const steps: Step[] = [
     {
       title: 'Hipótesis',
-      result: hypothesesLatex('\\mu', n(input.mu0), input.alternative as Alternative),
+      result: hypothesesLatex(String.raw`\mu`, n(input.mu0), input.alternative as Alternative),
     },
   ];
 
@@ -109,9 +109,8 @@ export function solveMeanTest(
     sd = known ? input.sd! : s;
     steps.push({
       title: 'Medidas de la muestra',
-      formula:
-        '\\bar{x} = \\frac{\\sum x_i}{n}, \\qquad s = \\sqrt{\\frac{\\sum (x_i - \\bar{x})^2}{n - 1}}',
-      result: `n = ${size}, \\quad \\bar{x} = ${n(xbar)}, \\quad s = ${n(s)}${known ? `, \\quad \\sigma = ${n(sd)} \\text{ (conocida)}` : ''}`,
+      formula: String.raw`\bar{x} = \frac{\sum x_i}{n}, \qquad s = \sqrt{\frac{\sum (x_i - \bar{x})^2}{n - 1}}`,
+      result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad s = ${n(s)}${known ? String.raw`, \quad \sigma = ${n(sd)} \text{ (conocida)}` : ''}`,
     });
   } else {
     xbar = input.mean!;
@@ -119,7 +118,7 @@ export function solveMeanTest(
     sd = input.sd!;
     steps.push({
       title: 'Datos',
-      result: `n = ${size}, \\quad \\bar{x} = ${n(xbar)}, \\quad ${known ? '\\sigma' : 's'} = ${n(sd)}`,
+      result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad ${known ? String.raw`\sigma` : 's'} = ${n(sd)}`,
     });
   }
 
@@ -132,8 +131,8 @@ export function solveMeanTest(
     explanation: known
       ? 'Con σ conocida, (x̄ − μ₀)/(σ/√n) tiene distribución normal estándar si H₀ es cierta.'
       : `Con σ desconocida se usa s y el estadístico tiene distribución t con ν = n − 1 = ${df} grados de libertad.`,
-    formula: `${symbol} = \\frac{\\bar{x} - \\mu_0}{${known ? '\\sigma' : 's'}/\\sqrt{n}}`,
-    substitution: `${symbol} = \\frac{${n(xbar)} - ${op(input.mu0)}}{${n(sd)}/\\sqrt{${size}}}`,
+    formula: String.raw`${symbol} = \frac{\bar{x} - \mu_0}{${known ? String.raw`\sigma` : 's'}/\sqrt{n}}`,
+    substitution: String.raw`${symbol} = \frac{${n(xbar)} - ${op(input.mu0)}}{${n(sd)}/\sqrt{${size}}}`,
     result: `${symbol} = ${n(statistic)}`,
   });
 
@@ -155,9 +154,9 @@ export function solveMeanTest(
     steps.push({
       title: `Intervalo de confianza de ${level} % para μ`,
       explanation: `La prueba bilateral no rechaza H₀ exactamente cuando μ₀ = ${formatNumber(input.mu0)} está dentro de este intervalo.`,
-      formula: `\\bar{x} \\pm ${known ? 'z_{\\alpha/2}\\,\\frac{\\sigma}{\\sqrt{n}}' : 't_{\\alpha/2}\\,\\frac{s}{\\sqrt{n}}'}`,
-      substitution: `${n(xbar)} \\pm ${n(q)}\\,\\frac{${n(sd)}}{\\sqrt{${size}}}`,
-      result: `${n(interval[0])} < \\mu < ${n(interval[1])}`,
+      formula: String.raw`\bar{x} \pm ${known ? String.raw`z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}}` : String.raw`t_{\alpha/2}\,\frac{s}{\sqrt{n}}`}`,
+      substitution: String.raw`${n(xbar)} \pm ${n(q)}\,\frac{${n(sd)}}{\sqrt{${size}}}`,
+      result: String.raw`${n(interval[0])} < \mu < ${n(interval[1])}`,
     });
   }
 
@@ -168,7 +167,7 @@ export function solveMeanTest(
   if (interval) {
     summary.push({
       label: `Intervalo de ${formatNumber((1 - input.alpha) * 100)} %`,
-      value: `${n(interval[0])} < \\mu < ${n(interval[1])}`,
+      value: String.raw`${n(interval[0])} < \mu < ${n(interval[1])}`,
     });
   }
 

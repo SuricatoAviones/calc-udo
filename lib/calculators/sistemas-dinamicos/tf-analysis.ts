@@ -90,9 +90,9 @@ export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
     {
       title: 'Polos y ceros',
       explanation: `Polos (raíces del denominador): ${rootsText(poles)}. Ceros (raíces del numerador): ${rootsText(zeros)}.`,
-      formula: `${name} = k\\frac{\\prod (s - z_i)}{\\prod (s - p_j)}`,
+      formula: String.raw`${name} = k\frac{\prod (s - z_i)}{\prod (s - p_j)}`,
       substitution:
-        `k = ${n(gain)},\\quad ${rootsTex(zeros)}\\ \\text{(ceros)},\\quad ${rootsTex(poles)}\\ \\text{(polos)}`.replace(
+        String.raw`k = ${n(gain)},\quad ${rootsTex(zeros)}\ \text{(ceros)},\quad ${rootsTex(poles)}\ \text{(polos)}`.replace(
           /s = /g,
           '',
         ),
@@ -113,11 +113,11 @@ export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
     { label: 'Polos y ceros', value: `${name} = ${zpkTex(tf)}` },
     {
       label: 'Orden y tipo',
-      value: `\\text{orden } ${order},\\ \\text{tipo } ${Math.max(type, 0)}`,
+      value: String.raw`\text{orden } ${order},\ \text{tipo } ${Math.max(type, 0)}`,
     },
     {
       label: 'Estabilidad',
-      value: `\\text{${{ estable: 'estable', marginal: 'marginalmente estable', inestable: 'inestable' }[stability]}}`,
+      value: String.raw`\text{${{ estable: 'estable', marginal: 'marginalmente estable', inestable: 'inestable' }[stability]}}`,
     },
   ];
   if (dcGain !== null)

@@ -162,9 +162,10 @@ type Result = CalculatorResult<ModelChangeValue, ModelChangeErrorCode>;
 // ─── Presentación ───────────────────────────────────────────────────────────
 
 const bmatrix = (rows: Rational[][]) =>
-  `\\begin{bmatrix} ${rows.map((row) => row.map((v) => v.toLatex()).join(' & ')).join(' \\\\ ')} \\end{bmatrix}`;
+  String.raw`\begin{bmatrix} ${rows.map((row) => row.map((v) => v.toLatex()).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
 const column = (values: Rational[]) => bmatrix(values.map((v) => [v]));
-const row = (values: Rational[]) => `\\left(${values.map((v) => v.toLatex()).join(',\\ ')}\\right)`;
+const row = (values: Rational[]) =>
+  String.raw`\left(${values.map((v) => v.toLatex()).join(String.raw`,\ `)}\right)`;
 const dot = (a: Rational[], b: Rational[]) =>
   a.reduce((s, v, i) => s.add(v.mul(b[i]!)), Rational.ZERO);
 
@@ -221,11 +222,13 @@ function success(
 ): Result {
   const before = decisionsOf(original);
   const { decisions, z: zNew } = decisionsOf(final);
-  const decisionLatex = decisions.map(({ c, v }) => `${c.latex} = ${v.toLatex()}`).join(',\\ ');
+  const decisionLatex = decisions
+    .map(({ c, v }) => `${c.latex} = ${v.toLatex()}`)
+    .join(String.raw`,\ `);
   trace.steps.push({
     title: status === 'sin-cambios' ? 'Conclusión' : 'Nueva solución óptima',
     explanation: verdict,
-    result: `${decisionLatex}, \\qquad z^* = ${zNew.toLatex()}`,
+    result: String.raw`${decisionLatex}, \qquad z^* = ${zNew.toLatex()}`,
   });
   return {
     ok: true,
@@ -240,7 +243,7 @@ function success(
     summary: [
       {
         label: 'Resultado',
-        value: `\\text{${status === 'sin-cambios' ? 'La solución no cambia' : status === 'nuevos-valores' ? 'Misma base, nuevos valores' : 'Cambia la solución óptima'}}`,
+        value: String.raw`\text{${status === 'sin-cambios' ? 'La solución no cambia' : status === 'nuevos-valores' ? 'Misma base, nuevos valores' : 'Cambia la solución óptima'}}`,
         emphasis: true,
       },
       { label: 'Valor óptimo', value: `z^* = ${zNew.toLatex()}` },
@@ -334,11 +337,13 @@ function changeRhs(o: Optimum, rhs: Rational[], trace: Continuation): Result {
     title: 'Nuevo lado derecho de la tabla',
     explanation:
       'Solo cambia la columna Solución: los valores de las básicas son B⁻¹ por el nuevo vector b. La fila z no cambia, así que la tabla sigue cumpliendo la condición de optimalidad.',
-    formula: "x_B = B^{-1} b', \\qquad z = y\\,b'",
+    formula: String.raw`x_B = B^{-1} b', \qquad z = y\,b'`,
     substitution: `${bmatrix(inverse)} ${column(rhs)} = ${column(values)}`,
     result: latexLines([
-      t.basis.map((b, i) => `${t.columns[b]!.latex} = ${values[i]!.toLatex()}`).join(',\\ '),
-      `z = ${row(duals)} \\cdot ${row(rhs)} = ${zNew.toLatex()}`,
+      t.basis
+        .map((b, i) => `${t.columns[b]!.latex} = ${values[i]!.toLatex()}`)
+        .join(String.raw`,\ `),
+      String.raw`z = ${row(duals)} \cdot ${row(rhs)} = ${zNew.toLatex()}`,
     ]),
   });
   const modified: Tableau = { ...t, rhs: values, zRhs: new MValue(zNew) };
@@ -392,7 +397,7 @@ function changeObjective(o: Optimum, c: Rational[], trace: Continuation): Result
       title: 'Nuevos precios duales',
       explanation:
         'Con los nuevos coeficientes de las variables básicas (0 para las holguras) se recalculan los valores duales.',
-      formula: 'y = c_B\\,B^{-1}',
+      formula: String.raw`y = c_B\,B^{-1}`,
       substitution: `y = ${row(cB)} ${bmatrix(inverse)}`,
       result: `y = ${row(duals)}`,
     },
@@ -400,11 +405,11 @@ function changeObjective(o: Optimum, c: Rational[], trace: Continuation): Result
       title: 'Costos reducidos de las no básicas',
       explanation:
         'Cada coeficiente de la fila z es la diferencia entre el lado izquierdo y el derecho de la restricción dual: y·aⱼ − cⱼ. Los de las básicas siguen en 0.',
-      formula: 'z_j - c_j = y\\,a_j - c_j',
+      formula: String.raw`z_j - c_j = y\,a_j - c_j`,
       substitution: latexLines(
         nonBasic.map((j) => {
           const a = columnOf(j);
-          return `${t.columns[j]!.latex}:\\ ${row(duals)} \\cdot ${row(a)} - ${costOf(j).toLatex()} = ${zRow[j]!.toLatex()}`;
+          return String.raw`${t.columns[j]!.latex}:\ ${row(duals)} \cdot ${row(a)} - ${costOf(j).toLatex()} = ${zRow[j]!.toLatex()}`;
         }),
       ),
     },
@@ -462,8 +467,8 @@ function enterColumn(
     title: `Costo reducido de ${name}`,
     explanation:
       'Con los precios duales de la tabla óptima se evalúa si conviene producir la actividad: es la diferencia entre lo que "cuestan" sus recursos (y·a) y lo que aporta (c).',
-    formula: `z_{${latex}} - c_{${latex}} = y\\,a - c`,
-    substitution: `${row(duals)} \\cdot ${row(a)} - ${cost.toLatex()}`,
+    formula: String.raw`z_{${latex}} - c_{${latex}} = y\,a - c`,
+    substitution: String.raw`${row(duals)} \cdot ${row(a)} - ${cost.toLatex()}`,
     result: `z_{${latex}} - c_{${latex}} = ${reduced.toLatex()}`,
   });
   const zValue = new MValue(reduced);
@@ -515,7 +520,7 @@ function addConstraint(o: Optimum, text: string, trace: Continuation): Result {
       'Agregar una restricción nunca mejora z. Si la solución óptima ya la cumple, es redundante.',
     formula: `${linearLatex(parsed.coefficients, names)} ${relationLatex[parsed.relation]} ${parsed.rhs.toLatex()}`,
     substitution: `${linearLatex(parsed.coefficients, names)} = ${lhs.toLatex()}`,
-    result: `${lhs.toLatex()} ${satisfied ? relationLatex[parsed.relation] : parsed.relation === '<=' ? '>' : '<'} ${parsed.rhs.toLatex()} \\ \\Rightarrow\\ \\text{${satisfied ? 'la cumple' : 'no la cumple'}}`,
+    result: String.raw`${lhs.toLatex()} ${satisfied ? relationLatex[parsed.relation] : parsed.relation === '<=' ? '>' : '<'} ${parsed.rhs.toLatex()} \ \Rightarrow\ \text{${satisfied ? 'la cumple' : 'no la cumple'}}`,
   });
   if (satisfied) {
     return success(
@@ -547,7 +552,7 @@ function addConstraint(o: Optimum, text: string, trace: Continuation): Result {
     );
     rhs = rhs.sub(factor.mul(t.rhs[i]!));
     operations.push(
-      `\\text{Fila } ${slack.latex} \\leftarrow \\text{fila } ${slack.latex} ${factor.sign() < 0 ? '+' : '-'} ${factor.abs().eq(Rational.ONE) ? '' : `${factor.abs().toLatex()}\\,`}\\text{fila } ${t.columns[b]!.latex}`,
+      String.raw`\text{Fila } ${slack.latex} \leftarrow \text{fila } ${slack.latex} ${factor.sign() < 0 ? '+' : '-'} ${factor.abs().eq(Rational.ONE) ? '' : String.raw`${factor.abs().toLatex()}\,`}\text{fila } ${t.columns[b]!.latex}`,
     );
   });
   const modified: Tableau = {
@@ -595,7 +600,7 @@ function changeTechnology(
   trace.steps.push({
     title: `${name} es básica: se resuelve de nuevo`,
     explanation: `La columna de ${name} forma parte de la base B, así que B⁻¹ cambia y la tabla óptima ya no describe el modelo. Como advierte Taha, en este caso el modelo modificado se resuelve de nuevo.`,
-    result: `${linearLatex(modifiedLp.objective, lp.variables.map(variableLatex))} \\qquad (\\text{con la nueva columna de } ${variableLatex(name)})`,
+    result: String.raw`${linearLatex(modifiedLp.objective, lp.variables.map(variableLatex))} \qquad (\text{con la nueva columna de } ${variableLatex(name)})`,
   });
   const sf = toStandardForm(modifiedLp);
   const run = runSimplex(initialTableau(modifiedLp, sf, 'plain'));
@@ -678,8 +683,8 @@ export function solveModelChange(input: ModelChangeInput): Result {
         explanation:
           'En la tabla óptima, las columnas de las holguras forman B⁻¹ (en el orden de las variables básicas) y sus coeficientes en la fila z son los precios duales y = c_B B⁻¹.',
         result: latexLines([
-          `\\text{Básicas: } ${t.basis.map((b) => t.columns[b]!.latex).join(',\\ ')}`,
-          `B^{-1} = ${bmatrix(o.inverse)}, \\qquad y = ${row(o.duals)}`,
+          String.raw`\text{Básicas: } ${t.basis.map((b) => t.columns[b]!.latex).join(String.raw`,\ `)}`,
+          String.raw`B^{-1} = ${bmatrix(o.inverse)}, \qquad y = ${row(o.duals)}`,
         ]),
       },
     ],

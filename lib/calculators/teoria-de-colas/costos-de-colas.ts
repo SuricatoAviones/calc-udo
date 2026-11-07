@@ -76,9 +76,9 @@ export function solveQueueCost(input: QueueCostInput): Result {
       title: 'Servidores necesarios para el estado estable',
       explanation:
         'Con s servidores, cada uno está ocupado una fracción ρ = λ/(sμ) del tiempo. Solo hay estado estable si ρ < 1, es decir, si s > λ/μ.',
-      formula: 's > \\frac{\\lambda}{\\mu}',
-      substitution: `s > \\frac{${n(lambda)}}{${n(mu)}} = ${n(lambda / mu)}`,
-      result: `s_{\\min} = ${minimumServers}`,
+      formula: String.raw`s > \frac{\lambda}{\mu}`,
+      substitution: String.raw`s > \frac{${n(lambda)}}{${n(mu)}} = ${n(lambda / mu)}`,
+      result: String.raw`s_{\min} = ${minimumServers}`,
     },
   ];
   if (minimumServers > maxServers) {
@@ -105,7 +105,7 @@ export function solveQueueCost(input: QueueCostInput): Result {
     evaluations.push({
       title: `s = ${s}`,
       explanation: `M/M/${s}: ρ = ${formatNumber(m.rho, 6)}, p₀ = ${formatNumber(m.p0, 6)}.`,
-      formula: `CT(s) = C_s\\,s + C_w\\,${symbol}(s)`,
+      formula: String.raw`CT(s) = C_s\,s + C_w\,${symbol}(s)`,
       substitution: `CT(${s}) = ${n(serviceCost)}(${s}) + ${n(waitingCost)}(${n(customers, 6)})`,
       result: `CT(${s}) = ${n(totalCost, 8)}`,
     });
@@ -118,15 +118,15 @@ export function solveQueueCost(input: QueueCostInput): Result {
       explanation: `${symbol}(s) sale del modelo M/M/s con λ = ${formatNumber(lambda)} y μ = ${formatNumber(mu)}; cada servidor adicional aumenta el costo de operación y reduce el de espera.`,
       formula:
         basis === 'sistema'
-          ? 'L = L_q + \\frac{\\lambda}{\\mu}, \\qquad L_q = \\frac{r^{s+1}}{(s-1)!\\,(s - r)^2}\\,p_0'
-          : 'L_q = \\frac{r^{s+1}}{(s-1)!\\,(s - r)^2}\\,p_0',
+          ? String.raw`L = L_q + \frac{\lambda}{\mu}, \qquad L_q = \frac{r^{s+1}}{(s-1)!\,(s - r)^2}\,p_0`
+          : String.raw`L_q = \frac{r^{s+1}}{(s-1)!\,(s - r)^2}\,p_0`,
       children: evaluations,
     },
     {
       title: 'Número óptimo de servidores',
       explanation: 'Se elige el número de servidores con el menor costo total esperado.',
-      formula: `CT(s^*) = \\min_s CT(s)`,
-      result: `s^* = ${best.servers}, \\qquad CT(s^*) = ${n(best.totalCost, 8)}`,
+      formula: String.raw`CT(s^*) = \min_s CT(s)`,
+      result: String.raw`s^* = ${best.servers}, \qquad CT(s^*) = ${n(best.totalCost, 8)}`,
     },
   );
 
@@ -136,8 +136,8 @@ export function solveQueueCost(input: QueueCostInput): Result {
     columns: [
       { key: 'servers', header: 's' },
       { key: 'customers', header: `${symbol}(s)` },
-      { key: 'operatingCost', header: 'C_s\\,s' },
-      { key: 'waitingCost', header: `C_w\\,${symbol}(s)` },
+      { key: 'operatingCost', header: String.raw`C_s\,s` },
+      { key: 'waitingCost', header: String.raw`C_w\,${symbol}(s)` },
       { key: 'totalCost', header: 'CT(s)' },
     ],
     rows: rows.map((r) => ({ ...r })),

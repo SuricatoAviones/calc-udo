@@ -82,52 +82,51 @@ export function solveLinearRegression(
   const seIntercept = s * Math.sqrt(sums.sumX2 / (size * sxx));
   const slopeInterval: [number, number] = [b1 - t * seSlope, b1 + t * seSlope];
   const interceptInterval: [number, number] = [b0 - t * seIntercept, b0 + t * seIntercept];
-  const line = `\\hat{y} = ${n(b0)} ${b1 < 0 ? '-' : '+'} ${n(Math.abs(b1))}x`;
+  const line = String.raw`\hat{y} = ${n(b0)} ${b1 < 0 ? '-' : '+'} ${n(Math.abs(b1))}x`;
 
   const steps: Step[] = [
     {
       title: 'Sumas',
-      result: `n = ${size},\\ \\sum x_i = ${n(sums.sumX)},\\ \\sum y_i = ${n(sums.sumY)},\\ \\sum x_i y_i = ${n(sums.sumXY)},\\ \\sum x_i^2 = ${n(sums.sumX2)},\\ \\sum y_i^2 = ${n(sums.sumY2)}`,
+      result: String.raw`n = ${size},\ \sum x_i = ${n(sums.sumX)},\ \sum y_i = ${n(sums.sumY)},\ \sum x_i y_i = ${n(sums.sumXY)},\ \sum x_i^2 = ${n(sums.sumX2)},\ \sum y_i^2 = ${n(sums.sumY2)}`,
     },
     {
       title: 'Sumas de cuadrados y productos',
-      formula:
-        'S_{xx} = \\sum x_i^2 - \\frac{(\\sum x_i)^2}{n}, \\quad S_{xy} = \\sum x_i y_i - \\frac{\\sum x_i \\sum y_i}{n}, \\quad S_{yy} = \\sum y_i^2 - \\frac{(\\sum y_i)^2}{n}',
-      substitution: `S_{xx} = ${n(sums.sumX2)} - \\frac{${op(sums.sumX)}^2}{${size}}, \\quad S_{xy} = ${n(sums.sumXY)} - \\frac{${op(sums.sumX)}${op(sums.sumY)}}{${size}}`,
-      result: `S_{xx} = ${n(sxx)}, \\quad S_{xy} = ${n(sxy)}, \\quad S_{yy} = ${n(syy)}`,
+      formula: String.raw`S_{xx} = \sum x_i^2 - \frac{(\sum x_i)^2}{n}, \quad S_{xy} = \sum x_i y_i - \frac{\sum x_i \sum y_i}{n}, \quad S_{yy} = \sum y_i^2 - \frac{(\sum y_i)^2}{n}`,
+      substitution: String.raw`S_{xx} = ${n(sums.sumX2)} - \frac{${op(sums.sumX)}^2}{${size}}, \quad S_{xy} = ${n(sums.sumXY)} - \frac{${op(sums.sumX)}${op(sums.sumY)}}{${size}}`,
+      result: String.raw`S_{xx} = ${n(sxx)}, \quad S_{xy} = ${n(sxy)}, \quad S_{yy} = ${n(syy)}`,
     },
     {
       title: 'Recta de mínimos cuadrados',
-      formula: 'b_1 = \\frac{S_{xy}}{S_{xx}}, \\qquad b_0 = \\bar{y} - b_1\\bar{x}',
-      substitution: `b_1 = \\frac{${n(sxy)}}{${n(sxx)}}, \\qquad b_0 = ${n(meanY)} - ${op(b1)}${op(meanX)}`,
-      result: `b_1 = ${n(b1)}, \\quad b_0 = ${n(b0)} \\qquad ${line}`,
+      formula: String.raw`b_1 = \frac{S_{xy}}{S_{xx}}, \qquad b_0 = \bar{y} - b_1\bar{x}`,
+      substitution: String.raw`b_1 = \frac{${n(sxy)}}{${n(sxx)}}, \qquad b_0 = ${n(meanY)} - ${op(b1)}${op(meanX)}`,
+      result: String.raw`b_1 = ${n(b1)}, \quad b_0 = ${n(b0)} \qquad ${line}`,
     },
     {
       title: 'Error estándar de la estimación',
       explanation:
         'SSE es la suma de los cuadrados de los residuos; s² estima la varianza σ² de los errores con n − 2 grados de libertad.',
-      formula: 'SSE = S_{yy} - b_1 S_{xy}, \\qquad s^2 = \\frac{SSE}{n - 2}',
-      substitution: `SSE = ${n(syy)} - ${op(b1)}${op(sxy)}, \\qquad s^2 = \\frac{${n(sse)}}{${df}}`,
-      result: `s^2 = ${n(s2)}, \\quad s = ${n(s)}`,
+      formula: String.raw`SSE = S_{yy} - b_1 S_{xy}, \qquad s^2 = \frac{SSE}{n - 2}`,
+      substitution: String.raw`SSE = ${n(syy)} - ${op(b1)}${op(sxy)}, \qquad s^2 = \frac{${n(sse)}}{${df}}`,
+      result: String.raw`s^2 = ${n(s2)}, \quad s = ${n(s)}`,
     },
     {
       title: 'Coeficiente de determinación',
       explanation: `El modelo explica el ${formatNumber(r2 * 100, 4)} % de la variación de y.`,
-      formula: 'R^2 = 1 - \\frac{SSE}{S_{yy}}',
-      substitution: `R^2 = 1 - \\frac{${n(sse)}}{${n(syy)}}`,
+      formula: String.raw`R^2 = 1 - \frac{SSE}{S_{yy}}`,
+      substitution: String.raw`R^2 = 1 - \frac{${n(sse)}}{${n(syy)}}`,
       result: `R^2 = ${n(r2)}`,
     },
     {
       title: `Intervalo de confianza de ${level} % para la pendiente β₁`,
-      formula: 'b_1 \\pm t_{\\alpha/2}\\,\\frac{s}{\\sqrt{S_{xx}}}',
-      substitution: `${n(b1)} \\pm ${n(t)}\\,\\frac{${n(s)}}{\\sqrt{${n(sxx)}}}, \\qquad t_{${formatNumber(alpha / 2)}} \\text{ con } \\nu = ${df}`,
-      result: `${n(slopeInterval[0])} < \\beta_1 < ${n(slopeInterval[1])}`,
+      formula: String.raw`b_1 \pm t_{\alpha/2}\,\frac{s}{\sqrt{S_{xx}}}`,
+      substitution: String.raw`${n(b1)} \pm ${n(t)}\,\frac{${n(s)}}{\sqrt{${n(sxx)}}}, \qquad t_{${formatNumber(alpha / 2)}} \text{ con } \nu = ${df}`,
+      result: String.raw`${n(slopeInterval[0])} < \beta_1 < ${n(slopeInterval[1])}`,
     },
     {
       title: `Intervalo de confianza de ${level} % para la ordenada β₀`,
-      formula: 'b_0 \\pm t_{\\alpha/2}\\, s\\sqrt{\\frac{\\sum x_i^2}{n S_{xx}}}',
-      substitution: `${n(b0)} \\pm ${n(t)}(${n(s)})\\sqrt{\\frac{${n(sums.sumX2)}}{${size}(${n(sxx)})}}`,
-      result: `${n(interceptInterval[0])} < \\beta_0 < ${n(interceptInterval[1])}`,
+      formula: String.raw`b_0 \pm t_{\alpha/2}\, s\sqrt{\frac{\sum x_i^2}{n S_{xx}}}`,
+      substitution: String.raw`${n(b0)} \pm ${n(t)}(${n(s)})\sqrt{\frac{${n(sums.sumX2)}}{${size}(${n(sxx)})}}`,
+      result: String.raw`${n(interceptInterval[0])} < \beta_0 < ${n(interceptInterval[1])}`,
     },
   ];
 
@@ -135,9 +134,8 @@ export function solveLinearRegression(
   steps.push({
     title: '¿Es significativa la regresión? Prueba de β₁ = 0',
     explanation: 'Si β₁ = 0, x no ayuda a predecir y linealmente.',
-    formula:
-      'H_0\\!: \\beta_1 = 0,\\quad H_1\\!: \\beta_1 \\neq 0, \\qquad t = \\frac{b_1}{s/\\sqrt{S_{xx}}}',
-    substitution: `t = \\frac{${n(b1)}}{${n(s)}/\\sqrt{${n(sxx)}}}`,
+    formula: String.raw`H_0\!: \beta_1 = 0,\quad H_1\!: \beta_1 \neq 0, \qquad t = \frac{b_1}{s/\sqrt{S_{xx}}}`,
+    substitution: String.raw`t = \frac{${n(b1)}}{${n(s)}/\sqrt{${n(sxx)}}}`,
     result: `t = ${n(tSlope)}`,
   });
   const test = testDecision({
@@ -162,17 +160,15 @@ export function solveLinearRegression(
     };
     steps.push({
       title: `Respuesta media en x₀ = ${formatNumber(x0)}`,
-      formula:
-        '\\hat{y}_0 \\pm t_{\\alpha/2}\\, s\\sqrt{\\frac{1}{n} + \\frac{(x_0 - \\bar{x})^2}{S_{xx}}}',
-      substitution: `\\hat{y}_0 = ${n(b0)} + ${op(b1)}${op(x0)} = ${n(y0)}; \\quad ${n(y0)} \\pm ${n(t)}(${n(s)})\\sqrt{\\frac{1}{${size}} + \\frac{(${n(x0)} - ${op(meanX)})^2}{${n(sxx)}}}`,
-      result: `${n(prediction.meanInterval[0])} < \\mu_{Y|${n(x0)}} < ${n(prediction.meanInterval[1])}`,
+      formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{\frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
+      substitution: String.raw`\hat{y}_0 = ${n(b0)} + ${op(b1)}${op(x0)} = ${n(y0)}; \quad ${n(y0)} \pm ${n(t)}(${n(s)})\sqrt{\frac{1}{${size}} + \frac{(${n(x0)} - ${op(meanX)})^2}{${n(sxx)}}}`,
+      result: String.raw`${n(prediction.meanInterval[0])} < \mu_{Y|${n(x0)}} < ${n(prediction.meanInterval[1])}`,
     });
     steps.push({
       title: `Intervalo de predicción para una nueva observación en x₀ = ${formatNumber(x0)}`,
       explanation:
         'Es más ancho que el de la media: además de la incertidumbre de la recta incluye la variación de una observación individual.',
-      formula:
-        '\\hat{y}_0 \\pm t_{\\alpha/2}\\, s\\sqrt{1 + \\frac{1}{n} + \\frac{(x_0 - \\bar{x})^2}{S_{xx}}}',
+      formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{1 + \frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
       result: `${n(prediction.predictionInterval[0])} < y_0 < ${n(prediction.predictionInterval[1])}`,
     });
   }
@@ -208,19 +204,19 @@ export function solveLinearRegression(
     { label: 'Coeficiente de determinación', value: `R^2 = ${n(r2)}` },
     {
       label: `IC de ${level} % para β₁`,
-      value: `(${n(slopeInterval[0])},\\ ${n(slopeInterval[1])})`,
+      value: String.raw`(${n(slopeInterval[0])},\ ${n(slopeInterval[1])})`,
     },
     {
       label: 'Prueba β₁ = 0',
       value: test.reject
-        ? `\\text{Se rechaza } (P = ${toLatexNumber(test.pValue, 4)})`
-        : `\\text{No se rechaza } (P = ${toLatexNumber(test.pValue, 4)})`,
+        ? String.raw`\text{Se rechaza } (P = ${toLatexNumber(test.pValue, 4)})`
+        : String.raw`\text{No se rechaza } (P = ${toLatexNumber(test.pValue, 4)})`,
     },
   ];
   if (prediction) {
     summary.push({
       label: `Predicción en x₀ = ${formatNumber(prediction.x0)}`,
-      value: `\\hat{y}_0 = ${n(prediction.y0)}`,
+      value: String.raw`\hat{y}_0 = ${n(prediction.y0)}`,
     });
   }
 
@@ -252,8 +248,8 @@ export function solveLinearRegression(
           { key: 'i', header: 'i' },
           { key: 'x', header: 'x_i' },
           { key: 'y', header: 'y_i' },
-          { key: 'fit', header: '\\hat{y}_i' },
-          { key: 'e', header: 'e_i = y_i - \\hat{y}_i' },
+          { key: 'fit', header: String.raw`\hat{y}_i` },
+          { key: 'e', header: String.raw`e_i = y_i - \hat{y}_i` },
         ],
         rows: x.map((xi, i) => ({
           i: i + 1,

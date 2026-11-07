@@ -161,31 +161,30 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
       explanation: actuarial
         ? 'Criterio de Elisa Lee (actuarial): un retiro está expuesto, en promedio, la mitad del intervalo.'
         : 'Criterio de Kaplan-Meier: los retiros se cuentan como expuestos durante todo el intervalo (salen al final).',
-      formula: actuarial ? "n'_i = n_i - \\frac{w_i}{2}" : "n'_i = n_i",
+      formula: actuarial ? String.raw`n'_i = n_i - \frac{w_i}{2}` : "n'_i = n_i",
       substitution: actuarial
-        ? `n'_2 = ${n(second.entering)} - \\frac{${second.withdrawals}}{2}`
+        ? String.raw`n'_2 = ${n(second.entering)} - \frac{${second.withdrawals}}{2}`
         : `n'_2 = ${n(second.entering)}`,
       result: `n'_2 = ${n(second.effective)}`,
     },
     {
       title: 'Probabilidad condicional de falla y sobrevivencia',
-      formula: "q_i = \\frac{d_i}{n'_i}, \\qquad p_i = 1 - q_i, \\qquad S_{i+1} = S_i\\,p_i",
-      substitution: `q_1 = \\frac{${first.deaths}}{${n(first.effective)}} = ${n(first.q, 6)}, \\qquad S_2 = 1 \\cdot ${n(first.p, 6)}`,
+      formula: String.raw`q_i = \frac{d_i}{n'_i}, \qquad p_i = 1 - q_i, \qquad S_{i+1} = S_i\,p_i`,
+      substitution: String.raw`q_1 = \frac{${first.deaths}}{${n(first.effective)}} = ${n(first.q, 6)}, \qquad S_2 = 1 \cdot ${n(first.p, 6)}`,
       result: `S_2 = ${n(second.survival, 6)}`,
     },
     {
       title: 'Densidad de fallas y función de riesgo',
       explanation:
         'Se estiman en el punto medio de cada intervalo; el riesgo es la tasa de fallas entre las unidades que siguen funcionando.',
-      formula:
-        "f_i = \\frac{S_i\\,q_i}{h_i}, \\qquad \\lambda_i = \\frac{d_i}{h_i\\left(n'_i - d_i/2\\right)}",
-      substitution: `f_1 = \\frac{1 \\cdot ${n(first.q, 6)}}{${n(first.end! - first.start)}}, \\qquad \\lambda_1 = \\frac{${first.deaths}}{${n(first.end! - first.start)}(${n(first.effective)} - ${first.deaths}/2)}`,
-      result: `f_1 = ${n(first.density!, 6)}, \\qquad \\lambda_1 = ${n(first.hazard!, 6)}`,
+      formula: String.raw`f_i = \frac{S_i\,q_i}{h_i}, \qquad \lambda_i = \frac{d_i}{h_i\left(n'_i - d_i/2\right)}`,
+      substitution: String.raw`f_1 = \frac{1 \cdot ${n(first.q, 6)}}{${n(first.end! - first.start)}}, \qquad \lambda_1 = \frac{${first.deaths}}{${n(first.end! - first.start)}(${n(first.effective)} - ${first.deaths}/2)}`,
+      result: String.raw`f_1 = ${n(first.density!, 6)}, \qquad \lambda_1 = ${n(first.hazard!, 6)}`,
     },
     {
       title: 'Error estándar de la sobrevivencia (Greenwood)',
-      formula: "\\operatorname{EE}(S_i) = S_i\\sqrt{\\sum_{j<i} \\frac{q_j}{n'_j\\,p_j}}",
-      result: `\\operatorname{EE}(S_2) = ${n(second.standardError, 4)}`,
+      formula: String.raw`\operatorname{EE}(S_i) = S_i\sqrt{\sum_{j<i} \frac{q_j}{n'_j\,p_j}}`,
+      result: String.raw`\operatorname{EE}(S_2) = ${n(second.standardError, 4)}`,
     },
     {
       title: 'Mediana',
@@ -193,8 +192,8 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
         median === null
           ? 'La sobrevivencia no baja de 0.5 en la tabla.'
           : 'Se interpola linealmente en el intervalo donde la sobrevivencia cruza 0.5.',
-      formula: 't_{0.5} = t_i + h_i\\,\\frac{S_i - 0.5}{S_i - S_{i+1}}',
-      result: median === null ? '\\text{no estimable}' : `t_{0.5} = ${n(median, 6)}`,
+      formula: String.raw`t_{0.5} = t_i + h_i\,\frac{S_i - 0.5}{S_i - S_{i+1}}`,
+      result: median === null ? String.raw`\text{no estimable}` : `t_{0.5} = ${n(median, 6)}`,
     },
   ];
 
@@ -244,7 +243,7 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
     summary: [
       {
         label: 'Mediana de sobrevivencia',
-        value: median === null ? '\\text{no estimable}' : `t_{0.5} = ${n(median, 6)}`,
+        value: median === null ? String.raw`\text{no estimable}` : `t_{0.5} = ${n(median, 6)}`,
         emphasis: true,
       },
       { label: 'Unidades', value: `${total}` },
@@ -260,7 +259,7 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
         id: 'tabla-de-vida',
         title: 'Tabla de sobrevivencia y fallas',
         columns: [
-          { key: 'interval', header: '\\text{Intervalo}', format: 'text' },
+          { key: 'interval', header: String.raw`\text{Intervalo}`, format: 'text' },
           { key: 'entering', header: 'n_i' },
           { key: 'deaths', header: 'd_i' },
           { key: 'withdrawals', header: 'w_i' },
@@ -268,9 +267,9 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
           { key: 'q', header: 'q_i' },
           { key: 'survival', header: 'S_i' },
           { key: 'failure', header: 'F_i' },
-          { key: 'standardError', header: '\\operatorname{EE}(S_i)' },
+          { key: 'standardError', header: String.raw`\operatorname{EE}(S_i)` },
           { key: 'density', header: 'f_i' },
-          { key: 'hazard', header: '\\lambda_i' },
+          { key: 'hazard', header: String.raw`\lambda_i` },
         ],
         rows: tableRows,
       },

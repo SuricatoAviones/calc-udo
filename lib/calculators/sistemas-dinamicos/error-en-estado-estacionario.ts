@@ -76,9 +76,15 @@ export type SteadyStateErrorCode =
   'funcion-invalida' | 'lazo-cerrado-inestable' | 'realimentacion-singular';
 
 const INPUTS = [
-  { key: 'step', name: 'escalón', r: 'R\\,u(t)', R: '\\frac{R}{s}', power: 1 },
-  { key: 'ramp', name: 'rampa', r: 'R\\,t', R: '\\frac{R}{s^{2}}', power: 2 },
-  { key: 'parabola', name: 'parábola', r: 'R\\,\\frac{t^{2}}{2}', R: '\\frac{R}{s^{3}}', power: 3 },
+  { key: 'step', name: 'escalón', r: String.raw`R\,u(t)`, R: String.raw`\frac{R}{s}`, power: 1 },
+  { key: 'ramp', name: 'rampa', r: String.raw`R\,t`, R: String.raw`\frac{R}{s^{2}}`, power: 2 },
+  {
+    key: 'parabola',
+    name: 'parábola',
+    r: String.raw`R\,\frac{t^{2}}{2}`,
+    R: String.raw`\frac{R}{s^{3}}`,
+    power: 3,
+  },
 ] as const;
 
 /** Coeficiente de s^k de un polinomio (0 si no existe). */
@@ -88,7 +94,7 @@ function coefficientOf(p: Poly, k: number): number {
 }
 
 function valueTex(v: number): string {
-  return v === Infinity ? '\\infty' : n(v);
+  return v === Infinity ? String.raw`\infty` : n(v);
 }
 
 function fail(
@@ -167,7 +173,7 @@ export function solveSteadyState(
       { name: 'K_a', k: 2, value: ka },
     ].map(({ name, k, value }) => ({
       title: `Constante ${name}`,
-      formula: `${name} = \\lim_{s \\to 0} ${sNTex(k)}G(s)`,
+      formula: String.raw`${name} = \lim_{s \to 0} ${sNTex(k)}G(s)`,
       result: `${name} = ${valueTex(value)}`,
     }));
     steps.push({ title: 'Constantes de error estático', children: constSteps });
@@ -182,20 +188,20 @@ export function solveSteadyState(
       children: [
         {
           title: 'Escalón R·u(t)',
-          formula: 'e_{ss} = \\frac{R}{1 + K_p}',
-          substitution: `e_{ss} = \\frac{${n(R)}}{1 + ${valueTex(kp)}}`,
+          formula: String.raw`e_{ss} = \frac{R}{1 + K_p}`,
+          substitution: String.raw`e_{ss} = \frac{${n(R)}}{1 + ${valueTex(kp)}}`,
           result: `e_{ss} = ${valueTex(errors.step)}`,
         },
         {
           title: 'Rampa R·t',
-          formula: 'e_{ss} = \\frac{R}{K_v}',
-          substitution: `e_{ss} = \\frac{${n(R)}}{${valueTex(kv)}}`,
+          formula: String.raw`e_{ss} = \frac{R}{K_v}`,
+          substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(kv)}}`,
           result: `e_{ss} = ${valueTex(errors.ramp)}`,
         },
         {
           title: 'Parábola R·t²/2',
-          formula: 'e_{ss} = \\frac{R}{K_a}',
-          substitution: `e_{ss} = \\frac{${n(R)}}{${valueTex(ka)}}`,
+          formula: String.raw`e_{ss} = \frac{R}{K_a}`,
+          substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(ka)}}`,
           result: `e_{ss} = ${valueTex(errors.parabola)}`,
         },
       ],
@@ -204,7 +210,7 @@ export function solveSteadyState(
       { label: 'Tipo', value: `${Math.max(type, 0)}` },
       {
         label: 'Constantes',
-        value: `K_p = ${valueTex(kp)},\\ K_v = ${valueTex(kv)},\\ K_a = ${valueTex(ka)}`,
+        value: String.raw`K_p = ${valueTex(kp)},\ K_v = ${valueTex(kv)},\ K_a = ${valueTex(ka)}`,
       },
     );
   } else {
@@ -225,9 +231,8 @@ export function solveSteadyState(
     steps.push({
       title: 'Error con realimentación no unitaria',
       explanation: `H(0) = K_H = ${formatNumber(KH, DIGITS)}. La señal que se compara con la entrada en estado estable es K_H veces la salida, así que el error se define como e(t) = r(t)/K_H − y(t) (Kuo, ec. 7-36).`,
-      formula:
-        'E(s) = \\frac{1}{K_H}\\left[1 - K_HM(s)\\right]R(s),\\quad M(s) = \\frac{G(s)}{1 + G(s)H(s)}',
-      result: `M(s) = ${tfTex(M)},\\quad 1 - K_HM(s) = \\frac{${polyTex(P)}}{${polyTex(M.den)}}`,
+      formula: String.raw`E(s) = \frac{1}{K_H}\left[1 - K_HM(s)\right]R(s),\quad M(s) = \frac{G(s)}{1 + G(s)H(s)}`,
+      result: String.raw`M(s) = ${tfTex(M)},\quad 1 - K_HM(s) = \frac{${polyTex(P)}}{${polyTex(M.den)}}`,
     });
     const z0 = zeroMultiplicity(P);
     const d0 = coefficientOf(M.den, 0);
@@ -238,10 +243,10 @@ export function solveSteadyState(
     }
     steps.push({
       title: 'Teorema del valor final',
-      formula: 'e_{ss} = \\lim_{s \\to 0} sE(s)',
+      formula: String.raw`e_{ss} = \lim_{s \to 0} sE(s)`,
       children: INPUTS.map((item) => ({
         title: `Entrada ${item.name}`,
-        formula: `e_{ss} = \\lim_{s \\to 0} s\\,\\frac{1 - K_HM(s)}{K_H}\\,${item.R}`,
+        formula: String.raw`e_{ss} = \lim_{s \to 0} s\,\frac{1 - K_HM(s)}{K_H}\,${item.R}`,
         result: `e_{ss} = ${valueTex(errors[item.key])}`,
       })),
     });
@@ -259,10 +264,10 @@ export function solveSteadyState(
     id: 'errores',
     title: 'Errores en estado estacionario',
     columns: [
-      { key: 'entrada', header: '\\text{Entrada}', format: 'latex' },
+      { key: 'entrada', header: String.raw`\text{Entrada}`, format: 'latex' },
       { key: 'transformada', header: 'R(s)', format: 'latex' },
       ...(unityH
-        ? [{ key: 'constante', header: '\\text{Constante}', format: 'latex' as const }]
+        ? [{ key: 'constante', header: String.raw`\text{Constante}`, format: 'latex' as const }]
         : []),
       { key: 'error', header: 'e_{ss}', format: 'latex' },
     ],

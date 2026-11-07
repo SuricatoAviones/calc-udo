@@ -66,31 +66,31 @@ export function solvePureStrategies({
       title: 'Criterio maximin (jugador A)',
       explanation:
         'A supone que B responderá de la peor manera para él: para cada estrategia toma el pago mínimo de su fila y elige la que tenga el mayor de esos mínimos.',
-      formula: '\\underline{v} = \\max_i \\min_j a_{ij}',
-      substitution: `\\min_j a_{ij}:\\ ${rowMins.map((v, i) => `${rowName(i)} \\to ${n(v)}`).join(',\\ ')}`,
-      result: `\\underline{v} = \\max\\{${rowMins.map((v) => n(v)).join(',\\ ')}\\} = ${n(maximin)} \\quad (${strategyList(maximinRows, rowName)})`,
+      formula: String.raw`\underline{v} = \max_i \min_j a_{ij}`,
+      substitution: String.raw`\min_j a_{ij}:\ ${rowMins.map((v, i) => String.raw`${rowName(i)} \to ${n(v)}`).join(String.raw`,\ `)}`,
+      result: String.raw`\underline{v} = \max\{${rowMins.map((v) => n(v)).join(String.raw`,\ `)}\} = ${n(maximin)} \quad (${strategyList(maximinRows, rowName)})`,
     },
     {
       title: 'Criterio minimax (jugador B)',
       explanation:
         'B hace el razonamiento simétrico: para cada estrategia toma el pago máximo de su columna (su peor pérdida) y elige la que tenga el menor de esos máximos.',
-      formula: '\\overline{v} = \\min_j \\max_i a_{ij}',
-      substitution: `\\max_i a_{ij}:\\ ${colMaxs.map((v, j) => `${colName(j)} \\to ${n(v)}`).join(',\\ ')}`,
-      result: `\\overline{v} = \\min\\{${colMaxs.map((v) => n(v)).join(',\\ ')}\\} = ${n(minimax)} \\quad (${strategyList(minimaxCols, colName)})`,
+      formula: String.raw`\overline{v} = \min_j \max_i a_{ij}`,
+      substitution: String.raw`\max_i a_{ij}:\ ${colMaxs.map((v, j) => String.raw`${colName(j)} \to ${n(v)}`).join(String.raw`,\ `)}`,
+      result: String.raw`\overline{v} = \min\{${colMaxs.map((v) => n(v)).join(String.raw`,\ `)}\} = ${n(minimax)} \quad (${strategyList(minimaxCols, colName)})`,
     },
     hasSaddle
       ? {
           title: 'Punto de silla',
           explanation:
             'El valor maximin coincide con el minimax: la entrada es a la vez el mínimo de su fila y el máximo de su columna. Ningún jugador gana cambiando de estrategia por su cuenta, así que la solución es estable y ese es el valor del juego.',
-          formula: '\\underline{v} = \\overline{v} = v',
-          result: `${saddlePoints.map(([i, j]) => `a_{${i + 1}${j + 1}}`).join(',\\ ')} = ${n(maximin)} \\quad \\Rightarrow \\quad v = ${n(maximin)}`,
+          formula: String.raw`\underline{v} = \overline{v} = v`,
+          result: String.raw`${saddlePoints.map(([i, j]) => `a_{${i + 1}${j + 1}}`).join(String.raw`,\ `)} = ${n(maximin)} \quad \Rightarrow \quad v = ${n(maximin)}`,
         }
       : {
           title: 'Sin punto de silla',
           explanation:
             'El maximin es menor que el minimax: si cada jugador usara siempre la misma estrategia, el otro podría aprovecharlo. El valor del juego está entre ambos y se obtiene con estrategias mixtas.',
-          result: `\\underline{v} = ${n(maximin)} < v < \\overline{v} = ${n(minimax)}`,
+          result: String.raw`\underline{v} = ${n(maximin)} < v < \overline{v} = ${n(minimax)}`,
         },
   ];
 
@@ -130,7 +130,9 @@ export function solvePureStrategies({
           },
           {
             label: saddlePoints.length > 1 ? 'Puntos de silla' : 'Punto de silla',
-            value: saddlePoints.map(([i, j]) => `(${rowName(i)}, ${colName(j)})`).join(',\\ '),
+            value: saddlePoints
+              .map(([i, j]) => `(${rowName(i)}, ${colName(j)})`)
+              .join(String.raw`,\ `),
           },
         ]
       : [
@@ -139,8 +141,8 @@ export function solvePureStrategies({
             value: `${n(maximin)} < v < ${n(minimax)}`,
             emphasis: true,
           },
-          { label: 'Maximin de A', value: `\\underline{v} = ${n(maximin)}` },
-          { label: 'Minimax de B', value: `\\overline{v} = ${n(minimax)}` },
+          { label: 'Maximin de A', value: String.raw`\underline{v} = ${n(maximin)}` },
+          { label: 'Minimax de B', value: String.raw`\overline{v} = ${n(minimax)}` },
         ],
     ...emptyTrace(),
     steps,
@@ -160,7 +162,7 @@ export function solvePureStrategies({
         columns: [
           { key: 'strategy', header: '', format: 'text' },
           ...payoff[0]!.map((_, j) => ({ key: `b${j}`, header: colName(j) })),
-          { key: 'min', header: '\\text{Mínimo}' },
+          { key: 'min', header: String.raw`\text{Mínimo}` },
         ],
         rows,
       },

@@ -182,8 +182,8 @@ function solveNetwork(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErro
   const summary: SummaryItem[] = diodes.slice(0, 8).map((d) => ({
     label: d.label,
     value: d.on
-      ? `\\text{encendido},\\ I_D = ${engTex(d.current, 'A', 5)}`
-      : `\\text{apagado},\\ V_D = ${Number.isFinite(d.vd) ? `${n(d.vd, 5)}\\ \\text{V}` : '\\text{indeterminado}'}`,
+      ? String.raw`\text{encendido},\ I_D = ${engTex(d.current, 'A', 5)}`
+      : String.raw`\text{apagado},\ V_D = ${Number.isFinite(d.vd) ? String.raw`${n(d.vd, 5)}\ \text{V}` : String.raw`\text{indeterminado}`}`,
     emphasis: d.on,
   }));
   summary.push({ label: 'Suposiciones', value: String(outcome.value.assumptions) });
@@ -214,17 +214,17 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
         ? ', con el diodo invertido respecto del sentido en que la fuente empuja la corriente'
         : ''
     }. Se usa el ${MODEL_NAME[model]}.`,
-    formula: 'E - V_D - V_R = 0,\\qquad V_R = I_D R',
-    result: `E_{\\text{directa}} = ${n(e)}\\ \\text{V}`,
+    formula: String.raw`E - V_D - V_R = 0,\qquad V_R = I_D R`,
+    result: String.raw`E_{\text{directa}} = ${n(e)}\ \text{V}`,
   });
 
   steps.push({
     title: 'Recta de carga',
     explanation:
       'La red impone I_D = (E − V_D)/R: corta al eje de corriente en E/R (V_D = 0) y al de voltaje en E (I_D = 0).',
-    formula: 'I_D = \\frac{E - V_D}{R}',
-    substitution: `I_D\\big|_{V_D = 0} = \\frac{${n(e)}}{${n(R)}},\\qquad V_D\\big|_{I_D = 0} = ${n(e)}\\ \\text{V}`,
-    result: `I_D\\big|_{V_D = 0} = ${engTex(e / R, 'A')}`,
+    formula: String.raw`I_D = \frac{E - V_D}{R}`,
+    substitution: String.raw`I_D\big|_{V_D = 0} = \frac{${n(e)}}{${n(R)}},\qquad V_D\big|_{I_D = 0} = ${n(e)}\ \text{V}`,
+    result: String.raw`I_D\big|_{V_D = 0} = ${engTex(e / R, 'A')}`,
   });
 
   let conducting: boolean;
@@ -253,24 +253,23 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     steps.push({
       title: 'Característica del diodo',
       explanation: `Ecuación de Shockley con I_S = ${engText(input.is, 'A')}, n = ${formatNumber(input.n, 4)} y V_T = ${engText(input.vt, 'V')}.`,
-      formula: 'I_D = I_S\\left(e^{V_D/(nV_T)} - 1\\right)',
-      substitution: `I_D = ${n(input.is)}\\left(e^{V_D/${n(nvt)}} - 1\\right)`,
+      formula: String.raw`I_D = I_S\left(e^{V_D/(nV_T)} - 1\right)`,
+      substitution: String.raw`I_D = ${n(input.is)}\left(e^{V_D/${n(nvt)}} - 1\right)`,
     });
     steps.push({
       title: 'Punto de operación (Newton)',
       explanation: `El punto Q cumple a la vez la ecuación del diodo y la recta de carga. Se resuelve f(V_D) = 0 con el método de Newton; convergió en ${iterations} iteraciones (tabla de abajo).`,
-      formula:
-        "f(V_D) = I_S\\left(e^{V_D/(nV_T)} - 1\\right) - \\frac{E - V_D}{R},\\qquad V_{k+1} = V_k - \\frac{f(V_k)}{f'(V_k)}",
-      result: `V_{DQ} = ${n(vd, 6)}\\ \\text{V},\\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
+      formula: String.raw`f(V_D) = I_S\left(e^{V_D/(nV_T)} - 1\right) - \frac{E - V_D}{R},\qquad V_{k+1} = V_k - \frac{f(V_k)}{f'(V_k)}`,
+      result: String.raw`V_{DQ} = ${n(vd, 6)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
     });
     tables.push({
       id: 'newton',
       title: 'Iteraciones de Newton',
       columns: [
         { key: 'k', header: 'k' },
-        { key: 'v', header: 'V_D\\ (\\text{V})' },
-        { key: 'idiode', header: 'I_{\\text{diodo}}\\ (\\text{A})' },
-        { key: 'inet', header: 'I_{\\text{red}}\\ (\\text{A})' },
+        { key: 'v', header: String.raw`V_D\ (\text{V})` },
+        { key: 'idiode', header: String.raw`I_{\text{diodo}}\ (\text{A})` },
+        { key: 'inet', header: String.raw`I_{\text{red}}\ (\text{A})` },
         { key: 'f', header: 'f(V_D)' },
       ],
       rows: solved.rows.map((r) => ({ ...r })),
@@ -286,9 +285,9 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
           : 'La corriente que impone la fuente va contra la flecha del diodo: está polarizado en inversa y se comporta como circuito abierto.',
       formula:
         model === 'ideal'
-          ? 'E > 0\\ \\Rightarrow\\ \\text{encendido}'
-          : 'E > V_K\\ \\Rightarrow\\ \\text{encendido}',
-      result: conducting ? '\\text{Diodo encendido}' : '\\text{Diodo apagado}',
+          ? String.raw`E > 0\ \Rightarrow\ \text{encendido}`
+          : String.raw`E > V_K\ \Rightarrow\ \text{encendido}`,
+      result: conducting ? String.raw`\text{Diodo encendido}` : String.raw`\text{Diodo apagado}`,
     });
     if (conducting) {
       id = (e - vk) / (R + rb);
@@ -303,16 +302,16 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
               : 'Se reemplaza el diodo por V_K en serie con su resistencia interna r_B.',
         formula:
           model === 'tercera'
-            ? 'I_D = \\frac{E - V_K}{R + r_B}'
+            ? String.raw`I_D = \frac{E - V_K}{R + r_B}`
             : model === 'segunda'
-              ? 'I_D = \\frac{E - V_K}{R}'
-              : 'I_D = \\frac{E}{R}',
+              ? String.raw`I_D = \frac{E - V_K}{R}`
+              : String.raw`I_D = \frac{E}{R}`,
         substitution:
           model === 'tercera'
-            ? `I_D = \\frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`
+            ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`
             : model === 'segunda'
-              ? `I_D = \\frac{${n(e)} - ${n(vk)}}{${n(R)}}`
-              : `I_D = \\frac{${n(e)}}{${n(R)}}`,
+              ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)}}`
+              : String.raw`I_D = \frac{${n(e)}}{${n(R)}}`,
         result: `I_D = ${engTex(id, 'A', 6)}`,
       });
       steps.push({
@@ -324,7 +323,7 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
               ? 'V_D = V_K'
               : 'V_D = 0',
         substitution: model === 'tercera' ? `V_D = ${n(vk)} + (${n(id)})(${n(rb)})` : undefined,
-        result: `V_D = ${n(vd)}\\ \\text{V}`,
+        result: String.raw`V_D = ${n(vd)}\ \text{V}`,
       });
     } else {
       id = 0;
@@ -333,8 +332,8 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
         title: 'Voltajes con el diodo apagado',
         explanation:
           'Un circuito abierto puede tener cualquier voltaje entre sus terminales, pero su corriente es 0: toda la fuente queda en el diodo.',
-        formula: 'I_D = 0,\\qquad V_R = I_D R = 0,\\qquad V_D = E',
-        result: `V_D = ${n(vd)}\\ \\text{V}`,
+        formula: String.raw`I_D = 0,\qquad V_R = I_D R = 0,\qquad V_D = E`,
+        result: String.raw`V_D = ${n(vd)}\ \text{V}`,
       });
     }
   }
@@ -344,8 +343,8 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
   const pr = id * id * R;
   steps.push({
     title: 'Voltaje en la resistencia y potencias',
-    formula: 'V_R = I_D R,\\qquad P_D = V_D I_D,\\qquad P_R = I_D^{2} R',
-    result: `V_R = ${n(vr)}\\ \\text{V},\\quad P_D = ${engTex(pd, 'W')},\\quad P_R = ${engTex(pr, 'W')}`,
+    formula: String.raw`V_R = I_D R,\qquad P_D = V_D I_D,\qquad P_R = I_D^{2} R`,
+    result: String.raw`V_R = ${n(vr)}\ \text{V},\quad P_D = ${engTex(pd, 'W')},\quad P_R = ${engTex(pr, 'W')}`,
   });
 
   // Gráfica: recta de carga, característica del modelo y punto Q.
@@ -396,10 +395,13 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     ok: true,
     value: { mode: 'serie', conducting, id, vd, vr, pd, pr, iterations },
     summary: [
-      { label: 'Estado', value: conducting ? '\\text{encendido}' : '\\text{apagado}' },
+      {
+        label: 'Estado',
+        value: conducting ? String.raw`\text{encendido}` : String.raw`\text{apagado}`,
+      },
       { label: 'I_D', value: engTex(id, 'A', 5), emphasis: true },
-      { label: 'V_D', value: `${n(vd, 5)}\\ \\text{V}` },
-      { label: 'V_R', value: `${n(vr, 5)}\\ \\text{V}` },
+      { label: 'V_D', value: String.raw`${n(vd, 5)}\ \text{V}` },
+      { label: 'V_R', value: String.raw`${n(vr, 5)}\ \text{V}` },
       { label: 'P_D', value: engTex(pd, 'W') },
     ],
     steps,

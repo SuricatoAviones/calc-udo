@@ -66,36 +66,35 @@ export function solveProductionLot(input: ProductionLotInput): Result {
       title: 'Fracción del tiempo en que no se produce',
       explanation:
         'Durante la corrida el inventario crece a razón P − D; la fracción 1 − D/P es la que se acumula de cada unidad producida.',
-      formula: '1 - \\frac{D}{P}',
-      substitution: `1 - \\frac{${n(D)}}{${n(P)}}`,
-      result: `1 - \\frac{D}{P} = ${n(factor)}`,
+      formula: String.raw`1 - \frac{D}{P}`,
+      substitution: String.raw`1 - \frac{${n(D)}}{${n(P)}}`,
+      result: String.raw`1 - \frac{D}{P} = ${n(factor)}`,
     },
     {
       title: 'Tamaño económico del lote',
       explanation:
         'Minimiza el costo anual de preparación más el de mantener; con producción instantánea (P → ∞) sería el EOQ.',
-      formula: 'Q^* = \\sqrt{\\frac{2DC_o}{\\left(1 - \\frac{D}{P}\\right)C_h}}',
-      substitution: `Q^* = \\sqrt{\\frac{2(${n(D)})(${n(Co)})}{(${n(factor)})(${n(Ch)})}}`,
+      formula: String.raw`Q^* = \sqrt{\frac{2DC_o}{\left(1 - \frac{D}{P}\right)C_h}}`,
+      substitution: String.raw`Q^* = \sqrt{\frac{2(${n(D)})(${n(Co)})}{(${n(factor)})(${n(Ch)})}}`,
       result: `Q^* = ${n(Q)}`,
     },
     {
       title: 'Inventario máximo y promedio',
-      formula:
-        'I_{\\max} = \\left(1 - \\frac{D}{P}\\right)Q^*, \\qquad \\bar I = \\frac{I_{\\max}}{2}',
-      substitution: `I_{\\max} = (${n(factor)})(${n(Q)})`,
-      result: `I_{\\max} = ${n(maxInventory)}, \\qquad \\bar I = ${n(maxInventory / 2)}`,
+      formula: String.raw`I_{\max} = \left(1 - \frac{D}{P}\right)Q^*, \qquad \bar I = \frac{I_{\max}}{2}`,
+      substitution: String.raw`I_{\max} = (${n(factor)})(${n(Q)})`,
+      result: String.raw`I_{\max} = ${n(maxInventory)}, \qquad \bar I = ${n(maxInventory / 2)}`,
     },
     {
       title: 'Costo total anual',
-      formula: 'CT = \\frac{1}{2}\\left(1 - \\frac{D}{P}\\right)Q C_h + \\frac{D}{Q}C_o',
-      substitution: `CT = \\frac{1}{2}(${n(factor)})(${n(Q)})(${n(Ch)}) + \\frac{${n(D)}}{${n(Q)}}(${n(Co)}) = ${n(holding)} + ${n(setup)}`,
+      formula: String.raw`CT = \frac{1}{2}\left(1 - \frac{D}{P}\right)Q C_h + \frac{D}{Q}C_o`,
+      substitution: String.raw`CT = \frac{1}{2}(${n(factor)})(${n(Q)})(${n(Ch)}) + \frac{${n(D)}}{${n(Q)}}(${n(Co)}) = ${n(holding)} + ${n(setup)}`,
       result: `CT = ${n(total)}`,
     },
     {
       title: 'Corridas de producción por año',
-      formula: '\\frac{D}{Q^*}',
-      substitution: `\\frac{${n(D)}}{${n(Q)}}`,
-      result: `\\frac{D}{Q^*} = ${n(runs)}`,
+      formula: String.raw`\frac{D}{Q^*}`,
+      substitution: String.raw`\frac{${n(D)}}{${n(Q)}}`,
+      result: String.raw`\frac{D}{Q^*} = ${n(runs)}`,
     },
   ];
 
@@ -109,9 +108,9 @@ export function solveProductionLot(input: ProductionLotInput): Result {
     steps.push({
       title: 'Duración del ciclo y de la corrida',
       explanation: `Con ${formatNumber(days)} días hábiles por año.`,
-      formula: 'T = \\frac{d\\,Q^*}{D}, \\qquad t = \\frac{d\\,Q^*}{P}',
-      substitution: `T = \\frac{${n(days)}(${n(Q)})}{${n(D)}}, \\qquad t = \\frac{${n(days)}(${n(Q)})}{${n(P)}}`,
-      result: `T = ${n(cycleDays)} \\text{ días}, \\qquad t = ${n(runDays)} \\text{ días}`,
+      formula: String.raw`T = \frac{d\,Q^*}{D}, \qquad t = \frac{d\,Q^*}{P}`,
+      substitution: String.raw`T = \frac{${n(days)}(${n(Q)})}{${n(D)}}, \qquad t = \frac{${n(days)}(${n(Q)})}{${n(P)}}`,
+      result: String.raw`T = ${n(cycleDays)} \text{ días}, \qquad t = ${n(runDays)} \text{ días}`,
     });
     if (input.leadTime !== undefined) {
       reorder = (D / days) * input.leadTime;
@@ -119,8 +118,8 @@ export function solveProductionLot(input: ProductionLotInput): Result {
         title: 'Punto de reorden',
         explanation:
           'La corrida se programa cuando el inventario alcanza la demanda del tiempo de preparación.',
-        formula: 'r = \\frac{D}{d}\\,L',
-        substitution: `r = \\frac{${n(D)}}{${n(days)}}(${n(input.leadTime)})`,
+        formula: String.raw`r = \frac{D}{d}\,L`,
+        substitution: String.raw`r = \frac{${n(D)}}{${n(days)}}(${n(input.leadTime)})`,
         result: `r = ${n(reorder)}`,
       });
     }
@@ -154,13 +153,13 @@ export function solveProductionLot(input: ProductionLotInput): Result {
     summary: [
       { label: 'Lote económico de producción', value: `Q^* = ${n(Q, 6)}`, emphasis: true },
       { label: 'Costo total anual', value: `CT = ${n(total, 6)}` },
-      { label: 'Inventario máximo', value: `I_{\\max} = ${n(maxInventory, 6)}` },
+      { label: 'Inventario máximo', value: String.raw`I_{\max} = ${n(maxInventory, 6)}` },
       ...(cycleDays === null
         ? []
         : [
             {
               label: 'Ciclo y corrida',
-              value: `T = ${n(cycleDays, 4)},\\ t = ${n(runDays!, 4)} \\text{ días}`,
+              value: String.raw`T = ${n(cycleDays, 4)},\ t = ${n(runDays!, 4)} \text{ días}`,
             },
           ]),
       ...(reorder === null ? [] : [{ label: 'Punto de reorden', value: `r = ${n(reorder, 6)}` }]),

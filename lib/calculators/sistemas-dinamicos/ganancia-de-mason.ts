@@ -45,7 +45,7 @@ export function solveMasonCalculator(
       notices: [{ level: 'error', message: resolved.message }],
     };
   }
-  const ratio = `\\frac{${nodeTex(resolved.output)}}{${nodeTex(resolved.input)}}`;
+  const ratio = String.raw`\frac{${nodeTex(resolved.output)}}{${nodeTex(resolved.input)}}`;
   const outcome = mason(resolved.graph, resolved.input, resolved.output, ratio);
   const steps: Step[] = [...resolved.steps];
   const tables = [...resolved.tables];
@@ -65,10 +65,10 @@ export function solveMasonCalculator(
   const notices: Notice[] = [];
   const summary: SummaryItem[] = [
     { label: 'Función de transferencia', value: `${ratio} = ${frTex(r.transfer)}`, emphasis: true },
-    { label: 'Determinante', value: `\\Delta = ${frTex(r.delta)}` },
+    { label: 'Determinante', value: String.raw`\Delta = ${frTex(r.delta)}` },
     {
       label: 'Trayectorias y lazos',
-      value: `${r.paths.length}\\ \\text{trayectorias},\\ ${r.loops.length}\\ \\text{lazos}`,
+      value: String.raw`${r.paths.length}\ \text{trayectorias},\ ${r.loops.length}\ \text{lazos}`,
     },
   ];
 

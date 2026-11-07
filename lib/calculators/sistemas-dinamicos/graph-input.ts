@@ -129,9 +129,9 @@ export function branchTable(graph: Sfg): ResultTable {
     id: 'ramas',
     title: 'Ramas del flujograma',
     columns: [
-      { key: 'de', header: '\\text{De}', format: 'latex' },
-      { key: 'a', header: '\\text{A}', format: 'latex' },
-      { key: 'ganancia', header: '\\text{Ganancia}', format: 'latex' },
+      { key: 'de', header: String.raw`\text{De}`, format: 'latex' },
+      { key: 'a', header: String.raw`\text{A}`, format: 'latex' },
+      { key: 'ganancia', header: String.raw`\text{Ganancia}`, format: 'latex' },
     ],
     rows: graph.branches.map((b) => ({
       de: nodeTex(b.from),

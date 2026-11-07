@@ -205,14 +205,16 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
         ? `La red se divide en ${stages} etapas. En la etapa n, el estado s es el nodo donde se está y la alternativa x es el siguiente nodo. Se empieza por la última etapa y se retrocede hasta el origen (recursión en reversa).`
         : `La red se divide en ${stages} etapas. En la etapa i, el estado es el nodo al que se llega y la alternativa, el nodo desde el que se llega. Se empieza desde el origen y se avanza hasta el destino (recursión en avance).`,
       formula: backward
-        ? 'f_n^*(s) = \\min_{x_n} \\left\\{ c_{s,x_n} + f_{n+1}^*(x_n) \\right\\}, \\qquad f^*(\\text{destino}) = 0'
-        : 'f_i(x_i) = \\min_{x_{i-1}} \\left\\{ d(x_{i-1}, x_i) + f_{i-1}(x_{i-1}) \\right\\}, \\qquad f_0(\\text{origen}) = 0',
+        ? String.raw`f_n^*(s) = \min_{x_n} \left\{ c_{s,x_n} + f_{n+1}^*(x_n) \right\}, \qquad f^*(\text{destino}) = 0`
+        : String.raw`f_i(x_i) = \min_{x_{i-1}} \left\{ d(x_{i-1}, x_i) + f_{i-1}(x_{i-1}) \right\}, \qquad f_0(\text{origen}) = 0`,
       result: latexLines(
         Array.from({ length: stages + 1 }, (_, l) => {
-          const label = backward ? `\\text{Etapa } ${l + 1}` : `\\text{Nivel } ${l}`;
-          return `${label}:\\ ${nodesAt(l)
+          const label = backward
+            ? String.raw`\text{Etapa } ${l + 1}`
+            : String.raw`\text{Nivel } ${l}`;
+          return String.raw`${label}:\ ${nodesAt(l)
             .map((k) => t(name(k)))
-            .join(',\\ ')}`;
+            .join(String.raw`,\ `)}`;
         }),
       ),
     },
@@ -254,14 +256,14 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
           formula: `f_{${stage}}^*(${t(name(s))}) = ${
             options.length === 1
               ? `c_{${t(name(s))},${t(options[0]!.to)}} + ${next(options[0]!)}`
-              : `\\min\\{${options.map((a) => `c_{${t(name(s))},${t(a.to)}} + ${next(a)}`).join(',\\ ')}\\}`
+              : String.raw`\min\{${options.map((a) => `c_{${t(name(s))},${t(a.to)}} + ${next(a)}`).join(String.raw`,\ `)}\}`
           }`,
           substitution: `f_{${stage}}^*(${t(name(s))}) = ${
             options.length === 1
               ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.to))!)}`
-              : `\\min\\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`).join(',\\ ')}\\} = ${optimumLatex('min', values)}`
+              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`).join(String.raw`,\ `)}\} = ${optimumLatex('min', values)}`
           }`,
-          result: `f_{${stage}}^*(${t(name(s))}) = ${n(bestValue)}, \\qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join('\\ \\text{o}\\ ')}`,
+          result: String.raw`f_{${stage}}^*(${t(name(s))}) = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join(String.raw`\ \text{o}\ `)}`,
         });
       }
       steps.push({
@@ -316,14 +318,14 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
           formula: `f_{${l}}(${t(name(x))}) = ${
             options.length === 1
               ? `d(${t(options[0]!.from)}, ${t(name(x))}) + ${previous(options[0]!)}`
-              : `\\min\\{${options.map((a) => `d(${t(a.from)}, ${t(name(x))}) + ${previous(a)}`).join(',\\ ')}\\}`
+              : String.raw`\min\{${options.map((a) => `d(${t(a.from)}, ${t(name(x))}) + ${previous(a)}`).join(String.raw`,\ `)}\}`
           }`,
           substitution: `f_{${l}}(${t(name(x))}) = ${
             options.length === 1
               ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.from))!)}`
-              : `\\min\\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`).join(',\\ ')}\\} = ${optimumLatex('min', values)}`
+              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`).join(String.raw`,\ `)}\} = ${optimumLatex('min', values)}`
           }`,
-          result: `f_{${l}}(${t(name(x))}) = ${n(bestValue)} \\quad (\\text{desde } ${best.map((k) => t(options[k]!.from)).join('\\ \\text{o}\\ ')})`,
+          result: String.raw`f_{${l}}(${t(name(x))}) = ${n(bestValue)} \quad (\text{desde } ${best.map((k) => t(options[k]!.from)).join(String.raw`\ \text{o}\ `)})`,
         });
       }
       steps.push({
@@ -368,7 +370,9 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
     explanation: backward
       ? 'Se parte del origen y se sigue en cada etapa la decisión óptima x* del estado en que se está.'
       : 'Se parte del destino y se retrocede por el nodo desde el que se llegó con la distancia mínima.',
-    result: latexLines(routes.map((r) => `${r.map(t).join(' \\to ')} \\quad (${n(distance)})`)),
+    result: latexLines(
+      routes.map((r) => String.raw`${r.map(t).join(String.raw` \to `)} \quad (${n(distance)})`),
+    ),
   });
   if (routes.length > 1) {
     notices.push({
@@ -389,7 +393,7 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
       { label: 'Distancia mínima', value: n(distance), emphasis: true },
       {
         label: routes.length > 1 ? 'Rutas óptimas' : 'Ruta óptima',
-        value: latexLines(routes.map((r) => r.map(t).join(' \\to '))),
+        value: latexLines(routes.map((r) => r.map(t).join(String.raw` \to `))),
       },
       { label: 'Etapas', value: `${stages}` },
     ],

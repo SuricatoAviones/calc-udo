@@ -116,20 +116,20 @@ export function solveRelacionesVip(
       v = f;
       if (c === 'resistor') {
         iExpr = `(${input.expression}) / ${val}`;
-        iLatex = `i(t) = \\frac{${parsed.expr.tex}}{${toLatexNumber(val)}\\,${symbol}}`;
+        iLatex = String.raw`i(t) = \frac{${parsed.expr.tex}}{${toLatexNumber(val)}\,${symbol}}`;
         i = (t) => f(t) / val;
       } else if (c === 'capacitor') {
         const d = derivative(parsed.expr.node, 't');
         const di = expressionFromNode(d, ['t']);
         iExpr = `${val} * (${di.toString()})`;
-        iLatex = `i(t) = ${toLatexNumber(val)}\\,${symbol} \\cdot \\frac{dv}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${di.tex}`;
+        iLatex = String.raw`i(t) = ${toLatexNumber(val)}\,${symbol} \cdot \frac{dv}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${di.tex}`;
         i = (t) => val * di.evaluateAt({ t });
       } else {
         // inductor, known voltage
         // i(t) = (1/L) * integral v dt  → numeric
         const { evalFn } = numericIntegral(f, input.tEnd, input.samples, 1 / val);
         iExpr = `(1/${val}) * ∫(${input.expression}) dt`;
-        iLatex = `i(t) = \\frac{1}{${toLatexNumber(val)}\\,${symbol}} \\int_0^t ${parsed.expr.tex} \\, d\\tau`;
+        iLatex = String.raw`i(t) = \frac{1}{${toLatexNumber(val)}\,${symbol}} \int_0^t ${parsed.expr.tex} \, d\tau`;
         i = evalFn;
       }
     } else {
@@ -139,19 +139,19 @@ export function solveRelacionesVip(
       i = f;
       if (c === 'resistor') {
         vExpr = `${val} * (${input.expression})`;
-        vLatex = `v(t) = ${toLatexNumber(val)}\\,${symbol} \\cdot ${parsed.expr.tex}`;
+        vLatex = String.raw`v(t) = ${toLatexNumber(val)}\,${symbol} \cdot ${parsed.expr.tex}`;
         v = (t) => val * f(t);
       } else if (c === 'inductor') {
         const d = derivative(parsed.expr.node, 't');
         const dv = expressionFromNode(d, ['t']);
         vExpr = `${val} * (${dv.toString()})`;
-        vLatex = `v(t) = ${toLatexNumber(val)}\\,${symbol} \\cdot \\frac{di}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${dv.tex}`;
+        vLatex = String.raw`v(t) = ${toLatexNumber(val)}\,${symbol} \cdot \frac{di}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${dv.tex}`;
         v = (t) => val * dv.evaluateAt({ t });
       } else {
         // capacitor, known current
         const { evalFn } = numericIntegral(f, input.tEnd, input.samples, 1 / val);
         vExpr = `(1/${val}) * ∫(${input.expression}) dt`;
-        vLatex = `v(t) = \\frac{1}{${toLatexNumber(val)}\\,${symbol}} \\int_0^t ${parsed.expr.tex} \\, d\\tau`;
+        vLatex = String.raw`v(t) = \frac{1}{${toLatexNumber(val)}\,${symbol}} \int_0^t ${parsed.expr.tex} \, d\tau`;
         v = evalFn;
       }
     }
@@ -167,7 +167,7 @@ export function solveRelacionesVip(
   }
 
   const pExpr = `(${vExpr}) * (${iExpr})`;
-  const pLatex = `p(t) = v(t)\\cdot i(t)`;
+  const pLatex = String.raw`p(t) = v(t)\cdot i(t)`;
 
   const series = makeSeries(input, v, i);
   const pAtZero = v(0) * i(0);
@@ -178,10 +178,10 @@ export function solveRelacionesVip(
       explanation: `Se trabaja con una ${COMPONENT_NAMES[c]}. Convención pasiva: la corriente entra por el terminal de voltaje positivo.`,
       formula:
         c === 'resistor'
-          ? 'v(t) = R\\,i(t)'
+          ? String.raw`v(t) = R\,i(t)`
           : c === 'capacitor'
-            ? 'i(t) = C\\,\\frac{dv}{dt}'
-            : 'v(t) = L\\,\\frac{di}{dt}',
+            ? String.raw`i(t) = C\,\frac{dv}{dt}`
+            : String.raw`v(t) = L\,\frac{di}{dt}`,
     },
     {
       title: input.known === 'voltage' ? 'Voltaje dado' : 'Corriente dada',
@@ -196,7 +196,7 @@ export function solveRelacionesVip(
       explanation:
         'La potencia instantánea es el producto del voltaje por la corriente en cada instante.',
       formula: pLatex,
-      result: `p(0) = ${toLatexNumber(pAtZero)}\\text{ W}`,
+      result: String.raw`p(0) = ${toLatexNumber(pAtZero)}\text{ W}`,
     },
   ];
 
@@ -214,9 +214,9 @@ export function solveRelacionesVip(
     ok: true,
     value,
     summary: [
-      { label: 'v(0)', value: `${formatNumber(v(0), 4)}\\text{ V}` },
-      { label: 'i(0)', value: `${formatNumber(i(0), 4)}\\text{ A}` },
-      { label: 'p(0)', value: `${formatNumber(pAtZero, 4)}\\text{ W}` },
+      { label: 'v(0)', value: String.raw`${formatNumber(v(0), 4)}\text{ V}` },
+      { label: 'i(0)', value: String.raw`${formatNumber(i(0), 4)}\text{ A}` },
+      { label: 'p(0)', value: String.raw`${formatNumber(pAtZero, 4)}\text{ W}` },
     ],
     steps,
     tables: [],

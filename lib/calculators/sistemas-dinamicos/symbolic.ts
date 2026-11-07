@@ -178,9 +178,9 @@ function displayOrder(p: MPoly): Term[] {
 /** `G1` → `G_{1}`, `H_2` → `H_{2}`, `a12` → `a_{12}`, `Kp` → `\mathrm{Kp}`. */
 export function symbolTex(name: string): string {
   const m = /^([A-Za-z]+)_?(\d+)$/.exec(name);
-  if (m) return `${m[1]!.length === 1 ? m[1] : `\\mathrm{${m[1]}}`}_{${m[2]}}`;
+  if (m) return `${m[1]!.length === 1 ? m[1] : String.raw`\mathrm{${m[1]}}`}_{${m[2]}}`;
   if (/^[A-Za-z]$/.test(name)) return name;
-  return `\\mathrm{${name.replace(/_/g, '')}}`;
+  return String.raw`\mathrm{${name.replace(/_/g, '')}}`;
 }
 
 function monoTex(vars: [string, number][]): string {
@@ -541,8 +541,8 @@ function sideTex(f: FRat, side: 1 | -1, withCoef: boolean): { tex: string; items
     const p = Math.abs(factor.power);
     const inner = mpTex(factor.poly);
     const wrap = isSum(factor.poly) && (items > 1 || p > 1 || withCoef);
-    const base = wrap ? `\\left(${inner}\\right)` : inner;
-    parts.push(p === 1 ? base : `${wrap ? base : `\\left(${base}\\right)`}^{${p}}`);
+    const base = wrap ? String.raw`\left(${inner}\right)` : inner;
+    parts.push(p === 1 ? base : `${wrap ? base : String.raw`\left(${base}\right)`}^{${p}}`);
   }
   return { tex: parts.join(''), items };
 }
@@ -558,13 +558,13 @@ export function frTex(f: FRat): string {
   if (top.items === 0) numerator = num(abs);
   else numerator = `${hasCoef ? num(abs) : ''}${top.tex}`;
   if (bottom.items === 0) return `${sign}${numerator}`;
-  return `${sign}\\frac{${numerator}}{${bottom.tex}}`;
+  return String.raw`${sign}\frac{${numerator}}{${bottom.tex}}`;
 }
 
 /** Como `frTex`, pero entre paréntesis si es una suma o lleva signo (para productos). */
 export function frOperandTex(f: FRat): string {
   const tex = frTex(f);
-  if (f.coef < 0) return `\\left(${tex}\\right)`;
+  if (f.coef < 0) return String.raw`\left(${tex}\right)`;
   const hasDen = f.mono.some(([, e]) => e < 0) || f.factors.some((x) => x.power < 0);
   const topItems =
     f.mono.filter(([, e]) => e > 0).length + f.factors.filter((x) => x.power > 0).length;
@@ -573,7 +573,7 @@ export function frOperandTex(f: FRat): string {
     Math.abs(f.coef) === 1 &&
     topItems === 1 &&
     f.factors.some((x) => x.power === 1 && isSum(x.poly));
-  return bareSum ? `\\left(${tex}\\right)` : tex;
+  return bareSum ? String.raw`\left(${tex}\right)` : tex;
 }
 
 // ─── Lectura de expresiones ─────────────────────────────────────────────────

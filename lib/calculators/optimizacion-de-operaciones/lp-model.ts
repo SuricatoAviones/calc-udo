@@ -284,7 +284,11 @@ export function linearLatex(coefficients: Rational[], names: string[]): string {
   return parts.length > 0 ? parts.join(' ') : '0';
 }
 
-export const relationLatex: Record<Relation, string> = { '<=': '\\le', '>=': '\\ge', '=': '=' };
+export const relationLatex: Record<Relation, string> = {
+  '<=': String.raw`\le`,
+  '>=': String.raw`\ge`,
+  '=': '=',
+};
 
 /** El modelo completo en LaTeX (arreglo alineado). */
 export function lpLatex(lp: LinearProgram, objectiveName = 'z'): string {
@@ -292,7 +296,7 @@ export function lpLatex(lp: LinearProgram, objectiveName = 'z'): string {
   const rows = lp.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${lp.sense}\\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(' \\\\ ')} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+  return `\\begin{aligned} \\${lp.sense}\\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
 }
 
 /** Valor de la función objetivo en un punto. */

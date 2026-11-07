@@ -27,7 +27,7 @@ export default function AmplificadorEmisorComun() {
         <QuantityField name="rc" unit="Ω" label={tex('R_C', 'Ω')} />
         <QuantityField name="re1" unit="Ω" label={tex('R_{E1}', 'Ω')} hint="Sin puentear." />
         <QuantityField name="re2" unit="Ω" label={tex('R_{E2}', 'Ω')} hint="Puenteada por C_E." />
-        <NumberField name="beta" label={tex('\\beta')} />
+        <NumberField name="beta" label={tex(String.raw`\beta`)} />
         <NumberField name="vbe" label={tex('V_{BE}', 'V')} />
       </div>
       <div className="grid grid-cols-2 gap-3">

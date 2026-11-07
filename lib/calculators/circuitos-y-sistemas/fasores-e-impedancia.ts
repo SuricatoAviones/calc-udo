@@ -65,7 +65,8 @@ function sinusoidTex(
   angleDeg: number,
 ): string {
   const angle = Math.abs(angleDeg) < 1e-12 ? 0 : angleDeg;
-  const phase = angle === 0 ? '' : ` ${angle < 0 ? '-' : '+'} ${n(Math.abs(angle))}^{\\circ}`;
+  const phase =
+    angle === 0 ? '' : String.raw` ${angle < 0 ? '-' : '+'} ${n(Math.abs(angle))}^{\circ}`;
   return `${n(amplitude)}\\${fn}\\left(${n(omega)}t${phase}\\right)`;
 }
 
@@ -100,14 +101,14 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     title: 'Senoide en forma de coseno',
     explanation:
       'El fasor se define a partir de un coseno con amplitud positiva: sen x = cos(x − 90°) y −cos x = cos(x ± 180°).',
-    formula: conversions.length > 0 ? conversions.join(',\\quad ') : undefined,
-    result: `v(t) = ${timeTex(magnitude, omega, angle)}\\ \\text{V}`,
+    formula: conversions.length > 0 ? conversions.join(String.raw`,\quad `) : undefined,
+    result: String.raw`v(t) = ${timeTex(magnitude, omega, angle)}\ \text{V}`,
   });
   steps.push({
     title: 'Fasor de voltaje',
     explanation: 'Se suprime la frecuencia: el fasor guarda la amplitud y el ángulo.',
-    formula: 'V_m\\cos(\\omega t + \\theta) \\;\\rightarrow\\; \\mathbf{V} = V_m\\angle\\theta',
-    result: `\\mathbf{V} = ${polar(voltage)} = ${rect(voltage)}\\ \\text{V}`,
+    formula: String.raw`V_m\cos(\omega t + \theta) \;\rightarrow\; \mathbf{V} = V_m\angle\theta`,
+    result: String.raw`\mathbf{V} = ${polar(voltage)} = ${rect(voltage)}\ \text{V}`,
   });
 
   // 2. Impedancias de cada elemento.
@@ -119,8 +120,8 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     elements.push({ name: 'R', impedance: zr });
     impedanceSteps.push({
       title: 'Resistencia',
-      formula: '\\mathbf{Z}_R = R',
-      result: `\\mathbf{Z}_R = ${n(input.resistance)}\\ \\Omega`,
+      formula: String.raw`\mathbf{Z}_R = R`,
+      result: String.raw`\mathbf{Z}_R = ${n(input.resistance)}\ \Omega`,
     });
   }
   if (input.inductance > 0) {
@@ -129,9 +130,9 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     impedanceSteps.push({
       title: 'Inductor',
       explanation: 'La corriente se atrasa 90° respecto del voltaje.',
-      formula: '\\mathbf{Z}_L = j\\omega L',
-      substitution: `\\mathbf{Z}_L = j(${n(omega)})(${n(input.inductance)})`,
-      result: `\\mathbf{Z}_L = ${rect(zl)}\\ \\Omega`,
+      formula: String.raw`\mathbf{Z}_L = j\omega L`,
+      substitution: String.raw`\mathbf{Z}_L = j(${n(omega)})(${n(input.inductance)})`,
+      result: String.raw`\mathbf{Z}_L = ${rect(zl)}\ \Omega`,
     });
   }
   if (input.capacitance > 0) {
@@ -140,23 +141,23 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     impedanceSteps.push({
       title: 'Capacitor',
       explanation: 'La corriente se adelanta 90° respecto del voltaje.',
-      formula: '\\mathbf{Z}_C = \\frac{1}{j\\omega C} = -\\frac{j}{\\omega C}',
-      substitution: `\\mathbf{Z}_C = -\\frac{j}{(${n(omega)})(${n(input.capacitance)})}`,
-      result: `\\mathbf{Z}_C = ${rect(zc)}\\ \\Omega`,
+      formula: String.raw`\mathbf{Z}_C = \frac{1}{j\omega C} = -\frac{j}{\omega C}`,
+      substitution: String.raw`\mathbf{Z}_C = -\frac{j}{(${n(omega)})(${n(input.capacitance)})}`,
+      result: String.raw`\mathbf{Z}_C = ${rect(zc)}\ \Omega`,
     });
   }
   steps.push({ title: 'Impedancia de cada elemento', children: impedanceSteps });
 
   // 3. Impedancia equivalente.
-  const names = elements.map((e) => `\\mathbf{Z}_${e.name}`);
+  const names = elements.map((e) => String.raw`\mathbf{Z}_${e.name}`);
   let impedance: Complex;
   if (input.connection === 'serie') {
     impedance = elements.reduce((s, e) => C.add(s, e.impedance), C.ZERO);
     steps.push({
       title: 'Impedancia equivalente (serie)',
-      formula: `\\mathbf{Z} = ${names.join(' + ')}`,
-      substitution: `\\mathbf{Z} = ${elements.map((e) => `(${rect(e.impedance)})`).join(' + ')}`,
-      result: `\\mathbf{Z} = ${rect(impedance)} = ${polar(impedance)}\\ \\Omega`,
+      formula: String.raw`\mathbf{Z} = ${names.join(' + ')}`,
+      substitution: String.raw`\mathbf{Z} = ${elements.map((e) => `(${rect(e.impedance)})`).join(' + ')}`,
+      result: String.raw`\mathbf{Z} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
     });
   } else {
     const admittance = elements.reduce((s, e) => C.add(s, C.div(C.ONE, e.impedance)), C.ZERO);
@@ -164,9 +165,9 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     steps.push({
       title: 'Impedancia equivalente (paralelo)',
       explanation: 'En paralelo se suman las admitancias Y = 1/Z.',
-      formula: `\\frac{1}{\\mathbf{Z}} = ${names.map((x) => `\\frac{1}{${x}}`).join(' + ')}`,
-      substitution: `\\mathbf{Y} = ${elements.map((e) => `(${rect(C.div(C.ONE, e.impedance))})`).join(' + ')} = ${rect(admittance)}\\ \\text{S}`,
-      result: `\\mathbf{Z} = \\frac{1}{\\mathbf{Y}} = ${rect(impedance)} = ${polar(impedance)}\\ \\Omega`,
+      formula: String.raw`\frac{1}{\mathbf{Z}} = ${names.map((x) => String.raw`\frac{1}{${x}}`).join(' + ')}`,
+      substitution: String.raw`\mathbf{Y} = ${elements.map((e) => `(${rect(C.div(C.ONE, e.impedance))})`).join(' + ')} = ${rect(admittance)}\ \text{S}`,
+      result: String.raw`\mathbf{Z} = \frac{1}{\mathbf{Y}} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
     });
   }
 
@@ -192,9 +193,9 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
   steps.push({
     title: 'Corriente (ley de Ohm fasorial)',
     explanation: 'Se dividen las magnitudes y se restan los ángulos.',
-    formula: '\\mathbf{I} = \\frac{\\mathbf{V}}{\\mathbf{Z}}',
-    substitution: `\\mathbf{I} = \\frac{${polar(voltage)}}{${polar(impedance)}}`,
-    result: `\\mathbf{I} = ${polar(current)} = ${rect(current)}\\ \\text{A}`,
+    formula: String.raw`\mathbf{I} = \frac{\mathbf{V}}{\mathbf{Z}}`,
+    substitution: String.raw`\mathbf{I} = \frac{${polar(voltage)}}{${polar(impedance)}}`,
+    result: String.raw`\mathbf{I} = ${polar(current)} = ${rect(current)}\ \text{A}`,
   });
 
   const full: Element[] = elements.map((e) =>
@@ -212,13 +213,13 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
       input.connection === 'serie'
         ? {
             title: e.name === 'R' ? 'Resistencia' : e.name === 'L' ? 'Inductor' : 'Capacitor',
-            formula: `\\mathbf{V}_${e.name} = \\mathbf{I}\\,\\mathbf{Z}_${e.name}`,
-            result: `\\mathbf{V}_${e.name} = ${polar(e.voltage)}\\ \\text{V} \\;\\rightarrow\\; v_${e.name}(t) = ${timeTex(C.abs(e.voltage), omega, C.degrees(C.arg(e.voltage)))}`,
+            formula: String.raw`\mathbf{V}_${e.name} = \mathbf{I}\,\mathbf{Z}_${e.name}`,
+            result: String.raw`\mathbf{V}_${e.name} = ${polar(e.voltage)}\ \text{V} \;\rightarrow\; v_${e.name}(t) = ${timeTex(C.abs(e.voltage), omega, C.degrees(C.arg(e.voltage)))}`,
           }
         : {
             title: e.name === 'R' ? 'Resistencia' : e.name === 'L' ? 'Inductor' : 'Capacitor',
-            formula: `\\mathbf{I}_${e.name} = \\frac{\\mathbf{V}}{\\mathbf{Z}_${e.name}}`,
-            result: `\\mathbf{I}_${e.name} = ${polar(e.current)}\\ \\text{A} \\;\\rightarrow\\; i_${e.name}(t) = ${timeTex(C.abs(e.current), omega, C.degrees(C.arg(e.current)))}`,
+            formula: String.raw`\mathbf{I}_${e.name} = \frac{\mathbf{V}}{\mathbf{Z}_${e.name}}`,
+            result: String.raw`\mathbf{I}_${e.name} = ${polar(e.current)}\ \text{A} \;\rightarrow\; i_${e.name}(t) = ${timeTex(C.abs(e.current), omega, C.degrees(C.arg(e.current)))}`,
           },
     ),
   });
@@ -236,18 +237,18 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
           ? `se atrasa ${formatNumber(Math.abs(zAngle), DIGITS)}° respecto del voltaje`
           : `se adelanta ${formatNumber(Math.abs(zAngle), DIGITS)}° respecto del voltaje`
     }.`,
-    formula: '\\mathbf{I} = I_m\\angle\\phi \\;\\rightarrow\\; i(t) = I_m\\cos(\\omega t + \\phi)',
-    result: `i(t) = ${timeTex(iMag, omega, iAngle)}\\ \\text{A}`,
+    formula: String.raw`\mathbf{I} = I_m\angle\phi \;\rightarrow\; i(t) = I_m\cos(\omega t + \phi)`,
+    result: String.raw`i(t) = ${timeTex(iMag, omega, iAngle)}\ \text{A}`,
   });
 
   const table: ResultTable = {
     id: 'elementos',
     title: 'Fasores por elemento',
     columns: [
-      { key: 'elemento', header: '\\text{Elemento}', format: 'latex' },
-      { key: 'z', header: '\\mathbf{Z}\\ (\\Omega)', format: 'latex' },
-      { key: 'v', header: '\\mathbf{V}\\ (\\text{V})', format: 'latex' },
-      { key: 'i', header: '\\mathbf{I}\\ (\\text{A})', format: 'latex' },
+      { key: 'elemento', header: String.raw`\text{Elemento}`, format: 'latex' },
+      { key: 'z', header: String.raw`\mathbf{Z}\ (\Omega)`, format: 'latex' },
+      { key: 'v', header: String.raw`\mathbf{V}\ (\text{V})`, format: 'latex' },
+      { key: 'i', header: String.raw`\mathbf{I}\ (\text{A})`, format: 'latex' },
     ],
     rows: [
       ...full.map((e) => ({
@@ -256,7 +257,12 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
         v: polar(e.voltage),
         i: polar(e.current),
       })),
-      { elemento: '\\text{Total}', z: rect(impedance), v: polar(voltage), i: polar(current) },
+      {
+        elemento: String.raw`\text{Total}`,
+        z: rect(impedance),
+        v: polar(voltage),
+        i: polar(current),
+      },
     ],
   };
 
@@ -283,12 +289,12 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     ok: true,
     value: { voltage, impedance, current, elements: full },
     summary: [
-      { label: 'V', value: `${polar(voltage)}\\ \\text{V}` },
-      { label: 'Z', value: `${rect(impedance)} = ${polar(impedance)}\\ \\Omega` },
-      { label: 'I', value: `${polar(current)}\\ \\text{A}` },
+      { label: 'V', value: String.raw`${polar(voltage)}\ \text{V}` },
+      { label: 'Z', value: String.raw`${rect(impedance)} = ${polar(impedance)}\ \Omega` },
+      { label: 'I', value: String.raw`${polar(current)}\ \text{A}` },
       {
         label: 'i(t)',
-        value: `i(t) = ${timeTex(iMag, omega, iAngle)}\\ \\text{A}`,
+        value: String.raw`i(t) = ${timeTex(iMag, omega, iAngle)}\ \text{A}`,
         emphasis: true,
       },
     ],

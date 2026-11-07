@@ -66,14 +66,14 @@ export function littleSteps(value: QueueValue, lambdaSymbol: string): Step[] {
   return [
     {
       title: 'Tiempo promedio en el sistema (ley de Little)',
-      formula: `W = \\frac{L}{${lambdaSymbol}}`,
-      substitution: `W = \\frac{${n(value.L)}}{${n(value.lambdaEff)}}`,
+      formula: String.raw`W = \frac{L}{${lambdaSymbol}}`,
+      substitution: String.raw`W = \frac{${n(value.L)}}{${n(value.lambdaEff)}}`,
       result: `W = ${n(value.W)}`,
     },
     {
       title: 'Tiempo promedio en la cola (ley de Little)',
-      formula: `W_q = \\frac{L_q}{${lambdaSymbol}}`,
-      substitution: `W_q = \\frac{${n(value.Lq)}}{${n(value.lambdaEff)}}`,
+      formula: String.raw`W_q = \frac{L_q}{${lambdaSymbol}}`,
+      substitution: String.raw`W_q = \frac{${n(value.Lq)}}{${n(value.lambdaEff)}}`,
       result: `W_q = ${n(value.Wq)}`,
     },
   ];
@@ -85,7 +85,7 @@ export function queueSummary(value: QueueValue, extra: SummaryItem[] = []): Summ
     { label: 'Clientes en la cola', value: `L_q = ${n(value.Lq, 6)}` },
     { label: 'Tiempo en el sistema', value: `W = ${n(value.W, 6)}` },
     { label: 'Tiempo en la cola', value: `W_q = ${n(value.Wq, 6)}` },
-    { label: 'Utilización', value: `\\rho = ${n(value.rho, 6)}` },
+    { label: 'Utilización', value: String.raw`\rho = ${n(value.rho, 6)}` },
     { label: 'Sistema vacío', value: `p_0 = ${n(value.p0, 6)}` },
     ...extra,
   ];
@@ -133,7 +133,7 @@ export function probabilityTrace(
         columns: [
           { key: 'n', header: 'n' },
           { key: 'pn', header: 'p_n' },
-          { key: 'cumulative', header: 'P(N \\le n)' },
+          { key: 'cumulative', header: String.raw`P(N \le n)` },
         ],
         rows,
       },

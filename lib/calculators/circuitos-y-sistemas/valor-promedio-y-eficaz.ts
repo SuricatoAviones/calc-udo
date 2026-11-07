@@ -127,9 +127,9 @@ export function solveAverageRms(
       formula: `${symbol}(t) = ${
         segments.length === 1
           ? segments[0]!.expr.tex
-          : `\\begin{cases} ${segments.map((s) => `${s.expr.tex} & ${n(s.from)} \\le t < ${n(s.to)}`).join(' \\\\ ')} \\end{cases}`
+          : String.raw`\begin{cases} ${segments.map((s) => String.raw`${s.expr.tex} & ${n(s.from)} \le t < ${n(s.to)}`).join(String.raw` \\ `)} \end{cases}`
       }`,
-      result: `T = ${n(period)}\\ \\text{s}`,
+      result: String.raw`T = ${n(period)}\ \text{s}`,
     },
   ];
 
@@ -152,27 +152,27 @@ export function solveAverageRms(
   steps.push({
     title: 'Valor promedio',
     explanation: 'Es el área bajo la curva en un periodo, dividida entre T (la componente de cd).',
-    formula: `${upper}_{prom} = \\frac{1}{T}\\int_{0}^{T} ${symbol}(t)\\,dt`,
+    formula: String.raw`${upper}_{prom} = \frac{1}{T}\int_{0}^{T} ${symbol}(t)\,dt`,
     children: segments.map((s, k) => ({
       title: `Tramo ${k + 1}`,
-      formula: `\\int_{${n(s.from)}}^{${n(s.to)}} ${s.expr.tex}\\,dt`,
+      formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} ${s.expr.tex}\,dt`,
       result: `= ${n(first[k]!.value)}`,
     })),
-    substitution: `${upper}_{prom} = \\frac{${n(sum1)}}{${n(period)}}`,
-    result: `${upper}_{prom} = ${n(average)}\\ \\text{${unit}}`,
+    substitution: String.raw`${upper}_{prom} = \frac{${n(sum1)}}{${n(period)}}`,
+    result: String.raw`${upper}_{prom} = ${n(average)}\ \text{${unit}}`,
   });
   steps.push({
     title: 'Valor eficaz (rms)',
     explanation:
       'Se eleva la señal al cuadrado, se promedia en un periodo y se saca la raíz: raíz de la media de los cuadrados.',
-    formula: `${upper}_{ef} = \\sqrt{\\frac{1}{T}\\int_{0}^{T} ${symbol}^{2}(t)\\,dt}`,
+    formula: String.raw`${upper}_{ef} = \sqrt{\frac{1}{T}\int_{0}^{T} ${symbol}^{2}(t)\,dt}`,
     children: segments.map((s, k) => ({
       title: `Tramo ${k + 1}`,
-      formula: `\\int_{${n(s.from)}}^{${n(s.to)}} \\left(${s.expr.tex}\\right)^{2}dt`,
+      formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} \left(${s.expr.tex}\right)^{2}dt`,
       result: `= ${n(second[k]!.value)}`,
     })),
-    substitution: `${upper}_{ef} = \\sqrt{\\frac{${n(sum2)}}{${n(period)}}}`,
-    result: `${upper}_{ef} = ${n(rms)}\\ \\text{${unit}}`,
+    substitution: String.raw`${upper}_{ef} = \sqrt{\frac{${n(sum2)}}{${n(period)}}}`,
+    result: String.raw`${upper}_{ef} = ${n(rms)}\ \text{${unit}}`,
   });
 
   let power: number | undefined;
@@ -183,12 +183,13 @@ export function solveAverageRms(
       title: 'Potencia promedio en la resistencia',
       explanation:
         'El valor eficaz entrega a una resistencia la misma potencia promedio que un valor de cd igual.',
-      formula: input.quantity === 'corriente' ? 'P = I_{ef}^{2}R' : 'P = \\frac{V_{ef}^{2}}{R}',
+      formula:
+        input.quantity === 'corriente' ? 'P = I_{ef}^{2}R' : String.raw`P = \frac{V_{ef}^{2}}{R}`,
       substitution:
         input.quantity === 'corriente'
           ? `P = (${n(rms)})^{2}(${n(r)})`
-          : `P = \\frac{(${n(rms)})^{2}}{${n(r)}}`,
-      result: `P = ${n(power)}\\ \\text{W}`,
+          : String.raw`P = \frac{(${n(rms)})^{2}}{${n(r)}}`,
+      result: String.raw`P = ${n(power)}\ \text{W}`,
     });
   }
 
@@ -225,11 +226,11 @@ export function solveAverageRms(
     id: 'tramos',
     title: 'Integrales por tramo',
     columns: [
-      { key: 'tramo', header: '\\text{Tramo}' },
+      { key: 'tramo', header: String.raw`\text{Tramo}` },
       { key: 'desde', header: 't_0' },
       { key: 'hasta', header: 't_1' },
-      { key: 'i1', header: `\\int ${symbol}\\,dt` },
-      { key: 'i2', header: `\\int ${symbol}^{2}\\,dt` },
+      { key: 'i1', header: String.raw`\int ${symbol}\,dt` },
+      { key: 'i2', header: String.raw`\int ${symbol}^{2}\,dt` },
     ],
     rows: segments.map((s, k) => ({
       tramo: k + 1,
@@ -244,10 +245,10 @@ export function solveAverageRms(
     ok: true,
     value: { period, average, rms, power },
     summary: [
-      { label: 'T', value: `${n(period)}\\ \\text{s}` },
-      { label: `${upper} prom`, value: `${n(average)}\\ \\text{${unit}}` },
-      { label: `${upper} ef`, value: `${n(rms)}\\ \\text{${unit}}`, emphasis: true },
-      ...(power !== undefined ? [{ label: 'P', value: `${n(power)}\\ \\text{W}` }] : []),
+      { label: 'T', value: String.raw`${n(period)}\ \text{s}` },
+      { label: `${upper} prom`, value: String.raw`${n(average)}\ \text{${unit}}` },
+      { label: `${upper} ef`, value: String.raw`${n(rms)}\ \text{${unit}}`, emphasis: true },
+      ...(power !== undefined ? [{ label: 'P', value: String.raw`${n(power)}\ \text{W}` }] : []),
     ],
     steps,
     tables: [table],

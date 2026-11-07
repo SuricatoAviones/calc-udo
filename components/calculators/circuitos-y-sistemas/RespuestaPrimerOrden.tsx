@@ -43,7 +43,7 @@ function CircuitFields() {
           name="final"
           label={
             <>
-              <Formula tex={`${x}(\\infty)`} /> ({unit})
+              <Formula tex={String.raw`${x}(\infty)`} /> ({unit})
             </>
           }
           hint="Valor final con las fuentes de t > 0."

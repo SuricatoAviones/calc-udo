@@ -30,16 +30,16 @@ function split(value: number, unit: string): { scaled: number; prefix: string } 
   return { scaled: value / 1e-12, prefix: 'p' };
 }
 
-const LATEX_UNIT: Record<string, string> = { Ω: '\\Omega', µ: '\\mu ' };
+const LATEX_UNIT: Record<string, string> = { Ω: String.raw`\Omega`, µ: String.raw`\mu ` };
 
 /** `18.6\ \text{mA}`, `2.2\ \text{k}\Omega`. */
 export function engTex(value: number, unit: string, digits = 4): string {
   const { scaled, prefix } = split(value, unit);
   const number = toLatexNumber(scaled, digits);
   if (unit === '') return number;
-  const prefixTex = prefix === 'µ' ? '\\mu' : prefix ? `\\text{${prefix}}` : '';
-  const unitTex = LATEX_UNIT[unit] ?? `\\text{${unit}}`;
-  return `${number}\\ ${prefixTex}${unitTex}`;
+  const prefixTex = prefix === 'µ' ? String.raw`\mu` : prefix ? String.raw`\text{${prefix}}` : '';
+  const unitTex = LATEX_UNIT[unit] ?? String.raw`\text{${unit}}`;
+  return String.raw`${number}\ ${prefixTex}${unitTex}`;
 }
 
 /** Texto plano para explicaciones: `18.6 mA`. */

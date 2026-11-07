@@ -111,15 +111,15 @@ function queryLatex(input: DiscreteQueryInput): Latex {
     case 'igual':
       return `P(X = ${k})`;
     case 'menor-igual':
-      return `P(X \\le ${k})`;
+      return String.raw`P(X \le ${k})`;
     case 'menor':
       return `P(X < ${k})`;
     case 'mayor-igual':
-      return `P(X \\ge ${k})`;
+      return String.raw`P(X \ge ${k})`;
     case 'mayor':
       return `P(X > ${k})`;
     case 'entre':
-      return `P(${k} \\le X \\le ${input.k2 ?? k})`;
+      return String.raw`P(${k} \le X \le ${input.k2 ?? k})`;
   }
 }
 
@@ -175,7 +175,7 @@ export function solveDiscrete(
       if (xs.length === 1) return `${model.notation(String(xs[0]))}`;
       const contiguous = xs.every((x, i) => i === 0 || x === xs[i - 1]! + 1);
       return contiguous
-        ? `\\sum_{x=${xs[0]}}^{${xs.at(-1)}} ${model.notation('x')}`
+        ? String.raw`\sum_{x=${xs[0]}}^{${xs.at(-1)}} ${model.notation('x')}`
         : xs.map((x) => model.notation(String(x))).join(' + ');
     };
 
@@ -187,7 +187,7 @@ export function solveDiscrete(
           ? undefined
           : 'Es la suma de la función de probabilidad en cada valor que cumple la condición.',
       formula: useComplement
-        ? `${target} = 1 - \\left[${rangeText(terms)}\\right]`
+        ? String.raw`${target} = 1 - \left[${rangeText(terms)}\right]`
         : `${target} = ${rangeText(terms)}`,
     });
 
@@ -209,7 +209,8 @@ export function solveDiscrete(
                     (x, i) =>
                       `${model.notation(String(x))} = ${n(values[SUBSTITUTED_TERMS + i]!, 6)}`,
                   )
-                  .join(',\\quad ') + (terms.length > SUBSTITUTED_TERMS + 6 ? ',\\ \\ldots' : ''),
+                  .join(String.raw`,\quad `) +
+                (terms.length > SUBSTITUTED_TERMS + 6 ? String.raw`,\ \ldots` : ''),
             },
           ]
         : [];
@@ -234,8 +235,8 @@ export function solveDiscrete(
   const standardDeviation = Math.sqrt(model.variance);
   steps.push({
     title: 'Media, varianza y desviación estándar',
-    formula: `\\mu = ${model.meanFormula}, \\qquad \\sigma^2 = ${model.varianceFormula}`,
-    result: `\\mu = ${n(model.mean)}, \\qquad \\sigma^2 = ${n(model.variance)}, \\qquad \\sigma = ${n(standardDeviation)}`,
+    formula: String.raw`\mu = ${model.meanFormula}, \qquad \sigma^2 = ${model.varianceFormula}`,
+    result: String.raw`\mu = ${n(model.mean)}, \qquad \sigma^2 = ${n(model.variance)}, \qquad \sigma = ${n(standardDeviation)}`,
   });
 
   // Tabla y gráfica: todos los valores con probabilidad apreciable y los de la consulta.
@@ -253,9 +254,9 @@ export function solveDiscrete(
 
   const summary: SummaryItem[] = [
     { label: 'Probabilidad', value: `${target} = ${n(probability, 6)}`, emphasis: true },
-    { label: 'Media', value: `\\mu = ${n(model.mean, 6)}` },
-    { label: 'Varianza', value: `\\sigma^2 = ${n(model.variance, 6)}` },
-    { label: 'Desviación estándar', value: `\\sigma = ${n(standardDeviation, 6)}` },
+    { label: 'Media', value: String.raw`\mu = ${n(model.mean, 6)}` },
+    { label: 'Varianza', value: String.raw`\sigma^2 = ${n(model.variance, 6)}` },
+    { label: 'Desviación estándar', value: String.raw`\sigma = ${n(standardDeviation, 6)}` },
   ];
 
   return {
@@ -271,7 +272,7 @@ export function solveDiscrete(
         columns: [
           { key: 'x', header: 'x' },
           { key: 'px', header: 'P(X = x)' },
-          { key: 'cumulative', header: 'P(X \\le x)' },
+          { key: 'cumulative', header: String.raw`P(X \le x)` },
         ],
         rows,
       },

@@ -29,23 +29,23 @@ export interface SearchValue {
 export type SearchErrorCode = 'invalid-list' | 'not-sorted';
 
 const SEQUENTIAL_CODE = pseudocode([
-  [0, 'i \\leftarrow 1'],
-  [0, '**mientras** i \\le n **y** a_i \\ne x **hacer**'],
-  [1, 'i \\leftarrow i + 1'],
+  [0, String.raw`i \leftarrow 1`],
+  [0, String.raw`**mientras** i \le n **y** a_i \ne x **hacer**`],
+  [1, String.raw`i \leftarrow i + 1`],
   [0, '**fin mientras**'],
-  [0, '**si** i \\le n **entonces** \\text{encontrado en la posición } i'],
-  [0, '**si no** \\text{no encontrado}'],
+  [0, String.raw`**si** i \le n **entonces** \text{encontrado en la posición } i`],
+  [0, String.raw`**si no** \text{no encontrado}`],
 ]);
 
 const BINARY_CODE = pseudocode([
-  [0, '\\mathit{bajo} \\leftarrow 1;\\ \\mathit{alto} \\leftarrow n'],
-  [0, '**mientras** \\mathit{bajo} \\le \\mathit{alto} **hacer**'],
-  [1, '\\mathit{c} \\leftarrow \\lfloor (\\mathit{bajo} + \\mathit{alto}) / 2 \\rfloor'],
-  [1, '**si** x = a_c **entonces** \\text{encontrado en la posición } c'],
-  [1, '**si no, si** x < a_c **entonces** \\mathit{alto} \\leftarrow c - 1'],
-  [1, '**si no** \\mathit{bajo} \\leftarrow c + 1'],
+  [0, String.raw`\mathit{bajo} \leftarrow 1;\ \mathit{alto} \leftarrow n`],
+  [0, String.raw`**mientras** \mathit{bajo} \le \mathit{alto} **hacer**`],
+  [1, String.raw`\mathit{c} \leftarrow \lfloor (\mathit{bajo} + \mathit{alto}) / 2 \rfloor`],
+  [1, String.raw`**si** x = a_c **entonces** \text{encontrado en la posición } c`],
+  [1, String.raw`**si no, si** x < a_c **entonces** \mathit{alto} \leftarrow c - 1`],
+  [1, String.raw`**si no** \mathit{bajo} \leftarrow c + 1`],
   [0, '**fin mientras**'],
-  [0, '\\text{no encontrado}'],
+  [0, String.raw`\text{no encontrado}`],
 ]);
 
 function sequential(a: number[], x: number) {
@@ -81,21 +81,21 @@ function binary(a: number[], x: number) {
     let decision: string;
     let explanation: string;
     if (x === ac) {
-      decision = `${num(x)} = ${num(ac)} \\Rightarrow \\text{encontrado}`;
+      decision = String.raw`${num(x)} = ${num(ac)} \Rightarrow \text{encontrado}`;
       explanation = `x es igual a a${c}: se encontró.`;
       position = c;
     } else if (x < ac) {
-      decision = `${num(x)} < ${num(ac)} \\Rightarrow \\mathit{alto} = ${c - 1}`;
+      decision = String.raw`${num(x)} < ${num(ac)} \Rightarrow \mathit{alto} = ${c - 1}`;
       explanation = `x es menor que a${c}: solo puede estar a la izquierda, así que alto = c − 1.`;
     } else {
-      decision = `${num(x)} > ${num(ac)} \\Rightarrow \\mathit{bajo} = ${c + 1}`;
+      decision = String.raw`${num(x)} > ${num(ac)} \Rightarrow \mathit{bajo} = ${c + 1}`;
       explanation = `x es mayor que a${c}: solo puede estar a la derecha, así que bajo = c + 1.`;
     }
     rows.push({ iteration: rows.length + 1, low, high, center: c, value: ac, decision });
     children.push({
       title: `Iteración ${rows.length}`,
       explanation,
-      substitution: `c = \\left\\lfloor \\frac{${low} + ${high}}{2} \\right\\rfloor = ${c},\\quad a_{${c}} = ${num(ac)}`,
+      substitution: String.raw`c = \left\lfloor \frac{${low} + ${high}}{2} \right\rfloor = ${c},\quad a_{${c}} = ${num(ac)}`,
       result: `${listLatex(a, { bold: (i) => i >= low - 1 && i <= high - 1, boxed: [c - 1] })}`,
     });
     if (position !== null) break;
@@ -122,7 +122,7 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
       explanation:
         'Se compara x con cada elemento, de izquierda a derecha, hasta encontrarlo o llegar al final. No necesita que la lista esté ordenada.',
       formula: SEQUENTIAL_CODE,
-      result: `n = ${a.length},\\quad x = ${num(x)}`,
+      result: String.raw`n = ${a.length},\quad x = ${num(x)}`,
     });
     const { rows, position } = sequential(a, x);
     steps.push({
@@ -143,7 +143,7 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
       columns: [
         { key: 'i', header: 'i' },
         { key: 'value', header: 'a_i' },
-        { key: 'equal', header: `a_i = ${num(x)}\\,?`, format: 'text' },
+        { key: 'equal', header: String.raw`a_i = ${num(x)}\,?`, format: 'text' },
       ],
       rows,
     });
@@ -154,7 +154,7 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
     explanation:
       'Solo sirve con la lista ordenada de menor a mayor. En cada iteración se compara x con el elemento central del tramo [bajo, alto] y se descarta la mitad donde no puede estar.',
     formula: BINARY_CODE,
-    result: `n = ${a.length},\\quad x = ${num(x)}`,
+    result: String.raw`n = ${a.length},\quad x = ${num(x)}`,
   });
   const unsorted = a.findIndex((v, i) => i > 0 && v < a[i - 1]!);
   if (unsorted > 0) {
@@ -180,12 +180,12 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
     id: 'iteraciones',
     title: 'Iteraciones de la búsqueda binaria',
     columns: [
-      { key: 'iteration', header: '\\text{Iter.}' },
-      { key: 'low', header: '\\mathit{bajo}' },
-      { key: 'high', header: '\\mathit{alto}' },
+      { key: 'iteration', header: String.raw`\text{Iter.}` },
+      { key: 'low', header: String.raw`\mathit{bajo}` },
+      { key: 'high', header: String.raw`\mathit{alto}` },
       { key: 'center', header: 'c' },
       { key: 'value', header: 'a_c' },
-      { key: 'decision', header: '\\text{Decisión}', format: 'latex' },
+      { key: 'decision', header: String.raw`\text{Decisión}`, format: 'latex' },
     ],
     rows,
   });
@@ -198,7 +198,10 @@ function resultStep(position: number | null, comparisons: number): Step {
       position === null
         ? `x no está en la lista. Se hicieron ${comparisons} ${comparisons === 1 ? 'comparación' : 'comparaciones'}.`
         : `x está en la posición ${position}. Se hicieron ${comparisons} ${comparisons === 1 ? 'comparación' : 'comparaciones'}.`,
-    result: position === null ? '\\text{no encontrado}' : `\\text{posición } ${position}`,
+    result:
+      position === null
+        ? String.raw`\text{no encontrado}`
+        : String.raw`\text{posición } ${position}`,
   };
 }
 
@@ -213,7 +216,9 @@ function success(
     summary: [
       {
         label: value.found ? 'Encontrado' : 'Resultado',
-        value: value.found ? `\\text{posición } ${value.position}` : '\\text{no está en la lista}',
+        value: value.found
+          ? String.raw`\text{posición } ${value.position}`
+          : String.raw`\text{no está en la lista}`,
         emphasis: true,
       },
       { label: 'Comparaciones', value: String(value.comparisons) },

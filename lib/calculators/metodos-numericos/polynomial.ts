@@ -93,8 +93,10 @@ export function ruffiniLatex(
   const cols = coefficients.length;
   const top = coefficients.map(f).join(' & ');
   const middle = division.products.map((p) => (p === null ? '' : f(p))).join(' & ');
-  const bottom = division.b.map((v, i) => (i === cols - 1 ? `\\boxed{${f(v)}}` : f(v))).join(' & ');
-  return `\\begin{array}{r|${'r'.repeat(cols)}} ${f(r)} & ${top} \\\\ & ${middle} \\\\ \\hline & ${bottom} \\end{array}`;
+  const bottom = division.b
+    .map((v, i) => (i === cols - 1 ? String.raw`\boxed{${f(v)}}` : f(v)))
+    .join(' & ');
+  return String.raw`\begin{array}{r|${'r'.repeat(cols)}} ${f(r)} & ${top} \\ & ${middle} \\ \hline & ${bottom} \end{array}`;
 }
 
 /** Número complejo sencillo para las raíces. */

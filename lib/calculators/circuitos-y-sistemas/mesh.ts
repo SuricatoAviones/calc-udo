@@ -433,8 +433,8 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
       title: 'Identificación de mallas',
       explanation: `Se recorren las caras acotadas del dibujo y se asigna a cada una una corriente de malla en el sentido de su recorrido. Hay ${M} malla(s).`,
       result: meshInfo
-        .map((info, mf) => `i_${mf + 1}:\\ ${info.branches.join(',\\ ')}`)
-        .join(';\\ '),
+        .map((info, mf) => String.raw`i_${mf + 1}:\ ${info.branches.join(String.raw`,\ `)}`)
+        .join(String.raw`;\ `),
     },
     ...meshTerms.map((terms, mf) => ({
       title: `KVL en la malla ${mf + 1}`,
@@ -456,7 +456,9 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
     {
       title: 'Corrientes de malla',
       explanation: 'Se despejan las corrientes de cada malla.',
-      result: meshCurrents.map((v, mf) => `i_${mf + 1} = ${n(v)}\\text{ A}`).join(',\\ '),
+      result: meshCurrents
+        .map((v, mf) => String.raw`i_${mf + 1} = ${n(v)}\text{ A}`)
+        .join(String.raw`,\ `),
     },
   ];
 

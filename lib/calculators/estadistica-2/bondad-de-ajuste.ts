@@ -255,9 +255,8 @@ export function solveGoodnessOfFit(
         title: 'Parámetros estimados con los datos agrupados',
         explanation:
           'Se usan las marcas de clase (puntos medios) como representantes de cada clase.',
-        formula:
-          '\\bar{x} = \\frac{\\sum f_i m_i}{n}, \\qquad s = \\sqrt{\\frac{\\sum f_i (m_i - \\bar{x})^2}{n - 1}}',
-        result: `\\hat{\\mu} = ${n(mu)}, \\quad \\hat{\\sigma} = ${n(sigma)}`,
+        formula: String.raw`\bar{x} = \frac{\sum f_i m_i}{n}, \qquad s = \sqrt{\frac{\sum f_i (m_i - \bar{x})^2}{n - 1}}`,
+        result: String.raw`\hat{\mu} = ${n(mu)}, \quad \hat{\sigma} = ${n(sigma)}`,
       });
     }
     if (
@@ -282,9 +281,8 @@ export function solveGoodnessOfFit(
       title: 'Probabilidad de cada clase',
       explanation:
         'Se estandarizan los límites con z = (x − μ)/σ. La primera clase se extiende hasta −∞ y la última hasta +∞ para que las probabilidades sumen 1.',
-      formula:
-        'p_i = \\Phi\\!\\left(\\frac{b_i - \\mu}{\\sigma}\\right) - \\Phi\\!\\left(\\frac{b_{i-1} - \\mu}{\\sigma}\\right)',
-      result: cells.map((c, i) => `p_{${i + 1}} = ${n(c.p)}`).join(',\\ '),
+      formula: String.raw`p_i = \Phi\!\left(\frac{b_i - \mu}{\sigma}\right) - \Phi\!\left(\frac{b_{i-1} - \mu}{\sigma}\right)`,
+      result: cells.map((c, i) => `p_{${i + 1}} = ${n(c.p)}`).join(String.raw`,\ `),
     });
   } else {
     const values = parseList(input.values) as number[];
@@ -297,9 +295,11 @@ export function solveGoodnessOfFit(
       steps.push({
         title: `Parámetro estimado con la muestra`,
         formula: poisson
-          ? '\\hat{\\lambda} = \\bar{x} = \\frac{\\sum x_i f_i}{n}'
-          : '\\hat{p} = \\frac{\\bar{x}}{n_{\\text{ensayos}}} = \\frac{\\sum x_i f_i}{n \\cdot n_{\\text{ensayos}}}',
-        result: poisson ? `\\hat{\\lambda} = ${n(param)}` : `\\hat{p} = ${n(param)}`,
+          ? String.raw`\hat{\lambda} = \bar{x} = \frac{\sum x_i f_i}{n}`
+          : String.raw`\hat{p} = \frac{\bar{x}}{n_{\text{ensayos}}} = \frac{\sum x_i f_i}{n \cdot n_{\text{ensayos}}}`,
+        result: poisson
+          ? String.raw`\hat{\lambda} = ${n(param)}`
+          : String.raw`\hat{p} = ${n(param)}`,
       });
     }
     if (input.estimated === 'si' || input.parameter1 === undefined) estimatedParams = 1;
@@ -328,28 +328,28 @@ export function solveGoodnessOfFit(
       explanation:
         'La última celda incluye todos los valores mayores, para que las probabilidades sumen 1.',
       formula: poisson
-        ? 'p(x) = \\frac{e^{-\\lambda}\\lambda^x}{x!}'
-        : 'p(x) = \\binom{n}{x} p^x (1 - p)^{n - x}',
+        ? String.raw`p(x) = \frac{e^{-\lambda}\lambda^x}{x!}`
+        : String.raw`p(x) = \binom{n}{x} p^x (1 - p)^{n - x}`,
       result: values
         .map((x, i) => {
-          const relation = i === k - 1 ? '\\ge' : i === 0 && x > 0 ? '\\le' : '=';
+          const relation = i === k - 1 ? String.raw`\ge` : i === 0 && x > 0 ? String.raw`\le` : '=';
           return `P(X ${relation} ${x}) = ${n(cells[i]!.p)}`;
         })
-        .join(',\\ '),
+        .join(String.raw`,\ `),
     });
   }
 
   steps.unshift({
     title: 'Hipótesis',
     explanation: `H₀: ${hypothesis}. H₁: no la siguen.`,
-    result: `n = ${total} \\text{ observaciones en } ${k} \\text{ celdas}`,
+    result: String.raw`n = ${total} \text{ observaciones en } ${k} \text{ celdas}`,
   });
 
   const expected = cells.map((c) => c.p * total);
   steps.push({
     title: 'Frecuencias esperadas',
-    formula: 'e_i = n\\,p_i',
-    result: expected.map((e, i) => `e_{${i + 1}} = ${n(e)}`).join(',\\ '),
+    formula: String.raw`e_i = n\,p_i`,
+    result: expected.map((e, i) => `e_{${i + 1}} = ${n(e)}`).join(String.raw`,\ `),
   });
 
   let used = cells;
@@ -359,8 +359,8 @@ export function solveGoodnessOfFit(
       title: 'Combinar celdas con frecuencia esperada menor que 5',
       explanation: `Con frecuencias esperadas pequeñas la aproximación ji-cuadrada no es confiable, así que se suman celdas vecinas hasta que todas tengan eᵢ ≥ 5. Quedan ${used.length} celdas.`,
       result: used
-        .map((c, j) => `\\text{celda ${j + 1}}: o = ${c.observed},\\ e = ${n(c.p * total)}`)
-        .join(';\\ '),
+        .map((c, j) => String.raw`\text{celda ${j + 1}}: o = ${c.observed},\ e = ${n(c.p * total)}`)
+        .join(String.raw`;\ `),
     });
   }
 
@@ -368,12 +368,12 @@ export function solveGoodnessOfFit(
   const df = used.length - 1 - estimatedParams;
   steps.push({
     title: 'Estadístico ji-cuadrada',
-    formula: '\\chi^2 = \\sum_i \\frac{(o_i - e_i)^2}{e_i}',
-    substitution: `\\chi^2 = ${used
+    formula: String.raw`\chi^2 = \sum_i \frac{(o_i - e_i)^2}{e_i}`,
+    substitution: String.raw`\chi^2 = ${used
       .slice(0, 8)
-      .map((c) => `\\frac{(${c.observed} - ${n(c.p * total)})^2}{${n(c.p * total)}}`)
-      .join(' + ')}${used.length > 8 ? ' + \\cdots' : ''}`,
-    result: `\\chi^2 = ${n(statistic)}`,
+      .map((c) => String.raw`\frac{(${c.observed} - ${n(c.p * total)})^2}{${n(c.p * total)}}`)
+      .join(' + ')}${used.length > 8 ? String.raw` + \cdots` : ''}`,
+    result: String.raw`\chi^2 = ${n(statistic)}`,
   });
   steps.push({
     title: 'Grados de libertad',
@@ -381,16 +381,16 @@ export function solveGoodnessOfFit(
       estimatedParams > 0
         ? `Se resta 1 por la restricción Σeᵢ = n y ${estimatedParams} por cada parámetro estimado con la muestra.`
         : 'Se resta 1 por la restricción Σeᵢ = n (no se estimaron parámetros con la muestra).',
-    formula: `\\nu = k - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
-    substitution: `\\nu = ${used.length} - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
-    result: `\\nu = ${df}`,
+    formula: String.raw`\nu = k - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
+    substitution: String.raw`\nu = ${used.length} - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
+    result: String.raw`\nu = ${df}`,
   });
 
   const table = {
     id: 'frecuencias',
     title: 'Frecuencias observadas y esperadas',
     columns: [
-      { key: 'label', header: '\\text{Celda}', format: 'text' as const },
+      { key: 'label', header: String.raw`\text{Celda}`, format: 'text' as const },
       { key: 'o', header: 'o_i' },
       { key: 'p', header: 'p_i' },
       { key: 'e', header: 'e_i' },
@@ -428,7 +428,7 @@ export function solveGoodnessOfFit(
   const summary: SummaryItem[] = [
     {
       label: 'Estadístico',
-      value: `\\chi^2 = ${n(statistic)} \\quad (\\nu = ${df})`,
+      value: String.raw`\chi^2 = ${n(statistic)} \quad (\nu = ${df})`,
       emphasis: true,
     },
     ...outcome.summary,

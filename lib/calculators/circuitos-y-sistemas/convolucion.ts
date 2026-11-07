@@ -142,8 +142,8 @@ function numericConvolution(x: Signal, h: Signal, t: number): number {
 }
 
 function intervalLabel(from: number, to: number): string {
-  if (!Number.isFinite(to)) return `t \\ge ${n(from)}`;
-  return `${n(from)} \\le t < ${n(to)}`;
+  if (!Number.isFinite(to)) return String.raw`t \ge ${n(from)}`;
+  return String.raw`${n(from)} \le t < ${n(to)}`;
 }
 
 export function solveConvolution(input: ConvolutionInput): Result {
@@ -161,8 +161,8 @@ export function solveConvolution(input: ConvolutionInput): Result {
       title: 'Integral de convolución',
       explanation:
         'Para un sistema causal con entrada que empieza en t = 0, la convolución solo acumula el intervalo 0 ≤ z ≤ t: se refleja h, se desplaza t unidades y se integra el producto con x.',
-      formula: 'y(t) = x(t) * h(t) = \\int_{0}^{t} x(z)\\,h(t - z)\\,dz',
-      substitution: `y(t) = \\int_{0}^{t} \\left[${xTex.replace(/\bt\b/g, 'z')}\\right]\\left[${hTex.replace(/\bt\b/g, '(t - z)')}\\right] dz`,
+      formula: String.raw`y(t) = x(t) * h(t) = \int_{0}^{t} x(z)\,h(t - z)\,dz`,
+      substitution: String.raw`y(t) = \int_{0}^{t} \left[${xTex.replace(/\bt\b/g, 'z')}\right]\left[${hTex.replace(/\bt\b/g, '(t - z)')}\right] dz`,
     },
     {
       title: 'Transformadas de la entrada y de la respuesta al impulso',
@@ -201,7 +201,7 @@ export function solveConvolution(input: ConvolutionInput): Result {
     title: 'Teorema de convolución',
     explanation:
       'La convolución en el tiempo es un producto en el dominio de s; los retardos e^(−as) se suman al multiplicar.',
-    formula: '\\mathcal{L}\\{x(t) * h(t)\\} = X(s)\\,H(s)',
+    formula: String.raw`\mathcal{L}\{x(t) * h(t)\} = X(s)\,H(s)`,
     result: `Y(s) = ${transformTex(Y)}`,
   });
 
@@ -225,9 +225,9 @@ export function solveConvolution(input: ConvolutionInput): Result {
       title: 'Respuesta por intervalos',
       explanation:
         'En cada intervalo entre retardos consecutivos están activos los escalones que ya arrancaron; se suman y se simplifican, como en el método gráfico.',
-      result: `y(t) = \\begin{cases} ${intervals
+      result: String.raw`y(t) = \begin{cases} ${intervals
         .map((r) => `${r.tex} & ${intervalLabel(r.from, r.to)}`)
-        .join(' \\\\ ')} \\end{cases}`,
+        .join(String.raw` \\ `)} \end{cases}`,
     });
   }
 
@@ -254,8 +254,8 @@ export function solveConvolution(input: ConvolutionInput): Result {
       title: 'Verificación numérica de la integral',
       columns: [
         { key: 't', header: 't' },
-        { key: 'cerrada', header: 'y(t)\\ \\text{cerrada}' },
-        { key: 'numerica', header: '\\int_0^t x(z)h(t-z)\\,dz' },
+        { key: 'cerrada', header: String.raw`y(t)\ \text{cerrada}` },
+        { key: 'numerica', header: String.raw`\int_0^t x(z)h(t-z)\,dz` },
       ],
       rows: instants.map((t) => ({
         t: Number(formatNumber(t, 4)),

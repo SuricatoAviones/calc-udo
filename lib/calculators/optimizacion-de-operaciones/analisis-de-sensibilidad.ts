@@ -99,13 +99,13 @@ export function solveSensitivity(
     title: 'Precios duales',
     explanation:
       'En la tabla óptima, el coeficiente de la holgura sᵢ en la fila z es el precio dual del recurso i: cuánto cambia z por cada unidad adicional de bᵢ (mientras la base no cambie). Un recurso con holgura positiva tiene precio dual 0.',
-    result: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(',\\quad '),
+    result: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(String.raw`,\quad `),
   });
   steps.push({
     title: 'Rangos de factibilidad de los recursos',
     explanation:
       'Si bᵢ cambia en D, los valores básicos cambian en D veces la columna de sᵢ. La base sigue siendo factible (y la solución, con los mismos precios duales) mientras ningún valor básico se haga negativo.',
-    formula: 'x_B + D \\cdot (\\text{columna de } s_i) \\ge 0',
+    formula: String.raw`x_B + D \cdot (\text{columna de } s_i) \ge 0`,
     children: lp.constraints.map((c, i) => {
       const k = slackOf[i]!;
       const range = rhsRanges[i]!;
@@ -114,10 +114,10 @@ export function solveSensitivity(
         substitution: t.rows
           .map(
             (row, r) =>
-              `${t.columns[t.basis[r]!]!.latex}:\\ ${t.rhs[r]!.toLatex()} ${row[k]!.sign() < 0 ? '-' : '+'} ${row[k]!.abs().toLatex()}D \\ge 0`,
+              String.raw`${t.columns[t.basis[r]!]!.latex}:\ ${t.rhs[r]!.toLatex()} ${row[k]!.sign() < 0 ? '-' : '+'} ${row[k]!.abs().toLatex()}D \ge 0`,
           )
-          .join(',\\quad '),
-        result: `${bound(range.dLo, '-\\infty')} \\le D \\le ${bound(range.dHi, '\\infty')} \\ \\Rightarrow\\ ${bound(range.lo, '-\\infty')} \\le b_{${i + 1}} \\le ${bound(range.hi, '\\infty')}`,
+          .join(String.raw`,\quad `),
+        result: String.raw`${bound(range.dLo, String.raw`-\infty`)} \le D \le ${bound(range.dHi, String.raw`\infty`)} \ \Rightarrow\ ${bound(range.lo, String.raw`-\infty`)} \le b_{${i + 1}} \le ${bound(range.hi, String.raw`\infty`)}`,
       };
     }),
   });
@@ -140,9 +140,9 @@ export function solveSensitivity(
         .filter((k) => !t.rows[r]![k]!.isZero())
         .map((k) => {
           const alpha = t.rows[r]![k]!;
-          return `${t.columns[k]!.latex}:\\ ${t.z[k]!.a.toLatex()} ${alpha.sign() < 0 ? '-' : '+'} ${alpha.abs().toLatex()}d ${max ? '\\ge' : '\\le'} 0`;
+          return String.raw`${t.columns[k]!.latex}:\ ${t.z[k]!.a.toLatex()} ${alpha.sign() < 0 ? '-' : '+'} ${alpha.abs().toLatex()}d ${max ? String.raw`\ge` : String.raw`\le`} 0`;
         })
-        .join(',\\quad ');
+        .join(String.raw`,\quad `);
     } else {
       const reduced = t.z[j]!.a;
       if (max) {
@@ -152,7 +152,7 @@ export function solveSensitivity(
         lo = reduced;
         hi = null;
       }
-      detail = `${t.columns[j]!.latex}\\ \\text{no básica}:\\ ${reduced.toLatex()} - d ${max ? '\\ge' : '\\le'} 0`;
+      detail = String.raw`${t.columns[j]!.latex}\ \text{no básica}:\ ${reduced.toLatex()} - d ${max ? String.raw`\ge` : String.raw`\le`} 0`;
     }
     const c = lp.objective[j]!;
     return {
@@ -172,7 +172,7 @@ export function solveSensitivity(
       return {
         title: `${v} (${range.basic ? 'básica' : 'no básica'}, c = ${lp.objective[j]!.toText()})`,
         substitution: range.detail || undefined,
-        result: `${bound(range.dLo, '-\\infty')} \\le d \\le ${bound(range.dHi, '\\infty')} \\ \\Rightarrow\\ ${bound(range.lo, '-\\infty')} \\le c_{${j + 1}} \\le ${bound(range.hi, '\\infty')}`,
+        result: String.raw`${bound(range.dLo, String.raw`-\infty`)} \le d \le ${bound(range.dHi, String.raw`\infty`)} \ \Rightarrow\ ${bound(range.lo, String.raw`-\infty`)} \le c_{${j + 1}} \le ${bound(range.hi, String.raw`\infty`)}`,
       };
     }),
   });
@@ -190,7 +190,7 @@ export function solveSensitivity(
       ...base.summary,
       {
         label: 'Precios duales',
-        value: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(',\\ '),
+        value: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(String.raw`,\ `),
       },
     ],
     ...emptyTrace(),
@@ -202,40 +202,40 @@ export function solveSensitivity(
         id: 'recursos',
         title: 'Recursos: precios duales y rangos de factibilidad',
         columns: [
-          { key: 'constraint', header: '\\text{Restricción}', format: 'text' },
+          { key: 'constraint', header: String.raw`\text{Restricción}`, format: 'text' },
           { key: 'rhs', header: 'b_i', format: 'latex' },
           { key: 'slack', header: 's_i', format: 'latex' },
           { key: 'dual', header: 'y_i', format: 'latex' },
-          { key: 'min', header: '\\text{Mínimo}', format: 'latex' },
-          { key: 'max', header: '\\text{Máximo}', format: 'latex' },
+          { key: 'min', header: String.raw`\text{Mínimo}`, format: 'latex' },
+          { key: 'max', header: String.raw`\text{Máximo}`, format: 'latex' },
         ],
         rows: lp.constraints.map((c, i) => ({
           constraint: `R${i + 1}`,
           rhs: c.rhs.toLatex(),
           slack: values[slackOf[i]!]!.toLatex(),
           dual: dual[i]!.toLatex(),
-          min: bound(rhsRanges[i]!.lo, '-\\infty'),
-          max: bound(rhsRanges[i]!.hi, '\\infty'),
+          min: bound(rhsRanges[i]!.lo, String.raw`-\infty`),
+          max: bound(rhsRanges[i]!.hi, String.raw`\infty`),
         })),
       },
       {
         id: 'costos',
         title: 'Coeficientes del objetivo: rangos de optimalidad',
         columns: [
-          { key: 'variable', header: '\\text{Variable}', format: 'latex' },
+          { key: 'variable', header: String.raw`\text{Variable}`, format: 'latex' },
           { key: 'c', header: 'c_j', format: 'latex' },
-          { key: 'value', header: '\\text{Valor}', format: 'latex' },
-          { key: 'status', header: '\\text{Estado}', format: 'text' },
-          { key: 'min', header: '\\text{Mínimo}', format: 'latex' },
-          { key: 'max', header: '\\text{Máximo}', format: 'latex' },
+          { key: 'value', header: String.raw`\text{Valor}`, format: 'latex' },
+          { key: 'status', header: String.raw`\text{Estado}`, format: 'text' },
+          { key: 'min', header: String.raw`\text{Mínimo}`, format: 'latex' },
+          { key: 'max', header: String.raw`\text{Máximo}`, format: 'latex' },
         ],
         rows: lp.variables.map((v, j) => ({
           variable: variableLatex(v),
           c: lp.objective[j]!.toLatex(),
           value: values[j]!.toLatex(),
           status: costRanges[j]!.basic ? 'Básica' : 'No básica',
-          min: bound(costRanges[j]!.lo, '-\\infty'),
-          max: bound(costRanges[j]!.hi, '\\infty'),
+          min: bound(costRanges[j]!.lo, String.raw`-\infty`),
+          max: bound(costRanges[j]!.hi, String.raw`\infty`),
         })),
       },
     ],

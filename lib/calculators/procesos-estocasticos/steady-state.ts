@@ -36,18 +36,19 @@ export function solveSteadyState({
   P,
 }: SteadyStateInput): CalculatorResult<SteadyStateValue, SteadyStateErrorCode> {
   const size = P.length;
-  const piName = (j: number) => `\\pi_{${j + 1}}`;
+  const piName = (j: number) => String.raw`\pi_{${j + 1}}`;
 
   const equations = P.map(
-    (_, j) => `${piName(j)} &= ${P.map((row, i) => `${n(row[j]!)}\\,${piName(i)}`).join(' + ')}`,
+    (_, j) =>
+      `${piName(j)} &= ${P.map((row, i) => String.raw`${n(row[j]!)}\,${piName(i)}`).join(' + ')}`,
   );
   const steps: Step[] = [
     {
       title: 'Plantear las ecuaciones de balance',
       explanation:
         'En el estado estable, la probabilidad de estar en j es la misma antes y después de una transición: π = πP. Además, las probabilidades suman 1.',
-      formula: '\\pi_j = \\sum_i \\pi_i\\,p_{ij}, \\qquad \\sum_j \\pi_j = 1',
-      substitution: `\\begin{aligned} ${equations.join(' \\\\ ')} \\\\ 1 &= ${P.map((_, j) => piName(j)).join(' + ')} \\end{aligned}`,
+      formula: String.raw`\pi_j = \sum_i \pi_i\,p_{ij}, \qquad \sum_j \pi_j = 1`,
+      substitution: String.raw`\begin{aligned} ${equations.join(String.raw` \\ `)} \\ 1 &= ${P.map((_, j) => piName(j)).join(' + ')} \end{aligned}`,
     },
   ];
 
@@ -61,8 +62,8 @@ export function solveSteadyState({
   steps.push({
     title: 'Reemplazar la ecuación redundante',
     explanation: `Una de las ${size} ecuaciones de balance se deduce de las demás, así que la última se reemplaza por la de normalización. Queda un sistema lineal A π = b.`,
-    formula: 'A\\,\\pi^T = b',
-    result: `${toLatexMatrix(A)} \\begin{bmatrix} ${P.map((_, j) => piName(j)).join(' \\\\ ')} \\end{bmatrix} = ${toLatexMatrix(b.map((v) => [v]))}`,
+    formula: String.raw`A\,\pi^T = b`,
+    result: String.raw`${toLatexMatrix(A)} \begin{bmatrix} ${P.map((_, j) => piName(j)).join(String.raw` \\ `)} \end{bmatrix} = ${toLatexMatrix(b.map((v) => [v]))}`,
   });
 
   const solution = solveLinearSystem(A, b);
@@ -82,25 +83,27 @@ export function solveSteadyState({
   steps.push({
     title: 'Resolver el sistema',
     explanation: 'Se resuelve por eliminación de Gauss con pivoteo parcial.',
-    result: `\\pi = ${toLatexVector(pi)}`,
+    result: String.raw`\pi = ${toLatexVector(pi)}`,
   });
 
   const check = vectorTimesMatrix(pi, P);
   steps.push({
     title: 'Verificar que π = πP',
-    formula: '\\pi P = \\pi',
-    substitution: `${toLatexVector(pi)}\\,${toLatexMatrix(P)} = ${toLatexVector(check)}`,
+    formula: String.raw`\pi P = \pi`,
+    substitution: String.raw`${toLatexVector(pi)}\,${toLatexMatrix(P)} = ${toLatexVector(check)}`,
   });
 
   const recurrenceTimes = pi.map((p) => (p === 0 ? Infinity : 1 / p));
   steps.push({
     title: 'Tiempos medios de recurrencia',
     explanation: 'Número esperado de transiciones para volver a un estado partiendo de él.',
-    formula: '\\mu_{jj} = \\frac{1}{\\pi_j}',
+    formula: String.raw`\mu_{jj} = \frac{1}{\pi_j}`,
     substitution: pi
-      .map((p, j) => `\\mu_{${j + 1}${j + 1}} = \\frac{1}{${n(p)}}`)
-      .join(', \\quad '),
-    result: recurrenceTimes.map((m, j) => `\\mu_{${j + 1}${j + 1}} = ${n(m, 6)}`).join(', \\quad '),
+      .map((p, j) => String.raw`\mu_{${j + 1}${j + 1}} = \frac{1}{${n(p)}}`)
+      .join(String.raw`, \quad `),
+    result: recurrenceTimes
+      .map((m, j) => String.raw`\mu_{${j + 1}${j + 1}} = ${n(m, 6)}`)
+      .join(String.raw`, \quad `),
   });
 
   const notices: Notice[] = [];
@@ -123,12 +126,12 @@ export function solveSteadyState({
     summary: [
       {
         label: 'Probabilidades de estado estable',
-        value: `\\pi = ${toLatexVector(pi, 6)}`,
+        value: String.raw`\pi = ${toLatexVector(pi, 6)}`,
         emphasis: true,
       },
       ...pi.map((p, j) => ({
         label: `Estado ${j + 1}`,
-        value: `\\pi_{${j + 1}} = ${n(p, 6)}, \\quad \\mu_{${j + 1}${j + 1}} = ${Number.isFinite(recurrenceTimes[j]!) ? n(recurrenceTimes[j]!, 4) : '\\infty'}`,
+        value: String.raw`\pi_{${j + 1}} = ${n(p, 6)}, \quad \mu_{${j + 1}${j + 1}} = ${Number.isFinite(recurrenceTimes[j]!) ? n(recurrenceTimes[j]!, 4) : String.raw`\infty`}`,
       })),
     ],
     ...emptyTrace(),
@@ -139,9 +142,9 @@ export function solveSteadyState({
         id: 'estado-estable',
         title: 'Distribución de estado estable',
         columns: [
-          { key: 'state', header: '\\text{Estado}' },
-          { key: 'pi', header: '\\pi_j' },
-          { key: 'mu', header: '\\mu_{jj}' },
+          { key: 'state', header: String.raw`\text{Estado}` },
+          { key: 'pi', header: String.raw`\pi_j` },
+          { key: 'mu', header: String.raw`\mu_{jj}` },
         ],
         rows: pi.map((p, j) => ({
           state: j + 1,

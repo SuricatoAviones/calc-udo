@@ -105,12 +105,11 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
       title: 'Tiempo esperado y varianza de cada actividad',
       explanation:
         'Con las estimaciones optimista (a), más probable (m) y pesimista (b), PERT supone una distribución beta para la duración de cada actividad y aproxima su media y su varianza así.',
-      formula:
-        '\\mu = \\frac{a + 4m + b}{6}, \\qquad \\sigma^2 = \\left(\\frac{b - a}{6}\\right)^2',
+      formula: String.raw`\mu = \frac{a + 4m + b}{6}, \qquad \sigma^2 = \left(\frac{b - a}{6}\right)^2`,
       children: estimates.map((a) => ({
         title: a.name,
-        substitution: `\\mu = \\frac{${n(a.optimistic)} + 4(${n(a.mostLikely)}) + ${n(a.pessimistic)}}{6}, \\qquad \\sigma^2 = \\left(\\frac{${n(a.pessimistic)} - ${n(a.optimistic)}}{6}\\right)^2`,
-        result: `\\mu = ${n(a.mean, 6)}, \\qquad \\sigma^2 = ${n(a.variance, 6)}`,
+        substitution: String.raw`\mu = \frac{${n(a.optimistic)} + 4(${n(a.mostLikely)}) + ${n(a.pessimistic)}}{6}, \qquad \sigma^2 = \left(\frac{${n(a.pessimistic)} - ${n(a.optimistic)}}{6}\right)^2`,
+        result: String.raw`\mu = ${n(a.mean, 6)}, \qquad \sigma^2 = ${n(a.variance, 6)}`,
       })),
     },
   ];
@@ -121,7 +120,7 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
       predecessors: parsePredecessors(a.predecessors),
       duration: a.mean,
     })),
-    { durationSymbol: '\\mu' },
+    { durationSymbol: String.raw`\mu` },
   );
   if (!analysis.ok) {
     return {
@@ -161,10 +160,9 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
     title: 'Media y varianza de la duración del proyecto',
     explanation:
       'Se suman las medias y las varianzas de las actividades de la ruta crítica media, suponiendo que sus duraciones son independientes.',
-    formula:
-      '\\mu_p = \\sum_{\\text{ruta crítica}} \\mu, \\qquad \\sigma_p^2 = \\sum_{\\text{ruta crítica}} \\sigma^2',
-    substitution: `\\mu_p = ${path.map((a) => n(meanOf.get(a)!, 6)).join(' + ')}, \\qquad \\sigma_p^2 = ${path.map((a) => n(varianceOf.get(a)!, 6)).join(' + ')}`,
-    result: `\\mu_p = ${n(mean, 6)}, \\qquad \\sigma_p^2 = ${n(variance, 6)}, \\qquad \\sigma_p = ${n(sd, 6)}`,
+    formula: String.raw`\mu_p = \sum_{\text{ruta crítica}} \mu, \qquad \sigma_p^2 = \sum_{\text{ruta crítica}} \sigma^2`,
+    substitution: String.raw`\mu_p = ${path.map((a) => n(meanOf.get(a)!, 6)).join(' + ')}, \qquad \sigma_p^2 = ${path.map((a) => n(varianceOf.get(a)!, 6)).join(' + ')}`,
+    result: String.raw`\mu_p = ${n(mean, 6)}, \qquad \sigma_p^2 = ${n(variance, 6)}, \qquad \sigma_p = ${n(sd, 6)}`,
   });
 
   const notices: Notice[] = [];
@@ -183,7 +181,7 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
       title: 'Probabilidad de terminar a tiempo',
       explanation:
         'Las actividades de la ruta crítica no tienen incertidumbre (a = b), así que la duración del proyecto es exactamente μ_p.',
-      result: `P(T \\le ${n(d)}) = ${probability}`,
+      result: String.raw`P(T \le ${n(d)}) = ${probability}`,
     });
     notices.push({
       level: 'warning',
@@ -197,9 +195,9 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
       title: 'Probabilidad de terminar a tiempo',
       explanation:
         'La duración del proyecto se aproxima con una normal N(μ_p, σ_p): se estandariza la fecha d y se busca el área a la izquierda en la tabla de la normal.',
-      formula: 'z = \\frac{d - \\mu_p}{\\sigma_p}, \\qquad P(T \\le d) \\approx \\Phi(z)',
-      substitution: `z = \\frac{${n(d)} - ${toLatexOperand(mean, 6)}}{${n(sd, 6)}}`,
-      result: `z = ${n(z, 6)}, \\qquad P(T \\le ${n(d)}) \\approx \\Phi(${n(z, 4)}) = ${n(probability, 4)}`,
+      formula: String.raw`z = \frac{d - \mu_p}{\sigma_p}, \qquad P(T \le d) \approx \Phi(z)`,
+      substitution: String.raw`z = \frac{${n(d)} - ${toLatexOperand(mean, 6)}}{${n(sd, 6)}}`,
+      result: String.raw`z = ${n(z, 6)}, \qquad P(T \le ${n(d)}) \approx \Phi(${n(z, 4)}) = ${n(probability, 4)}`,
     });
   }
   notices.push({
@@ -231,13 +229,13 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
     summary: [
       {
         label: `Probabilidad de terminar en ${formatNumber(d)} o menos`,
-        value: `P(T \\le ${n(d)}) \\approx ${n(probability, 4)}`,
+        value: String.raw`P(T \le ${n(d)}) \approx ${n(probability, 4)}`,
         emphasis: true,
       },
-      { label: 'Duración esperada', value: `\\mu_p = ${n(mean, 6)}` },
+      { label: 'Duración esperada', value: String.raw`\mu_p = ${n(mean, 6)}` },
       {
         label: 'Varianza y desviación',
-        value: `\\sigma_p^2 = ${n(variance, 6)}, \\quad \\sigma_p = ${n(sd, 6)}`,
+        value: String.raw`\sigma_p^2 = ${n(variance, 6)}, \quad \sigma_p = ${n(sd, 6)}`,
       },
       { label: 'Ruta crítica media', value: criticalPathLatex(path) },
     ],
@@ -249,13 +247,13 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
         id: 'estimaciones',
         title: 'Estimaciones de tiempo de las actividades',
         columns: [
-          { key: 'name', header: '\\text{Actividad}', format: 'text' },
-          { key: 'predecessors', header: '\\text{Predecesoras}', format: 'text' },
+          { key: 'name', header: String.raw`\text{Actividad}`, format: 'text' },
+          { key: 'predecessors', header: String.raw`\text{Predecesoras}`, format: 'text' },
           { key: 'a', header: 'a' },
           { key: 'm', header: 'm' },
           { key: 'b', header: 'b' },
-          { key: 'mean', header: '\\mu' },
-          { key: 'variance', header: '\\sigma^2' },
+          { key: 'mean', header: String.raw`\mu` },
+          { key: 'variance', header: String.raw`\sigma^2` },
         ],
         rows: activities.map((a) => ({
           name: a.name,
@@ -271,8 +269,8 @@ export function solvePert(input: PertInput): CalculatorResult<PertValue, PertErr
         id: 'programacion',
         title: 'Programación con los tiempos esperados',
         columns: [
-          { key: 'name', header: '\\text{Actividad}', format: 'text' },
-          { key: 'mean', header: '\\mu' },
+          { key: 'name', header: String.raw`\text{Actividad}`, format: 'text' },
+          { key: 'mean', header: String.raw`\mu` },
           ...scheduleColumns(),
         ],
         rows: activities.map((a) => ({ name: a.name, mean: a.duration, ...scheduleRow(a) })),
