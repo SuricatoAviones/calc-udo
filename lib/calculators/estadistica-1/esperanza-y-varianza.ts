@@ -22,7 +22,6 @@ import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Series,
   type Step,
 } from '../types';
@@ -282,7 +281,7 @@ function solveDiscreteCase(input: ExpectationInput): Result {
   };
 }
 
-const boundLatex = (v: number): Latex =>
+const boundLatex = (v: number): string =>
   v === Infinity ? String.raw`\infty` : v === -Infinity ? String.raw`-\infty` : n(v);
 
 function solveContinuousCase(input: ExpectationInput): Result {

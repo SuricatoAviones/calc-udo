@@ -207,25 +207,26 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
   const steps: Step[] = [];
   const tables: ResultTable[] = [];
 
-  steps.push({
-    title: 'Circuito',
-    explanation: `Diodo en serie con R = ${engText(R, 'Ω')} y una fuente de ${engText(input.source, 'V')}${
-      input.orientation === 'inversa'
-        ? ', con el diodo invertido respecto del sentido en que la fuente empuja la corriente'
-        : ''
-    }. Se usa el ${MODEL_NAME[model]}.`,
-    formula: String.raw`E - V_D - V_R = 0,\qquad V_R = I_D R`,
-    result: String.raw`E_{\text{directa}} = ${n(e)}\ \text{V}`,
-  });
-
-  steps.push({
-    title: 'Recta de carga',
-    explanation:
-      'La red impone I_D = (E − V_D)/R: corta al eje de corriente en E/R (V_D = 0) y al de voltaje en E (I_D = 0).',
-    formula: String.raw`I_D = \frac{E - V_D}{R}`,
-    substitution: String.raw`I_D\big|_{V_D = 0} = \frac{${n(e)}}{${n(R)}},\qquad V_D\big|_{I_D = 0} = ${n(e)}\ \text{V}`,
-    result: String.raw`I_D\big|_{V_D = 0} = ${engTex(e / R, 'A')}`,
-  });
+  steps.push(
+    {
+      title: 'Circuito',
+      explanation: `Diodo en serie con R = ${engText(R, 'Ω')} y una fuente de ${engText(input.source, 'V')}${
+        input.orientation === 'inversa'
+          ? ', con el diodo invertido respecto del sentido en que la fuente empuja la corriente'
+          : ''
+      }. Se usa el ${MODEL_NAME[model]}.`,
+      formula: String.raw`E - V_D - V_R = 0,\qquad V_R = I_D R`,
+      result: String.raw`E_{\text{directa}} = ${n(e)}\ \text{V}`,
+    },
+    {
+      title: 'Recta de carga',
+      explanation:
+        'La red impone I_D = (E − V_D)/R: corta al eje de corriente en E/R (V_D = 0) y al de voltaje en E (I_D = 0).',
+      formula: String.raw`I_D = \frac{E - V_D}{R}`,
+      substitution: String.raw`I_D\big|_{V_D = 0} = \frac{${n(e)}}{${n(R)}},\qquad V_D\big|_{I_D = 0} = ${n(e)}\ \text{V}`,
+      result: String.raw`I_D\big|_{V_D = 0} = ${engTex(e / R, 'A')}`,
+    },
+  );
 
   let conducting: boolean;
   let id: number;
@@ -250,18 +251,20 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     conducting = id > 0 && vd > 0;
     iterations = solved.rows.length - 1;
     const nvt = input.n * input.vt;
-    steps.push({
-      title: 'Característica del diodo',
-      explanation: `Ecuación de Shockley con I_S = ${engText(input.is, 'A')}, n = ${formatNumber(input.n, 4)} y V_T = ${engText(input.vt, 'V')}.`,
-      formula: String.raw`I_D = I_S\left(e^{V_D/(nV_T)} - 1\right)`,
-      substitution: String.raw`I_D = ${n(input.is)}\left(e^{V_D/${n(nvt)}} - 1\right)`,
-    });
-    steps.push({
-      title: 'Punto de operación (Newton)',
-      explanation: `El punto Q cumple a la vez la ecuación del diodo y la recta de carga. Se resuelve f(V_D) = 0 con el método de Newton; convergió en ${iterations} iteraciones (tabla de abajo).`,
-      formula: String.raw`f(V_D) = I_S\left(e^{V_D/(nV_T)} - 1\right) - \frac{E - V_D}{R},\qquad V_{k+1} = V_k - \frac{f(V_k)}{f'(V_k)}`,
-      result: String.raw`V_{DQ} = ${n(vd, 6)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
-    });
+    steps.push(
+      {
+        title: 'Característica del diodo',
+        explanation: `Ecuación de Shockley con I_S = ${engText(input.is, 'A')}, n = ${formatNumber(input.n, 4)} y V_T = ${engText(input.vt, 'V')}.`,
+        formula: String.raw`I_D = I_S\left(e^{V_D/(nV_T)} - 1\right)`,
+        substitution: String.raw`I_D = ${n(input.is)}\left(e^{V_D/${n(nvt)}} - 1\right)`,
+      },
+      {
+        title: 'Punto de operación (Newton)',
+        explanation: `El punto Q cumple a la vez la ecuación del diodo y la recta de carga. Se resuelve f(V_D) = 0 con el método de Newton; convergió en ${iterations} iteraciones (tabla de abajo).`,
+        formula: String.raw`f(V_D) = I_S\left(e^{V_D/(nV_T)} - 1\right) - \frac{E - V_D}{R},\qquad V_{k+1} = V_k - \frac{f(V_k)}{f'(V_k)}`,
+        result: String.raw`V_{DQ} = ${n(vd, 6)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
+      },
+    );
     tables.push({
       id: 'newton',
       title: 'Iteraciones de Newton',
@@ -292,39 +295,41 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     if (conducting) {
       id = (e - vk) / (R + rb);
       vd = vk + id * rb;
-      steps.push({
-        title: 'Corriente del diodo',
-        explanation:
-          model === 'ideal'
-            ? 'El diodo ideal encendido es un cortocircuito: toda la fuente queda en R.'
-            : model === 'segunda'
-              ? 'Se reemplaza el diodo por una fuente de V_K: la caída es fija para cualquier corriente.'
-              : 'Se reemplaza el diodo por V_K en serie con su resistencia interna r_B.',
-        formula:
-          model === 'tercera'
-            ? String.raw`I_D = \frac{E - V_K}{R + r_B}`
-            : model === 'segunda'
-              ? String.raw`I_D = \frac{E - V_K}{R}`
-              : String.raw`I_D = \frac{E}{R}`,
-        substitution:
-          model === 'tercera'
-            ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`
-            : model === 'segunda'
-              ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)}}`
-              : String.raw`I_D = \frac{${n(e)}}{${n(R)}}`,
-        result: `I_D = ${engTex(id, 'A', 6)}`,
-      });
-      steps.push({
-        title: 'Voltaje del diodo',
-        formula:
-          model === 'tercera'
-            ? 'V_D = V_K + I_D r_B'
-            : model === 'segunda'
-              ? 'V_D = V_K'
-              : 'V_D = 0',
-        substitution: model === 'tercera' ? `V_D = ${n(vk)} + (${n(id)})(${n(rb)})` : undefined,
-        result: String.raw`V_D = ${n(vd)}\ \text{V}`,
-      });
+      steps.push(
+        {
+          title: 'Corriente del diodo',
+          explanation:
+            model === 'ideal'
+              ? 'El diodo ideal encendido es un cortocircuito: toda la fuente queda en R.'
+              : model === 'segunda'
+                ? 'Se reemplaza el diodo por una fuente de V_K: la caída es fija para cualquier corriente.'
+                : 'Se reemplaza el diodo por V_K en serie con su resistencia interna r_B.',
+          formula:
+            model === 'tercera'
+              ? String.raw`I_D = \frac{E - V_K}{R + r_B}`
+              : model === 'segunda'
+                ? String.raw`I_D = \frac{E - V_K}{R}`
+                : String.raw`I_D = \frac{E}{R}`,
+          substitution:
+            model === 'tercera'
+              ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`
+              : model === 'segunda'
+                ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)}}`
+                : String.raw`I_D = \frac{${n(e)}}{${n(R)}}`,
+          result: `I_D = ${engTex(id, 'A', 6)}`,
+        },
+        {
+          title: 'Voltaje del diodo',
+          formula:
+            model === 'tercera'
+              ? 'V_D = V_K + I_D r_B'
+              : model === 'segunda'
+                ? 'V_D = V_K'
+                : 'V_D = 0',
+          substitution: model === 'tercera' ? `V_D = ${n(vk)} + (${n(id)})(${n(rb)})` : undefined,
+          result: String.raw`V_D = ${n(vd)}\ \text{V}`,
+        },
+      );
     } else {
       id = 0;
       vd = e;

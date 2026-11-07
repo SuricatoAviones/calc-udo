@@ -12,7 +12,7 @@
  * edad inicial.
  */
 import { z } from 'zod';
-import { latexLines, toLatexNumber } from '@/lib/math/format';
+import { latexLines, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -84,9 +84,7 @@ export interface ReplacementValue {
   stages: Record<number, number>[];
 }
 
-export type ReplacementErrorCode = never;
-
-type Result = CalculatorResult<ReplacementValue, ReplacementErrorCode>;
+type Result = CalculatorResult<ReplacementValue, never>;
 
 const n = toLatexNumber;
 const MAX_POLICIES = 10;
@@ -156,7 +154,7 @@ export function solveReplacement(input: ReplacementInput): Result {
       f[i]!.set(t, { value: best, decisions: arg });
       rows.push({ state: String(t), values, best, argBest: arg });
       lines.push(
-        String.raw`t = ${t}:\ ${parts.join(String.raw`,\ `)} \ \Rightarrow\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${canKeep ? '' : t >= maxAge ? String.raw`\ \text{(debe reemplazarse)}` : ''}`,
+        String.raw`t = ${t}:\ ${parts.join(TEX.listSep)} \ \Rightarrow\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${canKeep ? '' : t >= maxAge ? String.raw`\ \text{(debe reemplazarse)}` : ''}`,
       );
     }
     stageSteps.push({
@@ -235,7 +233,7 @@ export function solveReplacement(input: ReplacementInput): Result {
   };
 }
 
-export const replacement: Calculator<ReplacementInput, ReplacementValue, ReplacementErrorCode> = {
+export const replacement: Calculator<ReplacementInput, ReplacementValue, never> = {
   meta: {
     id: 'reemplazo-de-equipo',
     title: 'Modelo de reemplazo de equipo',

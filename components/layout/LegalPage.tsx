@@ -16,7 +16,10 @@ const dateFormatter = new Intl.DateTimeFormat('es-VE', {
 });
 
 /** Plantilla común de los documentos legales: migas, título, fecha y enlaces a los demás. */
-export function LegalPage({ slug, children }: { slug: LegalSlug; children: React.ReactNode }) {
+export function LegalPage({
+  slug,
+  children,
+}: Readonly<{ slug: LegalSlug; children: React.ReactNode }>) {
   const doc = getLegalDocument(slug);
   const others = legalDocuments.filter((d) => d.slug !== slug);
 

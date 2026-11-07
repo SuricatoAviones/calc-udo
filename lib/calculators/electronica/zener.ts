@@ -8,7 +8,7 @@
  * V_i mín = (R_L + R_S)V_Z/R_L, V_i máx = (I_ZM + I_L)R_S + V_Z (ecs. 2.27 a 2.29).
  * Rizado: V_r(out) = (R_Z ∥ R_L)/(R_S + R_Z ∥ R_L)·V_r(in) ≈ (R_Z/R_S)·V_r(in) (Malvino, ec. 5-8).
  */
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { Step } from '../types';
 import { engTex, engText, parallel } from './units';
 
@@ -44,7 +44,7 @@ export function zenerFixed(
       : `Sin el Zener, la carga tendría ${engText(vOpen, 'V')} < V_Z = ${engText(vz, 'V')}: el Zener está apagado (circuito abierto) y no regula.`,
     formula: String.raw`V = \frac{R_L V_i}{R_S + R_L}`,
     substitution: String.raw`V = \frac{(${n(rl)})(${n(vi)})}{${n(rs)} + ${n(rl)}}`,
-    result: String.raw`V = ${n(vOpen)}\ \text{V}\ ${on ? String.raw`\ge` : '<'}\ V_Z`,
+    result: String.raw`V = ${n(vOpen)}\ \text{V}\ ${on ? TEX.ge : '<'}\ V_Z`,
   });
   if (!on) {
     const il = vOpen / rl;
@@ -81,17 +81,19 @@ export function zenerFixed(
   const il = vl / rl;
   const iz = ir - il;
   const pz = (rz > 0 ? vl : vz) * iz;
-  steps.push({
-    title: 'Corrientes',
-    formula: String.raw`I_R = \frac{V_i - V_L}{R_S},\qquad I_L = \frac{V_L}{R_L},\qquad I_Z = I_R - I_L`,
-    substitution: String.raw`I_R = \frac{${n(vi)} - ${n(vl)}}{${n(rs)}},\quad I_L = \frac{${n(vl)}}{${n(rl)}}`,
-    result: String.raw`I_R = ${engTex(ir, 'A')},\quad I_L = ${engTex(il, 'A')},\quad I_Z = ${engTex(iz, 'A')}`,
-  });
-  steps.push({
-    title: 'Potencia en el Zener',
-    formula: 'P_Z = V_Z I_Z',
-    result: `P_Z = ${engTex(pz, 'W')}`,
-  });
+  steps.push(
+    {
+      title: 'Corrientes',
+      formula: String.raw`I_R = \frac{V_i - V_L}{R_S},\qquad I_L = \frac{V_L}{R_L},\qquad I_Z = I_R - I_L`,
+      substitution: String.raw`I_R = \frac{${n(vi)} - ${n(vl)}}{${n(rs)}},\quad I_L = \frac{${n(vl)}}{${n(rl)}}`,
+      result: String.raw`I_R = ${engTex(ir, 'A')},\quad I_L = ${engTex(il, 'A')},\quad I_Z = ${engTex(iz, 'A')}`,
+    },
+    {
+      title: 'Potencia en el Zener',
+      formula: 'P_Z = V_Z I_Z',
+      result: `P_Z = ${engTex(pz, 'W')}`,
+    },
+  );
   return { on, vOpen, vl, vr, il, ir, iz, pz, steps };
 }
 
@@ -133,7 +135,7 @@ export function zenerLoadRange(vi: number, rs: number, vz: number, izm: number):
         'La corriente del Zener no puede superar I_ZM: eso fija la corriente mínima de la carga.',
       formula: String.raw`I_{L\,min} = I_R - I_{ZM},\qquad R_{L\,max} = \frac{V_Z}{I_{L\,min}}`,
       substitution: String.raw`I_{L\,min} = ${n(ir)} - ${n(izm)}`,
-      result: String.raw`I_{L\,min} = ${engTex(ilMin, 'A')},\quad R_{L\,max} = ${Number.isFinite(rlMax) ? engTex(rlMax, 'Ω') : String.raw`\infty`}`,
+      result: String.raw`I_{L\,min} = ${engTex(ilMin, 'A')},\quad R_{L\,max} = ${Number.isFinite(rlMax) ? engTex(rlMax, 'Ω') : TEX.infty}`,
     },
     {
       title: 'Potencia nominal del Zener',

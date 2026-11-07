@@ -12,7 +12,7 @@
  * de Kolkmeyer, 13.ª ed.).
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, Step } from '../types';
 import {
   factorial,
@@ -108,7 +108,7 @@ export function solveFinitePopulation({
       title: 'Probabilidad de que el sistema esté vacío',
       explanation: `Se suman los términos de cada estado n = 0, 1, …, ${K}; cada p_n es su término multiplicado por p₀.`,
       formula: String.raw`p_0 = \left[\sum_{n=0}^{R} \binom{K}{n} r^n + \sum_{n=R+1}^{K} \binom{K}{n} \frac{n!\,r^n}{R!\,R^{\,n-R}}\right]^{-1}`,
-      substitution: String.raw`p_0 = \left[${shown.join(' + ')}${K > 3 ? String.raw` + \cdots` : ''}\right]^{-1} = \left[${n(total, 8)}\right]^{-1}`,
+      substitution: String.raw`p_0 = \left[${shown.join(' + ')}${K > 3 ? TEX.plusCdots : ''}\right]^{-1} = \left[${n(total, 8)}\right]^{-1}`,
       result: `p_0 = ${n(p0)}`,
     },
     {
@@ -118,7 +118,7 @@ export function solveFinitePopulation({
       substitution: `L = ${probabilities
         .slice(0, 3)
         .map((p, k) => `${k}(${n(p, 6)})`)
-        .join(' + ')}${K > 2 ? String.raw` + \cdots` : ''}`,
+        .join(' + ')}${K > 2 ? TEX.plusCdots : ''}`,
       result: `L = ${n(L)}`,
     },
     {

@@ -202,12 +202,12 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
  * líneas adicionales (`others`) en la misma escala. Con una sola serie no hay leyenda: el título
  * la nombra. La tabla de resultados es la vista alternativa accesible.
  */
-export function SeriesChart({ series }: { series: Series }) {
+export function SeriesChart({ series }: Readonly<{ series: Series }>) {
   if (series.kind === 'plane') return <PlaneChart series={series} />;
   return <CartesianChart series={series} />;
 }
 
-function CartesianChart({ series }: { series: Series }) {
+function CartesianChart({ series }: Readonly<{ series: Series }>) {
   const kind = series.kind ?? 'line';
   const isLog = series.yScale === 'log';
   const xLog = series.xScale === 'log';
@@ -445,7 +445,7 @@ function LegendItem({
   thin = false,
   area = false,
   dot = false,
-}: {
+}: Readonly<{
   color: string;
   label: string;
   dashed?: boolean;
@@ -454,7 +454,7 @@ function LegendItem({
   area?: boolean;
   /** Muestra un punto (datos sueltos) en vez de una línea. */
   dot?: boolean;
-}) {
+}>) {
   if (dot) {
     return (
       <li className="flex items-center gap-1.5">

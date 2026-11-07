@@ -7,7 +7,13 @@
  * Es una cota: la probabilidad exacta depende de la distribución, que aquí no se conoce.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand, toLatexRational } from '@/lib/math/format';
+import {
+  formatNumber,
+  toLatexNumber,
+  toLatexOperand,
+  toLatexRational,
+  TEX,
+} from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -162,7 +168,7 @@ export function solveChebyshev(
     substitution: inside
       ? String.raw`${target} \ge 1 - \frac{1}{(${n(k)})^2}`
       : String.raw`${target} \le \frac{1}{(${n(k)})^2}`,
-    result: `${target} ${inside ? String.raw`\ge` : String.raw`\le`} ${boundTex}`,
+    result: `${target} ${inside ? TEX.ge : TEX.le} ${boundTex}`,
   });
 
   if (k <= 1) {
@@ -184,7 +190,7 @@ export function solveChebyshev(
     summary: [
       {
         label: inside ? 'Cota inferior' : 'Cota superior',
-        value: `${target} ${inside ? String.raw`\ge` : String.raw`\le`} ${boundTex}`,
+        value: `${target} ${inside ? TEX.ge : TEX.le} ${boundTex}`,
         emphasis: true,
       },
       { label: 'Desviaciones estándar', value: `k = ${n(k, 6)}` },

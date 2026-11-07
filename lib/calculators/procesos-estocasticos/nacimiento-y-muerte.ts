@@ -14,7 +14,7 @@
  * Medidas: L = Σ n p_n, λ̄ = Σ λ_n p_n (tasa promedio de llegadas que entran) y W = L/λ̄.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -207,7 +207,7 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
     explanation:
       'De las ecuaciones de balance λ_{n−1} p_{n−1} = μ_n p_n se obtiene cada p_n como un múltiplo de p₀. Cada coeficiente es el anterior por λ_{n−1}/μ_n.',
     formula: String.raw`C_0 = 1, \qquad C_n = C_{n-1}\,\frac{\lambda_{n-1}}{\mu_n}, \qquad p_n = C_n\,p_0`,
-    substitution: String.raw`C_1 = \frac{${n(lambdaAt(0))}}{${n(muAt(1))}}${ratioTerms.length > 1 ? String.raw`, \quad ${ratioTerms.slice(1).join(String.raw`,\ `)}` : ''}${C.length > 5 ? String.raw`, \ldots` : ''}`,
+    substitution: String.raw`C_1 = \frac{${n(lambdaAt(0))}}{${n(muAt(1))}}${ratioTerms.length > 1 ? String.raw`, \quad ${ratioTerms.slice(1).join(TEX.listSep)}` : ''}${C.length > 5 ? String.raw`, \ldots` : ''}`,
     result: ratioTerms.join(String.raw`,\ `),
   });
 

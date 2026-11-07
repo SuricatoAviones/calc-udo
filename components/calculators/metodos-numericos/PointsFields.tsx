@@ -3,7 +3,7 @@
 import { TextAreaField } from '@/components/calculators/form/fields';
 
 /** Dos listas de datos, x y y, una junto a la otra. */
-export function PointsFields({ hint }: { hint?: string }) {
+export function PointsFields({ hint }: Readonly<{ hint?: string }>) {
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-3">

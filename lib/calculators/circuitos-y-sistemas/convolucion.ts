@@ -14,7 +14,7 @@
  */
 import { z } from 'zod';
 import * as C from '@/lib/math/complex';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { integrate } from '@/lib/math/quadrature';
 import type { Calculator, CalculatorResult, ResultTable, Series, Step } from '../types';
 import {
@@ -208,8 +208,10 @@ export function solveConvolution(input: ConvolutionInput): Result {
   const inverse = inverseLaplace(Y, 'Y', 'y');
   if (!inverse.ok) return fail(inverse.message, steps);
   const { result } = inverse;
-  steps.push({ title: 'Transformada inversa de Y(s)', children: result.steps });
-  steps.push({ title: 'Respuesta cerrada', result: `y(t) = ${result.tex}` });
+  steps.push(
+    { title: 'Transformada inversa de Y(s)', children: result.steps },
+    { title: 'Respuesta cerrada', result: `y(t) = ${result.tex}` },
+  );
 
   // Por intervalos entre retardos consecutivos.
   const delays = [...new Set(result.groups.map((g) => g.delay))].sort((a, b) => a - b);
@@ -227,7 +229,7 @@ export function solveConvolution(input: ConvolutionInput): Result {
         'En cada intervalo entre retardos consecutivos están activos los escalones que ya arrancaron; se suman y se simplifican, como en el método gráfico.',
       result: String.raw`y(t) = \begin{cases} ${intervals
         .map((r) => `${r.tex} & ${intervalLabel(r.from, r.to)}`)
-        .join(String.raw` \\ `)} \end{cases}`,
+        .join(TEX.newline)} \end{cases}`,
     });
   }
 

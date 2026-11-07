@@ -11,7 +11,7 @@
  *    básica que queda en 0.
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import {
   emptyTrace,
@@ -159,7 +159,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         title: 'Multiplicadores',
         explanation: 'En cada celda básica uᵢ + vⱼ = cᵢⱼ; se fija u₁ = 0 y se despejan los demás.',
         substitution: latexLines(equations),
-        result: String.raw`${u.map((x, i) => `u_{${i + 1}} = ${x.toLatex()}`).join(String.raw`,\ `)};\quad ${v.map((x, j) => `v_{${j + 1}} = ${x.toLatex()}`).join(String.raw`,\ `)}`,
+        result: String.raw`${u.map((x, i) => `u_{${i + 1}} = ${x.toLatex()}`).join(TEX.listSep)};\quad ${v.map((x, j) => `v_{${j + 1}} = ${x.toLatex()}`).join(TEX.listSep)}`,
       },
       {
         title: 'Evaluar las celdas no básicas',
@@ -264,7 +264,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         title: 'Cantidad que se mueve (θ)',
         explanation:
           'θ es la menor asignación de las esquinas con signo −. Se suma en las esquinas + y se resta en las −; la básica que queda en 0 sale de la base.',
-        substitution: String.raw`\theta = \min\{${minus.map((c) => allocation.get(cellKey(c[0], c[1]))!.toLatex()).join(String.raw`,\ `)}\}`,
+        substitution: String.raw`\theta = \min\{${minus.map((c) => allocation.get(cellKey(c[0], c[1]))!.toLatex()).join(TEX.listSep)}\}`,
         result: String.raw`\theta = ${theta.toLatex()},\quad x_{${leaving[0] + 1}${leaving[1] + 1}} \ \text{sale}`,
       },
     );

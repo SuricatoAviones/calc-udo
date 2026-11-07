@@ -23,6 +23,7 @@ import {
   toLatexOperand,
   toLatexRational,
   toRational,
+  TEX,
 } from '@/lib/math/format';
 import {
   emptyTrace,
@@ -73,7 +74,7 @@ function exact(value: number): string {
 }
 
 function vectorLatex(values: number[]): string {
-  return String.raw`\left(${values.map(exact).join(String.raw`,\ `)}\right)`;
+  return String.raw`\left(${values.map(exact).join(TEX.listSep)}\right)`;
 }
 
 // ─── Dominancia ─────────────────────────────────────────────────────────────
@@ -90,9 +91,9 @@ function eliminateDominated(a: PayoffMatrix): Reduction {
   let cols = a[0]!.map((_, j) => j);
   const steps: Step[] = [];
   const rowVector = (i: number) =>
-    String.raw`\left(${cols.map((j) => n(a[i]![j]!)).join(String.raw`,\ `)}\right)`;
+    String.raw`\left(${cols.map((j) => n(a[i]![j]!)).join(TEX.listSep)}\right)`;
   const colVector = (j: number) =>
-    String.raw`\left(${rows.map((i) => n(a[i]![j]!)).join(String.raw`,\ `)}\right)`;
+    String.raw`\left(${rows.map((i) => n(a[i]![j]!)).join(TEX.listSep)}\right)`;
 
   // `high` domina a `low` si nunca es menor y alguna vez es mayor. Para A (maximiza) la fila
   // dominante es la de pagos altos; para B (minimiza), la columna de pagos bajos. Si dos
@@ -395,8 +396,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
       opponent: colName,
       opponentPlain: (j) => `B${j + 1}`,
     });
-    steps.push(...g.steps);
-    steps.push(opponentStep(g, 'B', colName, lines));
+    steps.push(...g.steps, opponentStep(g, 'B', colName, lines));
     if (g.flat) {
       notices.push({
         level: 'info',
@@ -446,8 +446,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
       opponent: rowName,
       opponentPlain: (i) => `A${i + 1}`,
     });
-    steps.push(...g.steps);
-    steps.push(opponentStep(g, 'A', rowName, lines));
+    steps.push(...g.steps, opponentStep(g, 'A', rowName, lines));
     if (g.flat) {
       notices.push({
         level: 'info',

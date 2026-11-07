@@ -49,7 +49,7 @@ export function MatrixField({
   showRowSums = false,
   unit = 'estados',
   item = 'un estado',
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   hint?: ReactNode;
@@ -60,7 +60,7 @@ export function MatrixField({
   unit?: string;
   /** Qué agrega o quita cada botón (para lectores de pantalla): «un estado». */
   item?: string;
-}) {
+}>) {
   const { control } = useFormContext();
   return (
     <Controller
@@ -194,14 +194,14 @@ export function Stepper({
   unit,
   onChange,
   what,
-}: {
+}: Readonly<{
   value: number;
   min: number;
   max: number;
   unit: string;
   what: string;
   onChange: (next: number) => void;
-}) {
+}>) {
   return (
     <div className="flex items-center gap-1">
       <Button
@@ -250,7 +250,7 @@ export function RectangularMatrixField({
   min = 1,
   max = 8,
   cellLabel,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   hint?: ReactNode;
@@ -267,7 +267,7 @@ export function RectangularMatrixField({
   max?: number;
   /** Nombre de una celda para lectores de pantalla (por defecto «A1 contra B2»). */
   cellLabel?: (i: number, j: number) => string;
-}) {
+}>) {
   const { control } = useFormContext();
   return (
     <Controller
@@ -373,14 +373,14 @@ export function OptionalVectorField({
   label,
   toggleLabel,
   hint,
-}: {
+}: Readonly<{
   name: string;
   /** Campo matriz del que se toma el tamaño. */
   sizeFrom: string;
   label: ReactNode;
   toggleLabel: string;
   hint?: ReactNode;
-}) {
+}>) {
   const { control, setValue } = useFormContext();
   const matrix = useWatch({ control, name: sizeFrom }) as number[][] | undefined;
   const vector = useWatch({ control, name }) as number[] | undefined;

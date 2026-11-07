@@ -57,14 +57,12 @@ export interface LinearRegressionValue {
   } | null;
 }
 
-export type LinearRegressionErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 6);
 const op = (v: number) => toLatexOperand(v, 6);
 
 export function solveLinearRegression(
   input: LinearRegressionInput,
-): CalculatorResult<LinearRegressionValue, LinearRegressionErrorCode> {
+): CalculatorResult<LinearRegressionValue, never> {
   const { x, y } = readPairs(input.x, input.y);
   const sums = regressionSums(x, y);
   const { n: size, sxx, sxy, syy, meanX, meanY } = sums;
@@ -158,19 +156,21 @@ export function solveLinearRegression(
       meanInterval: [y0 - meanHalf, y0 + meanHalf],
       predictionInterval: [y0 - predHalf, y0 + predHalf],
     };
-    steps.push({
-      title: `Respuesta media en x₀ = ${formatNumber(x0)}`,
-      formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{\frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
-      substitution: String.raw`\hat{y}_0 = ${n(b0)} + ${op(b1)}${op(x0)} = ${n(y0)}; \quad ${n(y0)} \pm ${n(t)}(${n(s)})\sqrt{\frac{1}{${size}} + \frac{(${n(x0)} - ${op(meanX)})^2}{${n(sxx)}}}`,
-      result: String.raw`${n(prediction.meanInterval[0])} < \mu_{Y|${n(x0)}} < ${n(prediction.meanInterval[1])}`,
-    });
-    steps.push({
-      title: `Intervalo de predicción para una nueva observación en x₀ = ${formatNumber(x0)}`,
-      explanation:
-        'Es más ancho que el de la media: además de la incertidumbre de la recta incluye la variación de una observación individual.',
-      formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{1 + \frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
-      result: `${n(prediction.predictionInterval[0])} < y_0 < ${n(prediction.predictionInterval[1])}`,
-    });
+    steps.push(
+      {
+        title: `Respuesta media en x₀ = ${formatNumber(x0)}`,
+        formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{\frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
+        substitution: String.raw`\hat{y}_0 = ${n(b0)} + ${op(b1)}${op(x0)} = ${n(y0)}; \quad ${n(y0)} \pm ${n(t)}(${n(s)})\sqrt{\frac{1}{${size}} + \frac{(${n(x0)} - ${op(meanX)})^2}{${n(sxx)}}}`,
+        result: String.raw`${n(prediction.meanInterval[0])} < \mu_{Y|${n(x0)}} < ${n(prediction.meanInterval[1])}`,
+      },
+      {
+        title: `Intervalo de predicción para una nueva observación en x₀ = ${formatNumber(x0)}`,
+        explanation:
+          'Es más ancho que el de la media: además de la incertidumbre de la recta incluye la variación de una observación individual.',
+        formula: String.raw`\hat{y}_0 \pm t_{\alpha/2}\, s\sqrt{1 + \frac{1}{n} + \frac{(x_0 - \bar{x})^2}{S_{xx}}}`,
+        result: `${n(prediction.predictionInterval[0])} < y_0 < ${n(prediction.predictionInterval[1])}`,
+      },
+    );
   }
 
   // Gráfica: datos, recta y bandas de confianza para la media.
@@ -270,11 +270,7 @@ export const POLLUTION_X =
 export const POLLUTION_Y =
   '5 11 21 16 16 28 27 25 35 30 40 32 34 32 34 37 38 34 36 38 37 36 45 39 41 40 44 37 44 46 46 49 51';
 
-export const linearRegression: Calculator<
-  LinearRegressionInput,
-  LinearRegressionValue,
-  LinearRegressionErrorCode
-> = {
+export const linearRegression: Calculator<LinearRegressionInput, LinearRegressionValue, never> = {
   meta: {
     id: 'regresion-lineal',
     title: 'Regresión lineal simple',

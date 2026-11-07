@@ -7,7 +7,7 @@
  * tollens, silogismo hipotético…) o es una falacia clásica, se nombra.
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import {
   assignments,
@@ -152,7 +152,7 @@ export function recognizeForm(
       return {
         name: form.name,
         fallacy: form.fallacy ?? false,
-        statement: String.raw`${ps.map((p) => formulaLatex(p)).join(String.raw`,\ `)}\ \therefore\ ${formulaLatex(c)}`,
+        statement: String.raw`${ps.map((p) => formulaLatex(p)).join(TEX.listSep)}\ \therefore\ ${formulaLatex(c)}`,
       };
     }
   }

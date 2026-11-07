@@ -19,7 +19,7 @@
  *   V_D = 0, como en el ejemplo 2.8: «cuando I_D = 0, V_D = 0».
  * - El análisis final se muestra con el motor MNA de Circuitos y Sistemas.
  */
-import { formatNumber, latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
+import { formatNumber, latexLines, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import {
   componentLabel,
   type CircuitComponent,
@@ -447,7 +447,7 @@ export function solveDiodeNetwork(
       const vk = units[c.unit]!.vk;
       // Los residuos de la conductancia de los diodos apagados (10⁻⁸ V) se muestran como 0.
       const vak = Math.abs(c.value) < tolV ? 0 : c.value;
-      return String.raw`${label}:\ V_{AK} = ${n(vak, 5)}\ \text{V}\ ${c.ok ? String.raw`\le` : '>'}\ ${n(vk, 4)}\ ${c.ok ? String.raw`\checkmark` : String.raw`\times`}`;
+      return String.raw`${label}:\ V_{AK} = ${n(vak, 5)}\ \text{V}\ ${c.ok ? TEX.le : '>'}\ ${n(vk, 4)}\ ${c.ok ? TEX.checkmark : TEX.times}`;
     });
     const failText = first
       ? first.on
@@ -621,25 +621,25 @@ export function solveDiodeNetwork(
     ...mna.tables.map((t) =>
       t.id === 'ramas' ? { ...t, rows: t.rows.filter((r) => !diodeRow(r.rama)) } : t,
     ),
+    {
+      id: 'diodos',
+      title: 'Diodos',
+      columns: [
+        { key: 'diodo', header: String.raw`\text{Diodo}`, format: 'text' },
+        { key: 'estado', header: String.raw`\text{Estado}`, format: 'text' },
+        { key: 'vd', header: 'V_D', format: 'text' },
+        { key: 'id', header: 'I_D', format: 'text' },
+        { key: 'pd', header: 'P_D', format: 'text' },
+      ],
+      rows: diodes.map((d) => ({
+        diodo: d.label,
+        estado: d.on ? 'encendido' : 'apagado',
+        vd: Number.isFinite(d.vd) ? volts(Math.abs(d.vd) < tolV ? 0 : d.vd) : 'indeterminado',
+        id: engText(d.current, 'A'),
+        pd: engText(d.power, 'W'),
+      })),
+    },
   );
-  tables.push({
-    id: 'diodos',
-    title: 'Diodos',
-    columns: [
-      { key: 'diodo', header: String.raw`\text{Diodo}`, format: 'text' },
-      { key: 'estado', header: String.raw`\text{Estado}`, format: 'text' },
-      { key: 'vd', header: 'V_D', format: 'text' },
-      { key: 'id', header: 'I_D', format: 'text' },
-      { key: 'pd', header: 'P_D', format: 'text' },
-    ],
-    rows: diodes.map((d) => ({
-      diodo: d.label,
-      estado: d.on ? 'encendido' : 'apagado',
-      vd: Number.isFinite(d.vd) ? volts(Math.abs(d.vd) < tolV ? 0 : d.vd) : 'indeterminado',
-      id: engText(d.current, 'A'),
-      pd: engText(d.power, 'W'),
-    })),
-  });
   notices.push(...mna.notices);
 
   return {

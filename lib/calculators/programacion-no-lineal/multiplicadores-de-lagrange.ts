@@ -13,7 +13,7 @@
  * mínimo si todos tienen el signo de (−1)^m y un máximo si alternan empezando por (−1)^{m+1}.
  */
 import { z } from 'zod';
-import { toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import {
   clean,
@@ -150,8 +150,8 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
             `${df.tex} ${constraints.map((_, i) => String.raw`- ${lambdaTex(i)}\left(${gradG[i]![j]!.tex}\right)`).join(' ')} &= 0`,
         )
         .join(
-          String.raw` \\ `,
-        )} \\ ${constraints.map((c) => `${c.g.tex} &= 0`).join(String.raw` \\ `)} \end{aligned}`,
+          TEX.newline,
+        )} \\ ${constraints.map((c) => `${c.g.tex} &= 0`).join(TEX.newline)} \end{aligned}`,
     },
   ];
 

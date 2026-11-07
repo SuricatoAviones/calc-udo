@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 
 const MAX_VALUES = 1000;
@@ -225,7 +225,7 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
     explanation:
       'Se cuenta cuántos datos caen en cada clase (entre sus fronteras). La frecuencia relativa es f/n y la acumulada suma las frecuencias hasta esa clase.',
     formula: String.raw`f_i, \qquad \frac{f_i}{n}, \qquad F_i = f_1 + \cdots + f_i`,
-    result: String.raw`f = ${frequencies.join(String.raw`,\ `)}, \qquad \sum f_i = ${count}`,
+    result: String.raw`f = ${frequencies.join(TEX.listSep)}, \qquad \sum f_i = ${count}`,
   });
 
   const sumFm = classes.reduce((s, c) => s + c.frequency * c.midpoint, 0);

@@ -41,9 +41,7 @@ export interface PeriodicReviewValue {
   averageInventory: number;
 }
 
-export type PeriodicReviewErrorCode = never;
-
-type Result = CalculatorResult<PeriodicReviewValue, PeriodicReviewErrorCode>;
+type Result = CalculatorResult<PeriodicReviewValue, never>;
 
 const n = toLatexNumber;
 
@@ -135,11 +133,7 @@ export function solvePeriodicReview(input: PeriodicReviewInput): Result {
   };
 }
 
-export const periodicReview: Calculator<
-  PeriodicReviewInput,
-  PeriodicReviewValue,
-  PeriodicReviewErrorCode
-> = {
+export const periodicReview: Calculator<PeriodicReviewInput, PeriodicReviewValue, never> = {
   meta: {
     id: 'revision-periodica',
     title: 'Modelo de periodo fijo (revisión periódica)',

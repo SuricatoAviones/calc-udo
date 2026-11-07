@@ -58,8 +58,6 @@ export interface VarianceTestValue {
   critical: number[];
 }
 
-export type VarianceTestErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 6);
 
 function sampleOf(
@@ -76,7 +74,7 @@ function sampleOf(
 
 export function solveVarianceTest(
   input: VarianceTestInput,
-): CalculatorResult<VarianceTestValue, VarianceTestErrorCode> {
+): CalculatorResult<VarianceTestValue, never> {
   const rel = RELATION[input.alternative];
   const steps: Step[] = [];
   let statistic: number;
@@ -87,16 +85,18 @@ export function solveVarianceTest(
     const { size, s2, fromData } = sampleOf(input, 1);
     const sigma2 = input.sigma0! ** 2;
     const df = size - 1;
-    steps.push({
-      title: 'Hipótesis',
-      explanation: `σ₀ = ${formatNumber(input.sigma0!)}, así que σ₀² = ${formatNumber(sigma2)}.`,
-      result: String.raw`H_0\!: \sigma^2 = ${n(sigma2)}, \qquad H_1\!: \sigma^2 ${rel} ${n(sigma2)}`,
-    });
-    steps.push({
-      title: fromData ? 'Varianza de la muestra' : 'Datos',
-      formula: fromData ? String.raw`s^2 = \frac{\sum (x_i - \bar{x})^2}{n - 1}` : undefined,
-      result: String.raw`n = ${size}, \quad s^2 = ${n(s2)}, \quad s = ${n(Math.sqrt(s2))}`,
-    });
+    steps.push(
+      {
+        title: 'Hipótesis',
+        explanation: `σ₀ = ${formatNumber(input.sigma0!)}, así que σ₀² = ${formatNumber(sigma2)}.`,
+        result: String.raw`H_0\!: \sigma^2 = ${n(sigma2)}, \qquad H_1\!: \sigma^2 ${rel} ${n(sigma2)}`,
+      },
+      {
+        title: fromData ? 'Varianza de la muestra' : 'Datos',
+        formula: fromData ? String.raw`s^2 = \frac{\sum (x_i - \bar{x})^2}{n - 1}` : undefined,
+        result: String.raw`n = ${size}, \quad s^2 = ${n(s2)}, \quad s = ${n(Math.sqrt(s2))}`,
+      },
+    );
     statistic = (df * s2) / sigma2;
     statTex = String.raw`\chi^2 = ${n(statistic)}`;
     steps.push({
@@ -115,14 +115,16 @@ export function solveVarianceTest(
   } else {
     const a = sampleOf(input, 1);
     const b = sampleOf(input, 2);
-    steps.push({
-      title: 'Hipótesis',
-      result: String.raw`H_0\!: \sigma_1^2 = \sigma_2^2, \qquad H_1\!: \sigma_1^2 ${rel} \sigma_2^2`,
-    });
-    steps.push({
-      title: a.fromData ? 'Varianzas de las muestras' : 'Datos',
-      result: String.raw`n_1 = ${a.size},\ s_1^2 = ${n(a.s2)}; \qquad n_2 = ${b.size},\ s_2^2 = ${n(b.s2)}`,
-    });
+    steps.push(
+      {
+        title: 'Hipótesis',
+        result: String.raw`H_0\!: \sigma_1^2 = \sigma_2^2, \qquad H_1\!: \sigma_1^2 ${rel} \sigma_2^2`,
+      },
+      {
+        title: a.fromData ? 'Varianzas de las muestras' : 'Datos',
+        result: String.raw`n_1 = ${a.size},\ s_1^2 = ${n(a.s2)}; \qquad n_2 = ${b.size},\ s_2^2 = ${n(b.s2)}`,
+      },
+    );
     statistic = a.s2 / b.s2;
     statTex = `f = ${n(statistic)}`;
     steps.push({
@@ -167,36 +169,35 @@ export function solveVarianceTest(
   };
 }
 
-export const varianceTest: Calculator<VarianceTestInput, VarianceTestValue, VarianceTestErrorCode> =
-  {
-    meta: {
-      id: 'prueba-de-hipotesis-varianza',
-      title: 'Prueba de hipótesis sobre la varianza',
-      summary:
-        'Contrasta hipótesis sobre σ² con el estadístico ji-cuadrada, o compara dos varianzas con F.',
-      citations: [
-        { sourceId: 'canavos-1995', locator: 'Cap. 9, pruebas sobre varianzas' },
-        {
-          sourceId: 'walpole-1999',
-          locator:
-            'Sec. 10.13 (una y dos varianzas: duración de las baterías y desgaste de los dos materiales), 9.ª ed.',
-        },
-        { sourceId: 'meyer-1998' },
-      ],
-    },
-    inputSchema: varianceTestInputSchema,
-    example: {
-      mode: 'una',
-      source: 'resumen',
-      n1: 10,
-      s1: 1.2,
-      data1: '',
-      n2: 10,
-      s2: 5,
-      data2: '',
-      sigma0: 0.9,
-      alternative: 'mayor',
-      alpha: 0.05,
-    },
-    solve: solveVarianceTest,
-  };
+export const varianceTest: Calculator<VarianceTestInput, VarianceTestValue, never> = {
+  meta: {
+    id: 'prueba-de-hipotesis-varianza',
+    title: 'Prueba de hipótesis sobre la varianza',
+    summary:
+      'Contrasta hipótesis sobre σ² con el estadístico ji-cuadrada, o compara dos varianzas con F.',
+    citations: [
+      { sourceId: 'canavos-1995', locator: 'Cap. 9, pruebas sobre varianzas' },
+      {
+        sourceId: 'walpole-1999',
+        locator:
+          'Sec. 10.13 (una y dos varianzas: duración de las baterías y desgaste de los dos materiales), 9.ª ed.',
+      },
+      { sourceId: 'meyer-1998' },
+    ],
+  },
+  inputSchema: varianceTestInputSchema,
+  example: {
+    mode: 'una',
+    source: 'resumen',
+    n1: 10,
+    s1: 1.2,
+    data1: '',
+    n2: 10,
+    s2: 5,
+    data2: '',
+    sigma0: 0.9,
+    alternative: 'mayor',
+    alpha: 0.05,
+  },
+  solve: solveVarianceTest,
+};

@@ -11,7 +11,7 @@
  * actividades críticas desde el inicio hasta el fin del proyecto.
  */
 import { z } from 'zod';
-import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import type { CalculatorError, ResultTable, Step } from '../types';
 
 export const MAX_ACTIVITIES = 60;
@@ -185,7 +185,7 @@ export function analyzeNetwork(
       title: 'Construir la red del proyecto',
       explanation:
         'Cada actividad es un nodo y cada relación de precedencia es una flecha de la predecesora a la actividad (representación de actividades en los nodos). En esta representación no hacen falta actividades ficticias; en la de actividades en las flechas se agregan para expresar precedencias que comparten eventos.',
-      result: String.raw`\text{Iniciales: } ${initial.map(name).join(String.raw`,\ `)} \qquad \text{Finales: } ${final.map(name).join(String.raw`,\ `)}`,
+      result: String.raw`\text{Iniciales: } ${initial.map(name).join(TEX.listSep)} \qquad \text{Finales: } ${final.map(name).join(TEX.listSep)}`,
     },
   ];
 
@@ -205,13 +205,13 @@ export function analyzeNetwork(
         ? `${at('ES', a)} = 0`
         : p.length === 1
           ? `${at('ES', a)} = ${at('EF', p[0]!)}`
-          : String.raw`${at('ES', a)} = \max\{${p.map((x) => at('EF', x)).join(String.raw`,\ `)}\}`;
+          : String.raw`${at('ES', a)} = \max\{${p.map((x) => at('EF', x)).join(TEX.listSep)}\}`;
     const esSubstitution =
       p.length === 0
         ? `${at('ES', a)} = 0`
         : p.length === 1
           ? `${at('ES', a)} = ${n(start)}`
-          : String.raw`${at('ES', a)} = \max\{${p.map((x) => n(ef.get(key(x))!)).join(String.raw`,\ `)}\} = ${n(start)}`;
+          : String.raw`${at('ES', a)} = \max\{${p.map((x) => n(ef.get(key(x))!)).join(TEX.listSep)}\} = ${n(start)}`;
     forward.push({
       title:
         p.length === 0
@@ -238,7 +238,7 @@ export function analyzeNetwork(
     substitution:
       final.length === 1
         ? `T = ${at('EF', final[0]!)}`
-        : String.raw`T = \max\{${final.map((a) => n(ef.get(key(a))!)).join(String.raw`,\ `)}\}`,
+        : String.raw`T = \max\{${final.map((a) => n(ef.get(key(a))!)).join(TEX.listSep)}\}`,
     result: `T = ${n(duration)}`,
   });
 
@@ -258,11 +258,11 @@ export function analyzeNetwork(
         ? `${at('LF', a)} = T`
         : s.length === 1
           ? `${at('LF', a)} = ${at('LS', s[0]!)}`
-          : String.raw`${at('LF', a)} = \min\{${s.map((x) => at('LS', x)).join(String.raw`,\ `)}\}`;
+          : String.raw`${at('LF', a)} = \min\{${s.map((x) => at('LS', x)).join(TEX.listSep)}\}`;
     const lfSubstitution =
       s.length === 0 || s.length === 1
         ? `${at('LF', a)} = ${n(finish)}`
-        : String.raw`${at('LF', a)} = \min\{${s.map((x) => n(ls.get(key(x))!)).join(String.raw`,\ `)}\} = ${n(finish)}`;
+        : String.raw`${at('LF', a)} = \min\{${s.map((x) => n(ls.get(key(x))!)).join(TEX.listSep)}\} = ${n(finish)}`;
     backward.push({
       title:
         s.length === 0
@@ -314,7 +314,7 @@ export function analyzeNetwork(
           ? `T - ${at('EF', a.name)} = ${n(duration)} - ${n(a.ef)}`
           : a.successors.length === 1
             ? `${nextStarts[0]} - ${n(a.ef)}`
-            : String.raw`\min\{${nextStarts.join(String.raw`,\ `)}\} - ${n(a.ef)}`;
+            : String.raw`\min\{${nextStarts.join(TEX.listSep)}\} - ${n(a.ef)}`;
       return {
         title: `${a.name}${a.critical ? ' (crítica)' : ''}`,
         substitution: String.raw`${at('HT', a.name)} = ${n(a.ls)} - ${n(a.es)}, \qquad ${at('HL', a.name)} = ${free}`,

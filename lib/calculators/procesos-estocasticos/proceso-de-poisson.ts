@@ -9,7 +9,7 @@
  * completar n eventos en t es la de n − m eventos en t − s.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { lnGamma } from '@/lib/math/special';
 import {
   emptyTrace,
@@ -77,9 +77,7 @@ export interface PoissonProcessValue {
   interarrival: { a: number; atMost: number; beyond: number } | null;
 }
 
-export type PoissonProcessErrorCode = never;
-
-type Result = CalculatorResult<PoissonProcessValue, PoissonProcessErrorCode>;
+type Result = CalculatorResult<PoissonProcessValue, never>;
 
 const n = toLatexNumber;
 
@@ -153,7 +151,7 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
       substitution:
         r < 0
           ? `n - m = ${r} < 0`
-          : String.raw`P\{N \le ${r}\} = ${Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ')}${r > 3 ? String.raw` + \cdots` : ''}`,
+          : String.raw`P\{N \le ${r}\} = ${Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ')}${r > 3 ? TEX.plusCdots : ''}`,
       result: String.raw`P\{N \le ${r}\} = ${n(probability)}`,
     });
   } else {
@@ -263,11 +261,7 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
   };
 }
 
-export const poissonProcess: Calculator<
-  PoissonProcessInput,
-  PoissonProcessValue,
-  PoissonProcessErrorCode
-> = {
+export const poissonProcess: Calculator<PoissonProcessInput, PoissonProcessValue, never> = {
   meta: {
     id: 'proceso-de-poisson',
     title: 'Proceso de Poisson',

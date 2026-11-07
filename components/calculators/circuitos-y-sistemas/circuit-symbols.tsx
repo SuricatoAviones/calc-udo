@@ -29,7 +29,7 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
-export function ResistorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function ResistorSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const len = Math.hypot(b.x - a.x, b.y - a.y);
   const body = Math.max(0.4, Math.min(len - 0.3, 1.3));
@@ -49,7 +49,7 @@ export function ResistorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
   );
 }
 
-export function VoltageSourceSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function VoltageSourceSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const r = 0.34;
   // En el grupo rotado, el terminal `a` (positivo) queda hacia −x y `b` hacia +x.
@@ -65,7 +65,7 @@ export function VoltageSourceSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
   );
 }
 
-export function CurrentSourceSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function CurrentSourceSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const r = 0.34;
   return (
@@ -77,7 +77,7 @@ export function CurrentSourceSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
 }
 
 /** Capacitor: dos placas; el + marca el terminal `a`, referencia de v_C. */
-export function CapacitorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function CapacitorSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
   const gap = 0.12;
@@ -94,7 +94,7 @@ export function CapacitorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
 }
 
 /** Inductor: bobina de cuatro espiras; la flecha marca el sentido de i_L (de `a` a `b`). */
-export function InductorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function InductorSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
   const w = Math.min(0.6, half - 0.1);
@@ -119,7 +119,7 @@ export function InductorSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
  * Diodo: triángulo que apunta del ánodo (`a`) al cátodo (`b`), con la barra en el cátodo. La
  * flecha es el sentido en que conduce.
  */
-export function DiodeSymbol({ a, b }: { a: GridPoint; b: GridPoint }) {
+export function DiodeSymbol({ a, b }: Readonly<{ a: GridPoint; b: GridPoint }>) {
   const m = midpoint(a, b);
   const half = Math.hypot(b.x - a.x, b.y - a.y) / 2;
   const w = 0.26;
@@ -172,7 +172,7 @@ export function opAmpBody(a: GridPoint, b: GridPoint, c: GridPoint, margin = 0) 
  * Amplificador operacional: triángulo con la entrada inversora (−, terminal `a`) y la no
  * inversora (+, terminal `b`) en la base y la salida (`c`) en el vértice.
  */
-export function OpAmpSymbol({ a, b, c }: { a: GridPoint; b: GridPoint; c: GridPoint }) {
+export function OpAmpSymbol({ a, b, c }: Readonly<{ a: GridPoint; b: GridPoint; c: GridPoint }>) {
   const { at } = opAmpFrame(a, b, c);
   const pts = (list: GridPoint[]) => list.map((p) => `${p.x},${p.y}`).join(' ');
   const back1 = at(0.5, -0.5);
@@ -219,7 +219,7 @@ export function OpAmpSymbol({ a, b, c }: { a: GridPoint; b: GridPoint; c: GridPo
   );
 }
 
-export function GroundSymbol({ p }: { p: GridPoint }) {
+export function GroundSymbol({ p }: Readonly<{ p: GridPoint }>) {
   return (
     <g transform={`translate(${p.x} ${p.y})`}>
       <line x1={-0.4} y1={0} x2={0.4} y2={0} {...stroke} />
@@ -229,7 +229,10 @@ export function GroundSymbol({ p }: { p: GridPoint }) {
   );
 }
 
-export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?: boolean }) {
+export function ComponentShape({
+  c,
+  selected,
+}: Readonly<{ c: CircuitComponent; selected?: boolean }>) {
   // Capacitor, inductor, diodo y amplificador dibujan sus propios terminales (la línea no debe
   // cruzar el cuerpo).
   const drawsLeads =
@@ -251,9 +254,9 @@ export function ComponentShape({ c, selected }: { c: CircuitComponent; selected?
 /** Iconos de la paleta (24×24, sin coordenadas del mundo). */
 export function PaletteIcon({
   kind,
-}: {
+}: Readonly<{
   kind: CircuitComponent['kind'] | 'wire' | 'ground' | 'select';
-}) {
+}>) {
   const common = {
     fill: 'none',
     stroke: 'currentColor',

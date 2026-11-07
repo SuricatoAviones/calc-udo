@@ -28,8 +28,6 @@ export interface TransportValue {
   balanced: boolean;
 }
 
-export type TransportErrorCode = never;
-
 const intro: Record<InitialMethod, string> = {
   'esquina-noroeste':
     'Se empieza en la celda (1, 1) y se asigna lo más posible: el mínimo entre la oferta y la demanda que quedan. Luego se avanza a la derecha si se agotó la demanda de la columna, o hacia abajo si se agotó la oferta de la fila. No usa los costos, así que suele dar una solución cara.',
@@ -42,7 +40,7 @@ const intro: Record<InitialMethod, string> = {
 export function solveInitial(
   input: TransportData,
   method: InitialMethod,
-): CalculatorResult<TransportValue, TransportErrorCode> {
+): CalculatorResult<TransportValue, never> {
   const b = balance(input);
   const { allocation, steps } = initialSolution(b, method);
   const cost = totalCost(b, allocation);

@@ -14,6 +14,7 @@ import {
   parseFraction,
   toLatexNumber,
   toLatexText,
+  TEX,
 } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import { lnFactorial } from './discrete';
@@ -83,8 +84,6 @@ export interface MultinomialValue {
   trials: number;
 }
 
-export type MultinomialErrorCode = never;
-
 const n = toLatexNumber;
 
 /** n! / (x₁! ⋯ x_k!) exacto con enteros grandes. */
@@ -100,7 +99,7 @@ function multinomialCoefficient(counts: number[]): bigint {
 
 export function solveMultinomial(
   input: MultinomialInput,
-): CalculatorResult<MultinomialValue, MultinomialErrorCode> {
+): CalculatorResult<MultinomialValue, never> {
   const outcomes = input.outcomes.map((o) => ({
     name: o.name.trim(),
     text: o.probability.trim(),
@@ -143,8 +142,8 @@ export function solveMultinomial(
       title: 'Coeficiente multinomial',
       explanation:
         'Cuenta los órdenes distintos en que pueden salir los resultados: las particiones de los n ensayos en grupos de x₁, x₂, …, x_k.',
-      formula: String.raw`\binom{n}{x_1, \ldots, x_k} = \frac{n!}{${indices.map((i) => `x_{${i}}!`).join(String.raw`\,`)}}`,
-      substitution: String.raw`\frac{${trials}!}{${outcomes.map((o) => `${o.x}!`).join(String.raw`\,`)}}`,
+      formula: String.raw`\binom{n}{x_1, \ldots, x_k} = \frac{n!}{${indices.map((i) => `x_{${i}}!`).join(TEX.thinSpace)}}`,
+      substitution: String.raw`\frac{${trials}!}{${outcomes.map((o) => `${o.x}!`).join(TEX.thinSpace)}}`,
       result: String.raw`\binom{${trials}}{${outcomes.map((o) => o.x).join(', ')}} = ${n(coefficient)}`,
     },
     {
@@ -207,7 +206,7 @@ export function solveMultinomial(
   };
 }
 
-export const multinomial: Calculator<MultinomialInput, MultinomialValue, MultinomialErrorCode> = {
+export const multinomial: Calculator<MultinomialInput, MultinomialValue, never> = {
   meta: {
     id: 'distribucion-multinomial',
     title: 'Distribución multinomial',

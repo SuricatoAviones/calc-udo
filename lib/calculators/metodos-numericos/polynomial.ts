@@ -11,7 +11,6 @@
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
 import { toLatexNumber } from '@/lib/math/format';
-import type { Latex } from '../types';
 
 export const MAX_DEGREE = 20;
 
@@ -40,7 +39,11 @@ export const coefficientsField = (minDegree = 1) =>
   });
 
 /** Coeficientes (de mayor a menor grado) → LaTeX: `x^{2} + 2x - 24`. */
-export function polynomialLatex(coefficients: number[], variable: Latex = 'x', digits = 7): Latex {
+export function polynomialLatex(
+  coefficients: number[],
+  variable: string = 'x',
+  digits = 7,
+): string {
   const degree = coefficients.length - 1;
   const terms: string[] = [];
   coefficients.forEach((a, i) => {
@@ -88,7 +91,7 @@ export function ruffiniLatex(
   r: number,
   division: SyntheticDivision,
   digits = 6,
-): Latex {
+): string {
   const f = (v: number) => toLatexNumber(v, digits);
   const cols = coefficients.length;
   const top = coefficients.map(f).join(' & ');
@@ -122,7 +125,7 @@ export function quadraticFactorRoots(r: number, s: number): [ComplexRoot, Comple
   ];
 }
 
-export function complexLatex({ re, im }: ComplexRoot, digits = 7): Latex {
+export function complexLatex({ re, im }: ComplexRoot, digits = 7): string {
   const f = (v: number) => toLatexNumber(v, digits);
   if (Math.abs(im) < 1e-14 * Math.max(1, Math.abs(re))) return f(re);
   const imag = `${f(Math.abs(im))}i`;

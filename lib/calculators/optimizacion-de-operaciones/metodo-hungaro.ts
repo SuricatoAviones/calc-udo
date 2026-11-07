@@ -12,7 +12,7 @@
  * König), que se calcula con caminos aumentantes.
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import {
   emptyTrace,
@@ -224,7 +224,7 @@ export function solveAssignment(
     steps.push({
       title: `Ajuste ${iterations + 1}`,
       explanation: `Bastan ${size} líneas (${lines.join(', ')}) para cubrir todos los ceros, menos que ${n}: todavía no hay asignación completa. Se resta el menor valor descubierto θ de las celdas descubiertas y se suma en las intersecciones de dos líneas.`,
-      substitution: String.raw`\theta = \min\{${uncovered.map((v) => v.toLatex()).join(String.raw`,\ `)}\}`,
+      substitution: String.raw`\theta = \min\{${uncovered.map((v) => v.toLatex()).join(TEX.listSep)}\}`,
       result: String.raw`\theta = ${theta.toLatex()}`,
     });
     tables.push(matrixTable(`ajuste-${iterations}`, `Matriz después del ajuste ${iterations + 1}`));

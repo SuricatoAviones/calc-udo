@@ -6,7 +6,7 @@ import { Formula } from './Formula';
 const OPEN_ALL_THRESHOLD = 6;
 
 /** `nested`: los resultados intermedios van en tinta normal; el lápiz rojo queda para el resultado del paso. */
-function StepBody({ step, nested = false }: { step: Step; nested?: boolean }) {
+function StepBody({ step, nested = false }: Readonly<{ step: Step; nested?: boolean }>) {
   return (
     <div className="flex flex-col gap-2">
       {step.explanation && <p className="text-muted-foreground text-sm">{step.explanation}</p>}
@@ -39,7 +39,7 @@ function StepBody({ step, nested = false }: { step: Step; nested?: boolean }) {
 }
 
 /** Procedimiento paso a paso. Cada paso se puede plegar para recorrer trazas largas en móvil. */
-export function StepByStep({ steps }: { steps: Step[] }) {
+export function StepByStep({ steps }: Readonly<{ steps: Step[] }>) {
   if (steps.length === 0) return null;
   const openAll = steps.length <= OPEN_ALL_THRESHOLD;
   return (

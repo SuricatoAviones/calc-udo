@@ -143,30 +143,32 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
   const notices: Notice[] = [];
   const tables: ResultTable[] = [];
 
-  steps.push({
-    title: 'Forma de Bode',
-    explanation:
-      'Se escribe G(jω) con factores cuyas asíntotas de baja frecuencia son la recta de 0 dB: (1 + jω/ω_c) para cada raíz real y [(jω/ω_n)² + 2ζ(jω/ω_n) + 1] para cada par complejo. La ganancia K es el valor de sᴺG(s) en s → 0.',
-    formula: `G(s)H(s) = ${tfTex(tf)}`,
-    result: String.raw`G(j\omega)H(j\omega) = ${bodeFormTex(form)}`,
-  });
-  steps.push({
-    title: 'Factores y frecuencias de esquina',
-    children: [
-      {
-        title: `Ganancia K = ${formatNumber(form.gain, DIGITS)}`,
-        explanation: `Aporta 20 log|K| = ${formatNumber(20 * Math.log10(Math.abs(form.gain)), DIGITS)} dB a todas las frecuencias y una fase de ${form.gain < 0 ? '−180°' : '0°'}.`,
-      },
-      ...form.factors.map((f) => ({
-        title:
-          f.kind === 'origen'
-            ? 'Factor en el origen'
-            : `Esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s`,
-        explanation: describe(f),
-        result: signedFactorTex(f),
-      })),
-    ],
-  });
+  steps.push(
+    {
+      title: 'Forma de Bode',
+      explanation:
+        'Se escribe G(jω) con factores cuyas asíntotas de baja frecuencia son la recta de 0 dB: (1 + jω/ω_c) para cada raíz real y [(jω/ω_n)² + 2ζ(jω/ω_n) + 1] para cada par complejo. La ganancia K es el valor de sᴺG(s) en s → 0.',
+      formula: `G(s)H(s) = ${tfTex(tf)}`,
+      result: String.raw`G(j\omega)H(j\omega) = ${bodeFormTex(form)}`,
+    },
+    {
+      title: 'Factores y frecuencias de esquina',
+      children: [
+        {
+          title: `Ganancia K = ${formatNumber(form.gain, DIGITS)}`,
+          explanation: `Aporta 20 log|K| = ${formatNumber(20 * Math.log10(Math.abs(form.gain)), DIGITS)} dB a todas las frecuencias y una fase de ${form.gain < 0 ? '−180°' : '0°'}.`,
+        },
+        ...form.factors.map((f) => ({
+          title:
+            f.kind === 'origen'
+              ? 'Factor en el origen'
+              : `Esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s`,
+          explanation: describe(f),
+          result: signedFactorTex(f),
+        })),
+      ],
+    },
+  );
 
   // Pendientes de la asintótica por tramos.
   const nOrigin = form.factors
@@ -195,16 +197,18 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       explanation: `La pendiente cambia ${change > 0 ? '+' : ''}${change} dB/década y queda en ${slope} dB/década.`,
     });
   }
-  steps.push({
-    title: 'Curva asintótica de magnitud',
-    explanation:
-      'Las pendientes solo cambian en las frecuencias de esquina; la curva exacta se obtiene sumando las correcciones de cada factor.',
-    children: slopeChildren,
-  });
-  steps.push({
-    title: 'Magnitud y fase exactas',
-    formula: String.raw`|G(j\omega)|_{\text{dB}} = 20\log_{10}|G(j\omega)|,\qquad \angle G(j\omega) = \sum \angle(\text{ceros}) - \sum \angle(\text{polos})`,
-  });
+  steps.push(
+    {
+      title: 'Curva asintótica de magnitud',
+      explanation:
+        'Las pendientes solo cambian en las frecuencias de esquina; la curva exacta se obtiene sumando las correcciones de cada factor.',
+      children: slopeChildren,
+    },
+    {
+      title: 'Magnitud y fase exactas',
+      formula: String.raw`|G(j\omega)|_{\text{dB}} = 20\log_{10}|G(j\omega)|,\qquad \angle G(j\omega) = \sum \angle(\text{ceros}) - \sum \angle(\text{polos})`,
+    },
+  );
 
   // Márgenes.
   const m = margins(tf, form);
@@ -317,45 +321,47 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
     },
   ];
 
-  tables.push({
-    id: 'factores',
-    title: 'Factores de la forma de Bode',
-    columns: [
-      { key: 'factor', header: String.raw`\text{Factor}`, format: 'latex' },
-      { key: 'esquina', header: String.raw`\omega_c\ (\text{rad/s})` },
-      { key: 'pendiente', header: String.raw`\text{Pendiente (dB/déc)}` },
-    ],
-    rows: [
-      { factor: n(form.gain), esquina: '—', pendiente: 0 },
-      ...form.factors.map((f) => ({
-        factor: signedFactorTex(f),
-        esquina: f.kind === 'origen' ? '—' : f.corner,
-        pendiente: (f.zero ? 1 : -1) * f.multiplicity * (f.kind === 'cuadratico' ? 40 : 20),
-      })),
-    ],
-  });
-  tables.push({
-    id: 'valores',
-    title: 'Magnitud y fase en las frecuencias de esquina',
-    columns: [
-      { key: 'w', header: String.raw`\omega\ (\text{rad/s})` },
-      { key: 'mag', header: String.raw`|G|\ (\text{dB})` },
-      { key: 'asin', header: String.raw`\text{Asintótica (dB)}` },
-      { key: 'fase', header: String.raw`\angle G\ (^{\circ})` },
-    ],
-    rows: [
-      ...corners,
-      ...(m.gainCrossover ? [m.gainCrossover] : []),
-      ...(m.phaseCrossover ? [m.phaseCrossover] : []),
-    ]
-      .sort((a, b) => a - b)
-      .map((w) => ({
-        w,
-        mag: magnitudeDb(tf, w),
-        asin: asymptoticDb(form, w),
-        fase: phaseDeg(form, w),
-      })),
-  });
+  tables.push(
+    {
+      id: 'factores',
+      title: 'Factores de la forma de Bode',
+      columns: [
+        { key: 'factor', header: String.raw`\text{Factor}`, format: 'latex' },
+        { key: 'esquina', header: String.raw`\omega_c\ (\text{rad/s})` },
+        { key: 'pendiente', header: String.raw`\text{Pendiente (dB/déc)}` },
+      ],
+      rows: [
+        { factor: n(form.gain), esquina: '—', pendiente: 0 },
+        ...form.factors.map((f) => ({
+          factor: signedFactorTex(f),
+          esquina: f.kind === 'origen' ? '—' : f.corner,
+          pendiente: (f.zero ? 1 : -1) * f.multiplicity * (f.kind === 'cuadratico' ? 40 : 20),
+        })),
+      ],
+    },
+    {
+      id: 'valores',
+      title: 'Magnitud y fase en las frecuencias de esquina',
+      columns: [
+        { key: 'w', header: String.raw`\omega\ (\text{rad/s})` },
+        { key: 'mag', header: String.raw`|G|\ (\text{dB})` },
+        { key: 'asin', header: String.raw`\text{Asintótica (dB)}` },
+        { key: 'fase', header: String.raw`\angle G\ (^{\circ})` },
+      ],
+      rows: [
+        ...corners,
+        ...(m.gainCrossover ? [m.gainCrossover] : []),
+        ...(m.phaseCrossover ? [m.phaseCrossover] : []),
+      ]
+        .sort((a, b) => a - b)
+        .map((w) => ({
+          w,
+          mag: magnitudeDb(tf, w),
+          asin: asymptoticDb(form, w),
+          fase: phaseDeg(form, w),
+        })),
+    },
+  );
 
   const summary: SummaryItem[] = [
     {

@@ -43,14 +43,12 @@ export interface NStepValue {
   distribution: number[] | null;
 }
 
-export type NStepErrorCode = never;
-
 /** Con n mayor que esto, solo se detallan las primeras potencias y la última. */
 const DETAILED_POWERS = 6;
 
 const n = toLatexNumber;
 
-export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NStepErrorCode> {
+export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, never> {
   const { P, steps: count, initial } = input;
   const size = P.length;
   const steps: Step[] = [
@@ -151,7 +149,7 @@ export function solveNStep(input: NStepInput): CalculatorResult<NStepValue, NSte
   };
 }
 
-export const nStepTransition: Calculator<NStepInput, NStepValue, NStepErrorCode> = {
+export const nStepTransition: Calculator<NStepInput, NStepValue, never> = {
   meta: {
     id: 'transicion-en-n-pasos',
     title: 'Probabilidades de transición en n pasos',

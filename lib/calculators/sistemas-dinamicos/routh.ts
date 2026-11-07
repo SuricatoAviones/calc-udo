@@ -12,7 +12,7 @@
  * parámetro (la ganancia K), y entonces la primera columna da las condiciones de estabilidad.
  */
 import * as C from '@/lib/math/complex';
-import { formatNumber, toLatexNumber, toLatexRational } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexRational, TEX } from '@/lib/math/format';
 import { polyRoots, type Poly, type PolyRoot } from '@/lib/math/polynomials';
 import type { ResultTable, Step } from '../types';
 import { symbolTex } from './symbolic';
@@ -132,8 +132,10 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
     ...row,
     ...new Array<URat>(Math.max(0, width - row.length)).fill(U_ZERO),
   ];
-  array.rows.push({ power: n, entries: pad(coefficients.filter((_, i) => i % 2 === 0)) });
-  array.rows.push({ power: n - 1, entries: pad(coefficients.filter((_, i) => i % 2 === 1)) });
+  array.rows.push(
+    { power: n, entries: pad(coefficients.filter((_, i) => i % 2 === 0)) },
+    { power: n - 1, entries: pad(coefficients.filter((_, i) => i % 2 === 1)) },
+  );
   steps.push({
     title: 'Primeros dos renglones',
     explanation:
@@ -141,7 +143,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
     result: array.rows
       .map(
         (r) =>
-          String.raw`${powerTex(r.power)}:\ ${r.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
+          String.raw`${powerTex(r.power)}:\ ${r.entries.map((e) => cellTex(e, array)).join(TEX.listSep)}`,
       )
       .join(String.raw`\qquad `),
   });
@@ -183,7 +185,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
       title: `Caso especial en el renglón ${powerTex(n - 1)}`,
       explanation:
         'El primer elemento es 0 pero el resto del renglón no: se reemplaza por un número positivo muy pequeño ε y se continúa (Ogata, sec. 5-5).',
-      result: String.raw`${powerTex(n - 1)}:\ ${array.rows[1]!.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
+      result: String.raw`${powerTex(n - 1)}:\ ${array.rows[1]!.entries.map((e) => cellTex(e, array)).join(TEX.listSep)}`,
     });
   }
 
@@ -226,7 +228,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
         title: 'Caso especial: primer elemento nulo',
         explanation:
           'El primer elemento es 0 pero el resto del renglón no: se reemplaza por un número positivo muy pequeño ε y se continúa (Ogata, sec. 5-5).',
-        result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
+        result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(TEX.listSep)}`,
       });
     }
     rowSteps.push({
@@ -236,7 +238,7 @@ export function routhArray(coefficients: URat[], parameter: string | null): Rout
           ? String.raw`b_j = \frac{a_1a_{2j} - a_0a_{2j+1}}{a_1}`
           : String.raw`x_j = \frac{p_1q_{j+1} - q_1p_{j+1}}{p_1}\quad (p: \text{renglón anterior},\ q: \text{dos renglones arriba})`,
       children,
-      result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(String.raw`,\ `)}`,
+      result: String.raw`${powerTex(row.power)}:\ ${row.entries.map((e) => cellTex(e, array)).join(TEX.listSep)}`,
     });
     if (zeroStep) rowSteps.push(zeroStep);
   }
@@ -464,7 +466,7 @@ export function parameterStability(
           ? `P(s) = ${auxiliaryPolyTex(aux.auxiliary!.coefficients, aux.auxiliary!.power, numericArray.array)} = 0`
           : undefined,
       result: omegas.length
-        ? String.raw`s = \pm j${omegas.map(n).join(String.raw`,\ \pm j`)},\quad \omega = ${omegas.map(n).join(String.raw`,\ `)}\ \text{rad/s}`
+        ? String.raw`s = \pm j${omegas.map(n).join(String.raw`,\ \pm j`)},\quad \omega = ${omegas.map(n).join(TEX.listSep)}\ \text{rad/s}`
         : undefined,
     });
   }

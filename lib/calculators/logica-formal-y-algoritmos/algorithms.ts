@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { latexLines, toLatexNumber } from '@/lib/math/format';
+import { latexLines, toLatexNumber, TEX } from '@/lib/math/format';
 
 /** Lista de números escrita por el estudiante (espacios, punto y coma o coma y espacio). */
 export const listField = (min: number, max: number) =>
@@ -41,7 +41,7 @@ export function listLatex(
     if (options.boxed?.includes(i)) tex = String.raw`\boxed{${tex}}`;
     return tex;
   });
-  return String.raw`\left[\,${items.join(String.raw`,\ `)}\,\right]`;
+  return String.raw`\left[\,${items.join(TEX.listSep)}\,\right]`;
 }
 
 /**

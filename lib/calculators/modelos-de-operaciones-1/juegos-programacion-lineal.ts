@@ -10,7 +10,7 @@
  * estrategias óptimas no cambian).
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import { lpLatex, type LinearProgram } from '../optimizacion-de-operaciones/lp-model';
 import { solveLpSilently } from '../optimizacion-de-operaciones/lp-solve';
@@ -31,7 +31,7 @@ export interface GameLpValue {
 export type GameLpErrorCode = 'lp-failed';
 
 const vector = (xs: Rational[]) =>
-  String.raw`\left(${xs.map((x) => x.toLatex()).join(String.raw`,\ `)}\right)`;
+  String.raw`\left(${xs.map((x) => x.toLatex()).join(TEX.listSep)}\right)`;
 
 export function solveGameLp(input: GameLpInput): CalculatorResult<GameLpValue, GameLpErrorCode> {
   const a = input.payoff.map((row) => row.map(Rational.fromNumber));

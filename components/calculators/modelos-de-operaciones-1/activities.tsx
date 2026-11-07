@@ -28,11 +28,11 @@ const baseColumns: TableFieldColumn[] = [
 export function ActivitiesField({
   timeColumns,
   emptyTimes,
-}: {
+}: Readonly<{
   timeColumns: TableFieldColumn[];
   /** Tiempos vacíos de una fila nueva, p. ej. `{ duration: undefined }`. */
   emptyTimes: Record<string, undefined>;
-}) {
+}>) {
   return (
     <TableField
       name="activities"

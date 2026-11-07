@@ -6,7 +6,7 @@ export interface Crumb {
   href?: string;
 }
 
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
+export function Breadcrumbs({ items }: Readonly<{ items: Crumb[] }>) {
   return (
     <nav aria-label="Ruta de navegación" className="text-muted-foreground mb-4 text-sm">
       <ol className="flex flex-wrap items-center gap-1">

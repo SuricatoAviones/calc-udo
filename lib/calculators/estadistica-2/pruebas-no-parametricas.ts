@@ -19,7 +19,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import { standardNormalCdf } from '@/lib/math/normal';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import { alphaField, alternativeField, testDecision, type Alternative } from './hypothesis';
@@ -236,10 +236,10 @@ function signTest(input: NonParametricInput): Result {
         ? String.raw`P = P(X \ge x \mid p = \tfrac12)`
         : input.alternative === 'menor'
           ? String.raw`P = P(X \le x \mid p = \tfrac12)`
-          : String.raw`P = 2P(X ${plus <= size / 2 ? String.raw`\le` : String.raw`\ge`} x \mid p = \tfrac12)`,
+          : String.raw`P = 2P(X ${plus <= size / 2 ? TEX.le : TEX.ge} x \mid p = \tfrac12)`,
     substitution:
       input.alternative === 'distinto'
-        ? `P = 2P(X ${plus <= size / 2 ? String.raw`\le` : String.raw`\ge`} ${plus}) = 2(${p4(Math.min(low, high))})`
+        ? `P = 2P(X ${plus <= size / 2 ? TEX.le : TEX.ge} ${plus}) = 2(${p4(Math.min(low, high))})`
         : undefined,
     result: `P = ${p4(pValue)}`,
   });
@@ -518,11 +518,13 @@ function kruskalWallis(input: NonParametricInput): Result {
     alternative: 'mayor',
     alpha: input.alpha,
   });
-  steps.push({
-    title: 'Distribución aproximada',
-    explanation: `Si H₀ es cierta y cada grupo tiene al menos 5 observaciones, h es aproximadamente ji-cuadrada con ν = k − 1 = ${k - 1} grados de libertad.${groups.some((g) => g.length < 5) ? ' Algún grupo tiene menos de 5 datos: la aproximación es menos confiable.' : ''}`,
-  });
-  steps.push(...outcome.steps);
+  steps.push(
+    {
+      title: 'Distribución aproximada',
+      explanation: `Si H₀ es cierta y cada grupo tiene al menos 5 observaciones, h es aproximadamente ji-cuadrada con ν = k − 1 = ${k - 1} grados de libertad.${groups.some((g) => g.length < 5) ? ' Algún grupo tiene menos de 5 datos: la aproximación es menos confiable.' : ''}`,
+    },
+    ...outcome.steps,
+  );
   return {
     ok: true,
     value: {

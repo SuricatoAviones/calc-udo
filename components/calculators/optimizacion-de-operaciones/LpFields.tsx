@@ -28,7 +28,7 @@ function LpPreview() {
 }
 
 /** Campos de un programa lineal: sentido, función objetivo y restricciones. */
-export function LpFields({ constraintsHint }: { constraintsHint?: string }) {
+export function LpFields({ constraintsHint }: Readonly<{ constraintsHint?: string }>) {
   return (
     <>
       <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-3">

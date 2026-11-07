@@ -8,7 +8,7 @@
  * μ_jj = 1/π_j. Taha, sec. 19.5.2 (ejemplo 19.5-3) y sec. 19.3 (ejemplo 19.3-1).
  */
 import { z } from 'zod';
-import { toLatexMatrix, toLatexNumber, toLatexVector } from '@/lib/math/format';
+import { toLatexMatrix, toLatexNumber, toLatexVector, TEX } from '@/lib/math/format';
 import { solveLinearSystem, vectorTimesMatrix } from '@/lib/math/linear-algebra';
 import {
   emptyTrace,
@@ -48,7 +48,7 @@ export function solveSteadyState({
       explanation:
         'En el estado estable, la probabilidad de estar en j es la misma antes y después de una transición: π = πP. Además, las probabilidades suman 1.',
       formula: String.raw`\pi_j = \sum_i \pi_i\,p_{ij}, \qquad \sum_j \pi_j = 1`,
-      substitution: String.raw`\begin{aligned} ${equations.join(String.raw` \\ `)} \\ 1 &= ${P.map((_, j) => piName(j)).join(' + ')} \end{aligned}`,
+      substitution: String.raw`\begin{aligned} ${equations.join(TEX.newline)} \\ 1 &= ${P.map((_, j) => piName(j)).join(' + ')} \end{aligned}`,
     },
   ];
 
@@ -63,7 +63,7 @@ export function solveSteadyState({
     title: 'Reemplazar la ecuación redundante',
     explanation: `Una de las ${size} ecuaciones de balance se deduce de las demás, así que la última se reemplaza por la de normalización. Queda un sistema lineal A π = b.`,
     formula: String.raw`A\,\pi^T = b`,
-    result: String.raw`${toLatexMatrix(A)} \begin{bmatrix} ${P.map((_, j) => piName(j)).join(String.raw` \\ `)} \end{bmatrix} = ${toLatexMatrix(b.map((v) => [v]))}`,
+    result: String.raw`${toLatexMatrix(A)} \begin{bmatrix} ${P.map((_, j) => piName(j)).join(TEX.newline)} \end{bmatrix} = ${toLatexMatrix(b.map((v) => [v]))}`,
   });
 
   const solution = solveLinearSystem(A, b);
@@ -131,7 +131,7 @@ export function solveSteadyState({
       },
       ...pi.map((p, j) => ({
         label: `Estado ${j + 1}`,
-        value: String.raw`\pi_{${j + 1}} = ${n(p, 6)}, \quad \mu_{${j + 1}${j + 1}} = ${Number.isFinite(recurrenceTimes[j]!) ? n(recurrenceTimes[j]!, 4) : String.raw`\infty`}`,
+        value: String.raw`\pi_{${j + 1}} = ${n(p, 6)}, \quad \mu_{${j + 1}${j + 1}} = ${Number.isFinite(recurrenceTimes[j]!) ? n(recurrenceTimes[j]!, 4) : TEX.infty}`,
       })),
     ],
     ...emptyTrace(),

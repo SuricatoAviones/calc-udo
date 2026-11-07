@@ -19,10 +19,10 @@ const STYLES: Record<CalculatorStatus | 'contenido-pendiente', string> = {
 export function StatusBadge({
   status,
   className,
-}: {
+}: Readonly<{
   status: CalculatorStatus | 'contenido-pendiente';
   className?: string;
-}) {
+}>) {
   return (
     <Badge variant="outline" className={cn('font-normal', STYLES[status], className)}>
       {LABELS[status]}

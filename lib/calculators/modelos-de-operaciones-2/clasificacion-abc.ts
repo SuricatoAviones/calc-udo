@@ -11,7 +11,7 @@
  *   B hasta v_B (p. ej. 95 %) y C el resto.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexText } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -99,9 +99,7 @@ export interface AbcValue {
   total: number;
 }
 
-export type AbcErrorCode = never;
-
-type Result = CalculatorResult<AbcValue, AbcErrorCode>;
+type Result = CalculatorResult<AbcValue, never>;
 
 const n = toLatexNumber;
 
@@ -179,10 +177,7 @@ export function solveAbc(input: AbcInput): Result {
           ? `Por porcentaje de piezas: A = el primer ${formatNumber(cutA)} % de la lista (${countA} de ${count}), B = el siguiente ${formatNumber(cutB)} % (${countB}) y C el resto.`
           : `Por valor acumulado: A mientras el acumulado no pase de ${formatNumber(cutA)} %, B hasta ${formatNumber(cutB)} % y C el resto.`,
       result: groups
-        .map(
-          (g) =>
-            `${g.group}: ${g.names.map(toLatexText).join(String.raw`,\ `) || String.raw`\text{—}`}`,
-        )
+        .map((g) => `${g.group}: ${g.names.map(toLatexText).join(TEX.listSep) || TEX.dash}`)
         .join(String.raw` \\ `),
     },
     {
@@ -255,7 +250,7 @@ export function solveAbc(input: AbcInput): Result {
   };
 }
 
-export const abc: Calculator<AbcInput, AbcValue, AbcErrorCode> = {
+export const abc: Calculator<AbcInput, AbcValue, never> = {
   meta: {
     id: 'clasificacion-abc',
     title: 'Clasificación ABC',

@@ -45,9 +45,7 @@ export interface ProductionLotValue {
   reorderPoint: number | null;
 }
 
-export type ProductionLotErrorCode = never;
-
-type Result = CalculatorResult<ProductionLotValue, ProductionLotErrorCode>;
+type Result = CalculatorResult<ProductionLotValue, never>;
 
 const n = toLatexNumber;
 
@@ -176,11 +174,7 @@ export function solveProductionLot(input: ProductionLotInput): Result {
   };
 }
 
-export const productionLot: Calculator<
-  ProductionLotInput,
-  ProductionLotValue,
-  ProductionLotErrorCode
-> = {
+export const productionLot: Calculator<ProductionLotInput, ProductionLotValue, never> = {
   meta: {
     id: 'lote-economico-de-produccion',
     title: 'Lote económico de producción',

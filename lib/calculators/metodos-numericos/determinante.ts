@@ -9,7 +9,7 @@
  */
 import { z } from 'zod';
 import { toLatexNumber, toLatexOperand } from '@/lib/math/format';
-import { emptyTrace, type Calculator, type Latex, type Step, type SummaryItem } from '../types';
+import { emptyTrace, type Calculator, type Step, type SummaryItem } from '../types';
 import {
   determinantFromUpper,
   forwardElimination,
@@ -47,8 +47,6 @@ export interface DeterminantValue {
   singular: boolean;
 }
 
-export type DeterminantErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, MATRIX_DIGITS);
 const op = (v: number) => toLatexOperand(v, MATRIX_DIGITS);
 
@@ -58,7 +56,7 @@ function minorMatrix(m: Matrix, row: number, col: number): Matrix {
 }
 
 /** Determinante por cofactores, con un paso por menor. `name` es el nombre LaTeX (D, M_{12}…). */
-function cofactorDeterminant(m: Matrix, name: Latex): { value: number; step: Step } {
+function cofactorDeterminant(m: Matrix, name: string): { value: number; step: Step } {
   const size = m.length;
   if (size === 1) {
     const value = m[0]![0]!;
@@ -177,7 +175,7 @@ export function solveDeterminant(input: DeterminantInput) {
   };
 }
 
-export const determinant: Calculator<DeterminantInput, DeterminantValue, DeterminantErrorCode> = {
+export const determinant: Calculator<DeterminantInput, DeterminantValue, never> = {
   meta: {
     id: 'determinante',
     title: 'Determinante de una matriz',

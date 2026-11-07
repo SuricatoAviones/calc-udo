@@ -130,17 +130,19 @@ export function solveStateFeedback(
 
   const { charPoly } = faddeevLeverrier(A);
   const desired = polyFromComplexRoots(parsed.values);
-  steps.push({
-    title: 'Polinomio característico del sistema',
-    formula: String.raw`|sI - A| = s^n + a_1s^{n-1} + \cdots + a_n`,
-    result: `|sI - A| = ${laplacePolyTex(charPoly)}`,
-  });
-  steps.push({
-    title: 'Polinomio característico deseado',
-    explanation: `Polos deseados: ${parsed.values.map((v) => C.toTextRect(v, DIGITS)).join(', ')}.`,
-    formula: String.raw`(s - \mu_1)(s - \mu_2)\cdots(s - \mu_n) = s^n + \alpha_1s^{n-1} + \cdots + \alpha_n`,
-    result: laplacePolyTex(desired),
-  });
+  steps.push(
+    {
+      title: 'Polinomio característico del sistema',
+      formula: String.raw`|sI - A| = s^n + a_1s^{n-1} + \cdots + a_n`,
+      result: `|sI - A| = ${laplacePolyTex(charPoly)}`,
+    },
+    {
+      title: 'Polinomio característico deseado',
+      explanation: `Polos deseados: ${parsed.values.map((v) => C.toTextRect(v, DIGITS)).join(', ')}.`,
+      formula: String.raw`(s - \mu_1)(s - \mu_2)\cdots(s - \mu_n) = s^n + \alpha_1s^{n-1} + \cdots + \alpha_n`,
+      result: laplacePolyTex(desired),
+    },
+  );
 
   // Método 1: T = MW.
   const W = wMatrix(charPoly);

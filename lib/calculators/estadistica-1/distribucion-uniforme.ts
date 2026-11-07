@@ -14,7 +14,6 @@ import {
   continuousQueryShape,
   finiteNumber,
   solveContinuous,
-  type ContinuousErrorCode,
   type ContinuousModel,
   type ContinuousValue,
 } from './continuous';
@@ -56,7 +55,7 @@ function uniformModel(a: number, b: number): ContinuousModel {
   };
 }
 
-export const uniform: Calculator<UniformInput, ContinuousValue, ContinuousErrorCode> = {
+export const uniform: Calculator<UniformInput, ContinuousValue, never> = {
   meta: {
     id: 'distribucion-uniforme',
     title: 'Distribución uniforme',

@@ -37,11 +37,9 @@ export interface EoqValue {
   reorder: ReorderPoint | null;
 }
 
-export type EoqErrorCode = never;
-
 const n = toLatexNumber;
 
-export function solveEoq(input: EoqInput): CalculatorResult<EoqValue, EoqErrorCode> {
+export function solveEoq(input: EoqInput): CalculatorResult<EoqValue, never> {
   const { demand: D, orderCost: K, holdingCost: h, leadTime } = input;
   const Q = economicOrderQuantity(D, K, h);
   const ordering = (K * D) / Q;
@@ -123,7 +121,7 @@ export function solveEoq(input: EoqInput): CalculatorResult<EoqValue, EoqErrorCo
   };
 }
 
-export const eoq: Calculator<EoqInput, EoqValue, EoqErrorCode> = {
+export const eoq: Calculator<EoqInput, EoqValue, never> = {
   meta: {
     id: 'eoq',
     title: 'Cantidad económica de pedido (EOQ)',

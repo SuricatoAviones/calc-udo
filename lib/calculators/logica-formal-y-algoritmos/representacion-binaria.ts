@@ -9,7 +9,7 @@
  *   exceso 2ⁿ⁻¹        x + 2ⁿ⁻¹ en binario sin signo; mismo rango que complemento a 2
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -62,7 +62,7 @@ export function bitsLatex(bits: string): string {
   const groups: string[] = [];
   for (let end = bits.length; end > 0; end -= 4)
     groups.unshift(bits.slice(Math.max(0, end - 4), end));
-  return String.raw`\mathtt{${groups.join(String.raw`\,`)}}`;
+  return String.raw`\mathtt{${groups.join(TEX.thinSpace)}}`;
 }
 
 export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, BinaryErrorCode> {

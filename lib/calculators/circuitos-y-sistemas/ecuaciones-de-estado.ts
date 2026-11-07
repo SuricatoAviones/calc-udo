@@ -65,25 +65,27 @@ export function solveStateEquations(
   const roots = polyRoots(charPoly);
   const stable = roots.every((r) => r.value.re < 0);
 
-  steps.push({
-    title: 'Ecuación característica',
-    explanation: `Sus raíces son las frecuencias naturales de la red: ${roots
-      .map((r) => `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (doble)` : ''}`)
-      .join(', ')}. ${
-      stable
-        ? 'Todas tienen parte real negativa: la respuesta natural se extingue y la red es estable.'
-        : 'Hay raíces con parte real no negativa: la respuesta natural no se extingue.'
-    }`,
-    formula: String.raw`\det(sI - A) = \det ${sIminusATex(model.A)} = 0`,
-    result: `${polyTex(charPoly, 's')} = 0`,
-  });
-  steps.push({
-    title: 'Solución con la transformada de Laplace',
-    explanation:
-      'Se transforma ẋ = Ax + Bu con las fuentes de cd como escalones: sX(s) − x(0) = AX(s) + B·u/s. La inversa de (sI − A) se calcula con el algoritmo de Faddeev-LeVerrier.',
-    formula: String.raw`\mathbf{X}(s) = (sI - A)^{-1}\left[\mathbf{x}(0) + \frac{B\mathbf{u}}{s}\right],\qquad (sI - A)^{-1} = \frac{\operatorname{adj}(sI - A)}{\det(sI - A)}`,
-    result: String.raw`\operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
-  });
+  steps.push(
+    {
+      title: 'Ecuación característica',
+      explanation: `Sus raíces son las frecuencias naturales de la red: ${roots
+        .map((r) => `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (doble)` : ''}`)
+        .join(', ')}. ${
+        stable
+          ? 'Todas tienen parte real negativa: la respuesta natural se extingue y la red es estable.'
+          : 'Hay raíces con parte real no negativa: la respuesta natural no se extingue.'
+      }`,
+      formula: String.raw`\det(sI - A) = \det ${sIminusATex(model.A)} = 0`,
+      result: `${polyTex(charPoly, 's')} = 0`,
+    },
+    {
+      title: 'Solución con la transformada de Laplace',
+      explanation:
+        'Se transforma ẋ = Ax + Bu con las fuentes de cd como escalones: sX(s) − x(0) = AX(s) + B·u/s. La inversa de (sI − A) se calcula con el algoritmo de Faddeev-LeVerrier.',
+      formula: String.raw`\mathbf{X}(s) = (sI - A)^{-1}\left[\mathbf{x}(0) + \frac{B\mathbf{u}}{s}\right],\qquad (sI - A)^{-1} = \frac{\operatorname{adj}(sI - A)}{\det(sI - A)}`,
+      result: String.raw`\operatorname{adj}(sI - A) = ${adjugateTex(M)}`,
+    },
+  );
 
   const transforms = stateTransforms(model, charPoly, M);
   const solutions: string[] = [];

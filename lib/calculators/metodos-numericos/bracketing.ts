@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import { parseFunction } from '@/lib/math/expression';
 import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
-import { emptyTrace, type CalculatorResult, type Latex, type Step, type Trace } from '../types';
+import { emptyTrace, type CalculatorResult, type Step, type Trace } from '../types';
 import {
   approximateError,
   convergenceSeries,
@@ -58,9 +58,9 @@ export interface BracketingRule {
   pointTitle: string;
   /** Explicación breve de por qué x_r se calcula así. */
   pointExplanation?: string;
-  formula: Latex;
+  formula: string;
   compute(xl: number, xu: number, fxl: number, fxu: number): number;
-  substitution(xl: number, xu: number, fxl: number, fxu: number): Latex;
+  substitution(xl: number, xu: number, fxl: number, fxu: number): string;
 }
 
 interface Row {

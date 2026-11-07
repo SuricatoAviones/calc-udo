@@ -13,7 +13,7 @@ interface FieldProps {
  * Etiqueta + control + ayuda + error, con los atributos ARIA conectados. El control (hijo) debe
  * usar el mismo `id` y `aria-describedby={describedBy(id)}`.
  */
-export function Field({ id, label, hint, error, children }: FieldProps) {
+export function Field({ id, label, hint, error, children }: Readonly<FieldProps>) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>

@@ -13,7 +13,7 @@ const DISTRIBUTIONS = [
 ];
 
 /** Distribución de un tiempo (llegadas o servicio) y sus parámetros. */
-function TimeFields({ prefix, title }: { prefix: 'arrival' | 'service'; title: string }) {
+function TimeFields({ prefix, title }: Readonly<{ prefix: 'arrival' | 'service'; title: string }>) {
   const { control } = useFormContext();
   const distribution = useWatch({ control, name: `${prefix}Distribution` }) as string | undefined;
   return (

@@ -18,7 +18,7 @@ function countCalculators(subject: Subject) {
   return { total: ids.size, implemented };
 }
 
-function SubjectCard({ subject }: { subject: Subject }) {
+function SubjectCard({ subject }: Readonly<{ subject: Subject }>) {
   const { total, implemented } = countCalculators(subject);
   return (
     <Link
@@ -46,7 +46,11 @@ function SubjectCard({ subject }: { subject: Subject }) {
   );
 }
 
-function SubjectGroup({ id, title, subjects }: { id: string; title: string; subjects: Subject[] }) {
+function SubjectGroup({
+  id,
+  title,
+  subjects,
+}: Readonly<{ id: string; title: string; subjects: Subject[] }>) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-4">
       <h2 id={id} className="border-b pb-2 text-xl font-semibold">

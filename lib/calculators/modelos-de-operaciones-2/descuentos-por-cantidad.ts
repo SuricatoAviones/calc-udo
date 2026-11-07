@@ -11,7 +11,7 @@
  * T_j. El costo de mantener puede ser fijo (h) o un porcentaje I del precio (h_j = I c_j).
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -99,13 +99,9 @@ export interface DiscountsValue {
   reorder: ReorderPoint | null;
 }
 
-export type DiscountsErrorCode = never;
-
 const n = toLatexNumber;
 
-export function solveDiscounts(
-  input: DiscountsInput,
-): CalculatorResult<DiscountsValue, DiscountsErrorCode> {
+export function solveDiscounts(input: DiscountsInput): CalculatorResult<DiscountsValue, never> {
   const { demand: D, orderCost: K, tiers, holdingType, holding, leadTime } = input;
   const percent = holdingType === 'porcentaje';
   const holdingFor = (price: number) => (percent ? (holding / 100) * price : holding);
@@ -177,7 +173,7 @@ export function solveDiscounts(
       title: 'Elegir el menor costo',
       substitution:
         feasible.length > 1
-          ? String.raw`\min\{${feasible.map((c) => n(c.totalCost!, 8)).join(String.raw`,\ `)}\} = ${n(best.totalCost!, 8)}`
+          ? String.raw`\min\{${feasible.map((c) => n(c.totalCost!, 8)).join(TEX.listSep)}\} = ${n(best.totalCost!, 8)}`
           : undefined,
       result: String.raw`Q^* = ${n(best.quantity!, 6)} \ \text{a}\ c = ${n(best.price)}, \qquad T = ${n(best.totalCost!, 8)}`,
     },
@@ -269,7 +265,7 @@ export function solveDiscounts(
   };
 }
 
-export const discounts: Calculator<DiscountsInput, DiscountsValue, DiscountsErrorCode> = {
+export const discounts: Calculator<DiscountsInput, DiscountsValue, never> = {
   meta: {
     id: 'descuentos-por-cantidad',
     title: 'EOQ con descuentos por cantidad',

@@ -29,7 +29,7 @@ function niceStep(span: number): number {
  * marcadores para polos (×), ceros (○) y puntos calculados (●). Las líneas que salen de la
  * ventana se recortan.
  */
-export function PlaneChart({ series }: { series: Series }) {
+export function PlaneChart({ series }: Readonly<{ series: Series }>) {
   const curves = series.curves ?? [];
   const markers = series.markers ?? [];
   const solid = curves.filter((c) => !c.dashed).flatMap((c) => c.points);

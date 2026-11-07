@@ -90,35 +90,37 @@ export function solveRectifier(
   const vripple = Math.sqrt(vrms * vrms - vdc * vdc);
   const rippleFactor = vripple / vdc;
 
-  steps.push({
-    title: 'Valor de cd (promedio)',
-    explanation: r.fullWave
-      ? 'La onda completa aprovecha ambos semiciclos: el promedio es el doble que en media onda (63.6 % del pico).'
-      : 'Solo pasa un semiciclo: el promedio es el 31.8 % del pico.',
-    formula: r.fullWave
-      ? String.raw`V_{cd} = \frac{2V_{p(out)}}{\pi} = 0.636\,V_{p(out)}`
-      : String.raw`V_{cd} = \frac{V_{p(out)}}{\pi} = 0.318\,V_{p(out)}`,
-    substitution: r.fullWave
-      ? String.raw`V_{cd} = \frac{2(${n(vp)})}{\pi}`
-      : String.raw`V_{cd} = \frac{${n(vp)}}{\pi}`,
-    result: String.raw`V_{cd} = ${n(vdc)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Valor eficaz y rizo',
-    explanation:
-      'El factor de rizo compara el valor eficaz de la componente de ca con el de cd (Boylestad, sec. 15.2): sin filtro es grande, por eso se agrega un capacitor.',
-    formula: String.raw`V_{rms} = ${r.fullWave ? String.raw`\frac{V_p}{\sqrt{2}}` : String.raw`\frac{V_p}{2}`},\qquad V_{r(rms)} = \sqrt{V_{rms}^{2} - V_{cd}^{2}},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
-    substitution: String.raw`V_{rms} = ${n(vrms)}\ \text{V},\quad V_{r(rms)} = \sqrt{(${n(vrms)})^{2} - (${n(vdc)})^{2}}`,
-    result: String.raw`V_{r(rms)} = ${n(vripple)}\ \text{V} = ${n(vripple / vp, 4)}\,V_p,\quad r = ${n(100 * rippleFactor, 4)}\,\%`,
-  });
-  steps.push({
-    title: 'Frecuencia de salida y PIV',
-    explanation: `${r.fullWave ? 'La salida tiene dos pulsos por ciclo de la red' : 'La salida tiene un pulso por ciclo de la red'}. Cada diodo debe soportar en inversa el pico ${
-      type === 'derivacion-central' ? 'del secundario completo (2V_m)' : 'del secundario'
-    } (valor ideal).`,
-    formula: String.raw`f_{out} = ${r.fullWave ? '2f_{in}' : 'f_{in}'},\qquad PIV = V_{p2}`,
-    result: String.raw`f_{out} = ${n(r.fOut)}\ \text{Hz},\quad PIV = ${n(r.piv)}\ \text{V}`,
-  });
+  steps.push(
+    {
+      title: 'Valor de cd (promedio)',
+      explanation: r.fullWave
+        ? 'La onda completa aprovecha ambos semiciclos: el promedio es el doble que en media onda (63.6 % del pico).'
+        : 'Solo pasa un semiciclo: el promedio es el 31.8 % del pico.',
+      formula: r.fullWave
+        ? String.raw`V_{cd} = \frac{2V_{p(out)}}{\pi} = 0.636\,V_{p(out)}`
+        : String.raw`V_{cd} = \frac{V_{p(out)}}{\pi} = 0.318\,V_{p(out)}`,
+      substitution: r.fullWave
+        ? String.raw`V_{cd} = \frac{2(${n(vp)})}{\pi}`
+        : String.raw`V_{cd} = \frac{${n(vp)}}{\pi}`,
+      result: String.raw`V_{cd} = ${n(vdc)}\ \text{V}`,
+    },
+    {
+      title: 'Valor eficaz y rizo',
+      explanation:
+        'El factor de rizo compara el valor eficaz de la componente de ca con el de cd (Boylestad, sec. 15.2): sin filtro es grande, por eso se agrega un capacitor.',
+      formula: String.raw`V_{rms} = ${r.fullWave ? String.raw`\frac{V_p}{\sqrt{2}}` : String.raw`\frac{V_p}{2}`},\qquad V_{r(rms)} = \sqrt{V_{rms}^{2} - V_{cd}^{2}},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
+      substitution: String.raw`V_{rms} = ${n(vrms)}\ \text{V},\quad V_{r(rms)} = \sqrt{(${n(vrms)})^{2} - (${n(vdc)})^{2}}`,
+      result: String.raw`V_{r(rms)} = ${n(vripple)}\ \text{V} = ${n(vripple / vp, 4)}\,V_p,\quad r = ${n(100 * rippleFactor, 4)}\,\%`,
+    },
+    {
+      title: 'Frecuencia de salida y PIV',
+      explanation: `${r.fullWave ? 'La salida tiene dos pulsos por ciclo de la red' : 'La salida tiene un pulso por ciclo de la red'}. Cada diodo debe soportar en inversa el pico ${
+        type === 'derivacion-central' ? 'del secundario completo (2V_m)' : 'del secundario'
+      } (valor ideal).`,
+      formula: String.raw`f_{out} = ${r.fullWave ? '2f_{in}' : 'f_{in}'},\qquad PIV = V_{p2}`,
+      result: String.raw`f_{out} = ${n(r.fOut)}\ \text{Hz},\quad PIV = ${n(r.piv)}\ \text{V}`,
+    },
+  );
 
   let idc: number | undefined;
   if (input.rl !== undefined) {

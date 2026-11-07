@@ -94,9 +94,7 @@ export interface LifeTableValue {
   total: number;
 }
 
-export type LifeTableErrorCode = never;
-
-type Result = CalculatorResult<LifeTableValue, LifeTableErrorCode>;
+type Result = CalculatorResult<LifeTableValue, never>;
 
 const n = toLatexNumber;
 
@@ -285,7 +283,7 @@ export function solveLifeTable({ intervals, criterion }: LifeTableInput): Result
   };
 }
 
-export const lifeTable: Calculator<LifeTableInput, LifeTableValue, LifeTableErrorCode> = {
+export const lifeTable: Calculator<LifeTableInput, LifeTableValue, never> = {
   meta: {
     id: 'tabla-de-sobrevivencia',
     title: 'Tabla de sobrevivencia y fallas',

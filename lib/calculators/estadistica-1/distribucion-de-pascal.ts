@@ -17,7 +17,6 @@ import {
   discreteQueryShape,
   lnFactorial,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -67,7 +66,7 @@ function pascalModel(k: number, p: number): DiscreteModel {
   };
 }
 
-export const pascal: Calculator<PascalInput, DiscreteValue, DiscreteErrorCode> = {
+export const pascal: Calculator<PascalInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-de-pascal',
     title: 'Distribución de Pascal',

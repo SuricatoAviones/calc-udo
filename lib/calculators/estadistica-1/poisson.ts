@@ -13,7 +13,6 @@ import {
   discreteQueryShape,
   lnFactorial,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -49,7 +48,7 @@ function poissonModel(lambda: number): DiscreteModel {
   };
 }
 
-export const poisson: Calculator<PoissonInput, DiscreteValue, DiscreteErrorCode> = {
+export const poisson: Calculator<PoissonInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-de-poisson',
     title: 'Distribución de Poisson',

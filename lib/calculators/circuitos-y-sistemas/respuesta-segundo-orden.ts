@@ -70,8 +70,6 @@ export interface SecondOrderValue {
   responses: ResponseValue[];
 }
 
-export type SecondOrderErrorCode = never;
-
 interface Natural {
   alpha: number;
   omega0: number;
@@ -190,7 +188,7 @@ function response(
 
 export function solveSecondOrder(
   input: SecondOrderInput,
-): CalculatorResult<SecondOrderValue, SecondOrderErrorCode> {
+): CalculatorResult<SecondOrderValue, never> {
   const { resistance: R, inductance: L, capacitance: Cap } = input;
   const parallel = input.circuit === 'paralelo';
   const alpha = parallel ? 1 / (2 * R * Cap) : R / (2 * L);
@@ -199,25 +197,27 @@ export function solveSecondOrder(
   const steps: Step[] = [];
   const notices: Notice[] = [];
 
-  steps.push({
-    title: parallel ? 'Circuito RLC en paralelo' : 'Circuito RLC en serie',
-    explanation: parallel
-      ? 'v es el voltaje común (+ arriba) e i_L baja por el inductor. La fuente de cd I_s, si la hay, entra al nodo superior a partir de t = 0.'
-      : 'i circula en sentido horario por los tres elementos y v_C tiene su + por donde entra i. La fuente de cd V_s, si la hay, está en serie a partir de t = 0.',
-    formula: parallel
-      ? String.raw`C\frac{d^{2}v}{dt^{2}} + \frac{1}{R}\frac{dv}{dt} + \frac{1}{L}v = 0`
-      : String.raw`L\frac{d^{2}i}{dt^{2}} + R\frac{di}{dt} + \frac{1}{C}i = 0`,
-  });
-  steps.push({
-    title: 'Frecuencias α y ω₀',
-    formula: parallel
-      ? String.raw`\alpha = \frac{1}{2RC},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`
-      : String.raw`\alpha = \frac{R}{2L},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`,
-    substitution: parallel
-      ? String.raw`\alpha = \frac{1}{2(${n(R)})(${n(Cap)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`
-      : String.raw`\alpha = \frac{${n(R)}}{2(${n(L)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`,
-    result: String.raw`\alpha = ${n(alpha)}\ \text{s}^{-1},\quad \omega_0 = ${n(omega0)}\ \text{rad/s}`,
-  });
+  steps.push(
+    {
+      title: parallel ? 'Circuito RLC en paralelo' : 'Circuito RLC en serie',
+      explanation: parallel
+        ? 'v es el voltaje común (+ arriba) e i_L baja por el inductor. La fuente de cd I_s, si la hay, entra al nodo superior a partir de t = 0.'
+        : 'i circula en sentido horario por los tres elementos y v_C tiene su + por donde entra i. La fuente de cd V_s, si la hay, está en serie a partir de t = 0.',
+      formula: parallel
+        ? String.raw`C\frac{d^{2}v}{dt^{2}} + \frac{1}{R}\frac{dv}{dt} + \frac{1}{L}v = 0`
+        : String.raw`L\frac{d^{2}i}{dt^{2}} + R\frac{di}{dt} + \frac{1}{C}i = 0`,
+    },
+    {
+      title: 'Frecuencias α y ω₀',
+      formula: parallel
+        ? String.raw`\alpha = \frac{1}{2RC},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`
+        : String.raw`\alpha = \frac{R}{2L},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`,
+      substitution: parallel
+        ? String.raw`\alpha = \frac{1}{2(${n(R)})(${n(Cap)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`
+        : String.raw`\alpha = \frac{${n(R)}}{2(${n(L)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`,
+      result: String.raw`\alpha = ${n(alpha)}\ \text{s}^{-1},\quad \omega_0 = ${n(omega0)}\ \text{rad/s}`,
+    },
+  );
 
   const dampingText = {
     sobreamortiguado: 'α > ω₀: respuesta sobreamortiguada (dos exponenciales reales).',
@@ -407,11 +407,7 @@ export function solveSecondOrder(
   };
 }
 
-export const respuestaSegundoOrden: Calculator<
-  SecondOrderInput,
-  SecondOrderValue,
-  SecondOrderErrorCode
-> = {
+export const respuestaSegundoOrden: Calculator<SecondOrderInput, SecondOrderValue, never> = {
   meta: {
     id: 'respuesta-segundo-orden',
     title: 'Circuitos de segundo orden (RLC)',

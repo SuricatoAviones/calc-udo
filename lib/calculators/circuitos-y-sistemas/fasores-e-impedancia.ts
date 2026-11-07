@@ -97,19 +97,21 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
   }
   angle = wrapDegrees(angle);
   const voltage = C.fromPolar(magnitude, C.radians(angle));
-  steps.push({
-    title: 'Senoide en forma de coseno',
-    explanation:
-      'El fasor se define a partir de un coseno con amplitud positiva: sen x = cos(x − 90°) y −cos x = cos(x ± 180°).',
-    formula: conversions.length > 0 ? conversions.join(String.raw`,\quad `) : undefined,
-    result: String.raw`v(t) = ${timeTex(magnitude, omega, angle)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Fasor de voltaje',
-    explanation: 'Se suprime la frecuencia: el fasor guarda la amplitud y el ángulo.',
-    formula: String.raw`V_m\cos(\omega t + \theta) \;\rightarrow\; \mathbf{V} = V_m\angle\theta`,
-    result: String.raw`\mathbf{V} = ${polar(voltage)} = ${rect(voltage)}\ \text{V}`,
-  });
+  steps.push(
+    {
+      title: 'Senoide en forma de coseno',
+      explanation:
+        'El fasor se define a partir de un coseno con amplitud positiva: sen x = cos(x − 90°) y −cos x = cos(x ± 180°).',
+      formula: conversions.length > 0 ? conversions.join(String.raw`,\quad `) : undefined,
+      result: String.raw`v(t) = ${timeTex(magnitude, omega, angle)}\ \text{V}`,
+    },
+    {
+      title: 'Fasor de voltaje',
+      explanation: 'Se suprime la frecuencia: el fasor guarda la amplitud y el ángulo.',
+      formula: String.raw`V_m\cos(\omega t + \theta) \;\rightarrow\; \mathbf{V} = V_m\angle\theta`,
+      result: String.raw`\mathbf{V} = ${polar(voltage)} = ${rect(voltage)}\ \text{V}`,
+    },
+  );
 
   // 2. Impedancias de cada elemento.
   type Element = PhasorValue['elements'][number];

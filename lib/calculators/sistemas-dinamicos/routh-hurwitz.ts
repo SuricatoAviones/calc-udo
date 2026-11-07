@@ -7,7 +7,7 @@
  * figura 5-24); Ogata, 3.ª ed., ejemplo 6-1 (cruce con el eje imaginario por Routh).
  */
 import { z } from 'zod';
-import { toLatexNumber, toLatexRational } from '@/lib/math/format';
+import { toLatexNumber, toLatexRational, TEX } from '@/lib/math/format';
 import { polyRoots } from '@/lib/math/polynomials';
 import type { Calculator, CalculatorResult, Notice, Step, SummaryItem } from '../types';
 import {
@@ -135,7 +135,7 @@ export function solveRouth(
         ? String.raw`s${zeroRoots > 1 ? `^{${zeroRoots}}` : ''}\left(${polynomialTex(coefficients, pTex)}\right)`
         : polynomialTex(coefficients, pTex)
     } = 0`,
-    result: String.raw`a_0, a_1, \ldots = ${coefficients.map(coefTex).join(String.raw`,\ `)}`,
+    result: String.raw`a_0, a_1, \ldots = ${coefficients.map(coefTex).join(TEX.listSep)}`,
   });
   if (coefficients.length - 1 < 1) {
     return fail(
@@ -179,7 +179,7 @@ export function solveRouth(
       } signos de la primera columna son ${analysis.signs.map((s) => (s > 0 ? '+' : s < 0 ? '−' : '0')).join(', ')}: hay ${rightHalf} ${
         rightHalf === 1 ? 'cambio' : 'cambios'
       } de signo, así que ${rightHalf === 1 ? 'hay una raíz' : `hay ${rightHalf} raíces`} con parte real positiva.`,
-      result: String.raw`\text{Primera columna: } ${firstColumn.join(String.raw`,\ `)}`,
+      result: String.raw`\text{Primera columna: } ${firstColumn.join(TEX.listSep)}`,
     });
     if (analysis.auxiliaryRoots.length) {
       steps.push({
@@ -252,7 +252,7 @@ export function solveRouth(
   for (const c of criticalInfo.filter((x) => x.omega.length)) {
     summary.push({
       label: `${parameter} crítico`,
-      value: String.raw`${pTex} = ${toLatexRational(c.value, DIGITS)},\quad \omega = ${c.omega.map(n).join(String.raw`,\ `)}\ \text{rad/s}`,
+      value: String.raw`${pTex} = ${toLatexRational(c.value, DIGITS)},\quad \omega = ${c.omega.map(n).join(TEX.listSep)}\ \text{rad/s}`,
     });
   }
   return {

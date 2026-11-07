@@ -16,7 +16,7 @@
  * transiciones hasta la absorción y (I − N)⁻¹A las probabilidades de absorción (Taha, sec. 17.6).
  */
 import { z } from 'zod';
-import { toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import { solveLinearSystem } from '@/lib/math/linear-algebra';
 import {
   emptyTrace,
@@ -176,42 +176,43 @@ export function solveClassification({ P }: ClassificationInput): Result {
     return { state: i + 1, classIndex: classOf[i]! + 1, kind, period: cls.period };
   });
 
-  steps.push({
-    title: 'Clases cerradas y abiertas',
-    explanation:
-      'Una clase es cerrada si ninguna transición sale de ella: una vez dentro, el proceso no la abandona y sus estados son recurrentes. Si alguna transición sale de la clase, sus estados son transitorios: tarde o temprano se abandonan para siempre. Un estado con p_jj = 1 es absorbente.',
-    children: classes.map((c, k) => {
-      const exits = c.states.flatMap((s) =>
-        P[s - 1]!.flatMap((p, v) =>
-          p > 0 && !c.states.includes(v + 1) ? [`p_{${s}${v + 1}} = ${n(p)}`] : [],
-        ),
-      );
-      const absorbing = c.states.length === 1 && states[c.states[0]! - 1]!.kind === 'absorbente';
-      return {
-        title: `Clase C${k + 1} = {${c.states.join(', ')}}`,
-        explanation: c.closed
-          ? absorbing
-            ? `Cerrada con un solo estado y p_{${c.states[0]}${c.states[0]}} = 1: el estado ${c.states[0]} es absorbente.`
-            : 'Cerrada: ninguna transición sale de la clase. Sus estados son recurrentes.'
-          : 'Abierta: hay transiciones que salen de la clase y no vuelven. Sus estados son transitorios.',
-        result: c.closed
-          ? String.raw`\text{recurrente}`
-          : String.raw`\text{sale por } ${exits.slice(0, 4).join(String.raw`,\ `)}`,
-      };
-    }),
-  });
-
-  steps.push({
-    title: 'Período de cada clase',
-    explanation:
-      'El período es el máximo común divisor de las longitudes de los caminos que regresan a un estado. Se calcula con un recorrido de la clase: el mcd de (nivel de u + 1 − nivel de v) sobre las transiciones u → v dentro de la clase. Período 1 = aperiódico.',
-    result: classes
-      .map(
-        (c, k) =>
-          `C_{${k + 1}}: ${c.period === null ? String.raw`\text{sin retorno}` : c.period === 1 ? String.raw`\text{aperiódica}` : `d = ${c.period}`}`,
-      )
-      .join(String.raw`,\quad `),
-  });
+  steps.push(
+    {
+      title: 'Clases cerradas y abiertas',
+      explanation:
+        'Una clase es cerrada si ninguna transición sale de ella: una vez dentro, el proceso no la abandona y sus estados son recurrentes. Si alguna transición sale de la clase, sus estados son transitorios: tarde o temprano se abandonan para siempre. Un estado con p_jj = 1 es absorbente.',
+      children: classes.map((c, k) => {
+        const exits = c.states.flatMap((s) =>
+          P[s - 1]!.flatMap((p, v) =>
+            p > 0 && !c.states.includes(v + 1) ? [`p_{${s}${v + 1}} = ${n(p)}`] : [],
+          ),
+        );
+        const absorbing = c.states.length === 1 && states[c.states[0]! - 1]!.kind === 'absorbente';
+        return {
+          title: `Clase C${k + 1} = {${c.states.join(', ')}}`,
+          explanation: c.closed
+            ? absorbing
+              ? `Cerrada con un solo estado y p_{${c.states[0]}${c.states[0]}} = 1: el estado ${c.states[0]} es absorbente.`
+              : 'Cerrada: ninguna transición sale de la clase. Sus estados son recurrentes.'
+            : 'Abierta: hay transiciones que salen de la clase y no vuelven. Sus estados son transitorios.',
+          result: c.closed
+            ? String.raw`\text{recurrente}`
+            : String.raw`\text{sale por } ${exits.slice(0, 4).join(TEX.listSep)}`,
+        };
+      }),
+    },
+    {
+      title: 'Período de cada clase',
+      explanation:
+        'El período es el máximo común divisor de las longitudes de los caminos que regresan a un estado. Se calcula con un recorrido de la clase: el mcd de (nivel de u + 1 − nivel de v) sobre las transiciones u → v dentro de la clase. Período 1 = aperiódico.',
+      result: classes
+        .map(
+          (c, k) =>
+            `C_{${k + 1}}: ${c.period === null ? String.raw`\text{sin retorno}` : c.period === 1 ? String.raw`\text{aperiódica}` : `d = ${c.period}`}`,
+        )
+        .join(String.raw`,\quad `),
+    },
+  );
 
   const irreducible = classes.length === 1;
   const ergodic = irreducible && classes[0]!.period === 1;

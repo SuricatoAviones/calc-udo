@@ -8,7 +8,7 @@ import { NumberField, SelectField } from '@/components/calculators/form/fields';
  * valor de X en las opciones; la hipergeométrica y la de Pascal usan `x` porque en Walpole `k` es
  * un parámetro.
  */
-export function DiscreteQueryFields({ symbol = 'k' }: { symbol?: string }) {
+export function DiscreteQueryFields({ symbol = 'k' }: Readonly<{ symbol?: string }>) {
   const { control } = useFormContext();
   const query = useWatch({ control, name: 'query' }) as string | undefined;
   const between = query === 'entre';

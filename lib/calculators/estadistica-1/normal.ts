@@ -41,11 +41,9 @@ export interface NormalValue {
   z: number[];
 }
 
-export type NormalErrorCode = never;
-
 const n = toLatexNumber;
 
-export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, NormalErrorCode> {
+export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, never> {
   const { mean: mu, sd: sigma, query, x } = input;
   const limits = query === 'entre' ? [x, input.x2!] : [x];
   const zs = limits.map((v) => (v - mu) / sigma);
@@ -150,7 +148,7 @@ export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, N
   };
 }
 
-export const normal: Calculator<NormalInput, NormalValue, NormalErrorCode> = {
+export const normal: Calculator<NormalInput, NormalValue, never> = {
   meta: {
     id: 'distribucion-normal',
     title: 'Distribución normal',

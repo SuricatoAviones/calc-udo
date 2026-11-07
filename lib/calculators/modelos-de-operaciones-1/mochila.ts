@@ -10,7 +10,7 @@
  * además permite leer la solución para capacidades menores.
  */
 import { z } from 'zod';
-import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -68,15 +68,13 @@ export interface KnapsackValue {
   decisions: number[][];
 }
 
-export type KnapsackErrorCode = never;
-
 const n = toLatexNumber;
 const t = toLatexText;
 
 export function solveKnapsack({
   capacity: W,
   items,
-}: KnapsackInput): CalculatorResult<KnapsackValue, KnapsackErrorCode> {
+}: KnapsackInput): CalculatorResult<KnapsackValue, never> {
   const count = items.length;
   const capacities = Array.from({ length: W + 1 }, (_, x) => x);
   const maxUnits = (i: number, x: number) =>
@@ -125,8 +123,8 @@ export function solveKnapsack({
           values,
         )} \quad \text{con } ${options
           .map((m) => String.raw`m = ${m}:\ ${n(r)}(${m}) + f_{${stage + 1}}(${x - w * m})`)
-          .join(String.raw`,\ `)}`,
-        result: String.raw`f_{${stage}}(${x}) = ${n(f[i]![x]!)}, \qquad m_{${stage}}^* = ${best.map((k) => options[k]!).join(String.raw`\ \text{o}\ `)}`,
+          .join(TEX.listSep)}`,
+        result: String.raw`f_{${stage}}(${x}) = ${n(f[i]![x]!)}, \qquad m_{${stage}}^* = ${best.map((k) => options[k]!).join(TEX.or)}`,
       });
     }
     steps.push({
@@ -167,7 +165,7 @@ export function solveKnapsack({
     explanation:
       'Con x₁ = W se lee m₁* en la etapa 1; la capacidad que queda, x₂ = x₁ − w₁m₁*, da m₂* en la etapa 2, y así sucesivamente.',
     substitution: latexLines(walk),
-    result: String.raw`m^* = \left(${units.join(String.raw`,\ `)}\right), \qquad f_1(${W}) = ${n(totalValue)}`,
+    result: String.raw`m^* = \left(${units.join(TEX.listSep)}\right), \qquad f_1(${W}) = ${n(totalValue)}`,
   });
 
   return {
@@ -211,7 +209,7 @@ export function solveKnapsack({
   };
 }
 
-export const knapsack: Calculator<KnapsackInput, KnapsackValue, KnapsackErrorCode> = {
+export const knapsack: Calculator<KnapsackInput, KnapsackValue, never> = {
   meta: {
     id: 'mochila',
     title: 'Modelo de la mochila (carga)',

@@ -66,9 +66,7 @@ export interface PowerValue {
   character: 'atrasado' | 'adelantado' | 'unitario';
 }
 
-export type PowerErrorCode = never;
-
-export function solvePower(input: PowerInput): CalculatorResult<PowerValue, PowerErrorCode> {
+export function solvePower(input: PowerInput): CalculatorResult<PowerValue, never> {
   const toRms = input.values === 'amplitud' ? 1 / Math.SQRT2 : 1;
   const label = input.values === 'amplitud' ? 'amplitud' : 'valor eficaz';
   const steps: Step[] = [];
@@ -108,32 +106,34 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
     explanation: `Los módulos dados son de ${label}. Convención pasiva: P > 0 significa potencia absorbida por la carga.`,
     result: String.raw`\mathbf{V} = ${polar(v)},\quad \mathbf{I} = ${polar(i)}`,
   });
-  steps.push({
-    title: 'Valores eficaces',
-    explanation:
-      input.values === 'amplitud'
-        ? 'Para una senoide, el valor eficaz es la amplitud dividida entre √2.'
-        : 'Los módulos ya son eficaces; las amplitudes son √2 veces mayores.',
-    formula: String.raw`V_{ef} = \frac{V_m}{\sqrt{2}},\quad I_{ef} = \frac{I_m}{\sqrt{2}}`,
-    result: String.raw`V_{ef} = ${n(C.abs(vRms))}\ \text{V},\quad I_{ef} = ${n(C.abs(iRms))}\ \text{A}`,
-  });
-  steps.push({
-    title: 'Ángulo del factor de potencia',
-    explanation:
-      'Es el ángulo por el que el voltaje adelanta a la corriente (el ángulo de la impedancia).',
-    formula: String.raw`\theta = \theta_v - \theta_i`,
-    substitution: String.raw`\theta = ${n(C.degrees(thetaV))}^{\circ} - (${n(C.degrees(thetaI))}^{\circ})`,
-    result: String.raw`\theta = ${n(thetaDeg)}^{\circ}`,
-  });
-  steps.push({
-    title: 'Potencia instantánea',
-    explanation:
-      'Tiene un término constante (el promedio) y otro que oscila al doble de la frecuencia de la fuente.',
-    formula: String.raw`p(t) = \tfrac{1}{2}V_mI_m\cos(\theta_v - \theta_i) + \tfrac{1}{2}V_mI_m\cos(2\omega t + \theta_v + \theta_i)`,
-    result: String.raw`p(t) = ${n(((vm * im) / 2) * Math.cos(theta))} + ${n((vm * im) / 2)}\cos\left(${n(2 * input.omega)}t ${
-      thetaV + thetaI < 0 ? '-' : '+'
-    } ${n(Math.abs(C.degrees(thetaV + thetaI)))}^{\circ}\right)\ \text{W}`,
-  });
+  steps.push(
+    {
+      title: 'Valores eficaces',
+      explanation:
+        input.values === 'amplitud'
+          ? 'Para una senoide, el valor eficaz es la amplitud dividida entre √2.'
+          : 'Los módulos ya son eficaces; las amplitudes son √2 veces mayores.',
+      formula: String.raw`V_{ef} = \frac{V_m}{\sqrt{2}},\quad I_{ef} = \frac{I_m}{\sqrt{2}}`,
+      result: String.raw`V_{ef} = ${n(C.abs(vRms))}\ \text{V},\quad I_{ef} = ${n(C.abs(iRms))}\ \text{A}`,
+    },
+    {
+      title: 'Ángulo del factor de potencia',
+      explanation:
+        'Es el ángulo por el que el voltaje adelanta a la corriente (el ángulo de la impedancia).',
+      formula: String.raw`\theta = \theta_v - \theta_i`,
+      substitution: String.raw`\theta = ${n(C.degrees(thetaV))}^{\circ} - (${n(C.degrees(thetaI))}^{\circ})`,
+      result: String.raw`\theta = ${n(thetaDeg)}^{\circ}`,
+    },
+    {
+      title: 'Potencia instantánea',
+      explanation:
+        'Tiene un término constante (el promedio) y otro que oscila al doble de la frecuencia de la fuente.',
+      formula: String.raw`p(t) = \tfrac{1}{2}V_mI_m\cos(\theta_v - \theta_i) + \tfrac{1}{2}V_mI_m\cos(2\omega t + \theta_v + \theta_i)`,
+      result: String.raw`p(t) = ${n(((vm * im) / 2) * Math.cos(theta))} + ${n((vm * im) / 2)}\cos\left(${n(2 * input.omega)}t ${
+        thetaV + thetaI < 0 ? '-' : '+'
+      } ${n(Math.abs(C.degrees(thetaV + thetaI)))}^{\circ}\right)\ \text{W}`,
+    },
+  );
 
   const apparent = C.abs(vRms) * C.abs(iRms);
   const average = apparent * Math.cos(theta);
@@ -158,34 +158,36 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
       result: String.raw`P = ${n(C.abs(iRms) ** 2 * input.resistance)}\ \text{W}`,
     });
   }
-  steps.push({
-    title: 'Potencia reactiva',
-    formula: String.raw`Q = V_{ef}\,I_{ef}\sin\theta`,
-    substitution: String.raw`Q = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\sin(${n(thetaDeg)}^{\circ})`,
-    result: String.raw`Q = ${n(reactive)}\ \text{VAR}`,
-  });
-  steps.push({
-    title: 'Potencia aparente',
-    formula: String.raw`|\mathbf{S}| = V_{ef}\,I_{ef} = \sqrt{P^{2} + Q^{2}}`,
-    result: String.raw`|\mathbf{S}| = ${n(apparent)}\ \text{VA}`,
-  });
-  steps.push({
-    title: 'Potencia compleja',
-    formula: String.raw`\mathbf{S} = \mathbf{V}_{ef}\,\mathbf{I}_{ef}^{*} = P + jQ`,
-    substitution: String.raw`\mathbf{S} = (${polar(vRms)})(${polar(C.conj(iRms))})`,
-    result: String.raw`\mathbf{S} = ${rect(complexPower)} = ${polar(complexPower)}\ \text{VA}`,
-  });
-  steps.push({
-    title: 'Factor de potencia',
-    explanation:
-      character === 'unitario'
-        ? 'Voltaje y corriente están en fase: carga resistiva.'
-        : character === 'atrasado'
-          ? 'La corriente se atrasa respecto del voltaje: carga inductiva (FP atrasado).'
-          : 'La corriente se adelanta al voltaje: carga capacitiva (FP adelantado).',
-    formula: String.raw`\text{FP} = \frac{P}{|\mathbf{S}|} = \cos\theta`,
-    result: String.raw`\text{FP} = ${n(powerFactor)}\ \text{(${character})}`,
-  });
+  steps.push(
+    {
+      title: 'Potencia reactiva',
+      formula: String.raw`Q = V_{ef}\,I_{ef}\sin\theta`,
+      substitution: String.raw`Q = (${n(C.abs(vRms))})(${n(C.abs(iRms))})\sin(${n(thetaDeg)}^{\circ})`,
+      result: String.raw`Q = ${n(reactive)}\ \text{VAR}`,
+    },
+    {
+      title: 'Potencia aparente',
+      formula: String.raw`|\mathbf{S}| = V_{ef}\,I_{ef} = \sqrt{P^{2} + Q^{2}}`,
+      result: String.raw`|\mathbf{S}| = ${n(apparent)}\ \text{VA}`,
+    },
+    {
+      title: 'Potencia compleja',
+      formula: String.raw`\mathbf{S} = \mathbf{V}_{ef}\,\mathbf{I}_{ef}^{*} = P + jQ`,
+      substitution: String.raw`\mathbf{S} = (${polar(vRms)})(${polar(C.conj(iRms))})`,
+      result: String.raw`\mathbf{S} = ${rect(complexPower)} = ${polar(complexPower)}\ \text{VA}`,
+    },
+    {
+      title: 'Factor de potencia',
+      explanation:
+        character === 'unitario'
+          ? 'Voltaje y corriente están en fase: carga resistiva.'
+          : character === 'atrasado'
+            ? 'La corriente se atrasa respecto del voltaje: carga inductiva (FP atrasado).'
+            : 'La corriente se adelanta al voltaje: carga capacitiva (FP adelantado).',
+      formula: String.raw`\text{FP} = \frac{P}{|\mathbf{S}|} = \cos\theta`,
+      result: String.raw`\text{FP} = ${n(powerFactor)}\ \text{(${character})}`,
+    },
+  );
 
   const table: ResultTable = {
     id: 'triangulo',
@@ -259,7 +261,7 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, Powe
   };
 }
 
-export const potenciaEnCa: Calculator<PowerInput, PowerValue, PowerErrorCode> = {
+export const potenciaEnCa: Calculator<PowerInput, PowerValue, never> = {
   meta: {
     id: 'potencia-en-ca',
     title: 'Potencia en circuitos senoidales',

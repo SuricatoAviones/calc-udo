@@ -16,7 +16,7 @@
  * El punto Q de los FET se obtiene resolviendo la ecuación de segundo grado (el método matemático
  * del libro, que también lo resuelve gráficamente).
  */
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { Step } from '../types';
 import { engTex, engText, parallel } from './units';
 
@@ -99,41 +99,45 @@ export function bjtBias(p: BjtParams): BjtResult {
         ? 'βR_E ≥ 10R₂: la corriente de base es pequeña frente a la del divisor y el análisis aproximado es válido.'
         : 'βR_E < 10R₂: la corriente de base no es despreciable; conviene el análisis exacto.',
       formula: String.raw`\beta R_E \ge 10R_2`,
-      substitution: `(${n(beta)})(${n(re)}) ${approxValid ? String.raw`\ge` : '<'} 10(${n(r2)})`,
-      result: String.raw`${engTex(beta * re, 'Ω')}\ ${approxValid ? String.raw`\ge` : '<'}\ ${engTex(10 * r2, 'Ω')}`,
+      substitution: `(${n(beta)})(${n(re)}) ${approxValid ? TEX.ge : '<'} 10(${n(r2)})`,
+      result: String.raw`${engTex(beta * re, 'Ω')}\ ${approxValid ? TEX.ge : '<'}\ ${engTex(10 * r2, 'Ω')}`,
     });
     if (p.method === 'exacto') {
       ib = (eth - vbe) / (rth + (beta + 1) * re);
-      steps.push({
-        title: 'Equivalente de Thévenin de la base',
-        formula: String.raw`R_{Th} = R_1 \parallel R_2,\qquad E_{Th} = \frac{R_2 V_{CC}}{R_1 + R_2}`,
-        substitution: String.raw`E_{Th} = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
-        result: String.raw`R_{Th} = ${engTex(rth, 'Ω')},\quad E_{Th} = ${n(eth)}\ \text{V}`,
-      });
-      steps.push({
-        title: 'Corriente de base',
-        formula: String.raw`I_B = \frac{E_{Th} - V_{BE}}{R_{Th} + (\beta + 1)R_E}`,
-        substitution: String.raw`I_B = \frac{${n(eth)} - ${n(vbe)}}{${n(rth)} + (${n(beta + 1)})(${n(re)})}`,
-        result: `I_B = ${engTex(ib, 'A')}`,
-      });
+      steps.push(
+        {
+          title: 'Equivalente de Thévenin de la base',
+          formula: String.raw`R_{Th} = R_1 \parallel R_2,\qquad E_{Th} = \frac{R_2 V_{CC}}{R_1 + R_2}`,
+          substitution: String.raw`E_{Th} = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
+          result: String.raw`R_{Th} = ${engTex(rth, 'Ω')},\quad E_{Th} = ${n(eth)}\ \text{V}`,
+        },
+        {
+          title: 'Corriente de base',
+          formula: String.raw`I_B = \frac{E_{Th} - V_{BE}}{R_{Th} + (\beta + 1)R_E}`,
+          substitution: String.raw`I_B = \frac{${n(eth)} - ${n(vbe)}}{${n(rth)} + (${n(beta + 1)})(${n(re)})}`,
+          result: `I_B = ${engTex(ib, 'A')}`,
+        },
+      );
     } else {
       const vb = eth;
       const ve = vb - vbe;
       ie = ve / re;
       ic = ie;
       ib = ic / beta;
-      steps.push({
-        title: 'Tensión de base (divisor sin carga)',
-        formula: String.raw`V_B = \frac{R_2 V_{CC}}{R_1 + R_2},\qquad V_E = V_B - V_{BE}`,
-        substitution: String.raw`V_B = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
-        result: String.raw`V_B = ${n(vb)}\ \text{V},\quad V_E = ${n(ve)}\ \text{V}`,
-      });
-      steps.push({
-        title: 'Corriente de emisor',
-        formula: String.raw`I_C \approx I_E = \frac{V_E}{R_E}`,
-        substitution: String.raw`I_E = \frac{${n(ve)}}{${n(re)}}`,
-        result: String.raw`I_C \approx I_E = ${engTex(ie, 'A')}`,
-      });
+      steps.push(
+        {
+          title: 'Tensión de base (divisor sin carga)',
+          formula: String.raw`V_B = \frac{R_2 V_{CC}}{R_1 + R_2},\qquad V_E = V_B - V_{BE}`,
+          substitution: String.raw`V_B = \frac{(${n(r2)})(${n(vcc)})}{${n(r1)} + ${n(r2)}}`,
+          result: String.raw`V_B = ${n(vb)}\ \text{V},\quad V_E = ${n(ve)}\ \text{V}`,
+        },
+        {
+          title: 'Corriente de emisor',
+          formula: String.raw`I_C \approx I_E = \frac{V_E}{R_E}`,
+          substitution: String.raw`I_E = \frac{${n(ve)}}{${n(re)}}`,
+          result: String.raw`I_C \approx I_E = ${engTex(ie, 'A')}`,
+        },
+      );
     }
   }
 
@@ -167,27 +171,30 @@ export function bjtBias(p: BjtParams): BjtResult {
   const vc = vcc - ic * rc;
   const ve = ic * re;
   const vb = region === 'corte' ? 0 : ve + vbe;
-  steps.push({
-    title: 'Tensión colector-emisor (malla colector-emisor)',
-    explanation: re > 0 ? 'Se toma I_E ≈ I_C en la malla de salida, como en el libro.' : undefined,
-    formula: re > 0 ? 'V_{CE} = V_{CC} - I_C(R_C + R_E)' : 'V_{CE} = V_{CC} - I_C R_C',
-    substitution:
-      re > 0
-        ? `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)} + ${n(re)})`
-        : `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)})`,
-    result: String.raw`V_{CE} = ${n(vce)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Tensiones de los terminales y región de trabajo',
-    explanation:
-      region === 'activa'
-        ? `I_C (${engText(ic, 'A')}) es menor que la de saturación (${engText(icSat, 'A')}): el transistor está en la región activa.`
-        : region === 'saturacion'
-          ? 'La corriente calculada supera la de saturación: el transistor está saturado (V_CE ≈ 0).'
-          : 'La base no recibe corriente: el transistor está en corte.',
-    formula: String.raw`V_C = V_{CC} - I_C R_C,\quad V_E = I_E R_E \approx I_C R_E,\quad V_B = V_E + V_{BE},\quad I_{C(sat)} = \frac{V_{CC}}{R_C + R_E}`,
-    result: String.raw`V_C = ${n(vc)}\ \text{V},\ V_E = ${n(ve)}\ \text{V},\ V_B = ${n(vb)}\ \text{V},\ I_{C(sat)} = ${engTex(icSat, 'A')}`,
-  });
+  steps.push(
+    {
+      title: 'Tensión colector-emisor (malla colector-emisor)',
+      explanation:
+        re > 0 ? 'Se toma I_E ≈ I_C en la malla de salida, como en el libro.' : undefined,
+      formula: re > 0 ? 'V_{CE} = V_{CC} - I_C(R_C + R_E)' : 'V_{CE} = V_{CC} - I_C R_C',
+      substitution:
+        re > 0
+          ? `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)} + ${n(re)})`
+          : `V_{CE} = ${n(vcc)} - (${n(ic)})(${n(rc)})`,
+      result: String.raw`V_{CE} = ${n(vce)}\ \text{V}`,
+    },
+    {
+      title: 'Tensiones de los terminales y región de trabajo',
+      explanation:
+        region === 'activa'
+          ? `I_C (${engText(ic, 'A')}) es menor que la de saturación (${engText(icSat, 'A')}): el transistor está en la región activa.`
+          : region === 'saturacion'
+            ? 'La corriente calculada supera la de saturación: el transistor está saturado (V_CE ≈ 0).'
+            : 'La base no recibe corriente: el transistor está en corte.',
+      formula: String.raw`V_C = V_{CC} - I_C R_C,\quad V_E = I_E R_E \approx I_C R_E,\quad V_B = V_E + V_{BE},\quad I_{C(sat)} = \frac{V_{CC}}{R_C + R_E}`,
+      result: String.raw`V_C = ${n(vc)}\ \text{V},\ V_E = ${n(ve)}\ \text{V},\ V_B = ${n(vb)}\ \text{V},\ I_{C(sat)} = ${engTex(icSat, 'A')}`,
+    },
+  );
 
   return { ib, ic, ie, vce, vb, vc, ve, vbc: vb - vc, icSat, region, approxValid, steps };
 }

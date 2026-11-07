@@ -9,12 +9,11 @@
  *   Inversa:              Gauss-Jordan sobre [A | I] → [I | A⁻¹]
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Step,
   type SummaryItem,
 } from '../types';
@@ -109,11 +108,11 @@ function dims(m: Matrix): string {
 }
 
 /** Matriz de expresiones LaTeX ya armadas (p. ej. `1 + 5`). */
-function texMatrixOf(cells: Latex[][]): Latex {
-  return String.raw`\begin{bmatrix} ${cells.map((row) => row.join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
+function texMatrixOf(cells: string[][]): string {
+  return String.raw`\begin{bmatrix} ${cells.map((row) => row.join(' & ')).join(TEX.newline)} \end{bmatrix}`;
 }
 
-function success(result: Matrix, steps: Step[], summaryLabel: Latex): Result {
+function success(result: Matrix, steps: Step[], summaryLabel: string): Result {
   const summary: SummaryItem[] = [
     { label: 'Resultado', value: `${summaryLabel} = ${texMatrix(result)}`, emphasis: true },
     { label: 'Dimensiones', value: dims(result) },
@@ -271,7 +270,7 @@ function inverse(A: Matrix): Result {
       title: `Normalizar la fila ${k + 1}`,
       formula: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{a_{${k + 1}${k + 1}}}`,
       substitution: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{${n(pivot)}}`,
-      result: `R_{${k + 1}} = (${m[k]!.map(n).join(String.raw`,\ `)})`,
+      result: `R_{${k + 1}} = (${m[k]!.map(n).join(TEX.listSep)})`,
     });
     for (let i = 0; i < size; i++) {
       if (i === k) continue;
@@ -283,7 +282,7 @@ function inverse(A: Matrix): Result {
         title: `Hacer cero el elemento de la fila ${i + 1}`,
         formula: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - a_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
         substitution: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - ${op(factor)}\,R_{${k + 1}}`,
-        result: `R_{${i + 1}} = (${m[i]!.map(n).join(String.raw`,\ `)})`,
+        result: `R_{${i + 1}} = (${m[i]!.map(n).join(TEX.listSep)})`,
       });
     }
     steps.push({
@@ -297,16 +296,18 @@ function inverse(A: Matrix): Result {
   const check = A.map((row) =>
     inv[0]!.map((_, j) => row.reduce((s, a, k) => s + a * inv[k]![j]!, 0)),
   );
-  steps.push({
-    title: 'Inversa',
-    explanation: 'La parte izquierda ya es la identidad; la derecha es A⁻¹.',
-    result: `A^{-1} = ${texMatrix(inv)}`,
-  });
-  steps.push({
-    title: 'Comprobación',
-    explanation: 'A·A⁻¹ debe ser la identidad (salvo por el redondeo).',
-    result: `A A^{-1} = ${texMatrix(check.map((row) => row.map((v) => (Math.abs(v) < 1e-12 ? 0 : v))))}`,
-  });
+  steps.push(
+    {
+      title: 'Inversa',
+      explanation: 'La parte izquierda ya es la identidad; la derecha es A⁻¹.',
+      result: `A^{-1} = ${texMatrix(inv)}`,
+    },
+    {
+      title: 'Comprobación',
+      explanation: 'A·A⁻¹ debe ser la identidad (salvo por el redondeo).',
+      result: `A A^{-1} = ${texMatrix(check.map((row) => row.map((v) => (Math.abs(v) < 1e-12 ? 0 : v))))}`,
+    },
+  );
   return success(cloneMatrix(inv), steps, 'A^{-1}');
 }
 

@@ -19,6 +19,7 @@ import {
 import { parseForSolve, type LpInput } from './lp-solve';
 import { lpInputSchema } from './simplex';
 import { toStandardForm } from './tableau';
+import { TEX } from '@/lib/math/format';
 
 export interface StandardFormValue {
   canonical: string;
@@ -76,7 +77,7 @@ export function solveStandardForm(
       ({ constraint: c }) =>
         `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
     )
-    .join(String.raw` \\ `)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(TEX.newline)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
   trace.steps.push({
     title: 'Forma canónica',
     explanation:
@@ -95,36 +96,38 @@ export function solveStandardForm(
   const objective = keep.map((j) => (j < lp.variables.length ? lp.objective[j]! : Rational.ZERO));
   const standardLatex = `\\begin{aligned} \\${lp.sense}\\ z &= ${linearLatex(objective, columnNames)} \\\\ ${rows
     .map((row, i) => `${linearLatex(row, columnNames)} &= ${sf.rhs[i]!.toLatex()}`)
-    .join(String.raw` \\ `)} \\\\ ${columnNames.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(TEX.newline)} \\\\ ${columnNames.join(', ')} &\\ge 0 \\end{aligned}`;
   const slacks = columns.filter((c) => c.kind === 'slack').length;
   const surpluses = columns.filter((c) => c.kind === 'surplus').length;
   const needArtificial = sf.relations.filter((r) => r !== '<=').length;
 
-  trace.steps.push({
-    title: 'Forma estándar',
-    explanation: [
-      sf.flipped.length > 0
-        ? `Las restricciones ${sf.flipped.map((i) => i + 1).join(', ')} tienen lado derecho negativo: se multiplican por −1.`
-        : '',
-      'Cada ≤ recibe una holgura sᵢ (lo que no se usa del recurso) y cada ≥ un exceso eᵢ (lo que se pasa del mínimo), que se resta. Las igualdades quedan igual.',
-    ]
-      .filter(Boolean)
-      .join(' '),
-    result: standardLatex,
-  });
-  trace.steps.push({
-    title: 'Solución básica inicial',
-    explanation:
-      needArtificial === 0
-        ? 'Todas las restricciones tienen holgura: con las variables de decisión en 0, las holguras forman la base inicial y se puede aplicar el simplex directamente.'
-        : `${needArtificial} ${needArtificial === 1 ? 'restricción no tiene' : 'restricciones no tienen'} una holgura con coeficiente +1 que sirva de variable básica inicial (las ≥ y las =). Para ellas se agregan variables artificiales y se usa el método de la M grande o el de las dos fases.`,
-    result:
-      needArtificial === 0
-        ? sf.basis
-            .map((b, i) => `${sf.columns[b]!.latex} = ${sf.rhs[i]!.toLatex()}`)
-            .join(String.raw`,\ `)
-        : undefined,
-  });
+  trace.steps.push(
+    {
+      title: 'Forma estándar',
+      explanation: [
+        sf.flipped.length > 0
+          ? `Las restricciones ${sf.flipped.map((i) => i + 1).join(', ')} tienen lado derecho negativo: se multiplican por −1.`
+          : '',
+        'Cada ≤ recibe una holgura sᵢ (lo que no se usa del recurso) y cada ≥ un exceso eᵢ (lo que se pasa del mínimo), que se resta. Las igualdades quedan igual.',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      result: standardLatex,
+    },
+    {
+      title: 'Solución básica inicial',
+      explanation:
+        needArtificial === 0
+          ? 'Todas las restricciones tienen holgura: con las variables de decisión en 0, las holguras forman la base inicial y se puede aplicar el simplex directamente.'
+          : `${needArtificial} ${needArtificial === 1 ? 'restricción no tiene' : 'restricciones no tienen'} una holgura con coeficiente +1 que sirva de variable básica inicial (las ≥ y las =). Para ellas se agregan variables artificiales y se usa el método de la M grande o el de las dos fases.`,
+      result:
+        needArtificial === 0
+          ? sf.basis
+              .map((b, i) => `${sf.columns[b]!.latex} = ${sf.rhs[i]!.toLatex()}`)
+              .join(String.raw`,\ `)
+          : undefined,
+    },
+  );
 
   return {
     ok: true,

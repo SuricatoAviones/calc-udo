@@ -54,12 +54,12 @@ export function FormulaField({
   label,
   hint = FORMULA_HINT,
   multiline = false,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   hint?: ReactNode;
   multiline?: boolean;
-}) {
+}>) {
   const { register, control, setValue, getFieldState, formState } = useFormContext();
   const error = getFieldState(name, formState).error?.message;
   const source = (useWatch({ control, name }) as string | undefined) ?? '';

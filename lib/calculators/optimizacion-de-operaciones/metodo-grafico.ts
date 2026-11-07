@@ -21,6 +21,7 @@ import {
 } from './lp-model';
 import { parseForSolve, solveLpSilently, type LpInput } from './lp-solve';
 import { lpInputSchema } from './simplex';
+import { TEX } from '@/lib/math/format';
 
 export interface GraphVertex {
   label: string;
@@ -314,7 +315,7 @@ export function solveGraphical(input: LpInput): Result {
     substitution: labelled
       .map((v, i) => `z(${v.label}) = ${zValues[i]!.toLatex()}`)
       .join(String.raw`,\quad `),
-    result: String.raw`z^* = ${best.toLatex()} \ \text{en } ${optimal.map((v) => v.label).join(String.raw`,\ `)}`,
+    result: String.raw`z^* = ${best.toLatex()} \ \text{en } ${optimal.map((v) => v.label).join(TEX.listSep)}`,
   });
 
   const vertexRows = labelled.map((v, i) => ({

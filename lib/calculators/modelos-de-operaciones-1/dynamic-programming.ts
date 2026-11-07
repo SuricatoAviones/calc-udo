@@ -3,7 +3,7 @@
  * & Lieberman, cap. 10 de la 9.ª ed.): la tabla de cada etapa (estados × alternativas) y la
  * presentación de la ecuación recursiva.
  */
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { CellValue, ResultTable } from '../types';
 
 const n = toLatexNumber;
@@ -54,7 +54,7 @@ export function stageTable(options: {
 /** `\min\{7,\ 9,\ 10\}` o `\max\{…\}`; con una sola alternativa, el número solo. */
 export function optimumLatex(kind: 'min' | 'max', values: number[]): string {
   if (values.length === 1) return n(values[0]!);
-  return `\\${kind}\\{${values.map((v) => n(v)).join(String.raw`,\ `)}\\}`;
+  return `\\${kind}\\{${values.map((v) => n(v)).join(TEX.listSep)}\\}`;
 }
 
 /** Índices de los valores óptimos (con tolerancia para empates de coma flotante). */

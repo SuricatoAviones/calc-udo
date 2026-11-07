@@ -12,7 +12,7 @@
  * (ejemplos 7.1 a 7.11).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, Notice, ResultTable, Series, Step } from '../types';
 import { bjtBias, solveFetBias, type BjtConfig } from './bias';
 import { engTex, engText } from './units';
@@ -119,8 +119,6 @@ export type BiasValue =
       region: 'saturacion' | 'ohmica' | 'corte';
     };
 
-export type BiasErrorCode = never;
-
 const BJT_NAME: Record<BjtConfig, string> = {
   fija: 'polarización fija',
   emisor: 'polarización de emisor',
@@ -134,7 +132,7 @@ const BJT_REGION: Record<'activa' | 'saturacion' | 'corte', string> = {
   corte: 'corte',
 };
 
-function solveBjt(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> {
+function solveBjt(input: BiasInput): CalculatorResult<BiasValue, never> {
   const config = input.bjtConfig;
   const r = bjtBias({
     config,
@@ -234,7 +232,7 @@ function solveBjt(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
   };
 }
 
-function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> {
+function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
   const steps: Step[] = [];
   const notices: Notice[] = [];
   const enhancement = input.device === 'mosfet-enriquecimiento';
@@ -303,19 +301,21 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
     vg = (input.rg2 * vdd) / (input.rg1 + input.rg2);
     v0 = vg;
     r = rs;
-    steps.push({
-      title: 'Voltaje de compuerta',
-      explanation: 'I_G = 0, así que R₁ y R₂ forman un divisor de voltaje sin carga.',
-      formula: String.raw`V_G = \frac{R_2 V_{DD}}{R_1 + R_2}`,
-      substitution: String.raw`V_G = \frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
-      result: String.raw`V_G = ${n(vg)}\ \text{V}`,
-    });
-    steps.push({
-      title: 'Recta de polarización',
-      explanation: `Corta al eje V_GS en V_G (I_D = 0) y al eje I_D en V_G/R_S = ${engText(vg / rs, 'A')} (V_GS = 0).`,
-      formula: 'V_{GS} = V_G - I_D R_S',
-      substitution: `V_{GS} = ${n(vg)} - I_D(${n(rs)})`,
-    });
+    steps.push(
+      {
+        title: 'Voltaje de compuerta',
+        explanation: 'I_G = 0, así que R₁ y R₂ forman un divisor de voltaje sin carga.',
+        formula: String.raw`V_G = \frac{R_2 V_{DD}}{R_1 + R_2}`,
+        substitution: String.raw`V_G = \frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
+        result: String.raw`V_G = ${n(vg)}\ \text{V}`,
+      },
+      {
+        title: 'Recta de polarización',
+        explanation: `Corta al eje V_GS en V_G (I_D = 0) y al eje I_D en V_G/R_S = ${engText(vg / rs, 'A')} (V_GS = 0).`,
+        formula: 'V_{GS} = V_G - I_D R_S',
+        substitution: `V_{GS} = ${n(vg)} - I_D(${n(rs)})`,
+      },
+    );
   } else {
     v0 = vdd;
     r = rd;
@@ -366,20 +366,22 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
   const vd = vdd - id * rd;
   const vds = vd - vs;
   if (config === 'realimentacion') vg = vd;
-  steps.push({
-    title: 'Voltaje drenaje-fuente',
-    formula: rs > 0 ? 'V_{DS} = V_{DD} - I_D(R_D + R_S)' : 'V_{DS} = V_{DD} - I_D R_D',
-    substitution:
-      rs > 0
-        ? `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)} + ${n(rs)})`
-        : `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)})`,
-    result: String.raw`V_{DS} = ${n(vds)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Tensiones de los terminales',
-    formula: String.raw`V_S = I_D R_S,\qquad V_D = V_{DD} - I_D R_D`,
-    result: String.raw`V_S = ${n(vs)}\ \text{V},\ V_D = ${n(vd)}\ \text{V},\ V_G = ${n(vg)}\ \text{V}`,
-  });
+  steps.push(
+    {
+      title: 'Voltaje drenaje-fuente',
+      formula: rs > 0 ? 'V_{DS} = V_{DD} - I_D(R_D + R_S)' : 'V_{DS} = V_{DD} - I_D R_D',
+      substitution:
+        rs > 0
+          ? `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)} + ${n(rs)})`
+          : `V_{DS} = ${n(vdd)} - (${n(id)})(${n(rd)})`,
+      result: String.raw`V_{DS} = ${n(vds)}\ \text{V}`,
+    },
+    {
+      title: 'Tensiones de los terminales',
+      formula: String.raw`V_S = I_D R_S,\qquad V_D = V_{DD} - I_D R_D`,
+      result: String.raw`V_S = ${n(vs)}\ \text{V},\ V_D = ${n(vd)}\ \text{V},\ V_G = ${n(vg)}\ \text{V}`,
+    },
+  );
 
   if (region === 'saturacion') {
     const limit = vgs - vx;
@@ -393,8 +395,8 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
       formula: enhancement
         ? String.raw`V_{DS} \ge V_{GS} - V_{GS(\text{Th})}`
         : String.raw`V_{DS} \ge V_{GS} - V_P`,
-      substitution: `${n(vds)} ${region === 'saturacion' ? String.raw`\ge` : '<'} ${n(vgs)} - (${n(vx)})`,
-      result: String.raw`${n(vds)}\ \text{V}\ ${region === 'saturacion' ? String.raw`\ge` : '<'}\ ${n(limit)}\ \text{V}`,
+      substitution: `${n(vds)} ${region === 'saturacion' ? TEX.ge : '<'} ${n(vgs)} - (${n(vx)})`,
+      result: String.raw`${n(vds)}\ \text{V}\ ${region === 'saturacion' ? TEX.ge : '<'}\ ${n(limit)}\ \text{V}`,
     });
   }
 
@@ -508,11 +510,11 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> 
   };
 }
 
-export function solveBias(input: BiasInput): CalculatorResult<BiasValue, BiasErrorCode> {
+export function solveBias(input: BiasInput): CalculatorResult<BiasValue, never> {
   return input.device === 'bjt' ? solveBjt(input) : solveFet(input);
 }
 
-export const polarizacionDeTransistores: Calculator<BiasInput, BiasValue, BiasErrorCode> = {
+export const polarizacionDeTransistores: Calculator<BiasInput, BiasValue, never> = {
   meta: {
     id: 'polarizacion-de-transistores',
     title: 'Polarización de transistores (análisis DC)',

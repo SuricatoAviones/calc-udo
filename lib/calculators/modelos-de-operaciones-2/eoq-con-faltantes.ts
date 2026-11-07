@@ -38,13 +38,11 @@ export interface EoqShortagesValue {
   classicQuantity: number;
 }
 
-export type EoqShortagesErrorCode = never;
-
 const n = toLatexNumber;
 
 export function solveEoqShortages(
   input: EoqShortagesInput,
-): CalculatorResult<EoqShortagesValue, EoqShortagesErrorCode> {
+): CalculatorResult<EoqShortagesValue, never> {
   const { demand: D, orderCost: K, holdingCost: h, shortageCost: p } = input;
   const base = economicOrderQuantity(D, K, h);
   const Q = base * Math.sqrt((p + h) / p);
@@ -145,25 +143,24 @@ export function solveEoqShortages(
   };
 }
 
-export const eoqShortages: Calculator<EoqShortagesInput, EoqShortagesValue, EoqShortagesErrorCode> =
-  {
-    meta: {
-      id: 'eoq-con-faltantes',
-      title: 'EOQ con faltantes planeados',
-      summary: 'Tamaño de lote y faltante máximo cuando se permiten pedidos pendientes.',
-      citations: [
-        {
-          sourceId: 'hillier-lieberman-2002',
-          locator:
-            'Sec. 19.3, EOQ con faltantes planeados: ejemplo de las bocinas para televisores (7.ª ed. en inglés)',
-        },
-        { sourceId: 'taha' },
-        { sourceId: 'diaz-matalobos-1998' },
-      ],
-    },
-    inputSchema: eoqShortagesInputSchema,
-    // Hillier & Lieberman: 8,000 bocinas por mes, $12,000 por preparación, $0.30 por bocina y por
-    // mes en inventario y $1.10 por bocina faltante y por mes.
-    example: { demand: 8000, orderCost: 12000, holdingCost: 0.3, shortageCost: 1.1 },
-    solve: solveEoqShortages,
-  };
+export const eoqShortages: Calculator<EoqShortagesInput, EoqShortagesValue, never> = {
+  meta: {
+    id: 'eoq-con-faltantes',
+    title: 'EOQ con faltantes planeados',
+    summary: 'Tamaño de lote y faltante máximo cuando se permiten pedidos pendientes.',
+    citations: [
+      {
+        sourceId: 'hillier-lieberman-2002',
+        locator:
+          'Sec. 19.3, EOQ con faltantes planeados: ejemplo de las bocinas para televisores (7.ª ed. en inglés)',
+      },
+      { sourceId: 'taha' },
+      { sourceId: 'diaz-matalobos-1998' },
+    ],
+  },
+  inputSchema: eoqShortagesInputSchema,
+  // Hillier & Lieberman: 8,000 bocinas por mes, $12,000 por preparación, $0.30 por bocina y por
+  // mes en inventario y $1.10 por bocina faltante y por mes.
+  example: { demand: 8000, orderCost: 12000, holdingCost: 0.3, shortageCost: 1.1 },
+  solve: solveEoqShortages,
+};

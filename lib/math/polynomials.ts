@@ -222,8 +222,7 @@ function enforceConjugates(roots: PolyRoot[]): PolyRoot[] {
   const real = roots.filter((r) => r.value.im === 0);
   for (const r of real) out.push(r);
   for (const r of upper) {
-    out.push(r);
-    out.push({ value: C.conj(r.value), multiplicity: r.multiplicity });
+    out.push(r, { value: C.conj(r.value), multiplicity: r.multiplicity });
   }
   return out;
 }

@@ -14,7 +14,6 @@ import {
   discreteQueryShape,
   lnFactorial,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -68,7 +67,7 @@ function binomialModel(trials: number, p: number): DiscreteModel {
   };
 }
 
-export const binomial: Calculator<BinomialInput, DiscreteValue, DiscreteErrorCode> = {
+export const binomial: Calculator<BinomialInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-binomial',
     title: 'Distribución binomial',

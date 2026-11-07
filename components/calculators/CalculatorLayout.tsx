@@ -14,7 +14,11 @@ interface CalculatorLayoutProps {
   children: ReactNode;
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Section({
+  id,
+  title,
+  children,
+}: Readonly<{ id: string; title: string; children: ReactNode }>) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
       <h2 id={id} className="text-xl font-semibold">
@@ -33,7 +37,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
  * Móvil: una columna, el formulario primero. Escritorio: el formulario queda fijo a la izquierda
  * mientras se recorre el procedimiento.
  */
-export function CalculatorLayout({ meta, result, children }: CalculatorLayoutProps) {
+export function CalculatorLayout({ meta, result, children }: Readonly<CalculatorLayoutProps>) {
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
       <aside className="bg-card flex min-w-0 flex-col gap-4 rounded-lg border p-4 shadow-xs sm:p-5 lg:sticky lg:top-20">

@@ -31,7 +31,7 @@ const externalColumn: TableFieldColumn = {
 };
 
 /** Tabla de estaciones de una red de colas: servidores, μ y, si se pide, llegadas externas. */
-export function StationsField({ withExternal = false }: { withExternal?: boolean }) {
+export function StationsField({ withExternal = false }: Readonly<{ withExternal?: boolean }>) {
   return (
     <TableField
       name="stations"

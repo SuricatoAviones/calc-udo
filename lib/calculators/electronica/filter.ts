@@ -57,27 +57,29 @@ export function capacitorFilter(input: FilterInput): FilterResult {
   const vdc = vm - vrpp / 2;
   const vmin = vm - vrpp;
   const ripple = vrrms / vdc;
-  steps.push({
-    title: 'Rizado pico a pico',
-    explanation: `El condensador se descarga entre picos durante 1/f_r. Con ${fullWave ? 'onda completa hay dos picos por ciclo' : 'media onda hay un pico por ciclo'}: f_r = ${n(fr)} Hz.`,
-    formula: String.raw`V_{r(pp)} = \frac{I}{f_r\,C}`,
-    substitution: String.raw`V_{r(pp)} = \frac{${n(idc)}}{(${n(fr)})(${n(c)})}`,
-    result: String.raw`V_{r(pp)} = ${n(vrpp)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Rizado eficaz',
-    explanation:
-      'El rizado del filtro es casi una onda triangular: su valor eficaz es el pico a pico entre 2√3.',
-    formula: fullWave
-      ? String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{4\sqrt{3}\,f\,C}`
-      : String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{2\sqrt{3}\,f\,C}`,
-    result: String.raw`V_{r(rms)} = ${n(vrrms)}\ \text{V}`,
-  });
-  steps.push({
-    title: 'Tensión de cd y factor de rizo',
-    formula: String.raw`V_{cd} = V_m - \frac{V_{r(pp)}}{2},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
-    substitution: String.raw`V_{cd} = ${n(vm)} - \frac{${n(vrpp)}}{2}`,
-    result: String.raw`V_{cd} = ${n(vdc)}\ \text{V},\quad r = ${n(100 * ripple)}\,\%`,
-  });
+  steps.push(
+    {
+      title: 'Rizado pico a pico',
+      explanation: `El condensador se descarga entre picos durante 1/f_r. Con ${fullWave ? 'onda completa hay dos picos por ciclo' : 'media onda hay un pico por ciclo'}: f_r = ${n(fr)} Hz.`,
+      formula: String.raw`V_{r(pp)} = \frac{I}{f_r\,C}`,
+      substitution: String.raw`V_{r(pp)} = \frac{${n(idc)}}{(${n(fr)})(${n(c)})}`,
+      result: String.raw`V_{r(pp)} = ${n(vrpp)}\ \text{V}`,
+    },
+    {
+      title: 'Rizado eficaz',
+      explanation:
+        'El rizado del filtro es casi una onda triangular: su valor eficaz es el pico a pico entre 2√3.',
+      formula: fullWave
+        ? String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{4\sqrt{3}\,f\,C}`
+        : String.raw`V_{r(rms)} = \frac{V_{r(pp)}}{2\sqrt{3}} = \frac{I_{cd}}{2\sqrt{3}\,f\,C}`,
+      result: String.raw`V_{r(rms)} = ${n(vrrms)}\ \text{V}`,
+    },
+    {
+      title: 'Tensión de cd y factor de rizo',
+      formula: String.raw`V_{cd} = V_m - \frac{V_{r(pp)}}{2},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
+      substitution: String.raw`V_{cd} = ${n(vm)} - \frac{${n(vrpp)}}{2}`,
+      result: String.raw`V_{cd} = ${n(vdc)}\ \text{V},\quad r = ${n(100 * ripple)}\,\%`,
+    },
+  );
   return { fr, idc, vrpp, vrrms, vdc, vmin, ripple, steps };
 }

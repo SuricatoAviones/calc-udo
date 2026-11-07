@@ -16,7 +16,6 @@ import {
   continuousQueryShape,
   positiveNumber,
   solveContinuous,
-  type ContinuousErrorCode,
   type ContinuousModel,
   type ContinuousValue,
 } from './continuous';
@@ -63,7 +62,7 @@ function betaModel(alpha: number, beta: number): ContinuousModel {
   };
 }
 
-export const beta: Calculator<BetaInput, ContinuousValue, ContinuousErrorCode> = {
+export const beta: Calculator<BetaInput, ContinuousValue, never> = {
   meta: {
     id: 'distribucion-beta',
     title: 'Distribución beta',

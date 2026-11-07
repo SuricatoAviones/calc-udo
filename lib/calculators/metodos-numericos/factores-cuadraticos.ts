@@ -16,7 +16,7 @@
  * últimos r y s. Si queda un polinomio de grado 2 o 1, se resuelve directamente.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -252,7 +252,7 @@ export function solveBairstow(input: BairstowInput): Result {
             ? `Ambos errores son menores que εs = ${formatNumber(tolerance)} %: el factor convergió.`
             : `Algún error no es menor que εs = ${formatNumber(tolerance)} %: se sigue iterando.`,
           formula: String.raw`\varepsilon_{a,r} = \left|\frac{\Delta r}{r}\right| 100\%, \quad \varepsilon_{a,s} = \left|\frac{\Delta s}{s}\right| 100\%`,
-          result: String.raw`\varepsilon_{a,r} = ${ear === null ? String.raw`\text{—}` : String.raw`${n(ear)}\,\%`},\quad \varepsilon_{a,s} = ${eas === null ? String.raw`\text{—}` : String.raw`${n(eas)}\,\%`}`,
+          result: String.raw`\varepsilon_{a,r} = ${ear === null ? TEX.dash : String.raw`${n(ear)}\,\%`},\quad \varepsilon_{a,s} = ${eas === null ? TEX.dash : String.raw`${n(eas)}\,\%`}`,
         },
       );
       if (detailed || converged || iteration === input.maxIterations) {
@@ -285,18 +285,20 @@ export function solveBairstow(input: BairstowInput): Result {
     const quotient = b.slice(0, degree - 1);
     factors.push({ r, s, roots: factorRoots, iterations: iteration });
     roots.push(...factorRoots);
-    iterationSteps.push({
-      title: 'Raíces del factor',
-      formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
-      substitution: String.raw`x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
-      result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
-    });
-    iterationSteps.push({
-      title: 'Polinomio deflactado',
-      explanation:
-        'El cociente de la división entre el factor cuadrático conserva las raíces restantes.',
-      result: String.raw`f(x) \approx (x^2 ${r < 0 ? '+' : '-'} ${n(Math.abs(r))}x ${s < 0 ? '+' : '-'} ${n(Math.abs(s))})(${polynomialLatex(quotient)})`,
-    });
+    iterationSteps.push(
+      {
+        title: 'Raíces del factor',
+        formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
+        substitution: String.raw`x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
+        result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
+      },
+      {
+        title: 'Polinomio deflactado',
+        explanation:
+          'El cociente de la división entre el factor cuadrático conserva las raíces restantes.',
+        result: String.raw`f(x) \approx (x^2 ${r < 0 ? '+' : '-'} ${n(Math.abs(r))}x ${s < 0 ? '+' : '-'} ${n(Math.abs(s))})(${polynomialLatex(quotient)})`,
+      },
+    );
     steps.push({
       title: `Factor ${factorNumber}: ${iteration} iteraciones`,
       children: iterationSteps,

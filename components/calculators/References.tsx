@@ -3,7 +3,7 @@ import type { Citation } from '@/lib/calculators/types';
 import { formatSource, getSource } from '@/lib/curriculum';
 
 /** Bibliografía del método, para que el estudiante pueda ir al libro. */
-export function References({ citations }: { citations: Citation[] }) {
+export function References({ citations }: Readonly<{ citations: Citation[] }>) {
   return (
     <ul className="flex flex-col gap-2 text-sm">
       {citations.map((citation) => {

@@ -15,7 +15,6 @@ import {
   discreteQueryShape,
   lnFactorial,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -85,7 +84,7 @@ function hypergeometricModel(lot: number, k: number, size: number): DiscreteMode
   };
 }
 
-export const hypergeometric: Calculator<HypergeometricInput, DiscreteValue, DiscreteErrorCode> = {
+export const hypergeometric: Calculator<HypergeometricInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-hipergeometrica',
     title: 'Distribución hipergeométrica',

@@ -28,7 +28,7 @@ export function QuantityField({
   hint,
   className,
   optional = false,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   /** Unidad para mostrar el valor inicial (Ω, F, H, A, S, Hz). */
@@ -37,7 +37,7 @@ export function QuantityField({
   className?: string;
   /** Vacío = `undefined` en vez de error. */
   optional?: boolean;
-}) {
+}>) {
   const { control } = useFormContext();
   return (
     <div className={className}>
@@ -73,7 +73,7 @@ function QuantityInput({
   error,
   onBlur,
   onChange,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   hint?: ReactNode;
@@ -82,7 +82,7 @@ function QuantityInput({
   error?: string;
   onBlur: () => void;
   onChange: (text: string) => void;
-}) {
+}>) {
   const [text, setText] = useState(() =>
     typeof initial === 'number' && Number.isFinite(initial) ? engText(initial, unit, 6) : '',
   );

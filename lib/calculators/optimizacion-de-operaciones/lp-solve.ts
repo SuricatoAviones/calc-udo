@@ -4,7 +4,7 @@
  * (Taha, sec. 3.3 y 3.4). También un solucionador sin traza para otras calculadoras (método
  * gráfico, dual, ramificación y acotamiento).
  */
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import {
   emptyTrace,
@@ -110,7 +110,7 @@ export function standardFormLatex(
   }
   if (mode === 'phase-1') objective = String.raw`\min\ r = ${artificial.join(' + ')}`;
   const rows = sf.rows.map((row, i) => `${linearLatex(row, names)} &= ${sf.rhs[i]!.toLatex()}`);
-  return String.raw`\begin{aligned} ${objective.replace('=', '&=')} \\ ${rows.join(String.raw` \\ `)} \\ ${names.join(', ')} &\ge 0 \end{aligned}`;
+  return String.raw`\begin{aligned} ${objective.replace('=', '&=')} \\ ${rows.join(TEX.newline)} \\ ${names.join(', ')} &\ge 0 \end{aligned}`;
 }
 
 export function standardFormStep(lp: LinearProgram, sf: StandardForm, mode: ObjectiveMode): Step {

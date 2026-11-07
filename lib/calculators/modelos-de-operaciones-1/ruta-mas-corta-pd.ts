@@ -12,7 +12,7 @@
  * la etapa anterior, no las decisiones que llevaron a ellos.
  */
 import { z } from 'zod';
-import { latexLines, toLatexNumber, toLatexText } from '@/lib/math/format';
+import { latexLines, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -214,7 +214,7 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
             : String.raw`\text{Nivel } ${l}`;
           return String.raw`${label}:\ ${nodesAt(l)
             .map((k) => t(name(k)))
-            .join(String.raw`,\ `)}`;
+            .join(TEX.listSep)}`;
         }),
       ),
     },
@@ -256,14 +256,14 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
           formula: `f_{${stage}}^*(${t(name(s))}) = ${
             options.length === 1
               ? `c_{${t(name(s))},${t(options[0]!.to)}} + ${next(options[0]!)}`
-              : String.raw`\min\{${options.map((a) => `c_{${t(name(s))},${t(a.to)}} + ${next(a)}`).join(String.raw`,\ `)}\}`
+              : String.raw`\min\{${options.map((a) => `c_{${t(name(s))},${t(a.to)}} + ${next(a)}`).join(TEX.listSep)}\}`
           }`,
           substitution: `f_{${stage}}^*(${t(name(s))}) = ${
             options.length === 1
               ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.to))!)}`
-              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`).join(String.raw`,\ `)}\} = ${optimumLatex('min', values)}`
+              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`).join(TEX.listSep)}\} = ${optimumLatex('min', values)}`
           }`,
-          result: String.raw`f_{${stage}}^*(${t(name(s))}) = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join(String.raw`\ \text{o}\ `)}`,
+          result: String.raw`f_{${stage}}^*(${t(name(s))}) = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join(TEX.or)}`,
         });
       }
       steps.push({
@@ -318,14 +318,14 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
           formula: `f_{${l}}(${t(name(x))}) = ${
             options.length === 1
               ? `d(${t(options[0]!.from)}, ${t(name(x))}) + ${previous(options[0]!)}`
-              : String.raw`\min\{${options.map((a) => `d(${t(a.from)}, ${t(name(x))}) + ${previous(a)}`).join(String.raw`,\ `)}\}`
+              : String.raw`\min\{${options.map((a) => `d(${t(a.from)}, ${t(name(x))}) + ${previous(a)}`).join(TEX.listSep)}\}`
           }`,
           substitution: `f_{${l}}(${t(name(x))}) = ${
             options.length === 1
               ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.from))!)}`
-              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`).join(String.raw`,\ `)}\} = ${optimumLatex('min', values)}`
+              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`).join(TEX.listSep)}\} = ${optimumLatex('min', values)}`
           }`,
-          result: String.raw`f_{${l}}(${t(name(x))}) = ${n(bestValue)} \quad (\text{desde } ${best.map((k) => t(options[k]!.from)).join(String.raw`\ \text{o}\ `)})`,
+          result: String.raw`f_{${l}}(${t(name(x))}) = ${n(bestValue)} \quad (\text{desde } ${best.map((k) => t(options[k]!.from)).join(TEX.or)})`,
         });
       }
       steps.push({

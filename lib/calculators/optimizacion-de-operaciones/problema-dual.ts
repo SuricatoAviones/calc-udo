@@ -19,6 +19,7 @@ import {
 } from './lp-model';
 import { parseForSolve, solveLpSilently, type LpInput, type SilentLp } from './lp-solve';
 import { lpInputSchema } from './simplex';
+import { TEX } from '@/lib/math/format';
 
 export type DualSign = '>=0' | '<=0' | 'libre';
 
@@ -62,7 +63,7 @@ const dualName = (i: number) => `y_{${i + 1}}`;
 
 function signLatex(sign: DualSign, i: number): string {
   if (sign === 'libre') return String.raw`${dualName(i)}\ \text{libre}`;
-  return `${dualName(i)} ${sign === '>=0' ? String.raw`\ge` : String.raw`\le`} 0`;
+  return `${dualName(i)} ${sign === '>=0' ? TEX.ge : TEX.le} 0`;
 }
 
 export function dualLatex(dual: DualModel): string {
@@ -70,7 +71,7 @@ export function dualLatex(dual: DualModel): string {
   const rows = dual.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ &${dual.signs.map((sign, i) => signLatex(sign, i)).join(String.raw`,\ `)} \\end{aligned}`;
+  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(TEX.newline)} \\\\ &${dual.signs.map((sign, i) => signLatex(sign, i)).join(TEX.listSep)} \\end{aligned}`;
 }
 
 /**
@@ -129,26 +130,28 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
   const xNames = lp.variables.map(variableLatex);
   const max = lp.sense === 'max';
 
-  trace.steps.push({
-    title: 'Reglas de correspondencia',
-    explanation: max
-      ? 'El primal maximiza, así que el dual minimiza. Cada restricción primal da una variable dual yᵢ (≤ → yᵢ ≥ 0, ≥ → yᵢ ≤ 0, = → yᵢ libre) y cada variable primal xⱼ ≥ 0 da una restricción dual ≥ cⱼ. Los lados derechos pasan a la función objetivo y la matriz de coeficientes se transpone.'
-      : 'El primal minimiza, así que el dual maximiza. Cada restricción primal da una variable dual yᵢ (≥ → yᵢ ≥ 0, ≤ → yᵢ ≤ 0, = → yᵢ libre) y cada variable primal xⱼ ≥ 0 da una restricción dual ≤ cⱼ. Los lados derechos pasan a la función objetivo y la matriz de coeficientes se transpone.',
-    children: [
-      ...lp.constraints.map((c, i): Step => ({
-        title: `Restricción ${i + 1} (${c.relation === '<=' ? '≤' : c.relation === '>=' ? '≥' : '='})`,
-        result: String.raw`\Rightarrow\ ${signLatex(dual.signs[i]!, i)},\quad \text{coeficiente en } w:\ ${c.rhs.toLatex()}`,
-      })),
-      ...lp.variables.map((_, j): Step => ({
-        title: `Variable ${lp.variables[j]} ≥ 0`,
-        result: String.raw`\Rightarrow\ ${linearLatex(
-          dual.constraints[j]!.coefficients,
-          dual.objective.map((__, i) => dualName(i)),
-        )} ${relationLatex[dual.constraints[j]!.relation]} ${lp.objective[j]!.toLatex()}`,
-      })),
-    ],
-  });
-  trace.steps.push({ title: 'Problema dual', result: dualLatex(dual) });
+  trace.steps.push(
+    {
+      title: 'Reglas de correspondencia',
+      explanation: max
+        ? 'El primal maximiza, así que el dual minimiza. Cada restricción primal da una variable dual yᵢ (≤ → yᵢ ≥ 0, ≥ → yᵢ ≤ 0, = → yᵢ libre) y cada variable primal xⱼ ≥ 0 da una restricción dual ≥ cⱼ. Los lados derechos pasan a la función objetivo y la matriz de coeficientes se transpone.'
+        : 'El primal minimiza, así que el dual maximiza. Cada restricción primal da una variable dual yᵢ (≥ → yᵢ ≥ 0, ≤ → yᵢ ≤ 0, = → yᵢ libre) y cada variable primal xⱼ ≥ 0 da una restricción dual ≤ cⱼ. Los lados derechos pasan a la función objetivo y la matriz de coeficientes se transpone.',
+      children: [
+        ...lp.constraints.map((c, i): Step => ({
+          title: `Restricción ${i + 1} (${c.relation === '<=' ? '≤' : c.relation === '>=' ? '≥' : '='})`,
+          result: String.raw`\Rightarrow\ ${signLatex(dual.signs[i]!, i)},\quad \text{coeficiente en } w:\ ${c.rhs.toLatex()}`,
+        })),
+        ...lp.variables.map((_, j): Step => ({
+          title: `Variable ${lp.variables[j]} ≥ 0`,
+          result: String.raw`\Rightarrow\ ${linearLatex(
+            dual.constraints[j]!.coefficients,
+            dual.objective.map((__, i) => dualName(i)),
+          )} ${relationLatex[dual.constraints[j]!.relation]} ${lp.objective[j]!.toLatex()}`,
+        })),
+      ],
+    },
+    { title: 'Problema dual', result: dualLatex(dual) },
+  );
 
   const primal = solveLpSilently(lp);
   const solvedDual = solveDual(dual);
@@ -158,7 +161,7 @@ export function solveDualProblem(input: LpInput): CalculatorResult<DualValue, Du
       title: 'Relación entre las soluciones',
       explanation:
         'Por el teorema de dualidad fuerte, si el primal tiene solución óptima el dual también, y los valores óptimos coinciden. Cada yᵢ es el precio dual (valor marginal) del recurso i.',
-      result: String.raw`\begin{array}{l} ${lp.variables.map((_, j) => `${xNames[j]} = ${primal.x[j]!.toLatex()}`).join(String.raw`,\ `)},\quad z^* = ${primal.z.toLatex()} \\ ${solvedDual.y.map((y, i) => `${dualName(i)} = ${y.toLatex()}`).join(String.raw`,\ `)},\quad w^* = ${solvedDual.w!.toLatex()} \end{array}`,
+      result: String.raw`\begin{array}{l} ${lp.variables.map((_, j) => `${xNames[j]} = ${primal.x[j]!.toLatex()}`).join(TEX.listSep)},\quad z^* = ${primal.z.toLatex()} \\ ${solvedDual.y.map((y, i) => `${dualName(i)} = ${y.toLatex()}`).join(TEX.listSep)},\quad w^* = ${solvedDual.w!.toLatex()} \end{array}`,
     });
   } else {
     trace.steps.push({

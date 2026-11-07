@@ -15,7 +15,6 @@ import {
   continuousQueryShape,
   positiveNumber,
   solveContinuous,
-  type ContinuousErrorCode,
   type ContinuousModel,
   type ContinuousValue,
 } from './continuous';
@@ -67,7 +66,7 @@ function exponentialModel(
   };
 }
 
-export const exponential: Calculator<ExponentialInput, ContinuousValue, ContinuousErrorCode> = {
+export const exponential: Calculator<ExponentialInput, ContinuousValue, never> = {
   meta: {
     id: 'distribucion-exponencial',
     title: 'Distribución exponencial',

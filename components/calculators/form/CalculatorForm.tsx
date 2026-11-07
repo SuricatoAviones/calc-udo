@@ -21,7 +21,7 @@ interface CalculatorFormProps<TInput extends FieldValues, TValue, TErrorCode ext
 export function CalculatorForm<TInput extends FieldValues, TValue, TErrorCode extends string>({
   calculator,
   children,
-}: CalculatorFormProps<TInput, TValue, TErrorCode>) {
+}: Readonly<CalculatorFormProps<TInput, TValue, TErrorCode>>) {
   const [result, setResult] = useState<CalculatorResult<TValue, TErrorCode> | null>(null);
   const form = useForm<TInput>({
     resolver: zodResolver(calculator.inputSchema),

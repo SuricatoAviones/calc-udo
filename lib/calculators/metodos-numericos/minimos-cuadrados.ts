@@ -10,7 +10,7 @@
  *   S_t = Σ(y_i − ȳ)²,  s_y = √(S_t/(n − 1)),  s_{y/x} = √(S_r/(n − (m + 1))),  r² = (S_t − S_r)/S_t
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import { solveLinearSystem } from '@/lib/math/linear-algebra';
 import {
   emptyTrace,
@@ -68,7 +68,7 @@ const op = (v: number) => toLatexOperand(v, 8);
 /** Σ x^k, para la notación de las ecuaciones normales. */
 function sumName(power: number, withY: boolean): string {
   const x = power === 0 ? '' : power === 1 ? 'x_i' : `x_i^{${power}}`;
-  if (withY) return String.raw`\sum ${x}${x ? String.raw`\,` : ''}y_i`;
+  if (withY) return String.raw`\sum ${x}${x ? TEX.thinSpace : ''}y_i`;
   return power === 0 ? 'n' : String.raw`\sum ${x}`;
 }
 
@@ -112,7 +112,7 @@ export function solveLeastSquares(
     formula: String.raw`\begin{aligned} ${A.map(
       (row, j) =>
         `${row.map((_, k) => String.raw`${sumName(j + k, false)}\,a_{${k}}`).join(' + ')} &= ${sumName(j, true)}`,
-    ).join(String.raw` \\ `)} \end{aligned}`,
+    ).join(TEX.newline)} \end{aligned}`,
     substitution: texAugmented(system, 1, 8),
   });
 
@@ -160,57 +160,59 @@ export function solveLeastSquares(
   const r = r2 === null ? null : Math.sqrt(Math.max(0, r2)) * (m === 1 && a[1]! < 0 ? -1 : 1);
   const equation = `y = ${polynomialLatex([...a].reverse(), 'x', 7)}`;
 
-  steps.push({
-    title: 'Polinomio ajustado',
-    result: equation,
-  });
-  steps.push({
-    title: 'Bondad del ajuste',
-    explanation:
-      'St mide la dispersión de los datos alrededor de la media y Sr la que queda alrededor del ajuste. r² es la fracción de la dispersión que explica el modelo.',
-    children: [
-      {
-        title: 'Suma total de cuadrados',
-        formula: String.raw`S_t = \sum (y_i - \bar{y})^2`,
-        result: String.raw`\bar{y} = ${n(mean)}, \quad S_t = ${n(st)}`,
-      },
-      {
-        title: 'Suma de los cuadrados de los residuos',
-        formula: String.raw`S_r = \sum (y_i - ${m === 1 ? 'a_0 - a_1 x_i' : String.raw`\hat{y}_i`})^2`,
-        result: `S_r = ${n(sr)}`,
-      },
-      ...(sy === null
-        ? []
-        : [
-            {
-              title: 'Desviación estándar',
-              formula: String.raw`s_y = \sqrt{\frac{S_t}{n - 1}}`,
-              substitution: String.raw`s_y = \sqrt{\frac{${n(st)}}{${count - 1}}}`,
-              result: `s_y = ${n(sy)}`,
-            },
-          ]),
-      ...(standardError === null
-        ? []
-        : [
-            {
-              title: 'Error estándar de la estimación',
-              formula: String.raw`s_{y/x} = \sqrt{\frac{S_r}{n - (m + 1)}}`,
-              substitution: String.raw`s_{y/x} = \sqrt{\frac{${n(sr)}}{${count} - ${m + 1}}}`,
-              result: `s_{y/x} = ${n(standardError)}`,
-            },
-          ]),
-      ...(r2 === null
-        ? []
-        : [
-            {
-              title: 'Coeficiente de determinación',
-              formula: String.raw`r^2 = \frac{S_t - S_r}{S_t}`,
-              substitution: String.raw`r^2 = \frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
-              result: String.raw`r^2 = ${n(r2)}, \quad r = ${n(r!)}`,
-            },
-          ]),
-    ],
-  });
+  steps.push(
+    {
+      title: 'Polinomio ajustado',
+      result: equation,
+    },
+    {
+      title: 'Bondad del ajuste',
+      explanation:
+        'St mide la dispersión de los datos alrededor de la media y Sr la que queda alrededor del ajuste. r² es la fracción de la dispersión que explica el modelo.',
+      children: [
+        {
+          title: 'Suma total de cuadrados',
+          formula: String.raw`S_t = \sum (y_i - \bar{y})^2`,
+          result: String.raw`\bar{y} = ${n(mean)}, \quad S_t = ${n(st)}`,
+        },
+        {
+          title: 'Suma de los cuadrados de los residuos',
+          formula: String.raw`S_r = \sum (y_i - ${m === 1 ? 'a_0 - a_1 x_i' : String.raw`\hat{y}_i`})^2`,
+          result: `S_r = ${n(sr)}`,
+        },
+        ...(sy === null
+          ? []
+          : [
+              {
+                title: 'Desviación estándar',
+                formula: String.raw`s_y = \sqrt{\frac{S_t}{n - 1}}`,
+                substitution: String.raw`s_y = \sqrt{\frac{${n(st)}}{${count - 1}}}`,
+                result: `s_y = ${n(sy)}`,
+              },
+            ]),
+        ...(standardError === null
+          ? []
+          : [
+              {
+                title: 'Error estándar de la estimación',
+                formula: String.raw`s_{y/x} = \sqrt{\frac{S_r}{n - (m + 1)}}`,
+                substitution: String.raw`s_{y/x} = \sqrt{\frac{${n(sr)}}{${count} - ${m + 1}}}`,
+                result: `s_{y/x} = ${n(standardError)}`,
+              },
+            ]),
+        ...(r2 === null
+          ? []
+          : [
+              {
+                title: 'Coeficiente de determinación',
+                formula: String.raw`r^2 = \frac{S_t - S_r}{S_t}`,
+                substitution: String.raw`r^2 = \frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
+                result: String.raw`r^2 = ${n(r2)}, \quad r = ${n(r!)}`,
+              },
+            ]),
+      ],
+    },
+  );
 
   const lo = Math.min(...x);
   const hi = Math.max(...x);

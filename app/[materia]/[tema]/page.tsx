@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${topic.name} — ${subject.name}`, description: topic.description };
 }
 
-export default async function TopicPage({ params }: Props) {
+export default async function TopicPage({ params }: Readonly<Props>) {
   const { materia, tema } = await params;
   const subject = getSubject(materia);
   const topic = getTopic(materia, tema);

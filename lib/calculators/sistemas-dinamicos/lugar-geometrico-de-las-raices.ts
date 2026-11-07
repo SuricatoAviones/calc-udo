@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import * as C from '@/lib/math/complex';
 import type { Complex } from '@/lib/math/complex';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import type {
   Calculator,
   CalculatorResult,
@@ -102,7 +102,7 @@ function partTex(d: number[], nn: number[]): string {
 }
 
 const intervalTex = ([a, b]: [number, number]) =>
-  String.raw`${Number.isFinite(a) ? n(a) : String.raw`-\infty`} < \sigma < ${Number.isFinite(b) ? n(b) : String.raw`\infty`}`;
+  String.raw`${Number.isFinite(a) ? n(a) : TEX.negInfty} < \sigma < ${Number.isFinite(b) ? n(b) : TEX.infty}`;
 
 export function solveRootLocus(
   input: RootLocusInput,
@@ -119,22 +119,24 @@ export function solveRootLocus(
   const tables: ResultTable[] = [];
   const F = parsed.tf;
 
-  steps.push({
-    title: 'Ecuación característica',
-    explanation: `Los polos en lazo cerrado son las raíces de 1 + KG(s)H(s) = 0 para K ≥ 0. Polos de lazo abierto (K = 0, inicio de las ramas): ${rootsText(polyRoots(F.den))}. Ceros de lazo abierto (fin de las ramas): ${data.m ? rootsText(polyRoots(F.num)) : 'ninguno'}. Hay ${data.n} ramas${data.n > data.m ? `; ${data.n - data.m} van al infinito` : ''}.`,
-    formula: String.raw`1 + KG(s)H(s) = 0 \iff D(s) + K\,N(s) = 0`,
-    result: String.raw`G(s)H(s) = ${tfTex(F)},\quad ${laplacePolyTex(F.den)} + ${
-      F.num.length === 1 && F.num[0] === 1
-        ? 'K'
-        : String.raw`K\left(${laplacePolyTex(F.num)}\right)`
-    } = 0`,
-  });
-  steps.push({
-    title: 'Condiciones de ángulo y de magnitud',
-    explanation:
-      'Un punto s está en el lugar si el ángulo de G(s)H(s) es un múltiplo impar de 180°; la ganancia en ese punto sale de la condición de magnitud.',
-    formula: String.raw`\angle G(s)H(s) = \pm 180^{\circ}(2k + 1),\qquad K = \frac{1}{|G(s)H(s)|}`,
-  });
+  steps.push(
+    {
+      title: 'Ecuación característica',
+      explanation: `Los polos en lazo cerrado son las raíces de 1 + KG(s)H(s) = 0 para K ≥ 0. Polos de lazo abierto (K = 0, inicio de las ramas): ${rootsText(polyRoots(F.den))}. Ceros de lazo abierto (fin de las ramas): ${data.m ? rootsText(polyRoots(F.num)) : 'ninguno'}. Hay ${data.n} ramas${data.n > data.m ? `; ${data.n - data.m} van al infinito` : ''}.`,
+      formula: String.raw`1 + KG(s)H(s) = 0 \iff D(s) + K\,N(s) = 0`,
+      result: String.raw`G(s)H(s) = ${tfTex(F)},\quad ${laplacePolyTex(F.den)} + ${
+        F.num.length === 1 && F.num[0] === 1
+          ? 'K'
+          : String.raw`K\left(${laplacePolyTex(F.num)}\right)`
+      } = 0`,
+    },
+    {
+      title: 'Condiciones de ángulo y de magnitud',
+      explanation:
+        'Un punto s está en el lugar si el ángulo de G(s)H(s) es un múltiplo impar de 180°; la ganancia en ese punto sale de la condición de magnitud.',
+      formula: String.raw`\angle G(s)H(s) = \pm 180^{\circ}(2k + 1),\qquad K = \frac{1}{|G(s)H(s)|}`,
+    },
+  );
 
   const segments = realAxisSegments(data);
   steps.push({
@@ -153,7 +155,7 @@ export function solveRootLocus(
       explanation: `n − m = ${asym.count} ramas tienden al infinito siguiendo las asíntotas.`,
       formula: String.raw`\text{Ángulos} = \frac{\pm 180^{\circ}(2k + 1)}{n - m},\qquad \sigma_a = \frac{\sum \text{polos} - \sum \text{ceros}}{n - m}`,
       substitution: String.raw`\sigma_a = \frac{(${n(data.poles.reduce((s, p) => s + p.re, 0))}) - (${n(data.zeros.reduce((s, z) => s + z.re, 0))})}{${asym.count}}`,
-      result: String.raw`\text{Ángulos: } ${asym.angles.map(deg).join(String.raw`,\ `)},\qquad \sigma_a = ${n(asym.centroid)}`,
+      result: String.raw`\text{Ángulos: } ${asym.angles.map(deg).join(TEX.listSep)},\qquad \sigma_a = ${n(asym.centroid)}`,
     });
   }
 
@@ -355,7 +357,7 @@ export function solveRootLocus(
   if (asym)
     summary.push({
       label: 'Asíntotas',
-      value: String.raw`${asym.angles.map(deg).join(String.raw`,\ `)},\ \sigma_a = ${n(asym.centroid)}`,
+      value: String.raw`${asym.angles.map(deg).join(TEX.listSep)},\ \sigma_a = ${n(asym.centroid)}`,
     });
   if (breakaway.length)
     summary.push({

@@ -12,7 +12,7 @@
  * 7.ª ed., ejemplo 7-5 (respuesta al escalón de un sistema de cuarto orden, ec. 7-56).
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { addPoly, polyRoots, scalePoly, trimPoly } from '@/lib/math/polynomials';
 import type {
   Calculator,
@@ -296,7 +296,7 @@ export function solveTransient(
           ? 'La salida no sigue a la entrada: el error crece sin límite.'
           : `Cuando t → ∞, la diferencia entre la entrada y la salida tiende a una constante${input.order === 'primer-orden' && K === 1 ? ' (para el primer orden con K = 1 es T, Ogata ec. 4-5)' : ''}.`,
       formula: String.raw`e_{ss} = \lim_{t \to \infty}\left[r(t) - c(t)\right]`,
-      result: `e_{ss} = ${steadyError === Infinity ? String.raw`\infty` : n(steadyError)}`,
+      result: `e_{ss} = ${steadyError === Infinity ? TEX.infty : n(steadyError)}`,
     });
   }
 
@@ -339,7 +339,7 @@ export function solveTransient(
   if (steadyError !== null)
     summary.push({
       label: 'Error en estado estacionario',
-      value: `e_{ss} = ${steadyError === Infinity ? String.raw`\infty` : n(steadyError)}`,
+      value: `e_{ss} = ${steadyError === Infinity ? TEX.infty : n(steadyError)}`,
     });
 
   return {

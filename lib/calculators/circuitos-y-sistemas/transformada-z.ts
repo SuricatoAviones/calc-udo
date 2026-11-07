@@ -494,20 +494,22 @@ function solveEquation(input: ZInput): Result {
       formula: String.raw`\mathcal{Z}\{${shiftName(i)}\} = ${i === 1 ? 'z' : `z^{${i}}`}Y(z) - ${terms.join(' - ')}`,
     });
   }
-  steps.push({
-    title: 'Traslación real (adelanto)',
-    explanation:
-      'Cada adelanto multiplica por z y descuenta las muestras iniciales que quedan antes de k = 0.',
-    children: shiftSteps,
-  });
-  steps.push({
-    title: 'Transformada de la excitación',
-    children:
-      forward.steps.length === 1 && forward.steps[0]!.children
-        ? forward.steps[0]!.children
-        : forward.steps,
-    result: `X(z) = ${zTex(forward.num, forward.den)}`,
-  });
+  steps.push(
+    {
+      title: 'Traslación real (adelanto)',
+      explanation:
+        'Cada adelanto multiplica por z y descuenta las muestras iniciales que quedan antes de k = 0.',
+      children: shiftSteps,
+    },
+    {
+      title: 'Transformada de la excitación',
+      children:
+        forward.steps.length === 1 && forward.steps[0]!.children
+          ? forward.steps[0]!.children
+          : forward.steps,
+      result: `X(z) = ${zTex(forward.num, forward.den)}`,
+    },
+  );
 
   // P(z) = Σ aᵢ zⁱ; I(z) = Σ_i aᵢ Σ_{j<i} y(j) z^{i−j}.
   const p: Poly = trimPoly(a.slice());

@@ -9,7 +9,7 @@
  * 10 V con R_Z = 8.5 Ω).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type {
   Calculator,
   CalculatorResult,
@@ -82,18 +82,22 @@ export function solveZenerSupply(
   const { rs, vz, rl } = input;
 
   const tr = transformer(input.v1rms, input.ratio);
-  steps.push({
-    title: 'Sección 1: transformador',
-    explanation: `Reduce la tensión de la red (${engText(input.v1rms, 'V')} rms, ${engText(input.f, 'Hz')}) con una relación ${n(input.ratio, 4)}:1.`,
-  });
-  steps.push(...tr.steps);
+  steps.push(
+    {
+      title: 'Sección 1: transformador',
+      explanation: `Reduce la tensión de la red (${engText(input.v1rms, 'V')} rms, ${engText(input.f, 'Hz')}) con una relación ${n(input.ratio, 4)}:1.`,
+    },
+    ...tr.steps,
+  );
 
   const rect = rectify(tr.vp2, input.rectifier, input.vk, input.f);
-  steps.push({
-    title: 'Sección 2: rectificador',
-    explanation: `${RECTIFIER_NAME[input.rectifier][0]!.toUpperCase()}${RECTIFIER_NAME[input.rectifier].slice(1)}: convierte la alterna en pulsos de una sola polaridad con frecuencia ${engText(rect.fOut, 'Hz')}.`,
-  });
-  steps.push(rect.step);
+  steps.push(
+    {
+      title: 'Sección 2: rectificador',
+      explanation: `${RECTIFIER_NAME[input.rectifier][0]!.toUpperCase()}${RECTIFIER_NAME[input.rectifier].slice(1)}: convierte la alterna en pulsos de una sola polaridad con frecuencia ${engText(rect.fOut, 'Hz')}.`,
+    },
+    rect.step,
+  );
   const vp = rect.vpOut;
   if (vp <= 0) {
     const message =
@@ -176,14 +180,13 @@ export function solveZenerSupply(
 
   const dropout = maxSeriesResistance(vmin, vz, rl);
   const regulates = vmin > vz && rs <= dropout.rsMax;
-  steps.push(dropout.step);
-  steps.push({
+  steps.push(dropout.step, {
     title: 'Comprobación del diseño',
     explanation: regulates
       ? `R_S = ${engText(rs, 'Ω')} ≤ R_S(máx): el Zener sigue en ruptura incluso en el valle del rizado (V_min = ${engText(vmin, 'V')}).`
       : `R_S = ${engText(rs, 'Ω')} supera R_S(máx) o V_min no alcanza V_Z: en el valle del rizado el Zener sale de ruptura y la salida deja de estar regulada.`,
     formula: String.raw`R_S \le R_{S(max)}`,
-    result: String.raw`${engTex(rs, 'Ω')}\ ${rs <= dropout.rsMax ? String.raw`\le` : '>'}\ ${engTex(dropout.rsMax, 'Ω')}`,
+    result: String.raw`${engTex(rs, 'Ω')}\ ${rs <= dropout.rsMax ? TEX.le : '>'}\ ${engTex(dropout.rsMax, 'Ω')}`,
   });
   if (!regulates) {
     notices.push({
@@ -206,7 +209,7 @@ export function solveZenerSupply(
       explanation: 'Si se desconecta la carga, toda la corriente de R_S pasa por el Zener.',
       formula: String.raw`P_{Z(max)} \approx V_Z\frac{V_p - V_Z}{R_S}`,
       substitution: String.raw`P_{Z(max)} \approx (${n(vz)})\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`,
-      result: String.raw`P_{Z(max)} \approx ${engTex(pzOpen, 'W')}\ ${pzOpen <= input.pzm ? String.raw`\le` : '>'}\ P_{ZM} = ${engTex(input.pzm, 'W')}`,
+      result: String.raw`P_{Z(max)} \approx ${engTex(pzOpen, 'W')}\ ${pzOpen <= input.pzm ? TEX.le : '>'}\ P_{ZM} = ${engTex(input.pzm, 'W')}`,
     });
     if (pzOpen > input.pzm && zr.pz <= input.pzm) {
       notices.push({

@@ -12,7 +12,7 @@
  *
  * Fuente: Hayt, Kemmerly & Durbin, *Análisis de Circuitos en Ingeniería*, 7.ª ed., cap. 4.
  */
-import { formatNumber } from '@/lib/math/format';
+import { formatNumber, TEX } from '@/lib/math/format';
 import type { Notice, ResultTable, Step } from '../types';
 import {
   buildTopology,
@@ -216,14 +216,14 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
       explanation:
         'El equivalente de Thévenin es una fuente V_th en serie con R_th; el de Norton, una fuente I_N en paralelo con R_th.',
       formula: String.raw`V_{th} = I_{N}\,R_{th}`,
-      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V},\ R_{th} = ${finite ? formatNumber(rTh, 6) : String.raw`\infty`}\ \Omega`,
+      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V},\ R_{th} = ${finite ? formatNumber(rTh, 6) : TEX.infty}\ \Omega`,
     },
     {
       title: 'Con la carga conectada',
       explanation:
         'Al reconectar la carga, la corriente es la tensión de Thévenin entre R_th + R_L.',
       formula: String.raw`i_L = \frac{V_{th}}{R_{th} + R_L}`,
-      substitution: String.raw`i_L = \frac{${formatNumber(vTh, 6)}}{${finite ? formatNumber(rTh, 6) : String.raw`\infty`} + ${formatNumber(load.value, 6)}}`,
+      substitution: String.raw`i_L = \frac{${formatNumber(vTh, 6)}}{${finite ? formatNumber(rTh, 6) : TEX.infty} + ${formatNumber(load.value, 6)}}`,
       result: String.raw`i_L = ${formatNumber(loadCurrent, 6)}\text{ A},\quad P_L = ${formatNumber(loadPower, 6)}\text{ W}`,
     },
   ];

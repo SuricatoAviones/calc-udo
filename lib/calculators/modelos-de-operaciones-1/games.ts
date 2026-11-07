@@ -4,7 +4,7 @@
  * minimax y la presentación en LaTeX.
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 
 export const MAX_STRATEGIES = 8;
 
@@ -54,7 +54,7 @@ export function payoffMatrixLatex(
 ): string {
   const header = ` & ${cols.map(colName).join(' & ')}`;
   const body = rows.map((i) => `${rowName(i)} & ${cols.map((j) => n(matrix[i]![j]!)).join(' & ')}`);
-  return String.raw`\begin{array}{c|${'c'.repeat(cols.length)}} ${header} \\ \hline ${body.join(String.raw` \\ `)} \end{array}`;
+  return String.raw`\begin{array}{c|${'c'.repeat(cols.length)}} ${header} \\ \hline ${body.join(TEX.newline)} \end{array}`;
 }
 
 export interface MinimaxAnalysis {

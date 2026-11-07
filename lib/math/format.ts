@@ -7,6 +7,31 @@
 
 export const DEFAULT_SIGNIFICANT_DIGITS = 10;
 
+/**
+ * Piezas de LaTeX que se repiten dentro de otras fórmulas. Usarlas en lugar de un
+ * `` String.raw`…` `` dentro de `${…}` evita anidar plantillas (ADR-041).
+ */
+export const TEX = {
+  /** Separador de listas: `a,\ b`. */
+  listSep: String.raw`,\ `,
+  /** Salto de línea de `array`, `aligned` y `cases`. */
+  newline: String.raw` \\ `,
+  /** Alternativas empatadas: `x = 1\ \text{o}\ 2`. */
+  or: String.raw`\ \text{o}\ `,
+  /** Celda o valor que no aplica. */
+  dash: String.raw`\text{—}`,
+  /** Cola de una suma truncada. */
+  plusCdots: String.raw` + \cdots`,
+  infty: String.raw`\infty`,
+  negInfty: String.raw`-\infty`,
+  ge: String.raw`\ge`,
+  le: String.raw`\le`,
+  thinSpace: String.raw`\,`,
+  checkmark: String.raw`\checkmark`,
+  times: String.raw`\times`,
+  pm: String.raw`\pm`,
+} as const;
+
 /** Por debajo de este valor absoluto (o por encima del grande) se usa notación científica. */
 const SMALL = 1e-4;
 const LARGE = 1e10;
@@ -114,18 +139,18 @@ export function fractionToLatex(text: string): string {
 /** Matriz → LaTeX (`bmatrix`), con `significantDigits` cifras por entrada. */
 export function toLatexMatrix(matrix: number[][], significantDigits = 6): string {
   const rows = matrix.map((row) => row.map((v) => toLatexNumber(v, significantDigits)).join(' & '));
-  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** Vector fila → LaTeX: `(0.32,\ 0.68)`. */
 export function toLatexVector(vector: number[], significantDigits = 6): string {
-  return String.raw`\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(String.raw`,\ `)}\right)`;
+  return String.raw`\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(TEX.listSep)}\right)`;
 }
 
 /** Varias líneas de LaTeX, una debajo de otra (sirve en modo en línea y en bloque). */
 export function latexLines(lines: string[]): string {
   if (lines.length <= 1) return lines[0] ?? '';
-  return String.raw`\begin{array}{l} ${lines.join(String.raw` \\ `)} \end{array}`;
+  return String.raw`\begin{array}{l} ${lines.join(TEX.newline)} \end{array}`;
 }
 
 const LATEX_TEXT_ESCAPES: Record<string, string> = {

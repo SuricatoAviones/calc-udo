@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, toLatexNumber, toLatexRational } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexRational, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 
 export const replacementTypes = ['con', 'sin'] as const;
@@ -261,7 +261,7 @@ export function solveSampling(
         ],
         rows: samples.slice(0, MAX_LISTED).map((s, i) => ({
           index: i + 1,
-          sample: `(${s.items.map((v) => n(v)).join(String.raw`,\ `)})`,
+          sample: `(${s.items.map((v) => n(v)).join(TEX.listSep)})`,
           mean: s.mean,
         })),
       },

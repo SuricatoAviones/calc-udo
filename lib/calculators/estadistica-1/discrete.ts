@@ -6,13 +6,7 @@
  */
 import { z } from 'zod';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
-import {
-  emptyTrace,
-  type CalculatorResult,
-  type Latex,
-  type Step,
-  type SummaryItem,
-} from '../types';
+import { emptyTrace, type CalculatorResult, type Step, type SummaryItem } from '../types';
 
 export const discreteQueryTypes = [
   'igual',
@@ -59,15 +53,15 @@ export interface DiscreteModel {
   max: number;
   pmf(x: number): number;
   /** Notación de la función de probabilidad con sus parámetros: `b(x;\ 15, 0.4)`. */
-  notation(x: string): Latex;
+  notation(x: string): string;
   /** Fórmula general de p(x). */
-  pmfFormula: Latex;
+  pmfFormula: string;
   /** Sustitución de p(x) con números para un x concreto. */
-  pmfSubstitution(x: number): Latex;
+  pmfSubstitution(x: number): string;
   mean: number;
   variance: number;
-  meanFormula: Latex;
-  varianceFormula: Latex;
+  meanFormula: string;
+  varianceFormula: string;
   /** Explicación de cuándo aplica el modelo. */
   explanation: string;
 }
@@ -78,8 +72,6 @@ export interface DiscreteValue {
   variance: number;
   standardDeviation: number;
 }
-
-export type DiscreteErrorCode = never;
 
 const n = toLatexNumber;
 /** Con más términos que esto se muestra solo el valor de cada uno, sin sustitución. */
@@ -105,7 +97,7 @@ function interval(input: DiscreteQueryInput, min: number, max: number): [number,
   }
 }
 
-function queryLatex(input: DiscreteQueryInput): Latex {
+function queryLatex(input: DiscreteQueryInput): string {
   const { query, k } = input;
   switch (query) {
     case 'igual':
@@ -130,7 +122,7 @@ function range(a: number, b: number): number[] {
 export function solveDiscrete(
   input: DiscreteQueryInput,
   model: DiscreteModel,
-): CalculatorResult<DiscreteValue, DiscreteErrorCode> {
+): CalculatorResult<DiscreteValue, never> {
   const target = queryLatex(input);
   const min = model.min ?? 0;
   const [aRaw, bRaw] = interval(input, min, model.max);
@@ -214,22 +206,23 @@ export function solveDiscrete(
             },
           ]
         : [];
-    steps.push({ title: 'Calcular cada término', children: [...detailed, ...rest] });
-
-    steps.push({
-      title: useComplement
-        ? 'Sumar los términos y restar de 1'
-        : terms.length === 1
-          ? 'Resultado'
-          : 'Sumar los términos',
-      substitution:
-        terms.length > 1 || useComplement
-          ? useComplement
-            ? `${target} = 1 - ${n(sum)}`
-            : `${target} = ${values.length <= 8 ? values.map((v) => n(v, 6)).join(' + ') : n(sum)}`
-          : undefined,
-      result: `${target} = ${n(probability)}`,
-    });
+    steps.push(
+      { title: 'Calcular cada término', children: [...detailed, ...rest] },
+      {
+        title: useComplement
+          ? 'Sumar los términos y restar de 1'
+          : terms.length === 1
+            ? 'Resultado'
+            : 'Sumar los términos',
+        substitution:
+          terms.length > 1 || useComplement
+            ? useComplement
+              ? `${target} = 1 - ${n(sum)}`
+              : `${target} = ${values.length <= 8 ? values.map((v) => n(v, 6)).join(' + ') : n(sum)}`
+            : undefined,
+        result: `${target} = ${n(probability)}`,
+      },
+    );
   }
 
   const standardDeviation = Math.sqrt(model.variance);

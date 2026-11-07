@@ -17,7 +17,6 @@ import {
   continuousQueryShape,
   positiveNumber,
   solveContinuous,
-  type ContinuousErrorCode,
   type ContinuousModel,
   type ContinuousValue,
 } from './continuous';
@@ -64,7 +63,7 @@ function weibullModel(alpha: number, beta: number): ContinuousModel {
   };
 }
 
-export const weibull: Calculator<WeibullInput, ContinuousValue, ContinuousErrorCode> = {
+export const weibull: Calculator<WeibullInput, ContinuousValue, never> = {
   meta: {
     id: 'distribucion-weibull',
     title: 'Distribución de Weibull',

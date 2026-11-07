@@ -33,13 +33,13 @@ export function LinearSystemField({
   hint,
   min = 2,
   max = 8,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   hint?: ReactNode;
   min?: number;
   max?: number;
-}) {
+}>) {
   const { control } = useFormContext();
   return (
     <Controller

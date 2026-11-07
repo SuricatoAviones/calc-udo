@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/curriculum/StatusBadge';
 import { calculatorPath, getCalculatorStatus, type CalculatorLocation } from '@/lib/curriculum';
 
 /** Lista de calculadoras de un tema. Solo las implementadas son enlaces. */
-export function CalculatorList({ items }: { items: CalculatorLocation[] }) {
+export function CalculatorList({ items }: Readonly<{ items: CalculatorLocation[] }>) {
   if (items.length === 0) {
     return (
       <p className="text-muted-foreground text-sm italic">

@@ -56,13 +56,11 @@ export interface SeriesForecastValue {
   mape: number | null;
 }
 
-export type SeriesForecastErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 6);
 
 export function solveSeriesForecast(
   input: SeriesForecastInput,
-): CalculatorResult<SeriesForecastValue, SeriesForecastErrorCode> {
+): CalculatorResult<SeriesForecastValue, never> {
   const y = parseSample(input.data, 3) as number[];
   const d = decompose(y, input.season);
   const size = y.length;
@@ -184,11 +182,7 @@ export function solveSeriesForecast(
   };
 }
 
-export const seriesForecast: Calculator<
-  SeriesForecastInput,
-  SeriesForecastValue,
-  SeriesForecastErrorCode
-> = {
+export const seriesForecast: Calculator<SeriesForecastInput, SeriesForecastValue, never> = {
   meta: {
     id: 'pronostico-de-series-de-tiempo',
     title: 'Predicción con series de tiempo',

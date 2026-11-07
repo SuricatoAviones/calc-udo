@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
-import { emptyTrace, type CalculatorResult, type Latex, type Step } from '../types';
+import { emptyTrace, type CalculatorResult, type Step } from '../types';
 
 export const continuousQueryTypes = ['menor', 'mayor', 'entre'] as const;
 export type ContinuousQuery = (typeof continuousQueryTypes)[number];
@@ -47,18 +47,18 @@ export interface ContinuousModel {
   pdf(x: number): number;
   cdf(x: number): number;
   /** Densidad con su soporte, sin `f(x) =`: `\frac{1}{\beta} e^{-x/\beta}, \quad x > 0`. */
-  pdfFormula: Latex;
+  pdfFormula: string;
   /** F(x) dentro del soporte, sin `F(x) =`. */
-  cdfFormula: Latex;
+  cdfFormula: string;
   /** Cómo se obtiene F(x): forma cerrada, tabla, relación con otra distribución… */
   cdfExplanation?: string;
   /** F en un x del soporte con los números sustituidos (sin el resultado). */
-  cdfSubstitution(x: number): Latex;
+  cdfSubstitution(x: number): string;
   mean: number;
   variance: number;
   /** Fórmula general = sustitución, sin `μ =`: `\beta = 4`. */
-  meanFormula: Latex;
-  varianceFormula: Latex;
+  meanFormula: string;
+  varianceFormula: string;
   /** Qué modela la distribución y qué significan sus parámetros. */
   explanation: string;
 }
@@ -72,12 +72,10 @@ export interface ContinuousValue {
   standardDeviation: number;
 }
 
-export type ContinuousErrorCode = never;
-
 const n = toLatexNumber;
 const POINTS = 200;
 
-function queryLatex({ query, x, x2 }: ContinuousQueryInput): Latex {
+function queryLatex({ query, x, x2 }: ContinuousQueryInput): string {
   if (query === 'menor') return `P(X < ${n(x)})`;
   if (query === 'mayor') return `P(X > ${n(x)})`;
   return `P(${n(x)} < X < ${n(x2 ?? x)})`;
@@ -102,7 +100,7 @@ function plotRange(model: ContinuousModel, limits: number[]): [number, number] {
 export function solveContinuous(
   input: ContinuousQueryInput,
   model: ContinuousModel,
-): CalculatorResult<ContinuousValue, ContinuousErrorCode> {
+): CalculatorResult<ContinuousValue, never> {
   const { query } = input;
   const limits = query === 'entre' ? [input.x, input.x2 ?? input.x] : [input.x];
   const values = limits.map((v) => model.cdf(v));

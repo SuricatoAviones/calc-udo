@@ -16,7 +16,7 @@
  */
 import { z } from 'zod';
 import { Rational } from '@/lib/math/rational';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -171,7 +171,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     const factors = exponents[i]!.slice(0, size).flatMap((a, j) =>
       a === 0 ? [] : [a === 1 ? `x_{${j + 1}}` : `x_{${j + 1}}^{${n(a)}}`],
     );
-    return `${n(t.c)}${factors.length > 0 ? String.raw`\,${factors.join(String.raw`\,`)}` : ''}`;
+    return `${n(t.c)}${factors.length > 0 ? String.raw`\,${factors.join(TEX.thinSpace)}` : ''}`;
   };
   const functionTex = (k: number) =>
     terms
@@ -389,39 +389,41 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     lambda.reduce((acc, l) => acc + xlogx(l), 0);
   const dualValue = Math.exp(logDual);
 
-  steps.push({
-    title:
-      D === 0
-        ? 'Pesos óptimos (solución del sistema)'
-        : 'Pesos óptimos (máximo de la función dual)',
-    explanation:
-      D === 0
-        ? 'Con D = 0 el sistema tiene solución única.'
-        : 'Se maximiza ln v(δ), que es cóncava, sobre las soluciones de las ecuaciones (método de Newton); se parte de una solución con todos los pesos positivos.',
-    result: delta
-      .map((d, i) => `${deltaTex(i)} = ${deltaLatex ? deltaLatex[i] : n(d, 8)}`)
-      .join(String.raw`,\ `)
-      .concat(
-        lambda.length > 0
-          ? String.raw`, \quad ${lambda.map((l, k) => String.raw`\lambda_{${k + 1}} = ${n(l, 8)}`).join(String.raw`,\ `)}`
-          : '',
-      ),
-  });
-  steps.push({
-    title: 'Valor óptimo (función dual)',
-    formula: String.raw`v(\delta) = \prod_i \left(\frac{c_i}{\delta_i}\right)^{\delta_i} \prod_k \lambda_k^{\lambda_k}`,
-    substitution: `v = ${delta
-      .map((d, i) =>
-        d === 0
-          ? null
-          : String.raw`\left(\frac{${n(terms[i]!.c)}}{${deltaLatex ? deltaLatex[i] : n(d, 6)}}\right)^{${deltaLatex ? deltaLatex[i] : n(d, 6)}}`,
-      )
-      .filter(Boolean)
-      .join(
-        '',
-      )}${lambda.map((l) => (l > 0 ? String.raw`\,(${n(l, 6)})^{${n(l, 6)}}` : '')).join('')}`,
-    result: String.raw`g_0(x^*) = v(\delta^*) = ${n(dualValue)}`,
-  });
+  steps.push(
+    {
+      title:
+        D === 0
+          ? 'Pesos óptimos (solución del sistema)'
+          : 'Pesos óptimos (máximo de la función dual)',
+      explanation:
+        D === 0
+          ? 'Con D = 0 el sistema tiene solución única.'
+          : 'Se maximiza ln v(δ), que es cóncava, sobre las soluciones de las ecuaciones (método de Newton); se parte de una solución con todos los pesos positivos.',
+      result: delta
+        .map((d, i) => `${deltaTex(i)} = ${deltaLatex ? deltaLatex[i] : n(d, 8)}`)
+        .join(String.raw`,\ `)
+        .concat(
+          lambda.length > 0
+            ? String.raw`, \quad ${lambda.map((l, k) => String.raw`\lambda_{${k + 1}} = ${n(l, 8)}`).join(TEX.listSep)}`
+            : '',
+        ),
+    },
+    {
+      title: 'Valor óptimo (función dual)',
+      formula: String.raw`v(\delta) = \prod_i \left(\frac{c_i}{\delta_i}\right)^{\delta_i} \prod_k \lambda_k^{\lambda_k}`,
+      substitution: `v = ${delta
+        .map((d, i) =>
+          d === 0
+            ? null
+            : String.raw`\left(\frac{${n(terms[i]!.c)}}{${deltaLatex ? deltaLatex[i] : n(d, 6)}}\right)^{${deltaLatex ? deltaLatex[i] : n(d, 6)}}`,
+        )
+        .filter(Boolean)
+        .join(
+          '',
+        )}${lambda.map((l) => (l > 0 ? String.raw`\,(${n(l, 6)})^{${n(l, 6)}}` : '')).join('')}`,
+      result: String.raw`g_0(x^*) = v(\delta^*) = ${n(dualValue)}`,
+    },
+  );
 
   // Recuperar x*: Σ_j a_ij ln x_j = ln(δ_i v* / c_i) (objetivo) o ln(δ_i / (λ_k c_i)).
   const rows: number[][] = [];
@@ -471,7 +473,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
     explanation:
       'En el óptimo, cada término del objetivo vale δ_i·v* y cada término de la restricción k vale δ_i/λ_k. Tomando logaritmos quedan ecuaciones lineales en ln x_j.',
     substitution: recoveryLines.join(String.raw` \\ `),
-    result: String.raw`x^* = \left(${x.map((v) => n(v, 8)).join(String.raw`,\ `)}\right), \qquad g_0(x^*) = ${n(primalValue)}`,
+    result: String.raw`x^* = \left(${x.map((v) => n(v, 8)).join(TEX.listSep)}\right), \qquad g_0(x^*) = ${n(primalValue)}`,
   });
 
   const notices: Result['notices'] = [];
@@ -505,7 +507,7 @@ export function solveGeometric({ terms }: GeometricInput): Result {
       { label: 'Valor mínimo', value: `g_0(x^*) = ${n(dualValue, 8)}`, emphasis: true },
       {
         label: 'Solución',
-        value: String.raw`x^* = \left(${x.map((v) => n(v, 6)).join(String.raw`,\ `)}\right)`,
+        value: String.raw`x^* = \left(${x.map((v) => n(v, 6)).join(TEX.listSep)}\right)`,
       },
       { label: 'Grado de dificultad', value: `D = ${D}` },
     ],

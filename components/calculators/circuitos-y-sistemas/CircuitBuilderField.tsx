@@ -340,11 +340,11 @@ function boxIntersects(
 export function CircuitBuilderField({
   name,
   kinds = RESISTIVE_KINDS,
-}: {
+}: Readonly<{
   name: string;
   /** Componentes de la paleta (por defecto, los de los circuitos resistivos de cd). */
   kinds?: readonly ComponentKind[];
-}) {
+}>) {
   // La simulación en vivo es de cd resistiva: con capacitores, inductores o diodos no aplica.
   const canSimulate = kinds.every((k) => RESISTIVE_KINDS.includes(k));
   const { control, getValues } = useFormContext();
@@ -1710,7 +1710,7 @@ function handleRadius(active: Handle | null, handle: Handle): number {
   return isActiveHandle(active, handle) ? 0.22 : 0.12;
 }
 
-function ComponentLabel({ component }: { component: CircuitComponent }) {
+function ComponentLabel({ component }: Readonly<{ component: CircuitComponent }>) {
   if (component.kind === 'opamp' && component.c) {
     // La etiqueta del amplificador va dentro del triángulo, cerca de la base.
     const p = opAmpFrame(component.a, component.b, component.c).at(1.7, 1);
@@ -1767,13 +1767,13 @@ function ToolButton({
   onClick,
   title,
   children,
-}: {
+}: Readonly<{
   active?: boolean;
   disabled?: boolean;
   onClick: () => void;
   title: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <Button
       type="button"
@@ -1799,7 +1799,7 @@ function PropertiesPanel({
   onDelete,
   onRotate,
   onChange,
-}: {
+}: Readonly<{
   doc: CircuitDocument;
   selectedComponents: CircuitComponent[];
   selectedWires: CircuitWire[];
@@ -1807,7 +1807,7 @@ function PropertiesPanel({
   onDelete: () => void;
   onRotate: (id: string) => void;
   onChange: (doc: CircuitDocument) => void;
-}) {
+}>) {
   const single = selectedComponents.length === 1 ? selectedComponents[0]! : null;
 
   if (single) {
@@ -1865,11 +1865,11 @@ function ValueAndLabelEditor({
   doc,
   component,
   onChange,
-}: {
+}: Readonly<{
   doc: CircuitDocument;
   component: CircuitComponent;
   onChange: (doc: CircuitDocument) => void;
-}) {
+}>) {
   const unit = componentUnit(component.kind);
   const storage = component.kind === 'capacitor' || component.kind === 'inductor';
   const diode = component.kind === 'diode';

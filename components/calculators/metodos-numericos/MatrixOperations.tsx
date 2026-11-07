@@ -10,7 +10,7 @@ import {
   type MatrixOperation,
 } from '@/lib/calculators/metodos-numericos/operaciones-con-matrices';
 
-function MatrixInput({ name }: { name: 'A' | 'B' }) {
+function MatrixInput({ name }: Readonly<{ name: 'A' | 'B' }>) {
   return (
     <RectangularMatrixField
       name={name}

@@ -12,7 +12,7 @@
  * Usa el motor de `tableau.ts` (las mismas reglas que la tabla); aquí solo cambia la presentación.
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import type { Calculator, ResultTable, Step } from '../types';
 import { lpInputShape, objectiveValue, refineLp, type LinearProgram } from './lp-model';
@@ -187,7 +187,7 @@ function currentSolution(t: Tableau): string {
   const free = nonBasic(t);
   return latexLines([
     String.raw`${free.map((j) => t.columns[j]!.latex).join(' = ')} = 0 \ (\text{no básicas})`,
-    String.raw`${t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(String.raw`,\ `)}, \qquad z = ${t.zRhs.a.toLatex()}`,
+    String.raw`${t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(TEX.listSep)}, \qquad z = ${t.zRhs.a.toLatex()}`,
   ]);
 }
 

@@ -6,12 +6,11 @@ import {
   solveInitial,
   sunRay,
   transportInputSchema,
-  type TransportErrorCode,
   type TransportInput,
   type TransportValue,
 } from './transport-initial';
 
-export const northwestCorner: Calculator<TransportInput, TransportValue, TransportErrorCode> = {
+export const northwestCorner: Calculator<TransportInput, TransportValue, never> = {
   meta: {
     id: 'esquina-noroeste',
     title: 'Método de la esquina noroeste',

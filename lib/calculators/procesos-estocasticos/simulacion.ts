@@ -18,7 +18,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -254,7 +254,7 @@ export function solveSimulation(input: SimulationInput): Result {
       result: `${supply
         .slice(0, 12)
         .map((r) => n(r))
-        .join(String.raw`,\ `)}${supply.length > 12 ? String.raw`,\ \ldots` : ''}`,
+        .join(TEX.listSep)}${supply.length > 12 ? String.raw`,\ \ldots` : ''}`,
     });
   } else {
     const generated = congruential(
@@ -455,7 +455,7 @@ export function solveSimulation(input: SimulationInput): Result {
       substitution: String.raw`\bar W_q = \frac{${waits
         .slice(0, 8)
         .map((w) => n(w, 6))
-        .join(' + ')}${waits.length > 8 ? String.raw` + \cdots` : ''}}{${customers.length}}`,
+        .join(' + ')}${waits.length > 8 ? TEX.plusCdots : ''}}{${customers.length}}`,
       result: String.raw`\bar W_q = ${n(averageWait, 6)}`,
     },
   );

@@ -51,8 +51,6 @@ export interface DifferenceTableValue {
   constantOrder: number | null;
 }
 
-export type DifferenceTableErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 8);
 const op = (v: number) => toLatexOperand(v, 8);
 
@@ -61,7 +59,7 @@ const DETAILED_PER_LEVEL = 3;
 
 export function solveDifferenceTable(
   input: DifferenceTableInput,
-): CalculatorResult<DifferenceTableValue, DifferenceTableErrorCode> {
+): CalculatorResult<DifferenceTableValue, never> {
   const { x, y } = parsePoints(input.x, input.y) as { x: number[]; y: number[] };
   const forward = input.kind === 'adelante';
   const levels = forward ? forwardDifferences(y) : dividedDifferences(x, y);
@@ -167,11 +165,7 @@ export function solveDifferenceTable(
   };
 }
 
-export const differenceTable: Calculator<
-  DifferenceTableInput,
-  DifferenceTableValue,
-  DifferenceTableErrorCode
-> = {
+export const differenceTable: Calculator<DifferenceTableInput, DifferenceTableValue, never> = {
   meta: {
     id: 'tabla-de-diferencias',
     title: 'Tabla de diferencias',

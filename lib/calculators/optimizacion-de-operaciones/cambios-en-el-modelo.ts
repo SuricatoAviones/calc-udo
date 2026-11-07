@@ -16,7 +16,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { latexLines, parseFraction } from '@/lib/math/format';
+import { latexLines, parseFraction, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import {
   emptyTrace,
@@ -162,10 +162,10 @@ type Result = CalculatorResult<ModelChangeValue, ModelChangeErrorCode>;
 // ─── Presentación ───────────────────────────────────────────────────────────
 
 const bmatrix = (rows: Rational[][]) =>
-  String.raw`\begin{bmatrix} ${rows.map((row) => row.map((v) => v.toLatex()).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
+  String.raw`\begin{bmatrix} ${rows.map((row) => row.map((v) => v.toLatex()).join(' & ')).join(TEX.newline)} \end{bmatrix}`;
 const column = (values: Rational[]) => bmatrix(values.map((v) => [v]));
 const row = (values: Rational[]) =>
-  String.raw`\left(${values.map((v) => v.toLatex()).join(String.raw`,\ `)}\right)`;
+  String.raw`\left(${values.map((v) => v.toLatex()).join(TEX.listSep)}\right)`;
 const dot = (a: Rational[], b: Rational[]) =>
   a.reduce((s, v, i) => s.add(v.mul(b[i]!)), Rational.ZERO);
 

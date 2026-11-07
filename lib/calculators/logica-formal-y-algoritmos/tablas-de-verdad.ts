@@ -8,7 +8,7 @@
  *   contingencia   V en unas y F en otras
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import {
   assignments,
@@ -86,7 +86,7 @@ export function rowsStep(variables: string[]): Step {
     result:
       n === 0
         ? String.raw`1 \text{ fila}`
-        : String.raw`${variables.join(String.raw`,\ `)}:\quad 2^{${n}} = ${2 ** n} \text{ filas}`,
+        : String.raw`${variables.join(TEX.listSep)}:\quad 2^{${n}} = ${2 ** n} \text{ filas}`,
   };
 }
 

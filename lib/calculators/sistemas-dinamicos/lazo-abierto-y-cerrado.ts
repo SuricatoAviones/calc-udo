@@ -90,57 +90,59 @@ export function solveLoop(input: LoopInput): CalculatorResult<LoopValue, LoopErr
   const roots = polyRoots(characteristic);
   const stable = roots.every((r) => r.value.re < -1e-9);
 
-  steps.push({
-    title: 'Datos del sistema',
-    explanation: `Controlador G₁(s), planta G₂(s) y realimentación H(s) ${sign === -1 ? 'negativa' : 'positiva'}. La perturbación D(s) entra entre el controlador y la planta (Ogata, fig. 3-7).`,
-    result: String.raw`G_1(s) = ${tfTex(G1.tf)},\quad G_2(s) = ${tfTex(G2.tf)},\quad H(s) = ${tfTex(H.tf)}`,
-  });
-  steps.push({
-    title: 'Función de transferencia directa',
-    explanation: 'Cociente entre la salida C(s) y la señal de error actuante E(s).',
-    formula: String.raw`\frac{C(s)}{E(s)} = G_1(s)G_2(s)`,
-    result: String.raw`\frac{C(s)}{E(s)} = ${tfTex(forward)}`,
-  });
-  steps.push({
-    title: 'Función de transferencia en lazo abierto',
-    explanation:
-      'Cociente entre la señal de realimentación B(s) y E(s). Si H(s) = 1, coincide con la directa.',
-    formula: String.raw`\frac{B(s)}{E(s)} = G_1(s)G_2(s)H(s)`,
-    result: String.raw`\frac{B(s)}{E(s)} = ${tfTex(openLoop)}`,
-  });
-  steps.push({
-    title: 'Función de transferencia en lazo cerrado',
-    explanation: 'Con D(s) = 0: de C = G₁G₂E y E = R ∓ HC se elimina E.',
-    formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_1(s)G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
-  });
-  steps.push({
-    title: 'Respuesta a la perturbación',
-    explanation:
-      'Con R(s) = 0. Si |G₁G₂H| ≫ 1, C/D se acerca a 0: el lazo cerrado rechaza la perturbación (Ogata, sec. 3-3).',
-    formula: String.raw`\frac{C(s)}{D(s)} = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: String.raw`\frac{C(s)}{D(s)} = ${tfTex(disturbance)}`,
-  });
-  steps.push({
-    title: 'Señal de error actuante',
-    formula: String.raw`\frac{E(s)}{R(s)} = \frac{1}{1 ${op} G_1(s)G_2(s)H(s)}`,
-    result: String.raw`\frac{E(s)}{R(s)} = ${tfTex(error)}`,
-  });
-  steps.push({
-    title: 'Salida con las dos entradas',
-    explanation: 'Por superposición se suman las respuestas a R(s) y a D(s).',
-    formula: String.raw`C(s) = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}\left[G_1(s)R(s) + D(s)\right]`,
-  });
-  steps.push({
-    title: 'Polinomio característico',
-    explanation: `Es el denominador común de C/R, C/D y E/R: las tres comparten los polos de lazo cerrado. Raíces: ${rootsText(roots)}. ${
-      stable
-        ? 'Todas tienen parte real negativa: el lazo cerrado es estable.'
-        : 'Hay raíces con parte real no negativa: el lazo cerrado no es estable.'
-    }`,
-    formula: `1 ${op} G_1(s)G_2(s)H(s) = 0`,
-    result: `${polyTex(characteristic)} = 0`,
-  });
+  steps.push(
+    {
+      title: 'Datos del sistema',
+      explanation: `Controlador G₁(s), planta G₂(s) y realimentación H(s) ${sign === -1 ? 'negativa' : 'positiva'}. La perturbación D(s) entra entre el controlador y la planta (Ogata, fig. 3-7).`,
+      result: String.raw`G_1(s) = ${tfTex(G1.tf)},\quad G_2(s) = ${tfTex(G2.tf)},\quad H(s) = ${tfTex(H.tf)}`,
+    },
+    {
+      title: 'Función de transferencia directa',
+      explanation: 'Cociente entre la salida C(s) y la señal de error actuante E(s).',
+      formula: String.raw`\frac{C(s)}{E(s)} = G_1(s)G_2(s)`,
+      result: String.raw`\frac{C(s)}{E(s)} = ${tfTex(forward)}`,
+    },
+    {
+      title: 'Función de transferencia en lazo abierto',
+      explanation:
+        'Cociente entre la señal de realimentación B(s) y E(s). Si H(s) = 1, coincide con la directa.',
+      formula: String.raw`\frac{B(s)}{E(s)} = G_1(s)G_2(s)H(s)`,
+      result: String.raw`\frac{B(s)}{E(s)} = ${tfTex(openLoop)}`,
+    },
+    {
+      title: 'Función de transferencia en lazo cerrado',
+      explanation: 'Con D(s) = 0: de C = G₁G₂E y E = R ∓ HC se elimina E.',
+      formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_1(s)G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
+      result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+    },
+    {
+      title: 'Respuesta a la perturbación',
+      explanation:
+        'Con R(s) = 0. Si |G₁G₂H| ≫ 1, C/D se acerca a 0: el lazo cerrado rechaza la perturbación (Ogata, sec. 3-3).',
+      formula: String.raw`\frac{C(s)}{D(s)} = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}`,
+      result: String.raw`\frac{C(s)}{D(s)} = ${tfTex(disturbance)}`,
+    },
+    {
+      title: 'Señal de error actuante',
+      formula: String.raw`\frac{E(s)}{R(s)} = \frac{1}{1 ${op} G_1(s)G_2(s)H(s)}`,
+      result: String.raw`\frac{E(s)}{R(s)} = ${tfTex(error)}`,
+    },
+    {
+      title: 'Salida con las dos entradas',
+      explanation: 'Por superposición se suman las respuestas a R(s) y a D(s).',
+      formula: String.raw`C(s) = \frac{G_2(s)}{1 ${op} G_1(s)G_2(s)H(s)}\left[G_1(s)R(s) + D(s)\right]`,
+    },
+    {
+      title: 'Polinomio característico',
+      explanation: `Es el denominador común de C/R, C/D y E/R: las tres comparten los polos de lazo cerrado. Raíces: ${rootsText(roots)}. ${
+        stable
+          ? 'Todas tienen parte real negativa: el lazo cerrado es estable.'
+          : 'Hay raíces con parte real no negativa: el lazo cerrado no es estable.'
+      }`,
+      formula: `1 ${op} G_1(s)G_2(s)H(s) = 0`,
+      result: `${polyTex(characteristic)} = 0`,
+    },
+  );
   if (!stable)
     notices.push({
       level: 'warning',

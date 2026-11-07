@@ -13,8 +13,8 @@
  *   det A = (−1)^p · a_{11} a_{22} ⋯ a_{nn}      (matriz triangular superior, p intercambios)
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
-import type { Latex, Step } from '../types';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
+import type { Step } from '../types';
 
 export type Matrix = number[][];
 
@@ -90,26 +90,26 @@ export function cloneMatrix(m: Matrix): Matrix {
 }
 
 /** Matriz → LaTeX entre corchetes. */
-export function texMatrix(m: Matrix, digits = MATRIX_DIGITS): Latex {
+export function texMatrix(m: Matrix, digits = MATRIX_DIGITS): string {
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** Determinante escrito con barras: `\begin{vmatrix} … \end{vmatrix}`. */
-export function texDeterminant(m: Matrix, digits = MATRIX_DIGITS): Latex {
+export function texDeterminant(m: Matrix, digits = MATRIX_DIGITS): string {
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return String.raw`\begin{vmatrix} ${rows.join(String.raw` \\ `)} \end{vmatrix}`;
+  return String.raw`\begin{vmatrix} ${rows.join(TEX.newline)} \end{vmatrix}`;
 }
 
 /**
  * Matriz aumentada con una línea vertical antes de las últimas `extra` columnas: [A | b] o
  * [A | I].
  */
-export function texAugmented(m: Matrix, extra: number, digits = MATRIX_DIGITS): Latex {
+export function texAugmented(m: Matrix, extra: number, digits = MATRIX_DIGITS): string {
   const cols = m[0]?.length ?? 0;
   const spec = `${'c'.repeat(cols - extra)}|${'c'.repeat(extra)}`;
   const rows = m.map((row) => row.map((v) => toLatexNumber(v, digits)).join(' & '));
-  return String.raw`\left[\begin{array}{${spec}} ${rows.join(String.raw` \\ `)} \end{array}\right]`;
+  return String.raw`\left[\begin{array}{${spec}} ${rows.join(TEX.newline)} \end{array}\right]`;
 }
 
 /** Umbral relativo bajo el cual un pivote se considera cero. */
@@ -145,7 +145,7 @@ export interface EliminationResult {
 }
 
 /** Matriz aumentada o simple, según `augmentedColumns`. */
-function show(m: Matrix, augmentedColumns: number): Latex {
+function show(m: Matrix, augmentedColumns: number): string {
   return augmentedColumns > 0 ? texAugmented(m, augmentedColumns) : texMatrix(m);
 }
 
@@ -216,7 +216,7 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
         title: `Eliminar a${sub(i + 1, k + 1)} con la fila ${k + 1}`,
         formula: String.raw`f_{${i + 1}${k + 1}} = \frac{a_{${i + 1}${k + 1}}}{a_{${k + 1}${k + 1}}}, \qquad R_{${i + 1}} \leftarrow R_{${i + 1}} - f_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
         substitution: String.raw`f_{${i + 1}${k + 1}} = \frac{${n(a)}}{${n(pivot)}} = ${n(factor)}`,
-        result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(String.raw`,\ `)})`,
+        result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(TEX.listSep)})`,
       });
     }
     stages.push(cloneMatrix(m));

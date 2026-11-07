@@ -61,8 +61,6 @@ export interface NewtonInterpolationValue {
   coefficients: number[];
 }
 
-export type NewtonInterpolationErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 8);
 const op = (v: number) => toLatexOperand(v, 8);
 
@@ -71,7 +69,7 @@ const factorial = (k: number) =>
 
 export function solveNewtonInterpolation(
   input: NewtonInterpolationInput,
-): CalculatorResult<NewtonInterpolationValue, NewtonInterpolationErrorCode> {
+): CalculatorResult<NewtonInterpolationValue, never> {
   const { x, y } = parsePoints(input.x, input.y) as { x: number[]; y: number[] };
   const xp = input.point;
   const forward = input.method === 'adelante';
@@ -295,7 +293,7 @@ export function solveNewtonInterpolation(
 export const newtonInterpolation: Calculator<
   NewtonInterpolationInput,
   NewtonInterpolationValue,
-  NewtonInterpolationErrorCode
+  never
 > = {
   meta: {
     id: 'interpolacion-de-newton',

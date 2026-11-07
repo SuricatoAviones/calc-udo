@@ -8,9 +8,6 @@
 import type { z } from 'zod';
 import type { BibliographyId } from '@/data/bibliography';
 
-/** Cadena LaTeX lista para KaTeX (sin delimitadores `$`). */
-export type Latex = string;
-
 /** Cita a una obra de data/bibliography.ts con la ubicación precisa del método. */
 export interface Citation {
   sourceId: BibliographyId;
@@ -29,18 +26,21 @@ export interface CalculatorMeta {
   citations: Citation[];
 }
 
-/** Un paso del procedimiento. */
+/**
+ * Un paso del procedimiento. `formula`, `substitution` y `result` son LaTeX listo para KaTeX, sin
+ * delimitadores `$` (se escribe con `String.raw`, ADR-041).
+ */
 export interface Step {
   /** "Iteración 1", "Derivada de f(x)". */
   title: string;
   /** Prosa en español que explica qué se hace y por qué. */
   explanation?: string;
   /** Fórmula general del paso: `x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}`. */
-  formula?: Latex;
+  formula?: string;
   /** La misma fórmula con los números sustituidos, para compararla con el cuaderno. */
-  substitution?: Latex;
+  substitution?: string;
   /** Resultado del paso: `x_1 = 0.5`. */
-  result?: Latex;
+  result?: string;
   /** Subpasos (p. ej. evaluar f y f′ antes de aplicar la fórmula). */
   children?: Step[];
 }
@@ -50,7 +50,7 @@ export type CellValue = number | string | null;
 export interface TableColumn {
   key: string;
   /** Encabezado en LaTeX: `x_n`, `f'(x_n)`, `\varepsilon_a\,(\%)`. */
-  header: Latex;
+  header: string;
   /**
    * Cómo mostrar la celda. `number` (por defecto) formatea números; `latex` renderiza strings
    * como fórmula; `text` los muestra tal cual.
@@ -118,7 +118,8 @@ export interface Series {
 
 export interface SummaryItem {
   label: string;
-  value: Latex;
+  /** Valor en LaTeX, sin delimitadores `$`. */
+  value: string;
   /** El resultado principal (p. ej. la raíz) se destaca visualmente. */
   emphasis?: boolean;
 }

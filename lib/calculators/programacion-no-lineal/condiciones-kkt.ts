@@ -16,7 +16,7 @@
  * (minimizar) y la región factible es convexa (tabla 20.1).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -208,7 +208,7 @@ export function solveKkt({
       substitution: results
         .map(
           (r) =>
-            String.raw`g_{${r.index}}(X) = ${n(r.g, 8)} \ ${r.feasible ? String.raw`\checkmark` : String.raw`\times`}${r.active ? String.raw`\ \text{(activa)}` : ''}`,
+            String.raw`g_{${r.index}}(X) = ${n(r.g, 8)} \ ${r.feasible ? TEX.checkmark : TEX.times}${r.active ? String.raw`\ \text{(activa)}` : ''}`,
         )
         .join(String.raw` \\ `),
       result: feasible
@@ -276,7 +276,7 @@ export function solveKkt({
       substitution: results
         .map(
           (r) =>
-            String.raw`\lambda_{${r.index}} = ${n(r.lambda, 8)} \ (${SIGN_TEX[r.requiredSign].replace(String.raw`\text{ libre}`, String.raw`\text{libre}`)}) \ ${r.signOk ? String.raw`\checkmark` : String.raw`\times`}`,
+            String.raw`\lambda_{${r.index}} = ${n(r.lambda, 8)} \ (${SIGN_TEX[r.requiredSign].replace(String.raw`\text{ libre}`, String.raw`\text{libre}`)}) \ ${r.signOk ? TEX.checkmark : TEX.times}`,
         )
         .join(String.raw` \\ `),
     },

@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function SubjectPage({ params }: Props) {
+export default async function SubjectPage({ params }: Readonly<Props>) {
   const subject = getSubject((await params).materia);
   if (!subject) notFound();
 

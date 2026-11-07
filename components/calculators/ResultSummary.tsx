@@ -12,7 +12,7 @@ const NOTICE_STYLE: Record<
   error: { icon: CircleX, className: 'border-destructive/50 bg-destructive/10', label: 'Error' },
 };
 
-export function Notices({ notices }: { notices: Notice[] }) {
+export function Notices({ notices }: Readonly<{ notices: Notice[] }>) {
   if (notices.length === 0) return null;
   return (
     <ul className="flex flex-col gap-2">
@@ -33,7 +33,7 @@ export function Notices({ notices }: { notices: Notice[] }) {
 }
 
 /** Tarjeta de resultado: el valor principal destacado, o el motivo del fallo. */
-export function ResultSummary({ result }: { result: CalculatorResult<unknown> }) {
+export function ResultSummary({ result }: Readonly<{ result: CalculatorResult<unknown> }>) {
   if (!result.ok) {
     return (
       <div

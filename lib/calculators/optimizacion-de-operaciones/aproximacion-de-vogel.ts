@@ -6,12 +6,11 @@ import {
   solveInitial,
   sunRay,
   transportInputSchema,
-  type TransportErrorCode,
   type TransportInput,
   type TransportValue,
 } from './transport-initial';
 
-export const vogel: Calculator<TransportInput, TransportValue, TransportErrorCode> = {
+export const vogel: Calculator<TransportInput, TransportValue, never> = {
   meta: {
     id: 'aproximacion-de-vogel',
     title: 'Método de aproximación de Vogel',

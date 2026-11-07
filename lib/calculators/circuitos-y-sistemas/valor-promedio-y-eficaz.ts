@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { parseFunction, type ParsedExpression } from '@/lib/math/expression';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { integrate } from '@/lib/math/quadrature';
 import type { Calculator, CalculatorResult, ResultTable, Series, Step } from '../types';
 
@@ -127,7 +127,7 @@ export function solveAverageRms(
       formula: `${symbol}(t) = ${
         segments.length === 1
           ? segments[0]!.expr.tex
-          : String.raw`\begin{cases} ${segments.map((s) => String.raw`${s.expr.tex} & ${n(s.from)} \le t < ${n(s.to)}`).join(String.raw` \\ `)} \end{cases}`
+          : String.raw`\begin{cases} ${segments.map((s) => String.raw`${s.expr.tex} & ${n(s.from)} \le t < ${n(s.to)}`).join(TEX.newline)} \end{cases}`
       }`,
       result: String.raw`T = ${n(period)}\ \text{s}`,
     },
@@ -149,31 +149,34 @@ export function solveAverageRms(
   const average = sum1 / period;
   const rms = Math.sqrt(sum2 / period);
 
-  steps.push({
-    title: 'Valor promedio',
-    explanation: 'Es el área bajo la curva en un periodo, dividida entre T (la componente de cd).',
-    formula: String.raw`${upper}_{prom} = \frac{1}{T}\int_{0}^{T} ${symbol}(t)\,dt`,
-    children: segments.map((s, k) => ({
-      title: `Tramo ${k + 1}`,
-      formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} ${s.expr.tex}\,dt`,
-      result: `= ${n(first[k]!.value)}`,
-    })),
-    substitution: String.raw`${upper}_{prom} = \frac{${n(sum1)}}{${n(period)}}`,
-    result: String.raw`${upper}_{prom} = ${n(average)}\ \text{${unit}}`,
-  });
-  steps.push({
-    title: 'Valor eficaz (rms)',
-    explanation:
-      'Se eleva la señal al cuadrado, se promedia en un periodo y se saca la raíz: raíz de la media de los cuadrados.',
-    formula: String.raw`${upper}_{ef} = \sqrt{\frac{1}{T}\int_{0}^{T} ${symbol}^{2}(t)\,dt}`,
-    children: segments.map((s, k) => ({
-      title: `Tramo ${k + 1}`,
-      formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} \left(${s.expr.tex}\right)^{2}dt`,
-      result: `= ${n(second[k]!.value)}`,
-    })),
-    substitution: String.raw`${upper}_{ef} = \sqrt{\frac{${n(sum2)}}{${n(period)}}}`,
-    result: String.raw`${upper}_{ef} = ${n(rms)}\ \text{${unit}}`,
-  });
+  steps.push(
+    {
+      title: 'Valor promedio',
+      explanation:
+        'Es el área bajo la curva en un periodo, dividida entre T (la componente de cd).',
+      formula: String.raw`${upper}_{prom} = \frac{1}{T}\int_{0}^{T} ${symbol}(t)\,dt`,
+      children: segments.map((s, k) => ({
+        title: `Tramo ${k + 1}`,
+        formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} ${s.expr.tex}\,dt`,
+        result: `= ${n(first[k]!.value)}`,
+      })),
+      substitution: String.raw`${upper}_{prom} = \frac{${n(sum1)}}{${n(period)}}`,
+      result: String.raw`${upper}_{prom} = ${n(average)}\ \text{${unit}}`,
+    },
+    {
+      title: 'Valor eficaz (rms)',
+      explanation:
+        'Se eleva la señal al cuadrado, se promedia en un periodo y se saca la raíz: raíz de la media de los cuadrados.',
+      formula: String.raw`${upper}_{ef} = \sqrt{\frac{1}{T}\int_{0}^{T} ${symbol}^{2}(t)\,dt}`,
+      children: segments.map((s, k) => ({
+        title: `Tramo ${k + 1}`,
+        formula: String.raw`\int_{${n(s.from)}}^{${n(s.to)}} \left(${s.expr.tex}\right)^{2}dt`,
+        result: `= ${n(second[k]!.value)}`,
+      })),
+      substitution: String.raw`${upper}_{ef} = \sqrt{\frac{${n(sum2)}}{${n(period)}}}`,
+      result: String.raw`${upper}_{ef} = ${n(rms)}\ \text{${unit}}`,
+    },
+  );
 
   let power: number | undefined;
   if (input.resistance !== undefined) {

@@ -71,8 +71,6 @@ export interface AcValue {
   aiT?: number;
 }
 
-export type AcErrorCode = never;
-
 const CONFIG_NAME: Record<AcConfig, string> = {
   'emisor-comun': 'emisor común con R_E puenteada',
   'emisor-sin-puentear': 'emisor común con R_E sin puentear',
@@ -80,7 +78,7 @@ const CONFIG_NAME: Record<AcConfig, string> = {
   'base-comun': 'base común',
 };
 
-export function solveAc(input: AcInput): CalculatorResult<AcValue, AcErrorCode> {
+export function solveAc(input: AcInput): CalculatorResult<AcValue, never> {
   const { config } = input;
   const commonBase = config === 'base-comun';
   const divider = !commonBase && input.bias === 'divisor';
@@ -176,7 +174,7 @@ export function solveAc(input: AcInput): CalculatorResult<AcValue, AcErrorCode> 
   };
 }
 
-export const analisisAcDeTransistores: Calculator<AcInput, AcValue, AcErrorCode> = {
+export const analisisAcDeTransistores: Calculator<AcInput, AcValue, never> = {
   meta: {
     id: 'analisis-ac-de-transistores',
     title: 'Análisis AC con parámetros híbridos',

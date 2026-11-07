@@ -12,7 +12,6 @@ import {
   betweenIsValid,
   discreteQueryShape,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -49,7 +48,7 @@ function geometricModel(p: number): DiscreteModel {
   };
 }
 
-export const geometric: Calculator<GeometricInput, DiscreteValue, DiscreteErrorCode> = {
+export const geometric: Calculator<GeometricInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-geometrica',
     title: 'Distribución geométrica',

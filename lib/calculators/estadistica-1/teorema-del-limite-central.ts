@@ -46,13 +46,11 @@ export interface CentralLimitValue {
   z: number[];
 }
 
-export type CentralLimitErrorCode = never;
-
 const n = toLatexNumber;
 
 export function solveCentralLimit(
   input: CentralLimitInput,
-): CalculatorResult<CentralLimitValue, CentralLimitErrorCode> {
+): CalculatorResult<CentralLimitValue, never> {
   const { mean: mu, sd: sigma, n: size, query } = input;
   const se = sigma / Math.sqrt(size);
   const limits = query === 'entre' ? [input.x, input.x2 ?? input.x] : [input.x];
@@ -172,24 +170,23 @@ export function solveCentralLimit(
   };
 }
 
-export const centralLimit: Calculator<CentralLimitInput, CentralLimitValue, CentralLimitErrorCode> =
-  {
-    meta: {
-      id: 'teorema-del-limite-central',
-      title: 'Teorema del límite central',
-      summary: 'Probabilidades de la media muestral con la aproximación normal.',
-      citations: [
-        {
-          sourceId: 'walpole-1999',
-          locator:
-            'Sec. 8.4, teorema 8.2, Ejemplos 8.4 y 8.5 y estudio de caso 8.1 (9.ª ed. en español)',
-        },
-        { sourceId: 'canavos-1995' },
-        { sourceId: 'meyer-1998' },
-      ],
-    },
-    inputSchema: centralLimitInputSchema,
-    // Walpole, ejemplo 8.4: bombillas con μ = 800 h y σ = 40 h; ¿P(X̄ < 775) con n = 16?
-    example: { mean: 800, sd: 40, n: 16, query: 'menor', x: 775 },
-    solve: solveCentralLimit,
-  };
+export const centralLimit: Calculator<CentralLimitInput, CentralLimitValue, never> = {
+  meta: {
+    id: 'teorema-del-limite-central',
+    title: 'Teorema del límite central',
+    summary: 'Probabilidades de la media muestral con la aproximación normal.',
+    citations: [
+      {
+        sourceId: 'walpole-1999',
+        locator:
+          'Sec. 8.4, teorema 8.2, Ejemplos 8.4 y 8.5 y estudio de caso 8.1 (9.ª ed. en español)',
+      },
+      { sourceId: 'canavos-1995' },
+      { sourceId: 'meyer-1998' },
+    ],
+  },
+  inputSchema: centralLimitInputSchema,
+  // Walpole, ejemplo 8.4: bombillas con μ = 800 h y σ = 40 h; ¿P(X̄ < 775) con n = 16?
+  example: { mean: 800, sd: 40, n: 16, query: 'menor', x: 775 },
+  solve: solveCentralLimit,
+};

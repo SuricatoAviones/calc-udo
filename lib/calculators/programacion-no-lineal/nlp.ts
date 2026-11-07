@@ -6,7 +6,7 @@
  */
 import { derivative, type MathNode } from 'mathjs';
 import { expressionFromNode, parseFunction, type ParsedExpression } from '@/lib/math/expression';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { splitRelation } from '../optimizacion-de-operaciones/lp-model';
 
 export const MAX_NLP_VARIABLES = 6;
@@ -75,17 +75,17 @@ export const evaluateMatrix = (M: ParsedExpression[][], x: number[]) =>
 
 /** Matriz de expresiones en LaTeX. */
 export function expressionMatrixTex(M: ParsedExpression[][]): string {
-  return String.raw`\begin{bmatrix} ${M.map((row) => row.map((e) => e.tex).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${M.map((row) => row.map((e) => e.tex).join(' & ')).join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** Vector columna de expresiones en LaTeX. */
 export function expressionVectorTex(v: ParsedExpression[]): string {
-  return String.raw`\begin{bmatrix} ${v.map((e) => e.tex).join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${v.map((e) => e.tex).join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** Punto (x1, …, xn) en LaTeX. */
 export function pointTex(x: number[], digits = 6): string {
-  return String.raw`\left(${x.map((v) => toLatexNumber(clean(v), digits)).join(String.raw`,\ `)}\right)`;
+  return String.raw`\left(${x.map((v) => toLatexNumber(clean(v), digits)).join(TEX.listSep)}\right)`;
 }
 
 export function pointText(x: number[], digits = 6): string {

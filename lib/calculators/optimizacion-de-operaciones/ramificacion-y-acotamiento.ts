@@ -21,6 +21,7 @@ import {
   type LpConstraint,
 } from './lp-model';
 import { parseForSolve, solveLpSilently } from './lp-solve';
+import { TEX } from '@/lib/math/format';
 
 const MAX_NODES = 60;
 
@@ -117,7 +118,7 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
   });
 
   const boundLatex = (b: Bound) =>
-    `${vars[b.variable]} ${b.relation === '<=' ? String.raw`\le` : String.raw`\ge`} ${b.value.toLatex()}`;
+    `${vars[b.variable]} ${b.relation === '<=' ? TEX.le : TEX.ge} ${b.value.toLatex()}`;
   const pointLatex = (x: Rational[]) =>
     x.map((v, j) => `${vars[j]} = ${v.toLatex()}`).join(String.raw`,\ `);
 

@@ -16,7 +16,7 @@
 import { z } from 'zod';
 import * as C from '@/lib/math/complex';
 import type { Complex } from '@/lib/math/complex';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { addPoly, evalPolyComplex, mulPoly, polyRoots, trimPoly } from '@/lib/math/polynomials';
 import type { Calculator, CalculatorResult, Notice, Series, Step, SummaryItem } from '../types';
 import { bodeForm, logGrid, magnitude, margins, phaseDeg, frequencyRange } from './frequency';
@@ -197,22 +197,24 @@ export function solveCompensator(
     while (phi <= -180) phi += 360;
     while (phi > 180) phi -= 360;
     details.angleDeficiency = phi;
-    steps.push({
-      title: 'Polos dominantes deseados',
-      formula: String.raw`s_d = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^{2}}`,
-      substitution: String.raw`s_d = -(${n(zeta)})(${n(wn)}) \pm j(${n(wn)})\sqrt{1 - ${n(zeta)}^{2}}`,
-      result: `s_d = ${rect(sd)}`,
-    });
-    steps.push({
-      title: 'Deficiencia de ángulo',
-      explanation:
-        phi <= 1e-9
-          ? 'El ángulo de G(s) en el polo deseado ya es −180° o menos negativo: basta un ajuste de ganancia o se necesita atraso, no adelanto.'
-          : `Para que el lugar pase por s_d, el compensador debe aportar φ = ${formatNumber(phi, DIGITS)}° (Ogata, sec. 7-3).${phi > 60 ? ' Es un ángulo grande: puede convenir usar dos redes de adelanto.' : ''}`,
-      formula: String.raw`\phi = -180^{\circ} - \angle G(s_d)`,
-      substitution: String.raw`\phi = -180^{\circ} - (${deg(angleG)})`,
-      result: String.raw`\phi = ${deg(phi)}`,
-    });
+    steps.push(
+      {
+        title: 'Polos dominantes deseados',
+        formula: String.raw`s_d = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^{2}}`,
+        substitution: String.raw`s_d = -(${n(zeta)})(${n(wn)}) \pm j(${n(wn)})\sqrt{1 - ${n(zeta)}^{2}}`,
+        result: `s_d = ${rect(sd)}`,
+      },
+      {
+        title: 'Deficiencia de ángulo',
+        explanation:
+          phi <= 1e-9
+            ? 'El ángulo de G(s) en el polo deseado ya es −180° o menos negativo: basta un ajuste de ganancia o se necesita atraso, no adelanto.'
+            : `Para que el lugar pase por s_d, el compensador debe aportar φ = ${formatNumber(phi, DIGITS)}° (Ogata, sec. 7-3).${phi > 60 ? ' Es un ángulo grande: puede convenir usar dos redes de adelanto.' : ''}`,
+        formula: String.raw`\phi = -180^{\circ} - \angle G(s_d)`,
+        substitution: String.raw`\phi = -180^{\circ} - (${deg(angleG)})`,
+        result: String.raw`\phi = ${deg(phi)}`,
+      },
+    );
     if (phi <= 1e-9)
       return fail(
         'sin-compensacion',
@@ -435,7 +437,7 @@ export function solveCompensator(
     gainMarginDb = m.gainMarginDb;
     verification.push({
       title: 'Márgenes del sistema compensado',
-      result: String.raw`\gamma = ${phaseMargin === null ? String.raw`\infty` : deg(phaseMargin)},\quad K_g = ${gainMarginDb === null ? String.raw`\infty` : String.raw`${n(gainMarginDb)}\ \text{dB}`}`,
+      result: String.raw`\gamma = ${phaseMargin === null ? TEX.infty : deg(phaseMargin)},\quad K_g = ${gainMarginDb === null ? TEX.infty : String.raw`${n(gainMarginDb)}\ \text{dB}`}`,
     });
     if (phaseMargin !== null && phaseMargin < input.phaseMargin - 0.5) {
       notices.push({

@@ -297,29 +297,31 @@ export function inverseLaplace(
     }
 
     if (den.length > 1) {
-      groupSteps.push({
-        title: 'Polos (raíces del denominador)',
-        formula: `${polyTex(den, variable)} = 0`,
-        result: `${polyTex(den, variable)} = ${factoredTex(roots, den[0]!, variable)}`,
-        explanation: `Polos: ${roots
-          .map(
-            (r) =>
-              `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (multiplicidad ${r.multiplicity})` : ''}`,
-          )
-          .join(', ')}.`,
-      });
-      groupSteps.push({
-        title: 'Forma de la expansión en fracciones parciales',
-        formula: `${label}(s) = ${expansionTemplate(pf.poles, variable, pf.direct)}`,
-      });
-      groupSteps.push({
-        title: 'Cálculo de los residuos',
-        children: residueSteps(pf.remainder, den, pf.poles, variable, label),
-      });
-      groupSteps.push({
-        title: 'Expansión',
-        result: `${label}(s) = ${expansionTex(pf.poles, variable, pf.direct)}`,
-      });
+      groupSteps.push(
+        {
+          title: 'Polos (raíces del denominador)',
+          formula: `${polyTex(den, variable)} = 0`,
+          result: `${polyTex(den, variable)} = ${factoredTex(roots, den[0]!, variable)}`,
+          explanation: `Polos: ${roots
+            .map(
+              (r) =>
+                `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (multiplicidad ${r.multiplicity})` : ''}`,
+            )
+            .join(', ')}.`,
+        },
+        {
+          title: 'Forma de la expansión en fracciones parciales',
+          formula: `${label}(s) = ${expansionTemplate(pf.poles, variable, pf.direct)}`,
+        },
+        {
+          title: 'Cálculo de los residuos',
+          children: residueSteps(pf.remainder, den, pf.poles, variable, label),
+        },
+        {
+          title: 'Expansión',
+          result: `${label}(s) = ${expansionTex(pf.poles, variable, pf.direct)}`,
+        },
+      );
     }
 
     const pieces = timePieces(pf.poles);

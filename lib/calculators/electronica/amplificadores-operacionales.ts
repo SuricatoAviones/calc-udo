@@ -345,19 +345,21 @@ function solveSchmitt(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
   if (inverting) {
     b = r1 / (r1 + r2);
     pcs = b * vsat;
-    steps.push({
-      title: 'Fracción de realimentación',
-      formula: String.raw`B = \frac{R_1}{R_1 + R_2}`,
-      substitution: String.raw`B = \frac{${n(r1)}}{${n(r1)} + ${n(r2)}}`,
-      result: `B = ${n(b)}`,
-    });
-    steps.push({
-      title: 'Puntos de conmutación',
-      explanation: 'Con la salida en +V_sat la referencia es +BV_sat; con −V_sat es −BV_sat.',
-      formula: String.raw`\text{PCS} = BV_{sat},\qquad \text{PCI} = -BV_{sat}`,
-      substitution: String.raw`\text{PCS} = (${n(b)})(${n(vsat)})`,
-      result: String.raw`\text{PCS} = ${volts(pcs)},\quad \text{PCI} = ${volts(-pcs)}`,
-    });
+    steps.push(
+      {
+        title: 'Fracción de realimentación',
+        formula: String.raw`B = \frac{R_1}{R_1 + R_2}`,
+        substitution: String.raw`B = \frac{${n(r1)}}{${n(r1)} + ${n(r2)}}`,
+        result: `B = ${n(b)}`,
+      },
+      {
+        title: 'Puntos de conmutación',
+        explanation: 'Con la salida en +V_sat la referencia es +BV_sat; con −V_sat es −BV_sat.',
+        formula: String.raw`\text{PCS} = BV_{sat},\qquad \text{PCI} = -BV_{sat}`,
+        substitution: String.raw`\text{PCS} = (${n(b)})(${n(vsat)})`,
+        result: String.raw`\text{PCS} = ${volts(pcs)},\quad \text{PCI} = ${volts(-pcs)}`,
+      },
+    );
   } else {
     pcs = (r1 / r2) * vsat;
     steps.push({

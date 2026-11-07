@@ -13,13 +13,7 @@
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
 import { toLatexNumber } from '@/lib/math/format';
-import {
-  emptyTrace,
-  type Calculator,
-  type CalculatorResult,
-  type Latex,
-  type Step,
-} from '../types';
+import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 
 export const countingTypes = [
   'permutaciones',
@@ -121,7 +115,7 @@ function fallingFactorial(m: number, r: number): bigint {
 }
 
 /** Entero exacto → LaTeX; los muy grandes en notación científica. */
-function bigLatex(value: bigint): Latex {
+function bigLatex(value: bigint): string {
   const digits = value.toString();
   if (digits.length <= MAX_DIGITS) return digits;
   const mantissa = `${digits[0]}.${digits.slice(1, 7)}`;
@@ -129,7 +123,7 @@ function bigLatex(value: bigint): Latex {
 }
 
 /** n (n − 1) ⋯ (n − r + 1) escrito con puntos, si no es muy largo. */
-function expandedProduct(m: number, r: number): Latex | undefined {
+function expandedProduct(m: number, r: number): string | undefined {
   if (r < 1 || r > MAX_EXPANDED) return undefined;
   return Array.from({ length: r }, (_, i) => m - i).join(String.raw` \cdot `);
 }
@@ -170,7 +164,7 @@ export function solveCounting(
 
   const steps: Step[] = [];
   let count: bigint;
-  let symbol: Latex;
+  let symbol: string;
 
   switch (type) {
     case 'permutaciones': {

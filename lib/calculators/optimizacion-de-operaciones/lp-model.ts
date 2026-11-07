@@ -11,6 +11,7 @@
  */
 import { z } from 'zod';
 import { Rational } from '@/lib/math/rational';
+import { TEX } from '@/lib/math/format';
 
 export type Sense = 'max' | 'min';
 export type Relation = '<=' | '>=' | '=';
@@ -312,7 +313,7 @@ export function lpLatex(lp: LinearProgram, objectiveName = 'z'): string {
   const rows = lp.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${lp.sense}\\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(String.raw` \\ `)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+  return `\\begin{aligned} \\${lp.sense}\\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(TEX.newline)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
 }
 
 /** Valor de la función objetivo en un punto. */

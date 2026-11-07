@@ -55,7 +55,7 @@ export function CalculatorSearch({
   onEscape,
   limit = 8,
   className,
-}: CalculatorSearchProps) {
+}: Readonly<CalculatorSearchProps>) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);

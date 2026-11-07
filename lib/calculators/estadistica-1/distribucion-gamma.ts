@@ -11,14 +11,13 @@
 import { z } from 'zod';
 import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
 import { gammaFunction, lnGamma, regularizedGammaP } from '@/lib/math/special';
-import type { Calculator, Latex } from '../types';
+import type { Calculator } from '../types';
 import {
   continuousBetweenError,
   continuousBetweenIsValid,
   continuousQueryShape,
   positiveNumber,
   solveContinuous,
-  type ContinuousErrorCode,
   type ContinuousModel,
   type ContinuousValue,
 } from './continuous';
@@ -39,7 +38,7 @@ export type GammaInput = z.infer<typeof gammaInputSchema>;
 const n = toLatexNumber;
 
 /** 1 − e^{−y}(1 + y + y²/2! + …) con los números de y. */
-function poissonSum(y: number, alpha: number): Latex {
+function poissonSum(y: number, alpha: number): string {
   const yTex = toLatexOperand(y);
   const power = (k: number) =>
     Number.isInteger(y) && y >= 0 ? `${n(y)}^{${k}}` : `(${n(y)})^{${k}}`;
@@ -87,7 +86,7 @@ function gammaModel(alpha: number, beta: number): ContinuousModel {
   };
 }
 
-export const gamma: Calculator<GammaInput, ContinuousValue, ContinuousErrorCode> = {
+export const gamma: Calculator<GammaInput, ContinuousValue, never> = {
   meta: {
     id: 'distribucion-gamma',
     title: 'Distribución gamma',

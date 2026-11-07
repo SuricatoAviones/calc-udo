@@ -11,13 +11,12 @@
  * - Proporción con X ~ binomial(n, p): la región crítica se da en términos de X (p. ej. X > 8).
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { standardNormalCdf, standardNormalQuantile } from '@/lib/math/normal';
 import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Series,
   type Step,
   type SummaryItem,
@@ -114,13 +113,11 @@ export interface ErrorTypesValue {
   critical: [number | null, number | null];
 }
 
-export type ErrorTypesErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 6);
 const p4 = (v: number) => toLatexNumber(v, 4);
 
 function regionLatex(
-  variable: Latex,
+  variable: string,
   alternative: Alternative,
   lower: number | null,
   upper: number | null,
@@ -130,9 +127,7 @@ function regionLatex(
   return String.raw`${variable} < ${n(lower!)} \;\text{ o }\; ${variable} > ${n(upper!)}`;
 }
 
-function solveNormal(
-  input: ErrorTypesInput,
-): CalculatorResult<ErrorTypesValue, ErrorTypesErrorCode> {
+function solveNormal(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, never> {
   const mu0 = input.mu0!;
   const se = input.sigma! / Math.sqrt(input.n);
   const alt = input.alternative;
@@ -159,8 +154,8 @@ function solveNormal(
     steps.push({
       title: 'Región crítica a partir de α',
       explanation: `Se busca el valor de x̄ que deja un área ${formatNumber(tail)} en ${alt === 'distinto' ? 'cada cola' : 'la cola'} cuando μ = μ₀.`,
-      formula: String.raw`\bar{x}_c = \mu_0 ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : String.raw`\pm`} z_{${formatNumber(tail)}}\,\sigma_{\bar{X}}`,
-      substitution: String.raw`\bar{x}_c = ${n(mu0)} ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : String.raw`\pm`} ${n(zc)}(${n(se)})`,
+      formula: String.raw`\bar{x}_c = \mu_0 ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : TEX.pm} z_{${formatNumber(tail)}}\,\sigma_{\bar{X}}`,
+      substitution: String.raw`\bar{x}_c = ${n(mu0)} ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : TEX.pm} ${n(zc)}(${n(se)})`,
       result: String.raw`\text{Se rechaza } H_0 \text{ si } ${regionLatex(String.raw`\bar{x}`, alt, lower, upper)}`,
     });
   } else {
@@ -246,9 +241,7 @@ function solveNormal(
   );
 }
 
-function solveBinomial(
-  input: ErrorTypesInput,
-): CalculatorResult<ErrorTypesValue, ErrorTypesErrorCode> {
+function solveBinomial(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, never> {
   const trials = input.n;
   const p0 = input.p0!;
   const alt = input.alternative;
@@ -305,8 +298,8 @@ function finish(
   critical: [number | null, number | null],
   steps: Step[],
   series: Series,
-  region: Latex,
-): CalculatorResult<ErrorTypesValue, ErrorTypesErrorCode> {
+  region: string,
+): CalculatorResult<ErrorTypesValue, never> {
   steps.push({
     title: 'Interpretación',
     explanation:
@@ -336,7 +329,7 @@ export function solveErrorTypes(input: ErrorTypesInput) {
   return input.model === 'normal' ? solveNormal(input) : solveBinomial(input);
 }
 
-export const errorTypes: Calculator<ErrorTypesInput, ErrorTypesValue, ErrorTypesErrorCode> = {
+export const errorTypes: Calculator<ErrorTypesInput, ErrorTypesValue, never> = {
   meta: {
     id: 'errores-tipo-i-y-ii',
     title: 'Errores tipo I y II y función potencia',

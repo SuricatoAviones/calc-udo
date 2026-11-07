@@ -19,7 +19,6 @@ import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Notice,
   type Series,
   type Step,
@@ -108,17 +107,17 @@ type Result = CalculatorResult<LikelihoodValue, LikelihoodErrorCode>;
 const n = toLatexNumber;
 
 interface Derivation {
-  symbol: Latex;
-  density: Latex;
-  likelihood: Latex;
-  logLikelihood: Latex;
+  symbol: string;
+  density: string;
+  likelihood: string;
+  logLikelihood: string;
   /** ln L con los números de la muestra. */
-  logSubstitution: Latex;
-  derivative: Latex;
-  solve: Latex;
+  logSubstitution: string;
+  derivative: string;
+  solve: string;
   estimate: number;
   /** Segunda derivada en el estimador (negativa si es máximo). */
-  secondDerivative: Latex;
+  secondDerivative: string;
   secondValue: number;
   /** ln L como función del parámetro (para la gráfica). */
   logL(theta: number): number;

@@ -13,11 +13,11 @@ export function ObjectiveField({
   name = 'objective',
   label = 'Función objetivo',
   prefix = 'f(X) =',
-}: {
+}: Readonly<{
   name?: string;
   label?: string;
   prefix?: string;
-}) {
+}>) {
   return (
     <ExpressionField
       name={name}
@@ -44,7 +44,7 @@ export function SenseField() {
 }
 
 /** Restricciones, una por línea. */
-export function ConstraintsField({ hint }: { hint?: string }) {
+export function ConstraintsField({ hint }: Readonly<{ hint?: string }>) {
   return (
     <TextAreaField
       name="constraints"
@@ -56,6 +56,10 @@ export function ConstraintsField({ hint }: { hint?: string }) {
 }
 
 /** Punto (x1, x2, …) como lista de números. */
-export function PointField({ name, label, hint }: { name: string; label: string; hint?: string }) {
+export function PointField({
+  name,
+  label,
+  hint,
+}: Readonly<{ name: string; label: string; hint?: string }>) {
   return <TextField name={name} label={label} hint={hint} placeholder="1, 2, 0" />;
 }

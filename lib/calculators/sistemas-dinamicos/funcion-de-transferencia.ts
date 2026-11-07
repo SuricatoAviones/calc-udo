@@ -128,18 +128,20 @@ export function solveTransfer(
         'coeficientes-invalidos',
         'La salida debe tener al menos una derivada: el orden del sistema debe ser 1 o más.',
       );
-    steps.push({
-      title: 'Ecuación diferencial',
-      explanation: `y(t) es la salida y x(t) la entrada. Sistema de orden ${a.length - 1}.`,
-      formula: String.raw`a_0y^{(n)} + a_1y^{(n-1)} + \cdots + a_ny = b_0x^{(m)} + \cdots + b_mx`,
-      result: `${odeSideTex(a, 'y')} = ${odeSideTex(b, 'x')}`,
-    });
-    steps.push({
-      title: 'Transformada de Laplace con condiciones iniciales cero',
-      explanation:
-        'Cada derivada de orden k se convierte en sᵏ por la transformada; la función de transferencia supone condiciones iniciales cero (Ogata, sec. 3-2).',
-      result: String.raw`\left(${polyTex(a)}\right)Y(s) = \left(${polyTex(b)}\right)X(s)`,
-    });
+    steps.push(
+      {
+        title: 'Ecuación diferencial',
+        explanation: `y(t) es la salida y x(t) la entrada. Sistema de orden ${a.length - 1}.`,
+        formula: String.raw`a_0y^{(n)} + a_1y^{(n-1)} + \cdots + a_ny = b_0x^{(m)} + \cdots + b_mx`,
+        result: `${odeSideTex(a, 'y')} = ${odeSideTex(b, 'x')}`,
+      },
+      {
+        title: 'Transformada de Laplace con condiciones iniciales cero',
+        explanation:
+          'Cada derivada de orden k se convierte en sᵏ por la transformada; la función de transferencia supone condiciones iniciales cero (Ogata, sec. 3-2).',
+        result: String.raw`\left(${polyTex(a)}\right)Y(s) = \left(${polyTex(b)}\right)X(s)`,
+      },
+    );
     tf = { num: b, den: a };
     steps.push({
       title: 'Función de transferencia',

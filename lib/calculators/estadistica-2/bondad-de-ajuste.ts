@@ -11,7 +11,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, parseFraction, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, parseFraction, toLatexNumber, TEX } from '@/lib/math/format';
 import { standardNormalCdf } from '@/lib/math/normal';
 import {
   emptyTrace,
@@ -366,25 +366,27 @@ export function solveGoodnessOfFit(
 
   const statistic = used.reduce((s, c) => s + (c.observed - c.p * total) ** 2 / (c.p * total), 0);
   const df = used.length - 1 - estimatedParams;
-  steps.push({
-    title: 'Estadístico ji-cuadrada',
-    formula: String.raw`\chi^2 = \sum_i \frac{(o_i - e_i)^2}{e_i}`,
-    substitution: String.raw`\chi^2 = ${used
-      .slice(0, 8)
-      .map((c) => String.raw`\frac{(${c.observed} - ${n(c.p * total)})^2}{${n(c.p * total)}}`)
-      .join(' + ')}${used.length > 8 ? String.raw` + \cdots` : ''}`,
-    result: String.raw`\chi^2 = ${n(statistic)}`,
-  });
-  steps.push({
-    title: 'Grados de libertad',
-    explanation:
-      estimatedParams > 0
-        ? `Se resta 1 por la restricción Σeᵢ = n y ${estimatedParams} por cada parámetro estimado con la muestra.`
-        : 'Se resta 1 por la restricción Σeᵢ = n (no se estimaron parámetros con la muestra).',
-    formula: String.raw`\nu = k - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
-    substitution: String.raw`\nu = ${used.length} - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
-    result: String.raw`\nu = ${df}`,
-  });
+  steps.push(
+    {
+      title: 'Estadístico ji-cuadrada',
+      formula: String.raw`\chi^2 = \sum_i \frac{(o_i - e_i)^2}{e_i}`,
+      substitution: String.raw`\chi^2 = ${used
+        .slice(0, 8)
+        .map((c) => String.raw`\frac{(${c.observed} - ${n(c.p * total)})^2}{${n(c.p * total)}}`)
+        .join(' + ')}${used.length > 8 ? TEX.plusCdots : ''}`,
+      result: String.raw`\chi^2 = ${n(statistic)}`,
+    },
+    {
+      title: 'Grados de libertad',
+      explanation:
+        estimatedParams > 0
+          ? `Se resta 1 por la restricción Σeᵢ = n y ${estimatedParams} por cada parámetro estimado con la muestra.`
+          : 'Se resta 1 por la restricción Σeᵢ = n (no se estimaron parámetros con la muestra).',
+      formula: String.raw`\nu = k - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
+      substitution: String.raw`\nu = ${used.length} - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
+      result: String.raw`\nu = ${df}`,
+    },
+  );
 
   const table = {
     id: 'frecuencias',

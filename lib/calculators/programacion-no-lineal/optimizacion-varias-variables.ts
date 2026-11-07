@@ -12,7 +12,7 @@
  * X_{k+1} = X_k − H(X_k)⁻¹ ∇f(X_k), que llega en un paso si f es cuadrática.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -131,7 +131,7 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     {
       title: 'Gradiente (condición necesaria)',
       explanation: 'En un extremo todas las derivadas parciales se anulan: ∇f(X₀) = 0.',
-      formula: String.raw`\nabla f = \left(${names.map((_, j) => String.raw`\frac{\partial f}{\partial x_{${j + 1}}}`).join(String.raw`,\ `)}\right)`,
+      formula: String.raw`\nabla f = \left(${names.map((_, j) => String.raw`\frac{\partial f}{\partial x_{${j + 1}}}`).join(TEX.listSep)}\right)`,
       result: String.raw`\nabla f = ${expressionVectorTex(gradient)} = \mathbf{0}`,
     },
     {

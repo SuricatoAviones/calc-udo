@@ -162,37 +162,41 @@ export function decompositionSteps(d: Decomposition): Step[] {
     const L = d.season;
     const firstIndex = d.cma.findIndex((v) => v !== null);
     const even = L % 2 === 0;
-    steps.push({
-      title: `Promedios móviles centrados de ${L} periodos`,
-      explanation: even
-        ? `Un promedio de ${L} periodos queda entre dos periodos; se promedian dos consecutivos para centrarlo. Los primeros y los últimos ${L / 2} periodos no tienen promedio móvil centrado.`
-        : `Cada promedio de ${L} periodos queda centrado en el periodo del medio.`,
-      formula: even
-        ? String.raw`PMC_t = \frac{1}{2}\left(\frac{Y_{t-${L / 2}} + \cdots + Y_{t+${L / 2 - 1}}}{${L}} + \frac{Y_{t-${L / 2 - 1}} + \cdots + Y_{t+${L / 2}}}{${L}}\right)`
-        : String.raw`PMC_t = \frac{Y_{t-${(L - 1) / 2}} + \cdots + Y_{t+${(L - 1) / 2}}}{${L}}`,
-      result: `PMC_{${firstIndex + 1}} = ${n(d.cma[firstIndex]!)}`,
-    });
-    steps.push({
-      title: 'Valores estacional-irregulares',
-      explanation:
-        'Al dividir cada dato entre su promedio móvil centrado se elimina la tendencia (y el ciclo); queda el efecto estacional con la irregularidad.',
-      formula: String.raw`\frac{Y_t}{PMC_t}`,
-      substitution: String.raw`\frac{Y_{${firstIndex + 1}}}{PMC_{${firstIndex + 1}}} = \frac{${n(d.y[firstIndex]!)}}{${n(d.cma[firstIndex]!)}}`,
-      result: `${n(d.ratios[firstIndex]!)}`,
-    });
+    steps.push(
+      {
+        title: `Promedios móviles centrados de ${L} periodos`,
+        explanation: even
+          ? `Un promedio de ${L} periodos queda entre dos periodos; se promedian dos consecutivos para centrarlo. Los primeros y los últimos ${L / 2} periodos no tienen promedio móvil centrado.`
+          : `Cada promedio de ${L} periodos queda centrado en el periodo del medio.`,
+        formula: even
+          ? String.raw`PMC_t = \frac{1}{2}\left(\frac{Y_{t-${L / 2}} + \cdots + Y_{t+${L / 2 - 1}}}{${L}} + \frac{Y_{t-${L / 2 - 1}} + \cdots + Y_{t+${L / 2}}}{${L}}\right)`
+          : String.raw`PMC_t = \frac{Y_{t-${(L - 1) / 2}} + \cdots + Y_{t+${(L - 1) / 2}}}{${L}}`,
+        result: `PMC_{${firstIndex + 1}} = ${n(d.cma[firstIndex]!)}`,
+      },
+      {
+        title: 'Valores estacional-irregulares',
+        explanation:
+          'Al dividir cada dato entre su promedio móvil centrado se elimina la tendencia (y el ciclo); queda el efecto estacional con la irregularidad.',
+        formula: String.raw`\frac{Y_t}{PMC_t}`,
+        substitution: String.raw`\frac{Y_{${firstIndex + 1}}}{PMC_{${firstIndex + 1}}} = \frac{${n(d.y[firstIndex]!)}}{${n(d.cma[firstIndex]!)}}`,
+        result: `${n(d.ratios[firstIndex]!)}`,
+      },
+    );
     const sum = d.rawIndices.reduce((s, v) => s + v, 0);
-    steps.push({
-      title: 'Índices estacionales',
-      explanation: `Se promedian los valores estacional-irregulares de cada estación. Como deben sumar ${L}, se multiplican por ${L}/${formatNumber(sum, 6)}.`,
-      formula: String.raw`S_j = \bar{r}_j \cdot \frac{${L}}{\sum \bar{r}_j}`,
-      result: d.indices.map((v, j) => `S_{${j + 1}} = ${n(v)}`).join(String.raw`,\ `),
-    });
-    steps.push({
-      title: 'Serie desestacionalizada',
-      formula: String.raw`\frac{Y_t}{S_t}`,
-      substitution: String.raw`\frac{Y_1}{S_1} = \frac{${n(d.y[0]!)}}{${n(d.periodIndex[0]!)}}`,
-      result: `${n(d.deseasonalized[0]!)}`,
-    });
+    steps.push(
+      {
+        title: 'Índices estacionales',
+        explanation: `Se promedian los valores estacional-irregulares de cada estación. Como deben sumar ${L}, se multiplican por ${L}/${formatNumber(sum, 6)}.`,
+        formula: String.raw`S_j = \bar{r}_j \cdot \frac{${L}}{\sum \bar{r}_j}`,
+        result: d.indices.map((v, j) => `S_{${j + 1}} = ${n(v)}`).join(String.raw`,\ `),
+      },
+      {
+        title: 'Serie desestacionalizada',
+        formula: String.raw`\frac{Y_t}{S_t}`,
+        substitution: String.raw`\frac{Y_1}{S_1} = \frac{${n(d.y[0]!)}}{${n(d.periodIndex[0]!)}}`,
+        result: `${n(d.deseasonalized[0]!)}`,
+      },
+    );
   }
   const ts = d.y.map((_, i) => i + 1);
   const sumT = ts.reduce((s, t) => s + t, 0);

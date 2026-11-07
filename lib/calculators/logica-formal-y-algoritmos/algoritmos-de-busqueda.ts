@@ -125,18 +125,20 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
       result: String.raw`n = ${a.length},\quad x = ${num(x)}`,
     });
     const { rows, position } = sequential(a, x);
-    steps.push({
-      title: 'Recorrido',
-      explanation:
-        position === null
-          ? `Se comparó x con los ${a.length} elementos y ninguno es igual.`
-          : `Se comparó x con a1, a2, … hasta a${position}, que es igual a x.`,
-      result: listLatex(a, {
-        boxed: position === null ? [] : [position - 1],
-        bold: (i) => i < rows.length,
-      }),
-    });
-    steps.push(resultStep(position, rows.length));
+    steps.push(
+      {
+        title: 'Recorrido',
+        explanation:
+          position === null
+            ? `Se comparó x con los ${a.length} elementos y ninguno es igual.`
+            : `Se comparó x con a1, a2, … hasta a${position}, que es igual a x.`,
+        result: listLatex(a, {
+          boxed: position === null ? [] : [position - 1],
+          bold: (i) => i < rows.length,
+        }),
+      },
+      resultStep(position, rows.length),
+    );
     return success({ found: position !== null, position, comparisons: rows.length }, steps, {
       id: 'recorrido',
       title: 'Comparaciones',
@@ -169,13 +171,15 @@ export function solveSearch(input: SearchInput): CalculatorResult<SearchValue, S
     };
   }
   const { rows, children, position } = binary(a, x);
-  steps.push({
-    title: 'Iteraciones',
-    explanation:
-      'En negrita, el tramo donde todavía puede estar x; en el recuadro, el elemento central.',
-    children,
-  });
-  steps.push(resultStep(position, rows.length));
+  steps.push(
+    {
+      title: 'Iteraciones',
+      explanation:
+        'En negrita, el tramo donde todavía puede estar x; en el recuadro, el elemento central.',
+      children,
+    },
+    resultStep(position, rows.length),
+  );
   return success({ found: position !== null, position, comparisons: rows.length }, steps, {
     id: 'iteraciones',
     title: 'Iteraciones de la búsqueda binaria',

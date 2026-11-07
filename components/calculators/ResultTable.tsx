@@ -7,7 +7,7 @@ import { formatNumber } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
 import { Formula } from './Formula';
 
-function Cell({ value, column }: { value: CellValue; column: TableColumn }) {
+function Cell({ value, column }: Readonly<{ value: CellValue; column: TableColumn }>) {
   if (value === null) return <span className="text-muted-foreground">—</span>;
   if (typeof value === 'number') return <>{formatNumber(value)}</>;
   if (column.format === 'latex') return <Formula tex={value} />;
@@ -15,7 +15,7 @@ function Cell({ value, column }: { value: CellValue; column: TableColumn }) {
 }
 
 /** Tabla de resultados (p. ej. iteraciones). Hace scroll horizontal en pantallas angostas. */
-export function ResultTable({ table }: { table: ResultTableData }) {
+export function ResultTable({ table }: Readonly<{ table: ResultTableData }>) {
   return (
     <figure className="flex flex-col gap-2">
       <figcaption className="text-sm font-medium">{table.title}</figcaption>

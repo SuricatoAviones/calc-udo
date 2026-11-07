@@ -92,8 +92,6 @@ export interface ResonanceValue {
   zMax?: number;
 }
 
-export type ResonanceErrorCode = never;
-
 function impedance(input: ResonanceInput, w: number): Complex {
   const zl = complex(0, w * input.l);
   const zc = complex(0, -1 / (w * input.c));
@@ -118,9 +116,7 @@ const polar = (z: Complex) => {
   return toLatexPolar(tidy, 5);
 };
 
-export function solveResonance(
-  input: ResonanceInput,
-): CalculatorResult<ResonanceValue, ResonanceErrorCode> {
+export function solveResonance(input: ResonanceInput): CalculatorResult<ResonanceValue, never> {
   const { type, l, c } = input;
   const steps: Step[] = [];
   const notices: Notice[] = [];
@@ -150,27 +146,29 @@ export function solveResonance(
     rEq = input.r !== undefined ? parallel(rp, input.r) : rp;
     q0 = w0 * rEq * c;
     alpha = 1 / (2 * rEq * c);
-    steps.push({
-      title: 'Equivalente en paralelo de la bobina',
-      explanation:
-        'A la frecuencia de resonancia, R₁ en serie con L equivale a R_p en paralelo con L_p, con el mismo Q (Hayt, ecs. 22 y 23). Así el circuito queda como un RLC paralelo ideal.',
-      formula: String.raw`Q = \frac{\omega_0 L}{R_1},\qquad R_p = R_1(1 + Q^{2}),\qquad L_p = L\left(1 + \frac{1}{Q^{2}}\right)`,
-      substitution: String.raw`Q = \frac{(${n(w0)})(${n(l)})}{${n(input.rl)}}`,
-      result: String.raw`Q = ${n(qCoil)},\quad R_p = ${engTex(rp, 'Ω')},\quad L_p = ${engTex(lp, 'H')}`,
-    });
-    steps.push({
-      title: 'Factor de calidad del circuito',
-      explanation:
-        input.r !== undefined
-          ? 'R_p queda en paralelo con R₂.'
-          : 'Sin resistencia en paralelo, toda la pérdida está en la bobina.',
-      formula:
-        input.r !== undefined
-          ? String.raw`R = R_p \parallel R_2,\qquad Q_0 = \omega_0 R C`
-          : String.raw`Q_0 = \omega_0 R_p C`,
-      substitution: `Q_0 = (${n(w0)})(${n(rEq)})(${n(c)})`,
-      result: String.raw`R = ${engTex(rEq, 'Ω')},\quad Q_0 = ${n(q0)}`,
-    });
+    steps.push(
+      {
+        title: 'Equivalente en paralelo de la bobina',
+        explanation:
+          'A la frecuencia de resonancia, R₁ en serie con L equivale a R_p en paralelo con L_p, con el mismo Q (Hayt, ecs. 22 y 23). Así el circuito queda como un RLC paralelo ideal.',
+        formula: String.raw`Q = \frac{\omega_0 L}{R_1},\qquad R_p = R_1(1 + Q^{2}),\qquad L_p = L\left(1 + \frac{1}{Q^{2}}\right)`,
+        substitution: String.raw`Q = \frac{(${n(w0)})(${n(l)})}{${n(input.rl)}}`,
+        result: String.raw`Q = ${n(qCoil)},\quad R_p = ${engTex(rp, 'Ω')},\quad L_p = ${engTex(lp, 'H')}`,
+      },
+      {
+        title: 'Factor de calidad del circuito',
+        explanation:
+          input.r !== undefined
+            ? 'R_p queda en paralelo con R₂.'
+            : 'Sin resistencia en paralelo, toda la pérdida está en la bobina.',
+        formula:
+          input.r !== undefined
+            ? String.raw`R = R_p \parallel R_2,\qquad Q_0 = \omega_0 R C`
+            : String.raw`Q_0 = \omega_0 R_p C`,
+        substitution: `Q_0 = (${n(w0)})(${n(rEq)})(${n(c)})`,
+        result: String.raw`R = ${engTex(rEq, 'Ω')},\quad Q_0 = ${n(q0)}`,
+      },
+    );
   } else {
     const r = input.r!;
     rEq = r;
@@ -431,7 +429,7 @@ export function solveResonance(
 /** Ángulo en grados, para las pruebas y la UI. */
 export const angleDeg = (z: Complex) => degrees(arg(z));
 
-export const resonanciaRlc: Calculator<ResonanceInput, ResonanceValue, ResonanceErrorCode> = {
+export const resonanciaRlc: Calculator<ResonanceInput, ResonanceValue, never> = {
   meta: {
     id: 'resonancia-rlc',
     title: 'Resonancia en circuitos RLC',

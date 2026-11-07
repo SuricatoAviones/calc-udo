@@ -23,7 +23,6 @@ import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Step,
   type SummaryItem,
 } from '../types';
@@ -149,14 +148,14 @@ function moment(
     .div(Rational.of(k + 1));
 }
 
-function nodeTerm(t: number): Latex {
+function nodeTerm(t: number): string {
   if (t === 0) return 'f(x_i)';
   const abs = Math.abs(t);
   return `f(x_i ${t < 0 ? '-' : '+'} ${abs === 1 ? '' : toLatexNumber(abs)}h)`;
 }
 
 /** Σ aⱼ·nombreⱼ en LaTeX, omitiendo los coeficientes nulos: `-c_{0} + c_{2}`. */
-function linearCombination(coefficients: Rational[], names: Latex[]): Latex {
+function linearCombination(coefficients: Rational[], names: string[]): string {
   const terms = coefficients
     .map((c, j) => ({ c, j }))
     .filter(({ c }) => !c.isZero())
@@ -170,7 +169,7 @@ function linearCombination(coefficients: Rational[], names: Latex[]): Latex {
 }
 
 /** Σ cⱼ f(xᵢ + tⱼh) en LaTeX. */
-function formulaSum(coefficients: Rational[], nodes: number[]): Latex {
+function formulaSum(coefficients: Rational[], nodes: number[]): string {
   return linearCombination(coefficients, nodes.map(nodeTerm));
 }
 
@@ -250,25 +249,27 @@ export function solveUndeterminedCoefficients(
 
   const formulaTex = String.raw`${lhsName} \approx ${scale}\left[${formulaSum(solution, nodes)}\right]`;
   const derivativeK = errorPower === null ? null : derivative ? errorPower + d : errorPower - 1;
-  steps.push({
-    title: 'Fórmula',
-    result: formulaTex,
-  });
-  steps.push({
-    title: 'Error de truncamiento',
-    explanation:
-      errorPower === null
-        ? `La fórmula es exacta al menos hasta polinomios de grado ${exactDegree}.`
-        : `La fórmula es exacta para polinomios de grado ≤ ${exactDegree}; con t^${exactDegree + 1} ya no. El término que falta da el error de truncamiento.`,
-    formula:
-      errorPower === null
-        ? undefined
-        : String.raw`E = \frac{M_{${exactDegree + 1}} - \sum_j c_j t_j^{${exactDegree + 1}}}{${exactDegree + 1}!}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
-    result:
-      errorPower === null || errorConstant === null
-        ? undefined
-        : String.raw`E = ${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi) = O(h^{${errorPower}})`,
-  });
+  steps.push(
+    {
+      title: 'Fórmula',
+      result: formulaTex,
+    },
+    {
+      title: 'Error de truncamiento',
+      explanation:
+        errorPower === null
+          ? `La fórmula es exacta al menos hasta polinomios de grado ${exactDegree}.`
+          : `La fórmula es exacta para polinomios de grado ≤ ${exactDegree}; con t^${exactDegree + 1} ya no. El término que falta da el error de truncamiento.`,
+      formula:
+        errorPower === null
+          ? undefined
+          : String.raw`E = \frac{M_{${exactDegree + 1}} - \sum_j c_j t_j^{${exactDegree + 1}}}{${exactDegree + 1}!}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
+      result:
+        errorPower === null || errorConstant === null
+          ? undefined
+          : String.raw`E = ${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi) = O(h^{${errorPower}})`,
+    },
+  );
 
   let applied: number | null = null;
   if (input.expression) {
@@ -349,7 +350,7 @@ export function solveUndeterminedCoefficients(
   };
 }
 
-function nodeTermPoint(t: number): Latex {
+function nodeTermPoint(t: number): string {
   if (t === 0) return 'x_i';
   const abs = Math.abs(t);
   return `x_i ${t < 0 ? '-' : '+'} ${abs === 1 ? '' : toLatexNumber(abs)}h`;

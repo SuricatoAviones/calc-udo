@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { differentiate, parseFunction, type ParsedExpression } from '@/lib/math/expression';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import { solveLinearSystem } from '@/lib/math/linear-algebra';
 import {
   emptyTrace,
@@ -65,7 +65,7 @@ const n = toLatexNumber;
 const op = toLatexOperand;
 
 function vectorTex(values: number[]): string {
-  return String.raw`\begin{bmatrix} ${values.map((v) => n(v, 7)).join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${values.map((v) => n(v, 7)).join(TEX.newline)} \end{bmatrix}`;
 }
 
 export function solveNewtonSystem(input: NewtonSystemInput): Result {
@@ -112,8 +112,8 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
     {
       title: 'Sistema y matriz jacobiana',
       explanation: `Se buscan ${names.join(', ')} tales que todas las funciones valgan 0. La jacobiana reúne las derivadas parciales de cada función respecto de cada variable.`,
-      formula: String.raw`\begin{aligned} ${equations.map((e, i) => `f_{${i + 1}}(${names.join(', ')}) &= ${e.tex} = 0`).join(String.raw` \\ `)} \end{aligned}`,
-      result: String.raw`J = \begin{bmatrix} ${jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(String.raw` \\ `)} \end{bmatrix}`,
+      formula: String.raw`\begin{aligned} ${equations.map((e, i) => `f_{${i + 1}}(${names.join(', ')}) &= ${e.tex} = 0`).join(TEX.newline)} \end{aligned}`,
+      result: String.raw`J = \begin{bmatrix} ${jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(TEX.newline)} \end{bmatrix}`,
     },
   ];
   const trace = () => ({
@@ -160,7 +160,7 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         ...trace(),
       };
     }
-    const at = `(${point.map((v) => n(v)).join(String.raw`,\ `)})`;
+    const at = `(${point.map((v) => n(v)).join(TEX.listSep)})`;
     const children: Step[] = [
       {
         title: 'Evaluar las funciones',
@@ -195,31 +195,35 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
     if (size === 2) {
       const [u, v] = F as [number, number];
       const [[ux, uy], [vx, vy]] = J as [[number, number], [number, number]];
-      children.push({
-        title: 'Determinante de la jacobiana',
-        formula: String.raw`\det J = \frac{\partial f_1}{\partial x}\frac{\partial f_2}{\partial y} - \frac{\partial f_1}{\partial y}\frac{\partial f_2}{\partial x}`,
-        substitution: String.raw`\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
-        result: String.raw`\det J = ${n(det!)}`,
-      });
-      children.push({
-        title: 'Nuevos valores (ecuaciones 6.24)',
-        formula: String.raw`x_{i+1} = x_i - \frac{f_1 \frac{\partial f_2}{\partial y} - f_2 \frac{\partial f_1}{\partial y}}{\det J}, \quad y_{i+1} = y_i - \frac{f_2 \frac{\partial f_1}{\partial x} - f_1 \frac{\partial f_2}{\partial x}}{\det J}`,
-        substitution: String.raw`x_{${it}} = ${n(point[0]!)} - \frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det!)}}, \quad y_{${it}} = ${n(point[1]!)} - \frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det!)}}`,
-        result: String.raw`x_{${it}} = ${n(next[0]!)}, \quad y_{${it}} = ${n(next[1]!)}`,
-      });
+      children.push(
+        {
+          title: 'Determinante de la jacobiana',
+          formula: String.raw`\det J = \frac{\partial f_1}{\partial x}\frac{\partial f_2}{\partial y} - \frac{\partial f_1}{\partial y}\frac{\partial f_2}{\partial x}`,
+          substitution: String.raw`\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
+          result: String.raw`\det J = ${n(det!)}`,
+        },
+        {
+          title: 'Nuevos valores (ecuaciones 6.24)',
+          formula: String.raw`x_{i+1} = x_i - \frac{f_1 \frac{\partial f_2}{\partial y} - f_2 \frac{\partial f_1}{\partial y}}{\det J}, \quad y_{i+1} = y_i - \frac{f_2 \frac{\partial f_1}{\partial x} - f_1 \frac{\partial f_2}{\partial x}}{\det J}`,
+          substitution: String.raw`x_{${it}} = ${n(point[0]!)} - \frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det!)}}, \quad y_{${it}} = ${n(point[1]!)} - \frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det!)}}`,
+          result: String.raw`x_{${it}} = ${n(next[0]!)}, \quad y_{${it}} = ${n(next[1]!)}`,
+        },
+      );
     } else {
-      children.push({
-        title: 'Resolver J Δ = −F',
-        explanation: 'Se resuelve el sistema lineal con eliminación de Gauss y pivoteo parcial.',
-        formula: String.raw`J\,\Delta = -F`,
-        substitution: String.raw`${texMatrix(J, 7)} \Delta = ${vectorTex(F.map((v) => -v))}`,
-        result: String.raw`\Delta = ${vectorTex(delta)}`,
-      });
-      children.push({
-        title: 'Nuevos valores',
-        formula: String.raw`x_{i+1} = x_i + \Delta`,
-        result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(String.raw`,\quad `),
-      });
+      children.push(
+        {
+          title: 'Resolver J Δ = −F',
+          explanation: 'Se resuelve el sistema lineal con eliminación de Gauss y pivoteo parcial.',
+          formula: String.raw`J\,\Delta = -F`,
+          substitution: String.raw`${texMatrix(J, 7)} \Delta = ${vectorTex(F.map((v) => -v))}`,
+          result: String.raw`\Delta = ${vectorTex(delta)}`,
+        },
+        {
+          title: 'Nuevos valores',
+          formula: String.raw`x_{i+1} = x_i + \Delta`,
+          result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(String.raw`,\quad `),
+        },
+      );
     }
     const errors = next.map((v, k) => (v === 0 ? null : Math.abs((v - point[k]!) / v) * 100));
     const ea = errors.some((e) => e === null) ? null : Math.max(...(errors as number[]));
@@ -238,7 +242,7 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
           : names
               .map(
                 (v, k) =>
-                  String.raw`\varepsilon_{a,${v}} = ${errors[k] === null ? String.raw`\text{—}` : n(errors[k]!, 6)}\,\%`,
+                  String.raw`\varepsilon_{a,${v}} = ${errors[k] === null ? TEX.dash : n(errors[k]!, 6)}\,\%`,
               )
               .join(String.raw`,\quad `),
     });

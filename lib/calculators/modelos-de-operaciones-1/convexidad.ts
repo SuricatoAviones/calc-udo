@@ -14,7 +14,7 @@
  */
 import { z } from 'zod';
 import { parseFunction, type ParsedExpression } from '@/lib/math/expression';
-import { formatNumber, toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -169,7 +169,7 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
         'La función es cuadrática (o lineal): la hessiana es la misma en todo punto, así que basta clasificarla una vez y el resultado vale en todo el dominio.',
       substitution: single
         ? `f''(x) = ${n(H[0]![0]!)}`
-        : String.raw`H = ${toLatexMatrix(H)}, \quad ${minors.map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d)}`).join(String.raw`,\ `)}`,
+        : String.raw`H = ${toLatexMatrix(H)}, \quad ${minors.map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d)}`).join(TEX.listSep)}`,
       result: String.raw`H \text{ es ${definiteness}} \ \Rightarrow\ f \text{ es ${classification}}`,
     });
   } else {

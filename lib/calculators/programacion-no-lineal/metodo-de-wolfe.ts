@@ -15,7 +15,7 @@
  */
 import { z } from 'zod';
 import { Rational } from '@/lib/math/rational';
-import { formatNumber, toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import { parseConstraintLine } from '../optimizacion-de-operaciones/lp-model';
 import {
@@ -309,7 +309,7 @@ export function solveWolfe(input: WolfeInput): Result {
     title: 'Solución óptima',
     explanation:
       'La fase I terminó con r = 0: la solución cumple todas las condiciones KKT, que aquí son suficientes.',
-    result: String.raw`${model.names.map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`).join(String.raw`,\ `)}, \qquad z = ${n(zValue)}`,
+    result: String.raw`${model.names.map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`).join(TEX.listSep)}, \qquad z = ${n(zValue)}`,
   });
 
   return {

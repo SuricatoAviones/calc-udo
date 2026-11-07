@@ -25,13 +25,13 @@ export function TransferField({
   label,
   prefix,
   hint = TF_HINT,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   /** LaTeX antes de la vista previa: `G(s) =`. */
   prefix: string;
   hint?: ReactNode;
-}) {
+}>) {
   return (
     <ExpressionField
       name={name}
@@ -60,13 +60,13 @@ export function GridField({
   rows,
   cols,
   hint,
-}: {
+}: Readonly<{
   name: string;
   label: ReactNode;
   rows: number;
   cols: number;
   hint?: ReactNode;
-}) {
+}>) {
   const { control, getValues, setValue } = useFormContext();
   useEffect(() => {
     const current = getValues(name) as number[][] | undefined;

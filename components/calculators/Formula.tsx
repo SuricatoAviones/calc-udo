@@ -13,7 +13,7 @@ interface FormulaProps {
  * Renderiza LaTeX con KaTeX (ADR-005). Funciona en Server y Client Components.
  * Si la expresión es inválida, KaTeX la muestra en rojo en vez de romper la página.
  */
-export function Formula({ tex, display = false, className }: FormulaProps) {
+export function Formula({ tex, display = false, className }: Readonly<FormulaProps>) {
   const html = katex.renderToString(tex, {
     displayMode: display,
     throwOnError: false,

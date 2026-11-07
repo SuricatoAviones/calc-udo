@@ -101,9 +101,7 @@ export interface RandomWalkValue {
   absorption: { top: number; bottom: number; expectedSteps: number } | null;
 }
 
-export type RandomWalkErrorCode = never;
-
-type Result = CalculatorResult<RandomWalkValue, RandomWalkErrorCode>;
+type Result = CalculatorResult<RandomWalkValue, never>;
 
 const n = toLatexNumber;
 
@@ -309,7 +307,7 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
   };
 }
 
-export const randomWalk: Calculator<RandomWalkInput, RandomWalkValue, RandomWalkErrorCode> = {
+export const randomWalk: Calculator<RandomWalkInput, RandomWalkValue, never> = {
   meta: {
     id: 'caminata-aleatoria',
     title: 'Caminata aleatoria',

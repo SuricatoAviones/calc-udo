@@ -43,8 +43,6 @@ export interface SyntheticDivisionValue {
   shifted?: number[];
 }
 
-export type SyntheticDivisionErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 7);
 const op = (v: number) => toLatexOperand(v, 7);
 
@@ -93,7 +91,7 @@ function divisionStep(
 
 export function solveSyntheticDivision(
   input: SyntheticDivisionInput,
-): CalculatorResult<SyntheticDivisionValue, SyntheticDivisionErrorCode> {
+): CalculatorResult<SyntheticDivisionValue, never> {
   const coefficients = parseCoefficients(input.coefficients) as number[];
   const { r } = input;
   const degree = coefficients.length - 1;
@@ -231,7 +229,7 @@ export function solveSyntheticDivision(
 export const syntheticDivisionCalculator: Calculator<
   SyntheticDivisionInput,
   SyntheticDivisionValue,
-  SyntheticDivisionErrorCode
+  never
 > = {
   meta: {
     id: 'division-sintetica',

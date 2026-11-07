@@ -11,7 +11,7 @@
  * (ejemplos 5-7 y 5-8).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, Notice, Series, Step, SummaryItem } from '../types';
 import { capacitorFilter } from './filter';
 import { engTex, engText } from './units';
@@ -81,11 +81,7 @@ export type FilterRegulationValue =
     }
   | { part: 'zener'; case: 'vi-variable'; viMin: number; viMax: number; il: number; irMax: number };
 
-export type FilterRegulationErrorCode = never;
-
-function solveFilter(
-  input: FilterRegulationInput,
-): CalculatorResult<FilterRegulationValue, FilterRegulationErrorCode> {
+function solveFilter(input: FilterRegulationInput): CalculatorResult<FilterRegulationValue, never> {
   const fullWave = input.rectifier === 'onda-completa';
   const filter = capacitorFilter({
     vm: input.vm,
@@ -157,9 +153,7 @@ function solveFilter(
   };
 }
 
-function solveZener(
-  input: FilterRegulationInput,
-): CalculatorResult<FilterRegulationValue, FilterRegulationErrorCode> {
+function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegulationValue, never> {
   const notices: Notice[] = [];
   const steps: Step[] = [];
   let summary: SummaryItem[];
@@ -224,7 +218,7 @@ function solveZener(
     summary = [
       {
         label: 'R_L',
-        value: String.raw`${engTex(r.rlMin, 'Ω')} \le R_L \le ${Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : String.raw`\infty`}`,
+        value: String.raw`${engTex(r.rlMin, 'Ω')} \le R_L \le ${Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : TEX.infty}`,
         emphasis: true,
       },
       {
@@ -278,15 +272,11 @@ function solveZener(
 
 export function solveFilterRegulation(
   input: FilterRegulationInput,
-): CalculatorResult<FilterRegulationValue, FilterRegulationErrorCode> {
+): CalculatorResult<FilterRegulationValue, never> {
   return input.part === 'filtro' ? solveFilter(input) : solveZener(input);
 }
 
-export const filtroYRegulacion: Calculator<
-  FilterRegulationInput,
-  FilterRegulationValue,
-  FilterRegulationErrorCode
-> = {
+export const filtroYRegulacion: Calculator<FilterRegulationInput, FilterRegulationValue, never> = {
   meta: {
     id: 'filtro-y-regulacion',
     title: 'Filtrado y regulación',

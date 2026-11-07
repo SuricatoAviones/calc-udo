@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CalculatorPage({ params }: Props) {
+export default async function CalculatorPage({ params }: Readonly<Props>) {
   const found = await resolve(params);
   if (!found) notFound();
   const { location, load } = found;

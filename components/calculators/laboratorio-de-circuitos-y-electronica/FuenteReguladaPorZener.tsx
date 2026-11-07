@@ -14,7 +14,7 @@ const tex = (symbol: string, unit?: string) => (
   </>
 );
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
     <fieldset className="flex flex-col gap-3">
       <legend className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">

@@ -6,12 +6,11 @@ import {
   solveInitial,
   sunRay,
   transportInputSchema,
-  type TransportErrorCode,
   type TransportInput,
   type TransportValue,
 } from './transport-initial';
 
-export const leastCost: Calculator<TransportInput, TransportValue, TransportErrorCode> = {
+export const leastCost: Calculator<TransportInput, TransportValue, never> = {
   meta: {
     id: 'costo-minimo',
     title: 'Método del costo mínimo',

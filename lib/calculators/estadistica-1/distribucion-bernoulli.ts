@@ -13,7 +13,6 @@ import {
   betweenIsValid,
   discreteQueryShape,
   solveDiscrete,
-  type DiscreteErrorCode,
   type DiscreteModel,
   type DiscreteValue,
 } from './discrete';
@@ -53,7 +52,7 @@ function bernoulliModel(p: number): DiscreteModel {
   };
 }
 
-export const bernoulli: Calculator<BernoulliInput, DiscreteValue, DiscreteErrorCode> = {
+export const bernoulli: Calculator<BernoulliInput, DiscreteValue, never> = {
   meta: {
     id: 'distribucion-bernoulli',
     title: 'Distribución de Bernoulli',

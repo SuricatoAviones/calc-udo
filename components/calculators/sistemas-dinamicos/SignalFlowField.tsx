@@ -40,7 +40,7 @@ const COLUMNS: TableFieldColumn[] = [
  * Dibujo del flujograma: los nodos en una fila en el orden en que aparecen, las ramas hacia
  * adelante por arriba, las de realimentación por abajo y los lazos propios como un rizo.
  */
-function SignalFlowPreview({ branches }: { branches: BranchRow[] }) {
+function SignalFlowPreview({ branches }: Readonly<{ branches: BranchRow[] }>) {
   const valid = branches.filter((b) => b.from?.trim() && b.to?.trim());
   const nodes: string[] = [];
   for (const b of valid)

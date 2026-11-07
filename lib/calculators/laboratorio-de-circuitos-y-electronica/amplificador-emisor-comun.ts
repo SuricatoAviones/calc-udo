@@ -10,7 +10,7 @@
  * R_E1 sin puentear la saturación llega antes: el colector solo baja V_CEQ·r_c/(r_c + R_E1).
  */
 import { z } from 'zod';
-import { toLatexNumber } from '@/lib/math/format';
+import { toLatexNumber, TEX } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, Notice, Series, Step, SummaryItem } from '../types';
 import { bjtBias } from '../electronica/bias';
 import { approxAmplifier } from '../electronica/small-signal';
@@ -126,19 +126,20 @@ export function solveCeAmplifier(
   }
 
   const re = input.vt / dc.ie;
-  steps.push({
-    title: 'Resistencia dinámica del emisor',
-    explanation:
-      'Con la corriente de emisor de cd se obtiene la resistencia de ca de la unión base-emisor.',
-    formula: String.raw`r_e = \frac{V_T}{I_E}`,
-    substitution: String.raw`r_e = \frac{${n(input.vt)}}{${n(dc.ie)}}`,
-    result: String.raw`r_e = ${engTex(re, 'Ω')},\quad \beta r_e = ${engTex(beta * re, 'Ω')}`,
-  });
-
-  steps.push({
-    title: 'Análisis de ca',
-    explanation: `Para la señal, C_E cortocircuita R_E2${re1 > 0 ? ' y R_E1 queda sin puentear en el emisor' : ''}; R₁ y R₂ quedan en paralelo (R′ = ${engText(parallel(r1, r2), 'Ω')}).`,
-  });
+  steps.push(
+    {
+      title: 'Resistencia dinámica del emisor',
+      explanation:
+        'Con la corriente de emisor de cd se obtiene la resistencia de ca de la unión base-emisor.',
+      formula: String.raw`r_e = \frac{V_T}{I_E}`,
+      substitution: String.raw`r_e = \frac{${n(input.vt)}}{${n(dc.ie)}}`,
+      result: String.raw`r_e = ${engTex(re, 'Ω')},\quad \beta r_e = ${engTex(beta * re, 'Ω')}`,
+    },
+    {
+      title: 'Análisis de ca',
+      explanation: `Para la señal, C_E cortocircuita R_E2${re1 > 0 ? ' y R_E1 queda sin puentear en el emisor' : ''}; R₁ y R₂ quedan en paralelo (R′ = ${engText(parallel(r1, r2), 'Ω')}).`,
+    },
+  );
   const ac = approxAmplifier({
     config: re1 > 0 ? 'emisor-sin-puentear' : 'emisor-comun',
     h: { hi: beta * re, hr: 0, hf: beta, ho: input.ro !== undefined ? 1 / input.ro : 0 },
@@ -203,7 +204,7 @@ export function solveCeAmplifier(
           ? String.raw`v_{o(pp)} = |A_{v_s}|\,v_{s(pp)}`
           : String.raw`v_{o(pp)} = |A_v|\,v_{i(pp)}`,
       substitution: `v_{o(pp)} = (${n(Math.abs(gain))})(${n(input.vin)})`,
-      result: String.raw`v_{o(pp)} = ${n(vout)}\ \text{V}\ ${vout <= mpp ? String.raw`\le` : '>'}\ MPP`,
+      result: String.raw`v_{o(pp)} = ${n(vout)}\ \text{V}\ ${vout <= mpp ? TEX.le : '>'}\ MPP`,
     });
     if (vout > mpp) {
       notices.push({

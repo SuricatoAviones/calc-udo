@@ -33,13 +33,12 @@ export const seriesComponentsInputSchema = z
 export type SeriesComponentsInput = z.infer<typeof seriesComponentsInputSchema>;
 
 export type SeriesComponentsValue = Decomposition;
-export type SeriesComponentsErrorCode = never;
 
 const n = (v: number) => toLatexNumber(v, 6);
 
 export function solveSeriesComponents(
   input: SeriesComponentsInput,
-): CalculatorResult<SeriesComponentsValue, SeriesComponentsErrorCode> {
+): CalculatorResult<SeriesComponentsValue, never> {
   const y = parseSample(input.data, 3) as number[];
   const d = decompose(y, input.season);
   const steps: Step[] = [
@@ -121,11 +120,7 @@ export function solveSeriesComponents(
   };
 }
 
-export const seriesComponents: Calculator<
-  SeriesComponentsInput,
-  SeriesComponentsValue,
-  SeriesComponentsErrorCode
-> = {
+export const seriesComponents: Calculator<SeriesComponentsInput, SeriesComponentsValue, never> = {
   meta: {
     id: 'componentes-de-series-de-tiempo',
     title: 'Análisis de series de tiempo',

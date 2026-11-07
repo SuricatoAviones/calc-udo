@@ -4,7 +4,7 @@ import { Formula } from '@/components/calculators/Formula';
 import { ExpressionField, FUNCTION_HINT, NumberField } from '@/components/calculators/form/fields';
 
 /** Campos comunes de la integración numérica (rectangular, trapecio, Simpson). */
-export function IntegrationFields({ segmentsHint }: { segmentsHint?: string }) {
+export function IntegrationFields({ segmentsHint }: Readonly<{ segmentsHint?: string }>) {
   return (
     <>
       <ExpressionField

@@ -15,7 +15,7 @@ import {
   forwardElimination,
   texAugmented,
 } from '@/lib/calculators/metodos-numericos/matrix';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import type { Notice, ResultTable, Step } from '../types';
 import {
   componentLabel,
@@ -433,7 +433,7 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
       title: 'Identificación de mallas',
       explanation: `Se recorren las caras acotadas del dibujo y se asigna a cada una una corriente de malla en el sentido de su recorrido. Hay ${M} malla(s).`,
       result: meshInfo
-        .map((info, mf) => String.raw`i_${mf + 1}:\ ${info.branches.join(String.raw`,\ `)}`)
+        .map((info, mf) => String.raw`i_${mf + 1}:\ ${info.branches.join(TEX.listSep)}`)
         .join(String.raw`;\ `),
     },
     ...meshTerms.map((terms, mf) => ({

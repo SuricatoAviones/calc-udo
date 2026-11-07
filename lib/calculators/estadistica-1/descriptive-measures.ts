@@ -10,7 +10,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 
 const MAX_VALUES = 1000;
@@ -146,7 +146,7 @@ export function solveDescriptive(
       result:
         modes.length === 0
           ? undefined
-          : String.raw`\text{Moda} = ${modes.map((m) => n(m)).join(String.raw`,\ `)}`,
+          : String.raw`\text{Moda} = ${modes.map((m) => n(m)).join(TEX.listSep)}`,
     },
     {
       title: 'Rango',

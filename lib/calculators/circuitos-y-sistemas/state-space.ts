@@ -17,7 +17,7 @@
  * X_k(s) se invierte por fracciones parciales.
  */
 import { solveLinearSystem } from '@/lib/math/linear-algebra';
-import { toLatexMatrix, toLatexNumber } from '@/lib/math/format';
+import { toLatexMatrix, toLatexNumber, TEX } from '@/lib/math/format';
 import { snap, type Poly } from '@/lib/math/polynomials';
 import type { Step } from '../types';
 import {
@@ -292,9 +292,9 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     title: 'Variables de estado y entradas',
     explanation:
       'Las variables de estado son los voltajes de los capacitores (+ en el terminal marcado) y las corrientes de los inductores (del terminal marcado hacia el otro): describen la energía almacenada. Las entradas son las fuentes independientes, de cd a partir de t = 0.',
-    formula: String.raw`\mathbf{x} = \begin{bmatrix} ${states.map((s) => s.tex).join(String.raw` \\ `)} \end{bmatrix}${
+    formula: String.raw`\mathbf{x} = \begin{bmatrix} ${states.map((s) => s.tex).join(TEX.newline)} \end{bmatrix}${
       inputs.length
-        ? String.raw`,\quad \mathbf{u} = \begin{bmatrix} ${inputs.map((s) => s.tex).join(String.raw` \\ `)} \end{bmatrix}`
+        ? String.raw`,\quad \mathbf{u} = \begin{bmatrix} ${inputs.map((s) => s.tex).join(TEX.newline)} \end{bmatrix}`
         : ''
     }`,
     result: String.raw`\mathbf{x}(0) = ${toLatexMatrix(
@@ -413,34 +413,35 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
   const B = raw.map((row) => row.slice(states.length).map((v) => tidy(v, scale)));
   const vars = [...states.map((s) => s.tex), ...inputs.map((u) => u.tex)];
 
-  steps.push({
-    title: 'Eliminación de las variables de las resistencias',
-    explanation:
-      'Cada capacitor se reemplaza por una fuente de voltaje de valor v_C y cada inductor por una fuente de corriente de valor i_L. La red que queda es resistiva: se resuelve por análisis nodal con cada variable o fuente en 1 y las demás en 0, y por superposición i_C y v_L quedan como combinaciones de x y u.',
-    children: states.map((s, k) => {
-      const response = s.kind === 'capacitor' ? `i_{${s.label}}` : `v_{${s.label}}`;
-      const coefficients = raw[k]!.map((v) => tidy(v * s.value, scale));
-      return {
-        title: s.kind === 'capacitor' ? `Corriente de ${s.label}` : `Voltaje de ${s.label}`,
-        result: equationTex(response, coefficients, vars),
-      };
-    }),
-  });
-
-  steps.push({
-    title: 'Ecuaciones de estado',
-    explanation: 'Se divide cada ecuación entre C o L.',
-    children: states.map((s, k) => ({
-      title: s.label,
-      result: equationTex(
-        String.raw`\frac{d${s.tex}}{dt}`,
-        raw[k]!.map((v) => tidy(v, scale)),
-        vars,
-      ),
-    })),
-    formula: String.raw`\dot{\mathbf{x}} = A\,\mathbf{x} + B\,\mathbf{u}`,
-    result: `A = ${toLatexMatrix(A, DIGITS)}${inputs.length ? String.raw`,\quad B = ${toLatexMatrix(B, DIGITS)}` : ''}`,
-  });
+  steps.push(
+    {
+      title: 'Eliminación de las variables de las resistencias',
+      explanation:
+        'Cada capacitor se reemplaza por una fuente de voltaje de valor v_C y cada inductor por una fuente de corriente de valor i_L. La red que queda es resistiva: se resuelve por análisis nodal con cada variable o fuente en 1 y las demás en 0, y por superposición i_C y v_L quedan como combinaciones de x y u.',
+      children: states.map((s, k) => {
+        const response = s.kind === 'capacitor' ? `i_{${s.label}}` : `v_{${s.label}}`;
+        const coefficients = raw[k]!.map((v) => tidy(v * s.value, scale));
+        return {
+          title: s.kind === 'capacitor' ? `Corriente de ${s.label}` : `Voltaje de ${s.label}`,
+          result: equationTex(response, coefficients, vars),
+        };
+      }),
+    },
+    {
+      title: 'Ecuaciones de estado',
+      explanation: 'Se divide cada ecuación entre C o L.',
+      children: states.map((s, k) => ({
+        title: s.label,
+        result: equationTex(
+          String.raw`\frac{d${s.tex}}{dt}`,
+          raw[k]!.map((v) => tidy(v, scale)),
+          vars,
+        ),
+      })),
+      formula: String.raw`\dot{\mathbf{x}} = A\,\mathbf{x} + B\,\mathbf{u}`,
+      result: `A = ${toLatexMatrix(A, DIGITS)}${inputs.length ? String.raw`,\quad B = ${toLatexMatrix(B, DIGITS)}` : ''}`,
+    },
+  );
 
   return {
     ok: true,
@@ -493,7 +494,7 @@ export function adjugateTex(M: number[][][]): string {
       return polyTex(poly, 's');
     }).join(' & '),
   );
-  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** sI − A en LaTeX. */
@@ -506,7 +507,7 @@ export function sIminusATex(A: number[][]): string {
       })
       .join(' & '),
   );
-  return String.raw`\begin{bmatrix} ${rows.join(String.raw` \\ `)} \end{bmatrix}`;
+  return String.raw`\begin{bmatrix} ${rows.join(TEX.newline)} \end{bmatrix}`;
 }
 
 /** Numerador y denominador de X_i(s) = [adj(sI − A)(x(0)·s + B·u)]_i / [s·det(sI − A)]. */

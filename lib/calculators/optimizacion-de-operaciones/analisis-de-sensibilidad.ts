@@ -15,6 +15,7 @@ import { variableLatex } from './lp-model';
 import { runSimplexTabular, type LpErrorCode, type LpInput } from './lp-solve';
 import { lpInputSchema } from './simplex';
 import { basicSolution } from './tableau';
+import { TEX } from '@/lib/math/format';
 
 export interface Range {
   /** `null` = sin límite. */
@@ -95,32 +96,34 @@ export function solveSensitivity(
       dHi: hi,
     };
   });
-  steps.push({
-    title: 'Precios duales',
-    explanation:
-      'En la tabla óptima, el coeficiente de la holgura sᵢ en la fila z es el precio dual del recurso i: cuánto cambia z por cada unidad adicional de bᵢ (mientras la base no cambie). Un recurso con holgura positiva tiene precio dual 0.',
-    result: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(String.raw`,\quad `),
-  });
-  steps.push({
-    title: 'Rangos de factibilidad de los recursos',
-    explanation:
-      'Si bᵢ cambia en D, los valores básicos cambian en D veces la columna de sᵢ. La base sigue siendo factible (y la solución, con los mismos precios duales) mientras ningún valor básico se haga negativo.',
-    formula: String.raw`x_B + D \cdot (\text{columna de } s_i) \ge 0`,
-    children: lp.constraints.map((c, i) => {
-      const k = slackOf[i]!;
-      const range = rhsRanges[i]!;
-      return {
-        title: `Recurso ${i + 1} (b = ${c.rhs.toText()})`,
-        substitution: t.rows
-          .map(
-            (row, r) =>
-              String.raw`${t.columns[t.basis[r]!]!.latex}:\ ${t.rhs[r]!.toLatex()} ${row[k]!.sign() < 0 ? '-' : '+'} ${row[k]!.abs().toLatex()}D \ge 0`,
-          )
-          .join(String.raw`,\quad `),
-        result: String.raw`${bound(range.dLo, String.raw`-\infty`)} \le D \le ${bound(range.dHi, String.raw`\infty`)} \ \Rightarrow\ ${bound(range.lo, String.raw`-\infty`)} \le b_{${i + 1}} \le ${bound(range.hi, String.raw`\infty`)}`,
-      };
-    }),
-  });
+  steps.push(
+    {
+      title: 'Precios duales',
+      explanation:
+        'En la tabla óptima, el coeficiente de la holgura sᵢ en la fila z es el precio dual del recurso i: cuánto cambia z por cada unidad adicional de bᵢ (mientras la base no cambie). Un recurso con holgura positiva tiene precio dual 0.',
+      result: dual.map((y, i) => `y_{${i + 1}} = ${y.toLatex()}`).join(String.raw`,\quad `),
+    },
+    {
+      title: 'Rangos de factibilidad de los recursos',
+      explanation:
+        'Si bᵢ cambia en D, los valores básicos cambian en D veces la columna de sᵢ. La base sigue siendo factible (y la solución, con los mismos precios duales) mientras ningún valor básico se haga negativo.',
+      formula: String.raw`x_B + D \cdot (\text{columna de } s_i) \ge 0`,
+      children: lp.constraints.map((c, i) => {
+        const k = slackOf[i]!;
+        const range = rhsRanges[i]!;
+        return {
+          title: `Recurso ${i + 1} (b = ${c.rhs.toText()})`,
+          substitution: t.rows
+            .map(
+              (row, r) =>
+                String.raw`${t.columns[t.basis[r]!]!.latex}:\ ${t.rhs[r]!.toLatex()} ${row[k]!.sign() < 0 ? '-' : '+'} ${row[k]!.abs().toLatex()}D \ge 0`,
+            )
+            .join(String.raw`,\quad `),
+          result: String.raw`${bound(range.dLo, TEX.negInfty)} \le D \le ${bound(range.dHi, TEX.infty)} \ \Rightarrow\ ${bound(range.lo, TEX.negInfty)} \le b_{${i + 1}} \le ${bound(range.hi, TEX.infty)}`,
+        };
+      }),
+    },
+  );
 
   // ── Rangos de los coeficientes del objetivo ─────────────────────────────
   const costRanges = lp.variables.map((_, j) => {
@@ -140,7 +143,7 @@ export function solveSensitivity(
         .filter((k) => !t.rows[r]![k]!.isZero())
         .map((k) => {
           const alpha = t.rows[r]![k]!;
-          return String.raw`${t.columns[k]!.latex}:\ ${t.z[k]!.a.toLatex()} ${alpha.sign() < 0 ? '-' : '+'} ${alpha.abs().toLatex()}d ${max ? String.raw`\ge` : String.raw`\le`} 0`;
+          return String.raw`${t.columns[k]!.latex}:\ ${t.z[k]!.a.toLatex()} ${alpha.sign() < 0 ? '-' : '+'} ${alpha.abs().toLatex()}d ${max ? TEX.ge : TEX.le} 0`;
         })
         .join(String.raw`,\quad `);
     } else {
@@ -152,7 +155,7 @@ export function solveSensitivity(
         lo = reduced;
         hi = null;
       }
-      detail = String.raw`${t.columns[j]!.latex}\ \text{no básica}:\ ${reduced.toLatex()} - d ${max ? String.raw`\ge` : String.raw`\le`} 0`;
+      detail = String.raw`${t.columns[j]!.latex}\ \text{no básica}:\ ${reduced.toLatex()} - d ${max ? TEX.ge : TEX.le} 0`;
     }
     const c = lp.objective[j]!;
     return {
@@ -172,7 +175,7 @@ export function solveSensitivity(
       return {
         title: `${v} (${range.basic ? 'básica' : 'no básica'}, c = ${lp.objective[j]!.toText()})`,
         substitution: range.detail || undefined,
-        result: String.raw`${bound(range.dLo, String.raw`-\infty`)} \le d \le ${bound(range.dHi, String.raw`\infty`)} \ \Rightarrow\ ${bound(range.lo, String.raw`-\infty`)} \le c_{${j + 1}} \le ${bound(range.hi, String.raw`\infty`)}`,
+        result: String.raw`${bound(range.dLo, TEX.negInfty)} \le d \le ${bound(range.dHi, TEX.infty)} \ \Rightarrow\ ${bound(range.lo, TEX.negInfty)} \le c_{${j + 1}} \le ${bound(range.hi, TEX.infty)}`,
       };
     }),
   });

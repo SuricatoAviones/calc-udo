@@ -43,11 +43,7 @@ export interface FirstOrderValue {
   atTime?: { t: number; x: number; other: number };
 }
 
-export type FirstOrderErrorCode = never;
-
-export function solveFirstOrder(
-  input: FirstOrderInput,
-): CalculatorResult<FirstOrderValue, FirstOrderErrorCode> {
+export function solveFirstOrder(input: FirstOrderInput): CalculatorResult<FirstOrderValue, never> {
   const rc = input.circuit === 'rc';
   const R = input.resistance;
   const S = input.storage;
@@ -62,29 +58,31 @@ export function solveFirstOrder(
   const otherUnit = rc ? 'A' : 'V';
 
   const steps: Step[] = [];
-  steps.push({
-    title: 'Variable de estado',
-    explanation: rc
-      ? 'En un circuito RC se trabaja con el voltaje del capacitor: no puede cambiar instantáneamente, así que v_C(0⁺) = v_C(0⁻).'
-      : 'En un circuito RL se trabaja con la corriente del inductor: no puede cambiar instantáneamente, así que i_L(0⁺) = i_L(0⁻).',
-    result: String.raw`${x}(0^{+}) = ${x}(0^{-}) = ${n(x0)}\ \text{${unit}}`,
-  });
-  steps.push({
-    title: 'Constante de tiempo',
-    explanation: `R es la resistencia equivalente (de Thévenin) que ve el ${rc ? 'capacitor' : 'inductor'} con las fuentes independientes apagadas.`,
-    formula: rc ? String.raw`\tau = R\,C` : String.raw`\tau = \frac{L}{R}`,
-    substitution: rc
-      ? String.raw`\tau = (${n(R)})(${n(S)})`
-      : String.raw`\tau = \frac{${n(S)}}{${n(R)}}`,
-    result: String.raw`\tau = ${n(tau)}\ \text{s}`,
-  });
-  steps.push({
-    title: 'Valor final (respuesta forzada)',
-    explanation: rc
-      ? 'Con cd y t → ∞, el capacitor se comporta como un circuito abierto.'
-      : 'Con cd y t → ∞, el inductor se comporta como un cortocircuito.',
-    result: String.raw`${x}(\infty) = ${n(xInf)}\ \text{${unit}}`,
-  });
+  steps.push(
+    {
+      title: 'Variable de estado',
+      explanation: rc
+        ? 'En un circuito RC se trabaja con el voltaje del capacitor: no puede cambiar instantáneamente, así que v_C(0⁺) = v_C(0⁻).'
+        : 'En un circuito RL se trabaja con la corriente del inductor: no puede cambiar instantáneamente, así que i_L(0⁺) = i_L(0⁻).',
+      result: String.raw`${x}(0^{+}) = ${x}(0^{-}) = ${n(x0)}\ \text{${unit}}`,
+    },
+    {
+      title: 'Constante de tiempo',
+      explanation: `R es la resistencia equivalente (de Thévenin) que ve el ${rc ? 'capacitor' : 'inductor'} con las fuentes independientes apagadas.`,
+      formula: rc ? String.raw`\tau = R\,C` : String.raw`\tau = \frac{L}{R}`,
+      substitution: rc
+        ? String.raw`\tau = (${n(R)})(${n(S)})`
+        : String.raw`\tau = \frac{${n(S)}}{${n(R)}}`,
+      result: String.raw`\tau = ${n(tau)}\ \text{s}`,
+    },
+    {
+      title: 'Valor final (respuesta forzada)',
+      explanation: rc
+        ? 'Con cd y t → ∞, el capacitor se comporta como un circuito abierto.'
+        : 'Con cd y t → ∞, el inductor se comporta como un cortocircuito.',
+      result: String.raw`${x}(\infty) = ${n(xInf)}\ \text{${unit}}`,
+    },
+  );
 
   const delta = x0 - xInf;
   const pieces: TimePiece[] = [
@@ -98,23 +96,25 @@ export function solveFirstOrder(
       { coef: delta, body: `e^{-t/${n(tau)}}` },
     ].filter((term) => term.coef !== 0),
   );
-  steps.push({
-    title: 'Respuesta completa',
-    explanation:
-      'Es la suma de la respuesta forzada (el valor final) y la natural, una exponencial que arranca en x(0⁺) − x(∞) y se extingue con la constante de tiempo.',
-    formula: String.raw`${x}(t) = ${x}(\infty) + \left[${x}(0^{+}) - ${x}(\infty)\right]e^{-t/\tau}`,
-    substitution: String.raw`${x}(t) = ${n(xInf)} + \left[${n(x0)} - (${n(xInf)})\right]e^{-t/${n(tau)}}`,
-    result: String.raw`${x}(t) = ${tauForm} = ${tex}\ \text{${unit}},\quad t > 0`,
-  });
-  steps.push({
-    title: 'Respuesta natural y forzada',
-    result: String.raw`${x}_{f} = ${n(xInf)},\qquad ${x}_{n}(t) = ${joinTerms(
-      piecesLatexTerms(
-        pieces.filter((p) => p.sigma !== 0),
-        't',
-      ),
-    )}`,
-  });
+  steps.push(
+    {
+      title: 'Respuesta completa',
+      explanation:
+        'Es la suma de la respuesta forzada (el valor final) y la natural, una exponencial que arranca en x(0⁺) − x(∞) y se extingue con la constante de tiempo.',
+      formula: String.raw`${x}(t) = ${x}(\infty) + \left[${x}(0^{+}) - ${x}(\infty)\right]e^{-t/\tau}`,
+      substitution: String.raw`${x}(t) = ${n(xInf)} + \left[${n(x0)} - (${n(xInf)})\right]e^{-t/${n(tau)}}`,
+      result: String.raw`${x}(t) = ${tauForm} = ${tex}\ \text{${unit}},\quad t > 0`,
+    },
+    {
+      title: 'Respuesta natural y forzada',
+      result: String.raw`${x}_{f} = ${n(xInf)},\qquad ${x}_{n}(t) = ${joinTerms(
+        piecesLatexTerms(
+          pieces.filter((p) => p.sigma !== 0),
+          't',
+        ),
+      )}`,
+    },
+  );
 
   // i_C = C dv_C/dt = (x∞ − x0)/R e^{−t/τ};  v_L = L di_L/dt = R(x∞ − x0) e^{−t/τ}.
   const otherAmplitude = rc ? (xInf - x0) / R : R * (xInf - x0);
@@ -219,11 +219,7 @@ export function solveFirstOrder(
   };
 }
 
-export const respuestaPrimerOrden: Calculator<
-  FirstOrderInput,
-  FirstOrderValue,
-  FirstOrderErrorCode
-> = {
+export const respuestaPrimerOrden: Calculator<FirstOrderInput, FirstOrderValue, never> = {
   meta: {
     id: 'respuesta-primer-orden',
     title: 'Circuitos de primer orden (RC y RL)',

@@ -82,14 +82,10 @@ export interface MeanTestValue {
   interval: [number, number] | null;
 }
 
-export type MeanTestErrorCode = never;
-
 const n = (v: number) => toLatexNumber(v, 6);
 const op = (v: number) => toLatexOperand(v, 6);
 
-export function solveMeanTest(
-  input: MeanTestInput,
-): CalculatorResult<MeanTestValue, MeanTestErrorCode> {
+export function solveMeanTest(input: MeanTestInput): CalculatorResult<MeanTestValue, never> {
   const known = input.variance === 'conocida';
   const steps: Step[] = [
     {
@@ -192,7 +188,7 @@ export function solveMeanTest(
   };
 }
 
-export const meanTest: Calculator<MeanTestInput, MeanTestValue, MeanTestErrorCode> = {
+export const meanTest: Calculator<MeanTestInput, MeanTestValue, never> = {
   meta: {
     id: 'prueba-de-hipotesis-media',
     title: 'Prueba de hipótesis sobre la media',

@@ -54,7 +54,7 @@ const ELEMENTS: Record<ComponentKind, { name: string; unit: string; convention: 
 };
 
 /** Tecla o combinación: `Ctrl + Z` se dibuja como dos teclas. */
-function Keys({ combo }: { combo: string }) {
+function Keys({ combo }: Readonly<{ combo: string }>) {
   const parts = combo.split(' + ');
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
@@ -70,7 +70,7 @@ function Keys({ combo }: { combo: string }) {
   );
 }
 
-function Tip({ title, children }: { title: string; children: ReactNode }) {
+function Tip({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
     <li className="bg-muted/30 rounded-md border p-3">
       <p className="text-sm font-medium">{title}</p>
@@ -79,7 +79,7 @@ function Tip({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function ShortcutGroup({ title, items }: { title: string; items: [string, string][] }) {
+function ShortcutGroup({ title, items }: Readonly<{ title: string; items: [string, string][] }>) {
   return (
     <div className="rounded-md border">
       <p className="bg-muted/50 border-b px-3 py-1.5 text-xs font-semibold tracking-wide uppercase">
@@ -129,10 +129,10 @@ function useCoarsePointer(): boolean {
 export function BuilderGuide({
   kinds,
   canSimulate,
-}: {
+}: Readonly<{
   kinds: readonly ComponentKind[];
   canSimulate: boolean;
-}) {
+}>) {
   const id = useId();
   const [open, setOpen] = useState(true);
   const [chosenTab, setTab] = useState<Tab | null>(null);

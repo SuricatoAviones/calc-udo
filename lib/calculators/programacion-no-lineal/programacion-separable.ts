@@ -15,7 +15,7 @@
  */
 import { z } from 'zod';
 import { Rational } from '@/lib/math/rational';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import type { ParsedExpression } from '@/lib/math/expression';
 import {
   emptyTrace,
@@ -370,7 +370,7 @@ export function solveSeparable(input: SeparableInput): Result {
     const adjacent =
       positive.length <= 1 || (positive.length === 2 && positive[1]! - positive[0]! === 1);
     if (adjacent) return null;
-    return String.raw`\text{quedarían positivos } ${positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(String.raw`,\ `)} \text{, que no son adyacentes}`;
+    return String.raw`\text{quedarían positivos } ${positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(TEX.listSep)} \text{, que no son adyacentes}`;
   };
   const run = runRestrictedSimplex(start, admissible);
   const trace = restrictedTrace(run, 'separable');
@@ -438,7 +438,7 @@ export function solveSeparable(input: SeparableInput): Result {
             .join(' + ')}`,
       )
       .join(String.raw` \\ `),
-    result: String.raw`X \approx \left(${x.map((v) => n(v, 8)).join(String.raw`,\ `)}\right), \quad z_{\text{aprox}} = ${n(approximateObjective, 8)}, \quad f(X) = ${n(trueObjective, 8)}`,
+    result: String.raw`X \approx \left(${x.map((v) => n(v, 8)).join(TEX.listSep)}\right), \quad z_{\text{aprox}} = ${n(approximateObjective, 8)}, \quad f(X) = ${n(trueObjective, 8)}`,
   });
 
   return {
@@ -447,7 +447,7 @@ export function solveSeparable(input: SeparableInput): Result {
     summary: [
       {
         label: 'Solución aproximada',
-        value: String.raw`X \approx \left(${x.map((v) => n(v, 6)).join(String.raw`,\ `)}\right)`,
+        value: String.raw`X \approx \left(${x.map((v) => n(v, 6)).join(TEX.listSep)}\right)`,
         emphasis: true,
       },
       {

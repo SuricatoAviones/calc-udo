@@ -66,7 +66,7 @@ export function TableField({
   rowName,
   min = 1,
   max = 30,
-}: TableFieldProps) {
+}: Readonly<TableFieldProps>) {
   const { control, register, formState } = useFormContext();
   const { fields, append, remove } = useFieldArray({ control, name });
   const { errors } = formState;

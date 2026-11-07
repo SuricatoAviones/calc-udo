@@ -23,7 +23,7 @@ import {
 } from '@/lib/math/distributions';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import { normalDensity, standardNormalCdf, standardNormalQuantile } from '@/lib/math/normal';
-import type { Latex, Series, Step, SummaryItem } from '../types';
+import type { Series, Step, SummaryItem } from '../types';
 
 export const alternatives = ['distinto', 'menor', 'mayor'] as const;
 export type Alternative = (typeof alternatives)[number];
@@ -45,24 +45,28 @@ export type TestStatistic =
 
 const n = (v: number) => toLatexNumber(v, 6);
 
-export const RELATION: Record<Alternative, Latex> = {
+export const RELATION: Record<Alternative, string> = {
   distinto: String.raw`\neq`,
   menor: '<',
   mayor: '>',
 };
 
-export function hypothesesLatex(parameter: Latex, value: Latex, alternative: Alternative): Latex {
+export function hypothesesLatex(
+  parameter: string,
+  value: string,
+  alternative: Alternative,
+): string {
   return String.raw`H_0\!: ${parameter} = ${value}, \qquad H_1\!: ${parameter} ${RELATION[alternative]} ${value}`;
 }
 
 interface Distribution {
-  symbol: Latex;
+  symbol: string;
   name: string;
   cdf(x: number): number;
   quantile(p: number): number;
   density(x: number): number;
   /** Valor crítico con área `area` a la derecha, en notación del libro. */
-  criticalName(area: number): Latex;
+  criticalName(area: number): string;
   symmetric: boolean;
   support: [number, number];
 }
@@ -159,8 +163,8 @@ export function testDecision({
   const d = distribution(statistic);
   const s = d.symbol;
   let critical: number[];
-  let region: Latex;
-  let criticalTex: Latex;
+  let region: string;
+  let criticalTex: string;
   let inRegion: (x: number) => boolean;
   if (alternative === 'distinto') {
     const lower = d.quantile(alpha / 2);

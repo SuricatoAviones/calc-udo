@@ -8,12 +8,11 @@
  * 3. Comprobación: se sustituye x en las ecuaciones originales.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
   type CalculatorResult,
-  type Latex,
   type Step,
   type SummaryItem,
 } from '../types';
@@ -50,7 +49,7 @@ export type GaussEliminationErrorCode = 'singular' | 'zero-pivot';
 const n = (v: number) => toLatexNumber(v, MATRIX_DIGITS);
 
 /** Una ecuación lineal en LaTeX: `3x_1 - 0.1x_2 - 0.2x_3 = 7.85`. */
-export function linearEquationLatex(coefficients: number[], rhs: number, variable = 'x'): Latex {
+export function linearEquationLatex(coefficients: number[], rhs: number, variable = 'x'): string {
   const terms: string[] = [];
   coefficients.forEach((a, j) => {
     if (a === 0) return;
@@ -76,7 +75,7 @@ export function solveGaussElimination(
     {
       title: 'Sistema de ecuaciones',
       explanation: `${size} ecuaciones con ${size} incógnitas, escritas como la matriz aumentada [A | b].`,
-      formula: String.raw`\begin{aligned} ${system.map((row) => linearEquationLatex(row.slice(0, size), row[size]!).replace('=', '&=')).join(String.raw` \\ `)} \end{aligned}`,
+      formula: String.raw`\begin{aligned} ${system.map((row) => linearEquationLatex(row.slice(0, size), row[size]!).replace('=', '&=')).join(TEX.newline)} \end{aligned}`,
       result: String.raw`[A \mid b] = ${texAugmented(system, 1)}`,
     },
   ];
