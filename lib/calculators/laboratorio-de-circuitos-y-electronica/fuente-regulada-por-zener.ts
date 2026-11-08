@@ -74,6 +74,101 @@ export interface ZenerSupplyValue {
 
 export type ZenerSupplyErrorCode = 'sin-tension';
 
+/**
+ * Corriente que descarga el condensador entre picos, estimada con la tensión de pico (Malvino,
+ * ejemplo 5-9): la de la resistencia de drenaje, si la hay, más la de la rama R_S–Zener–carga.
+ */
+function filterCurrent(input: ZenerSupplyInput, vp: number): { idc: number; step: Step } {
+  const { rs, vz, rl, bleeder } = input;
+  const zenerAtPeak = (vp * rl) / (rs + rl) >= vz;
+  const is = zenerAtPeak ? (vp - vz) / rs : vp / (rs + rl);
+  const ib = bleeder === undefined ? 0 : vp / bleeder;
+  const idc = is + ib;
+  const withBleeder = bleeder !== undefined;
+  const bleederFormula = withBleeder ? [String.raw`I_{dren} = \frac{V_p}{R_{dren}}`] : [];
+  const bleederSubstitution = withBleeder
+    ? [String.raw`I_{dren} = \frac{${n(vp)}}{${n(bleeder)}}`]
+    : [];
+  const bleederResult = withBleeder ? String.raw`I_{dren} = ${engTex(ib, 'A')},\quad ` : '';
+  const zenerNote = zenerAtPeak
+    ? ''
+    : ' Con el pico, el Zener no alcanza la ruptura: la rama es R_S en serie con R_L.';
+  return {
+    idc,
+    step: {
+      title: 'Sección 3: filtro (corriente que entrega el condensador)',
+      explanation: `Se estima con la tensión de pico, como en Malvino (ejemplo 5-9): ${
+        withBleeder ? 'la resistencia de drenaje y ' : ''
+      }la rama R_S–Zener–carga descargan el condensador entre picos.${zenerNote}`,
+      formula: [
+        ...bleederFormula,
+        zenerAtPeak
+          ? String.raw`I_S = \frac{V_p - V_Z}{R_S}`
+          : String.raw`I_S = \frac{V_p}{R_S + R_L}`,
+        `I = ${withBleeder ? 'I_{dren} + ' : ''}I_S`,
+      ].join(String.raw`,\qquad `),
+      substitution: [
+        ...bleederSubstitution,
+        zenerAtPeak
+          ? String.raw`I_S = \frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`
+          : String.raw`I_S = \frac{${n(vp)}}{${n(rs)} + ${n(rl)}}`,
+      ].join(String.raw`,\qquad `),
+      result: String.raw`${bleederResult}I_S = ${engTex(is, 'A')},\quad I = ${engTex(idc, 'A')}`,
+    },
+  };
+}
+
+/**
+ * Rizado de salida: con R_Z, el divisor R_Z–R_S; sin R_Z, el Zener ideal lo elimina; con el
+ * Zener apagado, el divisor R_S–R_L.
+ */
+function outputRipple(
+  input: ZenerSupplyInput,
+  on: boolean,
+  vrpp: number,
+): { vrOut?: number; step?: Step; notice?: Notice } {
+  const { rs, rl } = input;
+  if (!on) return { vrOut: (rl / (rs + rl)) * vrpp };
+  if (input.rz === undefined) {
+    return {
+      notice: {
+        level: 'info',
+        message:
+          'Sin R_Z el Zener ideal elimina todo el rizado. Escribe R_Z (hoja de datos) para estimar el rizado de salida.',
+      },
+    };
+  }
+  const rip = zenerRipple(vrpp, rs, input.rz, rl);
+  return { vrOut: rip.approx, step: rip.step };
+}
+
+/** Potencia del Zener con carga y en el peor caso: la carga desconectada y la fuente en su pico. */
+function zenerPowerCheck(input: ZenerSupplyInput, pzm: number, pz: number, vp: number) {
+  const { vz, rs } = input;
+  const notices: Notice[] = [];
+  if (pz > pzm) {
+    notices.push({
+      level: 'warning',
+      message: `P_Z = ${engText(pz, 'W')} supera la potencia nominal (${engText(pzm, 'W')}). Con la carga abierta sería aún mayor.`,
+    });
+  }
+  const pzOpen = vz * ((vp - vz) / rs);
+  const step: Step = {
+    title: 'Potencia del Zener sin carga',
+    explanation: 'Si se desconecta la carga, toda la corriente de R_S pasa por el Zener.',
+    formula: String.raw`P_{Z(max)} \approx V_Z\frac{V_p - V_Z}{R_S}`,
+    substitution: String.raw`P_{Z(max)} \approx (${n(vz)})\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`,
+    result: String.raw`P_{Z(max)} \approx ${engTex(pzOpen, 'W')}\ ${pzOpen <= pzm ? TEX.le : '>'}\ P_{ZM} = ${engTex(pzm, 'W')}`,
+  };
+  if (pzOpen > pzm && pz <= pzm) {
+    notices.push({
+      level: 'warning',
+      message: 'Sin carga, el Zener disiparía más que su potencia nominal.',
+    });
+  }
+  return { step, notices };
+}
+
 export function solveZenerSupply(
   input: ZenerSupplyInput,
 ): CalculatorResult<ZenerSupplyValue, ZenerSupplyErrorCode> {
@@ -113,32 +208,9 @@ export function solveZenerSupply(
   }
 
   // Corriente que descarga el condensador entre picos (Malvino, ejemplo 5-9): drenaje + R_S.
-  const zenerAtPeak = (vp * rl) / (rs + rl) >= vz;
-  const is = zenerAtPeak ? (vp - vz) / rs : vp / (rs + rl);
-  const ib = input.bleeder !== undefined ? vp / input.bleeder : 0;
-  const idc = is + ib;
-  steps.push({
-    title: 'Sección 3: filtro (corriente que entrega el condensador)',
-    explanation: `Se estima con la tensión de pico, como en Malvino (ejemplo 5-9): ${
-      input.bleeder !== undefined ? 'la resistencia de drenaje y ' : ''
-    }la rama R_S–Zener–carga descargan el condensador entre picos.${zenerAtPeak ? '' : ' Con el pico, el Zener no alcanza la ruptura: la rama es R_S en serie con R_L.'}`,
-    formula: [
-      ...(input.bleeder !== undefined ? [String.raw`I_{dren} = \frac{V_p}{R_{dren}}`] : []),
-      zenerAtPeak
-        ? String.raw`I_S = \frac{V_p - V_Z}{R_S}`
-        : String.raw`I_S = \frac{V_p}{R_S + R_L}`,
-      `I = ${input.bleeder !== undefined ? 'I_{dren} + ' : ''}I_S`,
-    ].join(String.raw`,\qquad `),
-    substitution: [
-      ...(input.bleeder !== undefined
-        ? [String.raw`I_{dren} = \frac{${n(vp)}}{${n(input.bleeder)}}`]
-        : []),
-      zenerAtPeak
-        ? String.raw`I_S = \frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`
-        : String.raw`I_S = \frac{${n(vp)}}{${n(rs)} + ${n(rl)}}`,
-    ].join(String.raw`,\qquad `),
-    result: String.raw`${input.bleeder !== undefined ? String.raw`I_{dren} = ${engTex(ib, 'A')},\quad ` : ''}I_S = ${engTex(is, 'A')},\quad I = ${engTex(idc, 'A')}`,
-  });
+  const filter = filterCurrent(input, vp);
+  const idc = filter.idc;
+  steps.push(filter.step);
 
   const vrpp = idc / (rect.fOut * input.c);
   const vmin = vp - vrpp;
@@ -163,20 +235,10 @@ export function solveZenerSupply(
   });
   const zr = zenerFixed(vdc, rs, rl, vz, input.rz ?? 0);
   steps.push(...zr.steps);
-  let vrOut: number | undefined;
-  if (zr.on && input.rz !== undefined) {
-    const rip = zenerRipple(vrpp, rs, input.rz, rl);
-    vrOut = rip.approx;
-    steps.push(rip.step);
-  } else if (zr.on) {
-    notices.push({
-      level: 'info',
-      message:
-        'Sin R_Z el Zener ideal elimina todo el rizado. Escribe R_Z (hoja de datos) para estimar el rizado de salida.',
-    });
-  } else {
-    vrOut = (rl / (rs + rl)) * vrpp;
-  }
+  const ripple = outputRipple(input, zr.on, vrpp);
+  const vrOut = ripple.vrOut;
+  if (ripple.step) steps.push(ripple.step);
+  if (ripple.notice) notices.push(ripple.notice);
 
   const dropout = maxSeriesResistance(vmin, vz, rl);
   const regulates = vmin > vz && rs <= dropout.rsMax;
@@ -195,28 +257,10 @@ export function solveZenerSupply(
         'El regulador pierde la regulación en el valle del rizado: reduce R_S, aumenta C o usa un transformador con más tensión.',
     });
   }
-  if (input.pzm !== undefined && zr.pz > input.pzm) {
-    notices.push({
-      level: 'warning',
-      message: `P_Z = ${engText(zr.pz, 'W')} supera la potencia nominal (${engText(input.pzm, 'W')}). Con la carga abierta sería aún mayor.`,
-    });
-  }
   if (input.pzm !== undefined) {
-    // Peor caso para el Zener: la carga desconectada y la fuente en su pico.
-    const pzOpen = vz * ((vp - vz) / rs);
-    steps.push({
-      title: 'Potencia del Zener sin carga',
-      explanation: 'Si se desconecta la carga, toda la corriente de R_S pasa por el Zener.',
-      formula: String.raw`P_{Z(max)} \approx V_Z\frac{V_p - V_Z}{R_S}`,
-      substitution: String.raw`P_{Z(max)} \approx (${n(vz)})\frac{${n(vp)} - ${n(vz)}}{${n(rs)}}`,
-      result: String.raw`P_{Z(max)} \approx ${engTex(pzOpen, 'W')}\ ${pzOpen <= input.pzm ? TEX.le : '>'}\ P_{ZM} = ${engTex(input.pzm, 'W')}`,
-    });
-    if (pzOpen > input.pzm && zr.pz <= input.pzm) {
-      notices.push({
-        level: 'warning',
-        message: 'Sin carga, el Zener disiparía más que su potencia nominal.',
-      });
-    }
+    const power = zenerPowerCheck(input, input.pzm, zr.pz, vp);
+    steps.push(power.step);
+    notices.push(...power.notices);
   }
 
   const tables: ResultTable[] = [

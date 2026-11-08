@@ -78,6 +78,79 @@ export interface CeAmplifierValue {
 
 export type CeAmplifierErrorCode = 'sin-region-activa';
 
+const INACTIVE_MESSAGE = {
+  corte: 'El transistor está en corte: no hay amplificación. Revisa el divisor de voltaje.',
+  saturacion: 'El transistor está saturado: no hay amplificación lineal. Reduce R_C o aumenta R_E.',
+} as const;
+
+/** Red de ca del modelo híbrido aproximado: h_ie = βr_e y R_E1 sin puentear si la hay. */
+function acNetwork(input: CeAmplifierInput, re: number) {
+  const { beta, r1, r2, rc, re1, rl } = input;
+  return {
+    config: re1 > 0 ? ('emisor-sin-puentear' as const) : ('emisor-comun' as const),
+    h: { hi: beta * re, hr: 0, hf: beta, ho: input.ro === undefined ? 0 : 1 / input.ro },
+    rin: parallel(r1, r2),
+    rinTex: "R'",
+    rc,
+    re: re1,
+    rl,
+    rs: input.rs,
+  };
+}
+
+/**
+ * Excursión máxima sin recorte sobre la recta de carga de ca: hacia el corte la salida sube
+ * I_CQ·r_c; hacia la saturación baja V_CEQ (parte queda en R_E1 sin puentear).
+ */
+function maxSwing(dc: { ic: number; vce: number }, rcAc: number, re1: number, withLoad: boolean) {
+  const byCutoff = dc.ic * rcAc;
+  const bySaturation = (dc.vce * rcAc) / (rcAc + re1);
+  const mp = Math.min(byCutoff, bySaturation);
+  const mpp = 2 * mp;
+  const unbypassed = re1 > 0;
+  const toSaturation = unbypassed
+    ? ', v_CE solo puede bajar V_CEQ y parte de esa caída queda en R_E1'
+    : ' puede bajar V_CEQ';
+  const saturationTerm = unbypassed
+    ? String.raw`V_{CEQ}\frac{r_c}{r_c + R_{E1}} = ${n(bySaturation)}`
+    : `V_{CEQ} = ${n(dc.vce)}`;
+  const step: Step = {
+    title: 'Excursión máxima sin recorte',
+    explanation: `La señal se mueve por la recta de carga de ca (r_c = ${withLoad ? 'R_C ∥ R_L' : 'R_C'}). Hacia el corte la salida puede subir I_CQ·r_c; hacia la saturación${toSaturation}. El pico máximo es el menor de los dos.`,
+    formula: unbypassed
+      ? String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\frac{r_c}{r_c + R_{E1}}\right),\qquad MPP = 2\,MP`
+      : String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\right),\qquad MPP = 2\,MP`,
+    substitution: String.raw`I_{CQ}r_c = (${n(dc.ic)})(${n(rcAc)}) = ${n(byCutoff)}\ \text{V},\quad ${saturationTerm}\ \text{V}`,
+    result: String.raw`MP = ${n(mp)}\ \text{V},\quad MPP = ${n(mpp)}\ \text{V}`,
+  };
+  return { byCutoff, bySaturation, mp, mpp, step };
+}
+
+/** Dónde queda el punto Q respecto del centro de la recta de carga de ca. */
+function centeringMessage(byCutoff: number, bySaturation: number): string {
+  if (Math.abs(byCutoff - bySaturation) <= 0.1 * Math.max(byCutoff, bySaturation))
+    return 'El punto Q está cerca del centro de la recta de carga de ca: la excursión es casi simétrica.';
+  return byCutoff < bySaturation
+    ? 'El punto Q está por debajo del centro de la recta de carga de ca: una señal grande se recorta primero por corte. Para centrarlo, aumenta I_CQ.'
+    : 'El punto Q está por encima del centro de la recta de carga de ca: una señal grande se recorta primero por saturación. Para centrarlo, reduce I_CQ.';
+}
+
+/** Señal de salida pico a pico con la ganancia desde la fuente (o desde la base). */
+function outputSignal(input: CeAmplifierInput, gain: number, vin: number, mpp: number) {
+  const vout = Math.abs(gain) * vin;
+  const fromSource = input.rs !== undefined;
+  const step: Step = {
+    title: 'Señal de salida',
+    explanation: `Con ${engText(vin, 'V')} pico a pico ${fromSource ? 'en la fuente' : 'en la base'}.`,
+    formula: fromSource
+      ? String.raw`v_{o(pp)} = |A_{v_s}|\,v_{s(pp)}`
+      : String.raw`v_{o(pp)} = |A_v|\,v_{i(pp)}`,
+    substitution: `v_{o(pp)} = (${n(Math.abs(gain))})(${n(vin)})`,
+    result: String.raw`v_{o(pp)} = ${n(vout)}\ \text{V}\ ${vout <= mpp ? TEX.le : '>'}\ MPP`,
+  };
+  return { vout, step };
+}
+
 export function solveCeAmplifier(
   input: CeAmplifierInput,
 ): CalculatorResult<CeAmplifierValue, CeAmplifierErrorCode> {
@@ -104,10 +177,7 @@ export function solveCeAmplifier(
   });
   steps.push(...dc.steps);
   if (dc.region !== 'activa') {
-    const message =
-      dc.region === 'corte'
-        ? 'El transistor está en corte: no hay amplificación. Revisa el divisor de voltaje.'
-        : 'El transistor está saturado: no hay amplificación lineal. Reduce R_C o aumenta R_E.';
+    const message = INACTIVE_MESSAGE[dc.region];
     return {
       ok: false,
       error: { code: 'sin-region-activa', message },
@@ -140,16 +210,7 @@ export function solveCeAmplifier(
       explanation: `Para la señal, C_E cortocircuita R_E2${re1 > 0 ? ' y R_E1 queda sin puentear en el emisor' : ''}; R₁ y R₂ quedan en paralelo (R′ = ${engText(parallel(r1, r2), 'Ω')}).`,
     },
   );
-  const ac = approxAmplifier({
-    config: re1 > 0 ? 'emisor-sin-puentear' : 'emisor-comun',
-    h: { hi: beta * re, hr: 0, hf: beta, ho: input.ro !== undefined ? 1 / input.ro : 0 },
-    rin: parallel(r1, r2),
-    rinTex: "R'",
-    rc,
-    re: re1,
-    rl,
-    rs: input.rs,
-  });
+  const ac = approxAmplifier(acNetwork(input, re));
   steps.push(...ac.steps);
   if (re1 > 0 && input.ro !== undefined) {
     notices.push({
@@ -159,53 +220,17 @@ export function solveCeAmplifier(
   }
 
   // Recta de carga de ca y excursión máxima (Malvino, sec. 11-2).
-  const rcAc = rl !== undefined ? parallel(rc, rl) : rc;
-  const byCutoff = dc.ic * rcAc;
-  const bySaturation = (dc.vce * rcAc) / (rcAc + re1);
-  const mp = Math.min(byCutoff, bySaturation);
-  const mpp = 2 * mp;
-  steps.push({
-    title: 'Excursión máxima sin recorte',
-    explanation: `La señal se mueve por la recta de carga de ca (r_c = ${rl !== undefined ? 'R_C ∥ R_L' : 'R_C'}). Hacia el corte la salida puede subir I_CQ·r_c; hacia la saturación${
-      re1 > 0
-        ? ', v_CE solo puede bajar V_CEQ y parte de esa caída queda en R_E1'
-        : ' puede bajar V_CEQ'
-    }. El pico máximo es el menor de los dos.`,
-    formula:
-      re1 > 0
-        ? String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\frac{r_c}{r_c + R_{E1}}\right),\qquad MPP = 2\,MP`
-        : String.raw`MP = \min\left(I_{CQ}r_c,\ V_{CEQ}\right),\qquad MPP = 2\,MP`,
-    substitution: String.raw`I_{CQ}r_c = (${n(dc.ic)})(${n(rcAc)}) = ${n(byCutoff)}\ \text{V},\quad ${
-      re1 > 0
-        ? String.raw`V_{CEQ}\frac{r_c}{r_c + R_{E1}} = ${n(bySaturation)}`
-        : `V_{CEQ} = ${n(dc.vce)}`
-    }\ \text{V}`,
-    result: String.raw`MP = ${n(mp)}\ \text{V},\quad MPP = ${n(mpp)}\ \text{V}`,
-  });
-  const centered = Math.abs(byCutoff - bySaturation) <= 0.1 * Math.max(byCutoff, bySaturation);
-  notices.push({
-    level: 'info',
-    message: centered
-      ? 'El punto Q está cerca del centro de la recta de carga de ca: la excursión es casi simétrica.'
-      : byCutoff < bySaturation
-        ? 'El punto Q está por debajo del centro de la recta de carga de ca: una señal grande se recorta primero por corte. Para centrarlo, aumenta I_CQ.'
-        : 'El punto Q está por encima del centro de la recta de carga de ca: una señal grande se recorta primero por saturación. Para centrarlo, reduce I_CQ.',
-  });
+  const rcAc = rl === undefined ? rc : parallel(rc, rl);
+  const swing = maxSwing(dc, rcAc, re1, rl !== undefined);
+  steps.push(swing.step);
+  const { byCutoff, bySaturation, mpp } = swing;
+  notices.push({ level: 'info', message: centeringMessage(byCutoff, bySaturation) });
 
   let vout: number | undefined;
   if (input.vin !== undefined) {
-    const gain = ac.avs ?? ac.av;
-    vout = Math.abs(gain) * input.vin;
-    steps.push({
-      title: 'Señal de salida',
-      explanation: `Con ${engText(input.vin, 'V')} pico a pico ${input.rs !== undefined ? 'en la fuente' : 'en la base'}.`,
-      formula:
-        input.rs !== undefined
-          ? String.raw`v_{o(pp)} = |A_{v_s}|\,v_{s(pp)}`
-          : String.raw`v_{o(pp)} = |A_v|\,v_{i(pp)}`,
-      substitution: `v_{o(pp)} = (${n(Math.abs(gain))})(${n(input.vin)})`,
-      result: String.raw`v_{o(pp)} = ${n(vout)}\ \text{V}\ ${vout <= mpp ? TEX.le : '>'}\ MPP`,
-    });
+    const output = outputSignal(input, ac.avs ?? ac.av, input.vin, mpp);
+    vout = output.vout;
+    steps.push(output.step);
     if (vout > mpp) {
       notices.push({
         level: 'warning',

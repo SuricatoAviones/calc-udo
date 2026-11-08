@@ -116,93 +116,241 @@ const polar = (z: Complex) => {
   return toLatexPolar(tidy, 5);
 };
 
-export function solveResonance(input: ResonanceInput): CalculatorResult<ResonanceValue, never> {
+/** ω₀, Q₀, α y la resistencia equivalente de cada circuito. */
+interface ResonancePoint {
+  w0: number;
+  q0: number;
+  alpha: number;
+  rEq: number;
+  qCoil?: number;
+}
+
+/** Bobina real en paralelo con C (y R₂): R₁ desplaza la resonancia y se pasa a R_p ∥ L_p. */
+function practicalResonance(input: ResonanceInput, steps: Step[]): ResonancePoint {
+  const { l, c } = input;
+  const w0 = Math.sqrt(1 / (l * c) - (input.rl / l) ** 2);
+  steps.push({
+    title: 'Frecuencia de resonancia',
+    explanation:
+      'La resistencia R₁ de la bobina desplaza la resonancia: se anula la parte imaginaria de Y = 1/R₂ + jωC + 1/(R₁ + jωL).',
+    formula: String.raw`\omega_0 = \sqrt{\frac{1}{LC} - \left(\frac{R_1}{L}\right)^{2}}`,
+    substitution: String.raw`\omega_0 = \sqrt{\frac{1}{(${n(l)})(${n(c)})} - \left(\frac{${n(input.rl)}}{${n(l)}}\right)^{2}}`,
+    result: String.raw`\omega_0 = ${n(w0)}\ \text{rad/s},\quad f_0 = ${n(w0 / TWO_PI)}\ \text{Hz}`,
+  });
+  const qCoil = (w0 * l) / input.rl;
+  const rp = input.rl * (1 + qCoil * qCoil);
+  const lp = l * (1 + 1 / (qCoil * qCoil));
+  const withR2 = input.r !== undefined;
+  const rEq = withR2 ? parallel(rp, input.r!) : rp;
+  const q0 = w0 * rEq * c;
+  steps.push(
+    {
+      title: 'Equivalente en paralelo de la bobina',
+      explanation:
+        'A la frecuencia de resonancia, R₁ en serie con L equivale a R_p en paralelo con L_p, con el mismo Q (Hayt, ecs. 22 y 23). Así el circuito queda como un RLC paralelo ideal.',
+      formula: String.raw`Q = \frac{\omega_0 L}{R_1},\qquad R_p = R_1(1 + Q^{2}),\qquad L_p = L\left(1 + \frac{1}{Q^{2}}\right)`,
+      substitution: String.raw`Q = \frac{(${n(w0)})(${n(l)})}{${n(input.rl)}}`,
+      result: String.raw`Q = ${n(qCoil)},\quad R_p = ${engTex(rp, 'Ω')},\quad L_p = ${engTex(lp, 'H')}`,
+    },
+    {
+      title: 'Factor de calidad del circuito',
+      explanation: withR2
+        ? 'R_p queda en paralelo con R₂.'
+        : 'Sin resistencia en paralelo, toda la pérdida está en la bobina.',
+      formula: withR2
+        ? String.raw`R = R_p \parallel R_2,\qquad Q_0 = \omega_0 R C`
+        : String.raw`Q_0 = \omega_0 R_p C`,
+      substitution: `Q_0 = (${n(w0)})(${n(rEq)})(${n(c)})`,
+      result: String.raw`R = ${engTex(rEq, 'Ω')},\quad Q_0 = ${n(q0)}`,
+    },
+  );
+  return { w0, q0, alpha: 1 / (2 * rEq * c), rEq, qCoil };
+}
+
+/** RLC serie o paralelo ideal: ω₀ = 1/√(LC). */
+function idealResonance(input: ResonanceInput, steps: Step[]): ResonancePoint {
   const { type, l, c } = input;
+  const r = input.r!;
+  const w0 = 1 / Math.sqrt(l * c);
+  steps.push({
+    title: 'Frecuencia de resonancia',
+    explanation:
+      type === 'serie'
+        ? 'La reactancia de la bobina y la del condensador se cancelan: la impedancia es puramente resistiva y mínima.'
+        : 'Las susceptancias de la bobina y del condensador se cancelan: la admitancia es puramente conductiva y mínima (impedancia máxima).',
+    formula: String.raw`\omega_0 = \frac{1}{\sqrt{LC}},\qquad f_0 = \frac{\omega_0}{2\pi}`,
+    substitution: String.raw`\omega_0 = \frac{1}{\sqrt{(${n(l)})(${n(c)})}}`,
+    result: String.raw`\omega_0 = ${n(w0)}\ \text{rad/s},\quad f_0 = ${n(w0 / TWO_PI)}\ \text{Hz}`,
+  });
+  if (type === 'serie') {
+    const q0 = (w0 * l) / r;
+    const alpha = r / (2 * l);
+    steps.push({
+      title: 'Factor de calidad',
+      formula: String.raw`Q_0 = \frac{\omega_0 L}{R} = \frac{1}{R}\sqrt{\frac{L}{C}},\qquad \alpha = \frac{R}{2L}`,
+      substitution: String.raw`Q_0 = \frac{(${n(w0)})(${n(l)})}{${n(r)}}`,
+      result: String.raw`Q_0 = ${n(q0)},\quad \alpha = ${n(alpha)}\ \text{Np/s}`,
+    });
+    return { w0, q0, alpha, rEq: r };
+  }
+  const q0 = w0 * r * c;
+  const alpha = 1 / (2 * r * c);
+  steps.push({
+    title: 'Factor de calidad',
+    formula: String.raw`Q_0 = \omega_0 R C = R\sqrt{\frac{C}{L}},\qquad \alpha = \frac{1}{2RC}`,
+    substitution: `Q_0 = (${n(w0)})(${n(r)})(${n(c)})`,
+    result: String.raw`Q_0 = ${n(q0)},\quad \alpha = ${n(alpha)}\ \text{Np/s}`,
+  });
+  return { w0, q0, alpha, rEq: r };
+}
+
+const RESONANT_IMPEDANCE: Record<ResonanceInput['type'], string> = {
+  serie:
+    'En resonancia la impedancia serie es solo R; V_L y V_C valen Q₀ veces la tensión de la fuente.',
+  paralelo:
+    'En resonancia la impedancia paralelo es solo R; I_L e I_C valen Q₀ veces la corriente de la fuente.',
+  'paralelo-practico':
+    'En resonancia la impedancia es real, pero no es la máxima: el máximo está en ω_m (ver abajo).',
+};
+
+/** Máximo de |Z| por búsqueda de sección áurea entre ω₀/4 y 4/√(LC) (|Z| es unimodal ahí). */
+function maxImpedance(input: ResonanceInput, w0: number): number {
+  let lo = w0 / 4;
+  let hi = 4 / Math.sqrt(input.l * input.c);
+  const g = (Math.sqrt(5) - 1) / 2;
+  const f = (w: number) => abs(impedance(input, w));
+  let x1 = hi - g * (hi - lo);
+  let x2 = lo + g * (hi - lo);
+  for (let i = 0; i < 200; i++) {
+    if (f(x1) < f(x2)) {
+      lo = x1;
+      x1 = x2;
+      x2 = lo + g * (hi - lo);
+    } else {
+      hi = x2;
+      x2 = x1;
+      x1 = hi - g * (hi - lo);
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * Respuesta a la frecuencia pedida: impedancia exacta, aproximación de alto Q con N y, si hay
+ * fuente, la corriente (serie) o la tensión (paralelo).
+ */
+function responseAt(
+  input: ResonanceInput,
+  point: { w0: number; bw: number; rEq: number },
+  steps: Step[],
+) {
+  const { type } = input;
+  const { w0, bw, rEq } = point;
+  const freq = input.freq!;
+  const w = input.freqUnit === 'Hz' ? freq * TWO_PI : freq;
+  const zAt = impedance(input, w);
+  const nOff = (w - w0) / (bw / 2);
+  const zApprox = type === 'serie' ? complex(rEq, rEq * nOff) : div(complex(rEq), complex(1, nOff));
+  const yAt = div(ONE, zAt);
+  const unit = input.freqUnit === 'Hz' ? 'Hz' : '';
+  const radSuffix = input.freqUnit === 'Hz' ? '' : ' rad/s';
+  steps.push({
+    title: `Respuesta a ${engText(freq, unit)}${radSuffix}`,
+    explanation:
+      'Valor exacto con la impedancia de los tres elementos, y aproximación de alto Q con N, el número de medios anchos de banda que separan ω de ω₀.',
+    formula:
+      type === 'serie'
+        ? String.raw`N = \frac{\omega - \omega_0}{B/2},\qquad Z \approx R(1 + jN) = R\sqrt{1 + N^{2}}\angle \tan^{-1}N`
+        : String.raw`N = \frac{\omega - \omega_0}{B/2},\qquad Y \approx \frac{1}{R}(1 + jN) = \frac{1}{R}\sqrt{1 + N^{2}}\angle \tan^{-1}N`,
+    substitution: String.raw`N = \frac{${n(w)} - ${n(w0)}}{${n(bw / 2)}} = ${n(nOff)}`,
+    result:
+      type === 'serie'
+        ? String.raw`Z = ${polar(zAt)}\ \Omega\quad(\text{aprox.: } ${polar(zApprox)}\ \Omega)`
+        : String.raw`Y = ${polar(yAt)}\ \text{S}\quad(\text{aprox.: } ${polar(div(ONE, zApprox))}\ \text{S})`,
+  });
+  if (input.source === undefined) return { zAt, zApprox, nOff, response: undefined };
+  if (type === 'serie') {
+    const response = div(complex(input.source), zAt);
+    steps.push({
+      title: 'Corriente',
+      formula: String.raw`I = \frac{V}{Z}`,
+      substitution: String.raw`I = \frac{${n(input.source)}}{${polar(zAt)}}`,
+      result: String.raw`I = ${polar(response)}\ \text{A}\quad(|I| \approx ${engTex(input.source / abs(zApprox), 'A')}\ \text{con la aproximación})`,
+    });
+    return { zAt, zApprox, nOff, response };
+  }
+  const response = div(complex(input.source), yAt);
+  steps.push({
+    title: 'Tensión',
+    formula: String.raw`V = \frac{I}{Y}`,
+    substitution: String.raw`V = \frac{${n(input.source)}}{${polar(yAt)}}`,
+    result: String.raw`V = ${polar(response)}\ \text{V}`,
+  });
+  return { zAt, zApprox, nOff, response };
+}
+
+/** En resonancia el serie amplifica la tensión en L y C, y el paralelo la corriente. */
+function amplificationStep(type: ResonanceInput['type'], amplified: number): Step {
+  if (type === 'serie') {
+    return {
+      title: 'Tensiones en L y C en resonancia',
+      explanation: 'El circuito serie amplifica la tensión: Q₀ veces la de la fuente.',
+      formula: '|V_L| = |V_C| = Q_0|V|',
+      result: `|V_L| = |V_C| = ${engTex(amplified, 'V')}`,
+    };
+  }
+  return {
+    title: 'Corrientes en L y C en resonancia',
+    explanation: 'El circuito paralelo amplifica la corriente: Q₀ veces la de la fuente.',
+    formula: '|I_L| = |I_C| = Q_0|I|',
+    result: `|I_L| = |I_C| = ${engTex(amplified, 'A')}`,
+  };
+}
+
+/** |Z| alrededor de la resonancia, con ω₀, ω₁ y ω₂ marcados. */
+function impedanceSeries(
+  input: ResonanceInput,
+  band: { w0: number; bw: number; w1: number; w2: number },
+  toUnit: (w: number) => number,
+): Series {
+  const { w0, bw, w1, w2 } = band;
+  const span = Math.max(3 * bw, 0.6 * w0);
+  const from = Math.max(w0 - span, w0 / 20);
+  const to = w0 + span;
+  const points = Array.from({ length: 161 }, (_, i) => {
+    const w = from + ((to - from) * i) / 160;
+    return { x: toUnit(w), y: abs(impedance(input, w)) };
+  });
+  const marks = [w0, w1, w2].map((w) => ({ x: toUnit(w), y: abs(impedance(input, w)) }));
+  return {
+    id: 'impedancia',
+    title: 'Magnitud de la impedancia de entrada',
+    xLabel: input.freqUnit === 'Hz' ? 'f (Hz)' : 'ω (rad/s)',
+    yLabel: '|Z| (Ω)',
+    label: '|Z|',
+    points,
+    scatter: { label: 'ω₀, ω₁ y ω₂', points: marks },
+  };
+}
+
+/** Corriente (serie) o tensión (paralelo) a la frecuencia pedida, para el resumen. */
+function responseSummary(type: ResonanceInput['type'], response: Complex): SummaryItem {
+  if (type === 'serie') {
+    return { label: 'Corriente', value: String.raw`I = ${polar(response)}\ \text{A}` };
+  }
+  return { label: 'Tensión', value: String.raw`V = ${polar(response)}\ \text{V}` };
+}
+
+export function solveResonance(input: ResonanceInput): CalculatorResult<ResonanceValue, never> {
+  const { type } = input;
   const steps: Step[] = [];
   const notices: Notice[] = [];
   const toUnit = (w: number) => (input.freqUnit === 'Hz' ? w / TWO_PI : w);
   const unitTex = input.freqUnit === 'Hz' ? String.raw`\text{Hz}` : String.raw`\text{rad/s}`;
   const freqTex = (w: number) => String.raw`${n(toUnit(w), 6)}\ ${unitTex}`;
 
-  let w0: number;
-  let q0: number;
-  let alpha: number;
-  let qCoil: number | undefined;
-  let rEq: number;
-
-  if (type === 'paralelo-practico') {
-    w0 = Math.sqrt(1 / (l * c) - (input.rl / l) ** 2);
-    steps.push({
-      title: 'Frecuencia de resonancia',
-      explanation:
-        'La resistencia R₁ de la bobina desplaza la resonancia: se anula la parte imaginaria de Y = 1/R₂ + jωC + 1/(R₁ + jωL).',
-      formula: String.raw`\omega_0 = \sqrt{\frac{1}{LC} - \left(\frac{R_1}{L}\right)^{2}}`,
-      substitution: String.raw`\omega_0 = \sqrt{\frac{1}{(${n(l)})(${n(c)})} - \left(\frac{${n(input.rl)}}{${n(l)}}\right)^{2}}`,
-      result: String.raw`\omega_0 = ${n(w0)}\ \text{rad/s},\quad f_0 = ${n(w0 / TWO_PI)}\ \text{Hz}`,
-    });
-    qCoil = (w0 * l) / input.rl;
-    const rp = input.rl * (1 + qCoil * qCoil);
-    const lp = l * (1 + 1 / (qCoil * qCoil));
-    rEq = input.r !== undefined ? parallel(rp, input.r) : rp;
-    q0 = w0 * rEq * c;
-    alpha = 1 / (2 * rEq * c);
-    steps.push(
-      {
-        title: 'Equivalente en paralelo de la bobina',
-        explanation:
-          'A la frecuencia de resonancia, R₁ en serie con L equivale a R_p en paralelo con L_p, con el mismo Q (Hayt, ecs. 22 y 23). Así el circuito queda como un RLC paralelo ideal.',
-        formula: String.raw`Q = \frac{\omega_0 L}{R_1},\qquad R_p = R_1(1 + Q^{2}),\qquad L_p = L\left(1 + \frac{1}{Q^{2}}\right)`,
-        substitution: String.raw`Q = \frac{(${n(w0)})(${n(l)})}{${n(input.rl)}}`,
-        result: String.raw`Q = ${n(qCoil)},\quad R_p = ${engTex(rp, 'Ω')},\quad L_p = ${engTex(lp, 'H')}`,
-      },
-      {
-        title: 'Factor de calidad del circuito',
-        explanation:
-          input.r !== undefined
-            ? 'R_p queda en paralelo con R₂.'
-            : 'Sin resistencia en paralelo, toda la pérdida está en la bobina.',
-        formula:
-          input.r !== undefined
-            ? String.raw`R = R_p \parallel R_2,\qquad Q_0 = \omega_0 R C`
-            : String.raw`Q_0 = \omega_0 R_p C`,
-        substitution: `Q_0 = (${n(w0)})(${n(rEq)})(${n(c)})`,
-        result: String.raw`R = ${engTex(rEq, 'Ω')},\quad Q_0 = ${n(q0)}`,
-      },
-    );
-  } else {
-    const r = input.r!;
-    rEq = r;
-    w0 = 1 / Math.sqrt(l * c);
-    steps.push({
-      title: 'Frecuencia de resonancia',
-      explanation:
-        type === 'serie'
-          ? 'La reactancia de la bobina y la del condensador se cancelan: la impedancia es puramente resistiva y mínima.'
-          : 'Las susceptancias de la bobina y del condensador se cancelan: la admitancia es puramente conductiva y mínima (impedancia máxima).',
-      formula: String.raw`\omega_0 = \frac{1}{\sqrt{LC}},\qquad f_0 = \frac{\omega_0}{2\pi}`,
-      substitution: String.raw`\omega_0 = \frac{1}{\sqrt{(${n(l)})(${n(c)})}}`,
-      result: String.raw`\omega_0 = ${n(w0)}\ \text{rad/s},\quad f_0 = ${n(w0 / TWO_PI)}\ \text{Hz}`,
-    });
-    if (type === 'serie') {
-      q0 = (w0 * l) / r;
-      alpha = r / (2 * l);
-      steps.push({
-        title: 'Factor de calidad',
-        formula: String.raw`Q_0 = \frac{\omega_0 L}{R} = \frac{1}{R}\sqrt{\frac{L}{C}},\qquad \alpha = \frac{R}{2L}`,
-        substitution: String.raw`Q_0 = \frac{(${n(w0)})(${n(l)})}{${n(r)}}`,
-        result: String.raw`Q_0 = ${n(q0)},\quad \alpha = ${n(alpha)}\ \text{Np/s}`,
-      });
-    } else {
-      q0 = w0 * r * c;
-      alpha = 1 / (2 * r * c);
-      steps.push({
-        title: 'Factor de calidad',
-        formula: String.raw`Q_0 = \omega_0 R C = R\sqrt{\frac{C}{L}},\qquad \alpha = \frac{1}{2RC}`,
-        substitution: `Q_0 = (${n(w0)})(${n(r)})(${n(c)})`,
-        result: String.raw`Q_0 = ${n(q0)},\quad \alpha = ${n(alpha)}\ \text{Np/s}`,
-      });
-    }
-  }
+  const { w0, q0, alpha, rEq, qCoil } =
+    type === 'paralelo-practico' ? practicalResonance(input, steps) : idealResonance(input, steps);
 
   const zeta = alpha / w0;
   const wd = alpha < w0 ? Math.sqrt(w0 * w0 - alpha * alpha) : 0;
@@ -236,12 +384,7 @@ export function solveResonance(input: ResonanceInput): CalculatorResult<Resonanc
   const z0 = impedance(input, w0);
   steps.push({
     title: 'Impedancia de entrada en resonancia',
-    explanation:
-      type === 'serie'
-        ? 'En resonancia la impedancia serie es solo R; V_L y V_C valen Q₀ veces la tensión de la fuente.'
-        : type === 'paralelo'
-          ? 'En resonancia la impedancia paralelo es solo R; I_L e I_C valen Q₀ veces la corriente de la fuente.'
-          : 'En resonancia la impedancia es real, pero no es la máxima: el máximo está en ω_m (ver abajo).',
+    explanation: RESONANT_IMPEDANCE[type],
     formula:
       type === 'serie' ? String.raw`Z(j\omega_0) = R` : String.raw`Z(j\omega_0) = 1/Y(j\omega_0)`,
     result: String.raw`Z(j\omega_0) = ${polar(z0)}\ \Omega`,
@@ -250,123 +393,26 @@ export function solveResonance(input: ResonanceInput): CalculatorResult<Resonanc
   let wm: number | undefined;
   let zMax: number | undefined;
   if (type === 'paralelo-practico') {
-    // Máximo de |Z| por búsqueda de sección áurea entre ω₀/4 y 4ω₀ (|Z| es unimodal en ese rango).
-    let lo = w0 / 4;
-    let hi = 4 / Math.sqrt(l * c);
-    const g = (Math.sqrt(5) - 1) / 2;
-    const f = (w: number) => abs(impedance(input, w));
-    let x1 = hi - g * (hi - lo);
-    let x2 = lo + g * (hi - lo);
-    for (let i = 0; i < 200; i++) {
-      if (f(x1) < f(x2)) {
-        lo = x1;
-        x1 = x2;
-        x2 = lo + g * (hi - lo);
-      } else {
-        hi = x2;
-        x2 = x1;
-        x1 = hi - g * (hi - lo);
-      }
-    }
-    wm = (lo + hi) / 2;
-    zMax = f(wm);
-    const zm = impedance(input, wm);
+    wm = maxImpedance(input, w0);
+    zMax = abs(impedance(input, wm));
     steps.push({
       title: 'Impedancia máxima',
       explanation:
         'Con la bobina real, |Z| alcanza su máximo en una frecuencia ω_m distinta de ω₀ y de 1/√(LC). Se busca numéricamente (sección áurea).',
       formula: String.raw`\omega_m = \arg\max_{\omega} |Z(j\omega)|`,
-      result: String.raw`\omega_m = ${freqTex(wm)},\quad Z(j\omega_m) = ${polar(zm)}\ \Omega`,
+      result: String.raw`\omega_m = ${freqTex(wm)},\quad Z(j\omega_m) = ${polar(impedance(input, wm))}\ \Omega`,
     });
   }
 
-  let zAt: Complex | undefined;
-  let zApprox: Complex | undefined;
-  let nOff: number | undefined;
-  let response: Complex | undefined;
-  if (input.freq !== undefined) {
-    const w = input.freqUnit === 'Hz' ? input.freq * TWO_PI : input.freq;
-    zAt = impedance(input, w);
-    nOff = (w - w0) / (bw / 2);
-    const factor = complex(1, nOff);
-    zApprox = type === 'serie' ? complex(rEq, rEq * nOff) : div(complex(rEq), factor);
-    const yAt = div(ONE, zAt);
-    steps.push({
-      title: `Respuesta a ${engText(input.freq, input.freqUnit === 'Hz' ? 'Hz' : '')}${input.freqUnit === 'Hz' ? '' : ' rad/s'}`,
-      explanation:
-        'Valor exacto con la impedancia de los tres elementos, y aproximación de alto Q con N, el número de medios anchos de banda que separan ω de ω₀.',
-      formula:
-        type === 'serie'
-          ? String.raw`N = \frac{\omega - \omega_0}{B/2},\qquad Z \approx R(1 + jN) = R\sqrt{1 + N^{2}}\angle \tan^{-1}N`
-          : String.raw`N = \frac{\omega - \omega_0}{B/2},\qquad Y \approx \frac{1}{R}(1 + jN) = \frac{1}{R}\sqrt{1 + N^{2}}\angle \tan^{-1}N`,
-      substitution: String.raw`N = \frac{${n(w)} - ${n(w0)}}{${n(bw / 2)}} = ${n(nOff)}`,
-      result:
-        type === 'serie'
-          ? String.raw`Z = ${polar(zAt)}\ \Omega\quad(\text{aprox.: } ${polar(zApprox)}\ \Omega)`
-          : String.raw`Y = ${polar(yAt)}\ \text{S}\quad(\text{aprox.: } ${polar(div(ONE, zApprox))}\ \text{S})`,
-    });
-    if (input.source !== undefined) {
-      if (type === 'serie') {
-        response = div(complex(input.source), zAt);
-        steps.push({
-          title: 'Corriente',
-          formula: String.raw`I = \frac{V}{Z}`,
-          substitution: String.raw`I = \frac{${n(input.source)}}{${polar(zAt)}}`,
-          result: String.raw`I = ${polar(response)}\ \text{A}\quad(|I| \approx ${engTex(input.source / abs(zApprox), 'A')}\ \text{con la aproximación})`,
-        });
-      } else {
-        response = div(complex(input.source), yAt);
-        steps.push({
-          title: 'Tensión',
-          formula: String.raw`V = \frac{I}{Y}`,
-          substitution: String.raw`V = \frac{${n(input.source)}}{${polar(yAt)}}`,
-          result: String.raw`V = ${polar(response)}\ \text{V}`,
-        });
-      }
-    }
-  }
+  const at = input.freq === undefined ? undefined : responseAt(input, { w0, bw, rEq }, steps);
+  const response = at?.response;
 
   if (input.source !== undefined && type !== 'paralelo-practico') {
-    const amplified = q0 * input.source;
-    steps.push({
-      title:
-        type === 'serie' ? 'Tensiones en L y C en resonancia' : 'Corrientes en L y C en resonancia',
-      explanation:
-        type === 'serie'
-          ? 'El circuito serie amplifica la tensión: Q₀ veces la de la fuente.'
-          : 'El circuito paralelo amplifica la corriente: Q₀ veces la de la fuente.',
-      formula: type === 'serie' ? '|V_L| = |V_C| = Q_0|V|' : '|I_L| = |I_C| = Q_0|I|',
-      result:
-        type === 'serie'
-          ? `|V_L| = |V_C| = ${engTex(amplified, 'V')}`
-          : `|I_L| = |I_C| = ${engTex(amplified, 'A')}`,
-    });
+    steps.push(amplificationStep(type, q0 * input.source));
   }
 
-  // Gráfica de |Z| alrededor de la resonancia.
-  const span = Math.max(3 * bw, 0.6 * w0);
-  const from = Math.max(w0 - span, w0 / 20);
-  const to = w0 + span;
-  const points: { x: number; y: number }[] = [];
-  for (let i = 0; i <= 160; i++) {
-    const w = from + ((to - from) * i) / 160;
-    points.push({ x: toUnit(w), y: abs(impedance(input, w)) });
-  }
-  const marks = [
-    { x: toUnit(w0), y: abs(z0) },
-    { x: toUnit(w1), y: abs(impedance(input, w1)) },
-    { x: toUnit(w2), y: abs(impedance(input, w2)) },
-  ];
-  const series: Series = {
-    id: 'impedancia',
-    title: 'Magnitud de la impedancia de entrada',
-    xLabel: input.freqUnit === 'Hz' ? 'f (Hz)' : 'ω (rad/s)',
-    yLabel: '|Z| (Ω)',
-    label: '|Z|',
-    points,
-    scatter: { label: 'ω₀, ω₁ y ω₂', points: marks },
-  };
-
+  const series = impedanceSeries(input, { w0, bw, w1, w2 }, toUnit);
+  const responseItem = response === undefined ? [] : [responseSummary(type, response)];
   // Las etiquetas del resumen se muestran en mayúsculas (ω se vería como Ω): el símbolo va en el valor.
   const summary: SummaryItem[] = [
     { label: 'Resonancia', value: String.raw`\omega_0 = ${n(w0)}\ \text{rad/s}`, emphasis: true },
@@ -382,17 +428,10 @@ export function solveResonance(input: ResonanceInput): CalculatorResult<Resonanc
       value: String.raw`\omega_1 = ${n(toUnit(w1))},\ \omega_2 = ${n(toUnit(w2))}\ ${unitTex}`,
     },
     { label: 'Impedancia en resonancia', value: String.raw`Z(j\omega_0) = ${polar(z0)}\ \Omega` },
-    ...(wm !== undefined
-      ? [{ label: 'Impedancia máxima', value: String.raw`\omega_m = ${freqTex(wm)}` }]
-      : []),
-    ...(response !== undefined
-      ? [
-          {
-            label: type === 'serie' ? 'Corriente' : 'Tensión',
-            value: String.raw`${type === 'serie' ? 'I' : 'V'} = ${polar(response)}\ \text{${type === 'serie' ? 'A' : 'V'}}`,
-          },
-        ]
-      : []),
+    ...(wm === undefined
+      ? []
+      : [{ label: 'Impedancia máxima', value: String.raw`\omega_m = ${freqTex(wm)}` }]),
+    ...responseItem,
   ];
 
   return {
@@ -410,9 +449,9 @@ export function solveResonance(input: ResonanceInput): CalculatorResult<Resonanc
       wd,
       zeta,
       z0,
-      zAt,
-      zApprox,
-      n: nOff,
+      zAt: at?.zAt,
+      zApprox: at?.zApprox,
+      n: at?.nOff,
       response,
       qCoil,
       wm,
