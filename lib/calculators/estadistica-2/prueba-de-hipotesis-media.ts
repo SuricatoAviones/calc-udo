@@ -85,6 +85,66 @@ export interface MeanTestValue {
 const n = (v: number) => toLatexNumber(v, 6);
 const op = (v: number) => toLatexOperand(v, 6);
 
+const SIGMA = String.raw`\sigma`;
+
+/** x̄, n y la desviación que se usa (σ si es conocida, s si no), desde los datos o el resumen. */
+function sampleSummary(
+  input: MeanTestInput,
+  known: boolean,
+  steps: Step[],
+): { xbar: number; size: number; sd: number } {
+  if (input.source !== 'datos') {
+    const xbar = input.mean!;
+    const size = input.n!;
+    const sd = input.sd!;
+    steps.push({
+      title: 'Datos',
+      result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad ${known ? SIGMA : 's'} = ${n(sd)}`,
+    });
+    return { xbar, size, sd };
+  }
+  const data = parseSample(input.data) as number[];
+  const size = data.length;
+  const xbar = mean(data);
+  const s = Math.sqrt(sampleVariance(data));
+  const sd = known ? input.sd! : s;
+  const knownNote = known ? String.raw`, \quad \sigma = ${n(sd)} \text{ (conocida)}` : '';
+  steps.push({
+    title: 'Medidas de la muestra',
+    formula: String.raw`\bar{x} = \frac{\sum x_i}{n}, \qquad s = \sqrt{\frac{\sum (x_i - \bar{x})^2}{n - 1}}`,
+    result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad s = ${n(s)}${knownNote}`,
+  });
+  return { xbar, size, sd };
+}
+
+/** Intervalo de confianza bilateral para μ, que acompaña a la prueba con H₁: μ ≠ μ₀. */
+function confidenceInterval(
+  input: MeanTestInput,
+  known: boolean,
+  { xbar, size, sd }: { xbar: number; size: number; sd: number },
+  df: number | null,
+): { interval: [number, number]; step: Step } {
+  const se = sd / Math.sqrt(size);
+  const q = known
+    ? standardNormalQuantile(1 - input.alpha / 2)
+    : studentTQuantile(1 - input.alpha / 2, df!);
+  const interval: [number, number] = [xbar - q * se, xbar + q * se];
+  const level = formatNumber((1 - input.alpha) * 100);
+  const margin = known
+    ? String.raw`z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}}`
+    : String.raw`t_{\alpha/2}\,\frac{s}{\sqrt{n}}`;
+  return {
+    interval,
+    step: {
+      title: `Intervalo de confianza de ${level} % para μ`,
+      explanation: `La prueba bilateral no rechaza H₀ exactamente cuando μ₀ = ${formatNumber(input.mu0)} está dentro de este intervalo.`,
+      formula: String.raw`\bar{x} \pm ${margin}`,
+      substitution: String.raw`${n(xbar)} \pm ${n(q)}\,\frac{${n(sd)}}{\sqrt{${size}}}`,
+      result: String.raw`${n(interval[0])} < \mu < ${n(interval[1])}`,
+    },
+  };
+}
+
 export function solveMeanTest(input: MeanTestInput): CalculatorResult<MeanTestValue, never> {
   const known = input.variance === 'conocida';
   const steps: Step[] = [
@@ -94,40 +154,19 @@ export function solveMeanTest(input: MeanTestInput): CalculatorResult<MeanTestVa
     },
   ];
 
-  let xbar: number;
-  let size: number;
-  let sd: number;
-  if (input.source === 'datos') {
-    const data = parseSample(input.data) as number[];
-    size = data.length;
-    xbar = mean(data);
-    const s = Math.sqrt(sampleVariance(data));
-    sd = known ? input.sd! : s;
-    steps.push({
-      title: 'Medidas de la muestra',
-      formula: String.raw`\bar{x} = \frac{\sum x_i}{n}, \qquad s = \sqrt{\frac{\sum (x_i - \bar{x})^2}{n - 1}}`,
-      result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad s = ${n(s)}${known ? String.raw`, \quad \sigma = ${n(sd)} \text{ (conocida)}` : ''}`,
-    });
-  } else {
-    xbar = input.mean!;
-    size = input.n!;
-    sd = input.sd!;
-    steps.push({
-      title: 'Datos',
-      result: String.raw`n = ${size}, \quad \bar{x} = ${n(xbar)}, \quad ${known ? String.raw`\sigma` : 's'} = ${n(sd)}`,
-    });
-  }
-
+  const sample = sampleSummary(input, known, steps);
+  const { xbar, size, sd } = sample;
   const se = sd / Math.sqrt(size);
   const statistic = (xbar - input.mu0) / se;
   const df = known ? null : size - 1;
   const symbol = known ? 'z' : 't';
+  const sdSymbol = known ? SIGMA : 's';
   steps.push({
     title: known ? 'Estadístico z (σ conocida)' : 'Estadístico t (σ desconocida)',
     explanation: known
       ? 'Con σ conocida, (x̄ − μ₀)/(σ/√n) tiene distribución normal estándar si H₀ es cierta.'
       : `Con σ desconocida se usa s y el estadístico tiene distribución t con ν = n − 1 = ${df} grados de libertad.`,
-    formula: String.raw`${symbol} = \frac{\bar{x} - \mu_0}{${known ? String.raw`\sigma` : 's'}/\sqrt{n}}`,
+    formula: String.raw`${symbol} = \frac{\bar{x} - \mu_0}{${sdSymbol}/\sqrt{n}}`,
     substitution: String.raw`${symbol} = \frac{${n(xbar)} - ${op(input.mu0)}}{${n(sd)}/\sqrt{${size}}}`,
     result: `${symbol} = ${n(statistic)}`,
   });
@@ -142,18 +181,9 @@ export function solveMeanTest(input: MeanTestInput): CalculatorResult<MeanTestVa
 
   let interval: [number, number] | null = null;
   if (input.alternative === 'distinto') {
-    const q = known
-      ? standardNormalQuantile(1 - input.alpha / 2)
-      : studentTQuantile(1 - input.alpha / 2, df!);
-    interval = [xbar - q * se, xbar + q * se];
-    const level = formatNumber((1 - input.alpha) * 100);
-    steps.push({
-      title: `Intervalo de confianza de ${level} % para μ`,
-      explanation: `La prueba bilateral no rechaza H₀ exactamente cuando μ₀ = ${formatNumber(input.mu0)} está dentro de este intervalo.`,
-      formula: String.raw`\bar{x} \pm ${known ? String.raw`z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}}` : String.raw`t_{\alpha/2}\,\frac{s}{\sqrt{n}}`}`,
-      substitution: String.raw`${n(xbar)} \pm ${n(q)}\,\frac{${n(sd)}}{\sqrt{${size}}}`,
-      result: String.raw`${n(interval[0])} < \mu < ${n(interval[1])}`,
-    });
+    const ci = confidenceInterval(input, known, sample, df);
+    interval = ci.interval;
+    steps.push(ci.step);
   }
 
   const summary: SummaryItem[] = [

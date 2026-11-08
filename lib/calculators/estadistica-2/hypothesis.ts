@@ -145,102 +145,100 @@ export function pValueOf(
   return Math.min(1, 2 * Math.min(left, 1 - left));
 }
 
-/**
- * Región crítica, valor P, decisión y gráfica. `statisticTex` es el valor calculado en LaTeX
- * (normalmente `z = 2.02`).
- */
-export function testDecision({
-  statistic,
-  value,
-  alternative,
-  alpha,
-}: {
-  statistic: TestStatistic;
-  value: number;
-  alternative: Alternative;
-  alpha: number;
-}): TestOutcome {
-  const d = distribution(statistic);
+/** El valor que corresponde a la hipótesis alternativa. */
+export function byAlternative<T>(
+  alternative: Alternative,
+  cases: { menor: T; mayor: T; distinto: T },
+): T {
+  return cases[alternative];
+}
+
+interface CriticalRegion {
+  critical: number[];
+  region: string;
+  criticalTex: string;
+  inRegion: (x: number) => boolean;
+}
+
+/** Valores críticos y región de rechazo con nivel α en la cola (o las colas) de la alternativa. */
+function criticalRegion(d: Distribution, alternative: Alternative, alpha: number): CriticalRegion {
   const s = d.symbol;
-  let critical: number[];
-  let region: string;
-  let criticalTex: string;
-  let inRegion: (x: number) => boolean;
   if (alternative === 'distinto') {
     const lower = d.quantile(alpha / 2);
     const upper = d.quantile(1 - alpha / 2);
-    critical = [lower, upper];
-    inRegion = (x) => x < lower || x > upper;
-    region = String.raw`${s} < ${n(lower)} \;\text{ o }\; ${s} > ${n(upper)}`;
-    criticalTex = d.symmetric
-      ? `${d.criticalName(alpha / 2)} = ${n(upper)}`
-      : String.raw`${d.criticalName(1 - alpha / 2)} = ${n(lower)}, \quad ${d.criticalName(alpha / 2)} = ${n(upper)}`;
-  } else if (alternative === 'mayor') {
-    const upper = d.quantile(1 - alpha);
-    critical = [upper];
-    inRegion = (x) => x > upper;
-    region = `${s} > ${n(upper)}`;
-    criticalTex = `${d.criticalName(alpha)} = ${n(upper)}`;
-  } else {
-    const lower = d.quantile(alpha);
-    critical = [lower];
-    inRegion = (x) => x < lower;
-    region = `${s} < ${n(lower)}`;
-    criticalTex = d.symmetric
-      ? `-${d.criticalName(alpha)} = ${n(lower)}`
-      : `${d.criticalName(1 - alpha)} = ${n(lower)}`;
+    return {
+      critical: [lower, upper],
+      inRegion: (x) => x < lower || x > upper,
+      region: String.raw`${s} < ${n(lower)} \;\text{ o }\; ${s} > ${n(upper)}`,
+      criticalTex: d.symmetric
+        ? `${d.criticalName(alpha / 2)} = ${n(upper)}`
+        : String.raw`${d.criticalName(1 - alpha / 2)} = ${n(lower)}, \quad ${d.criticalName(alpha / 2)} = ${n(upper)}`,
+    };
   }
+  if (alternative === 'mayor') {
+    const upper = d.quantile(1 - alpha);
+    return {
+      critical: [upper],
+      inRegion: (x) => x > upper,
+      region: `${s} > ${n(upper)}`,
+      criticalTex: `${d.criticalName(alpha)} = ${n(upper)}`,
+    };
+  }
+  const lower = d.quantile(alpha);
+  return {
+    critical: [lower],
+    inRegion: (x) => x < lower,
+    region: `${s} < ${n(lower)}`,
+    criticalTex: d.symmetric
+      ? `-${d.criticalName(alpha)} = ${n(lower)}`
+      : `${d.criticalName(1 - alpha)} = ${n(lower)}`,
+  };
+}
 
-  const pValue = pValueOf(statistic, value, alternative);
-  const reject = inRegion(value);
-  const pTex =
-    alternative === 'menor'
-      ? `P = P(${s} < ${n(value)})`
-      : alternative === 'mayor'
-        ? `P = P(${s} > ${n(value)})`
-        : d.symmetric
-          ? `P = 2P(${s} > ${n(Math.abs(value))})`
-          : String.raw`P = 2\min\{P(${s} < ${n(value)}),\ P(${s} > ${n(value)})\}`;
+function pValueTex(d: Distribution, alternative: Alternative, value: number): string {
+  const s = d.symbol;
+  if (alternative === 'menor') return `P = P(${s} < ${n(value)})`;
+  if (alternative === 'mayor') return `P = P(${s} > ${n(value)})`;
+  return d.symmetric
+    ? `P = 2P(${s} > ${n(Math.abs(value))})`
+    : String.raw`P = 2\min\{P(${s} < ${n(value)}),\ P(${s} > ${n(value)})\}`;
+}
 
-  const steps: Step[] = [
-    {
-      title: 'Región crítica',
-      explanation: `Bajo H₀ el estadístico tiene distribución ${d.name}. Con α = ${formatNumber(alpha)}${alternative === 'distinto' ? `, repartido en las dos colas (α/2 = ${formatNumber(alpha / 2)} en cada una)` : alternative === 'mayor' ? ', en la cola derecha' : ', en la cola izquierda'}:`,
-      formula: criticalTex,
-      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${region}`,
-    },
-    {
-      title: 'Valor P',
-      explanation:
-        'Probabilidad, si H₀ fuera cierta, de obtener un estadístico al menos tan extremo como el observado.',
-      formula: pTex,
-      result: `P = ${toLatexNumber(pValue, 4)}`,
-    },
-    {
-      title: 'Decisión',
-      explanation: reject
-        ? `El estadístico ${formatNumber(value, 6)} cae en la región crítica (equivalentemente, P = ${formatNumber(pValue, 4)} < α = ${formatNumber(alpha)}): se rechaza H₀ a favor de H₁.`
-        : `El estadístico ${formatNumber(value, 6)} no cae en la región crítica (P = ${formatNumber(pValue, 4)} ≥ α = ${formatNumber(alpha)}): no se rechaza H₀. Los datos no dan evidencia suficiente a favor de H₁.`,
-      result: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
-    },
-  ];
+/** Dónde queda α: en las dos colas o en una. */
+function tailText(alternative: Alternative, alpha: number): string {
+  if (alternative === 'distinto') {
+    return `, repartido en las dos colas (α/2 = ${formatNumber(alpha / 2)} en cada una)`;
+  }
+  return alternative === 'mayor' ? ', en la cola derecha' : ', en la cola izquierda';
+}
 
-  // Gráfica: densidad bajo H₀ con la región de rechazo sombreada. Un estadístico muy extremo (o
-  // infinito, p. ej. con un ajuste perfecto) se dibuja en el borde.
+const CHI2 = String.raw`\chi^2`;
+
+/** El estadístico dentro de la ventana [lo, hi]; uno infinito se dibuja en el borde. */
+function observedAt(value: number, lo: number, hi: number): number {
+  let x = value;
+  if (!Number.isFinite(value)) x = value > 0 ? hi : lo;
+  return Math.min(Math.max(x, lo), hi);
+}
+
+/** Ventana de la gráfica: desde 0 si el soporte empieza ahí, simétrica si no. */
+function plotWindow(d: Distribution, shown: number, critical: number[]): [number, number] {
+  if (d.support[0] === 0) {
+    return [0, Math.max(d.quantile(0.999), shown * 1.15, ...critical.map((c) => c * 1.15))];
+  }
+  const edge = Math.max(4, Math.abs(shown) * 1.15, ...critical.map((c) => Math.abs(c) * 1.15));
+  return [-edge, edge];
+}
+
+/** Densidad bajo H₀ con la región de rechazo sombreada y el estadístico observado. */
+function testSeries(d: Distribution, value: number, region: CriticalRegion): Series {
+  const { critical, inRegion } = region;
+  const s = d.symbol;
+  // Un estadístico muy extremo (o infinito, p. ej. con un ajuste perfecto) se dibuja en el borde.
   const shown = Number.isFinite(value)
     ? Math.max(-50, Math.min(value, 50 * Math.max(1, ...critical.map(Math.abs))))
     : 0;
-  const [supLo] = d.support;
-  let lo: number;
-  let hi: number;
-  if (supLo === 0) {
-    lo = 0;
-    hi = Math.max(d.quantile(0.999), shown * 1.15, ...critical.map((c) => c * 1.15));
-  } else {
-    const edge = Math.max(4, Math.abs(shown) * 1.15, ...critical.map((c) => Math.abs(c) * 1.15));
-    lo = -edge;
-    hi = edge;
-  }
+  const [lo, hi] = plotWindow(d, shown, critical);
   const samples = 240;
   const xs = Array.from({ length: samples + 1 }, (_, i) => lo + ((hi - lo) * i) / samples);
   for (const c of critical) if (c > lo && c < hi) xs.push(c);
@@ -251,11 +249,12 @@ export function testDecision({
   };
   const points = xs.map((x) => ({ x, y: density(x) })).filter((p) => Number.isFinite(p.y));
   const peak = Math.max(...points.map((p) => p.y));
-  const observed = Math.min(Math.max(Number.isFinite(value) ? value : value > 0 ? hi : lo, lo), hi);
-  const series: Series = {
+  const observed = observedAt(value, lo, hi);
+  const plain = s === CHI2 ? 'χ²' : s;
+  return {
     id: 'prueba',
-    title: `Distribución de ${s === String.raw`\chi^2` ? 'χ²' : s} bajo H₀ y región de rechazo`,
-    xLabel: s === String.raw`\chi^2` ? 'χ²' : s,
+    title: `Distribución de ${plain} bajo H₀ y región de rechazo`,
+    xLabel: plain,
     yLabel: 'Densidad',
     label: 'Densidad bajo H₀',
     points,
@@ -277,6 +276,51 @@ export function testDecision({
       },
     ],
   };
+}
+
+/**
+ * Región crítica, valor P, decisión y gráfica. `statisticTex` es el valor calculado en LaTeX
+ * (normalmente `z = 2.02`).
+ */
+export function testDecision({
+  statistic,
+  value,
+  alternative,
+  alpha,
+}: {
+  statistic: TestStatistic;
+  value: number;
+  alternative: Alternative;
+  alpha: number;
+}): TestOutcome {
+  const d = distribution(statistic);
+  const regionInfo = criticalRegion(d, alternative, alpha);
+  const { critical, region, criticalTex, inRegion } = regionInfo;
+  const pValue = pValueOf(statistic, value, alternative);
+  const reject = inRegion(value);
+
+  const steps: Step[] = [
+    {
+      title: 'Región crítica',
+      explanation: `Bajo H₀ el estadístico tiene distribución ${d.name}. Con α = ${formatNumber(alpha)}${tailText(alternative, alpha)}:`,
+      formula: criticalTex,
+      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${region}`,
+    },
+    {
+      title: 'Valor P',
+      explanation:
+        'Probabilidad, si H₀ fuera cierta, de obtener un estadístico al menos tan extremo como el observado.',
+      formula: pValueTex(d, alternative, value),
+      result: `P = ${toLatexNumber(pValue, 4)}`,
+    },
+    {
+      title: 'Decisión',
+      explanation: reject
+        ? `El estadístico ${formatNumber(value, 6)} cae en la región crítica (equivalentemente, P = ${formatNumber(pValue, 4)} < α = ${formatNumber(alpha)}): se rechaza H₀ a favor de H₁.`
+        : `El estadístico ${formatNumber(value, 6)} no cae en la región crítica (P = ${formatNumber(pValue, 4)} ≥ α = ${formatNumber(alpha)}): no se rechaza H₀. Los datos no dan evidencia suficiente a favor de H₁.`,
+      result: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
+    },
+  ];
 
   const summary: SummaryItem[] = [
     {
@@ -288,5 +332,12 @@ export function testDecision({
     { label: 'Región crítica', value: region },
   ];
 
-  return { critical, pValue, reject, steps, series, summary };
+  return {
+    critical,
+    pValue,
+    reject,
+    steps,
+    series: testSeries(d, value, regionInfo),
+    summary,
+  };
 }

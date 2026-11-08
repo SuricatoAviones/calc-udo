@@ -80,28 +80,32 @@ export function solveSeriesForecast(
     formula: d.season
       ? String.raw`F_t = T_t \times S_t = (b_0 + b_1 t)\,S_t`
       : 'F_t = T_t = b_0 + b_1 t',
-    children: forecasts.slice(0, 12).map((f) => ({
-      title: `Periodo t = ${f.t}${d.season ? ` (estación ${seasonOf(f.t, d.season)})` : ''}`,
-      substitution: d.season
-        ? `F_{${f.t}} = (${n(d.b0)} + ${n(d.b1)}(${f.t}))(${n(f.index)}) = ${n(f.trend)}(${n(f.index)})`
-        : `F_{${f.t}} = ${n(d.b0)} + ${n(d.b1)}(${f.t})`,
-      result: `F_{${f.t}} = ${n(f.value)}`,
-    })),
+    children: forecasts.slice(0, 12).map((f) => {
+      const seasonNote = d.season ? ` (estación ${seasonOf(f.t, d.season)})` : '';
+      return {
+        title: `Periodo t = ${f.t}${seasonNote}`,
+        substitution: d.season
+          ? `F_{${f.t}} = (${n(d.b0)} + ${n(d.b1)}(${f.t}))(${n(f.index)}) = ${n(f.trend)}(${n(f.index)})`
+          : `F_{${f.t}} = ${n(d.b0)} + ${n(d.b1)}(${f.t})`,
+        result: `F_{${f.t}} = ${n(f.value)}`,
+      };
+    }),
   });
 
   const fitted = y.map((_, i) => d.trend[i]! * d.periodIndex[i]!);
   const errors = y.map((v, i) => v - fitted[i]!);
   const mad = errors.reduce((s, e) => s + Math.abs(e), 0) / size;
   const mse = errors.reduce((s, e) => s + e * e, 0) / size;
-  const mape = y.some((v) => v === 0)
+  const mape = y.includes(0)
     ? null
     : (errors.reduce((s, e, i) => s + Math.abs(e / y[i]!), 0) / size) * 100;
+  const mapeTex = mape === null ? '' : String.raw`, \quad MAPE = ${n(mape)}\,\%`;
   steps.push({
     title: 'Exactitud dentro de la muestra',
     explanation:
       'Se compara cada dato con su valor ajustado Tₜ × Sₜ. Sirve para comparar modelos: menor error, mejor ajuste.',
     formula: String.raw`MAD = \frac{\sum |Y_t - \hat{Y}_t|}{n}, \quad MSE = \frac{\sum (Y_t - \hat{Y}_t)^2}{n}, \quad MAPE = \frac{100\%}{n}\sum \left|\frac{Y_t - \hat{Y}_t}{Y_t}\right|`,
-    result: String.raw`MAD = ${n(mad)}, \quad MSE = ${n(mse)}${mape === null ? '' : String.raw`, \quad MAPE = ${n(mape)}\,\%`}`,
+    result: String.raw`MAD = ${n(mad)}, \quad MSE = ${n(mse)}${mapeTex}`,
   });
 
   const summary: SummaryItem[] = [

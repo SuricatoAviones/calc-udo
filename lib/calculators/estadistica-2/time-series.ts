@@ -92,33 +92,47 @@ export interface Decomposition {
 /** Estación (1 … L) del periodo t (1, 2, …). */
 export const seasonOf = (t: number, season: number) => ((t - 1) % season) + 1;
 
+/**
+ * Promedios móviles centrados, razones Y/PMC e índices estacionales (crudos y ajustados para que
+ * sumen L).
+ */
+function seasonalIndices(
+  y: number[],
+  season: number,
+): { cma: (number | null)[]; ratios: (number | null)[]; indices: number[]; rawIndices: number[] } {
+  const n = y.length;
+  const cma: (number | null)[] = new Array(n).fill(null);
+  const ratios: (number | null)[] = new Array(n).fill(null);
+  const half = Math.floor(season / 2);
+  const average = (from: number) =>
+    y.slice(from, from + season).reduce((s, v) => s + v, 0) / season;
+  for (let i = 0; i < n; i++) {
+    if (i - half < 0 || i + half >= n) continue;
+    // Con L par: promedio de los promedios móviles que terminan justo antes y justo después de
+    // i + ½.
+    cma[i] = season % 2 === 1 ? average(i - half) : (average(i - half) + average(i - half + 1)) / 2;
+    ratios[i] = y[i]! / cma[i]!;
+  }
+  const rawIndices = Array.from({ length: season }, (_, s) => {
+    const values = ratios.filter((r, i): r is number => r !== null && i % season === s);
+    return values.reduce((acc, v) => acc + v, 0) / values.length;
+  });
+  const total = rawIndices.reduce((s, v) => s + v, 0);
+  const indices = rawIndices.map((v) => (v * season) / total);
+  return { cma, ratios, indices, rawIndices };
+}
+
 export function decompose(y: number[], seasonLength: number): Decomposition {
   const n = y.length;
   const season = seasonLength >= 2 ? seasonLength : null;
-  const cma: (number | null)[] = new Array(n).fill(null);
-  const ratios: (number | null)[] = new Array(n).fill(null);
-  let indices: number[] = [];
-  let rawIndices: number[] = [];
-  if (season) {
-    const half = Math.floor(season / 2);
-    const average = (from: number) =>
-      y.slice(from, from + season).reduce((s, v) => s + v, 0) / season;
-    for (let i = 0; i < n; i++) {
-      if (season % 2 === 1) {
-        if (i - half >= 0 && i + half < n) cma[i] = average(i - half);
-      } else if (i - half >= 0 && i + half < n) {
-        // Promedio de los promedios móviles que terminan justo antes y justo después de i + ½.
-        cma[i] = (average(i - half) + average(i - half + 1)) / 2;
-      }
-      if (cma[i] !== null) ratios[i] = y[i]! / cma[i]!;
-    }
-    rawIndices = Array.from({ length: season }, (_, s) => {
-      const values = ratios.filter((r, i): r is number => r !== null && i % season === s);
-      return values.reduce((acc, v) => acc + v, 0) / values.length;
-    });
-    const total = rawIndices.reduce((s, v) => s + v, 0);
-    indices = rawIndices.map((v) => (v * season) / total);
-  }
+  const { cma, ratios, indices, rawIndices } = season
+    ? seasonalIndices(y, season)
+    : {
+        cma: new Array<number | null>(n).fill(null),
+        ratios: new Array<number | null>(n).fill(null),
+        indices: [],
+        rawIndices: [],
+      };
   const periodIndex = y.map((_, i) => (season ? indices[i % season]! : 1));
   const deseasonalized = y.map((v, i) => v / periodIndex[i]!);
   // Tendencia por mínimos cuadrados con t = 1 … n.
@@ -215,6 +229,12 @@ export function decompositionSteps(d: Decomposition): Step[] {
 }
 
 export function decompositionColumns(d: Decomposition, withCyclical: boolean): TableColumn[] {
+  const cyclicalColumns: TableColumn[] = d.season
+    ? [{ key: 'cyclical', header: String.raw`Y_t/(T_t S_t)\ (\%)` }]
+    : [
+        { key: 'cyclical', header: String.raw`Y_t/T_t\ (\%)` },
+        { key: 'residual', header: String.raw`(Y_t - T_t)/T_t\ (\%)` },
+      ];
   return [
     { key: 't', header: 't' },
     ...(d.season ? [{ key: 'season', header: String.raw`\text{Estación}` }] : []),
@@ -228,14 +248,7 @@ export function decompositionColumns(d: Decomposition, withCyclical: boolean): T
         ]
       : []),
     { key: 'trend', header: 'T_t' },
-    ...(withCyclical
-      ? d.season
-        ? [{ key: 'cyclical', header: String.raw`Y_t/(T_t S_t)\ (\%)` }]
-        : [
-            { key: 'cyclical', header: String.raw`Y_t/T_t\ (\%)` },
-            { key: 'residual', header: String.raw`(Y_t - T_t)/T_t\ (\%)` },
-          ]
-      : []),
+    ...(withCyclical ? cyclicalColumns : []),
   ];
 }
 

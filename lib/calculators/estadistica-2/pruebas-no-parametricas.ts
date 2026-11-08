@@ -22,7 +22,14 @@ import { parseDataList } from '@/lib/math/data-list';
 import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import { standardNormalCdf } from '@/lib/math/normal';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
-import { alphaField, alternativeField, testDecision, type Alternative } from './hypothesis';
+import {
+  alphaField,
+  alternativeField,
+  byAlternative,
+  RELATION,
+  testDecision,
+  type Alternative,
+} from './hypothesis';
 import { binomialCdf } from './probability';
 import { averageRanks, finite, parseSample, refineSample } from './samples';
 
@@ -178,9 +185,8 @@ const medianTex = (paired: boolean) =>
   paired ? String.raw`\tilde{\mu}_D` : String.raw`\tilde{\mu}`;
 
 function hypotheses(paired: boolean, median0: number, alternative: Alternative): string {
-  const rel = alternative === 'distinto' ? String.raw`\neq` : alternative === 'menor' ? '<' : '>';
   const m = medianTex(paired);
-  return String.raw`H_0\!: ${m} = ${n(median0)}, \qquad H_1\!: ${m} ${rel} ${n(median0)}`;
+  return String.raw`H_0\!: ${m} = ${n(median0)}, \qquad H_1\!: ${m} ${RELATION[alternative]} ${n(median0)}`;
 }
 
 function decisionSteps(pValue: number, alpha: number, reject: boolean): Step {
@@ -193,17 +199,26 @@ function decisionSteps(pValue: number, alpha: number, reject: boolean): Step {
   };
 }
 
+const decisionTex = (reject: boolean) =>
+  reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`;
+
+/** 2 en la prueba bilateral (las dos colas) y 1 en las unilaterales. */
+const tails = (alternative: Alternative) => (alternative === 'distinto' ? 2 : 1);
+
 function signTest(input: NonParametricInput): Result {
   const { values, paired } = differences(input);
   const m0 = input.median0;
   const kept = values.filter((v) => v !== m0);
   const plus = kept.filter((v) => v > m0).length;
   const size = kept.length;
+  const pairedNote = paired
+    ? ' Con datos pareados se trabaja con las diferencias d = x₁ − x₂.'
+    : '';
   const steps: Step[] = [
     { title: 'Hipótesis', result: hypotheses(paired, m0, input.alternative) },
     {
       title: paired ? 'Diferencias de los pares' : 'Signos',
-      explanation: `Cada dato mayor que μ̃₀ = ${formatNumber(m0)} es un «+» y cada uno menor es un «−». Se descartan ${values.length - size} dato(s) iguales a μ̃₀.${paired ? ' Con datos pareados se trabaja con las diferencias d = x₁ − x₂.' : ''}`,
+      explanation: `Cada dato mayor que μ̃₀ = ${formatNumber(m0)} es un «+» y cada uno menor es un «−». Se descartan ${values.length - size} dato(s) iguales a μ̃₀.${pairedNote}`,
       result: String.raw`n = ${size}, \quad x = \text{número de signos } + = ${plus}`,
     },
   ];
@@ -220,26 +235,25 @@ function signTest(input: NonParametricInput): Result {
   }
   const low = binomialCdf(plus, size, 0.5);
   const high = 1 - binomialCdf(plus - 1, size, 0.5);
-  const pValue =
-    input.alternative === 'mayor'
-      ? high
-      : input.alternative === 'menor'
-        ? low
-        : Math.min(1, 2 * Math.min(low, high));
+  const pValue = byAlternative(input.alternative, {
+    mayor: high,
+    menor: low,
+    distinto: Math.min(1, 2 * Math.min(low, high)),
+  });
   const reject = pValue < input.alpha;
+  const side = plus <= size / 2 ? TEX.le : TEX.ge;
   steps.push({
     title: 'Valor P con la distribución binomial',
     explanation:
       'Si H₀ es cierta, cada dato tiene probabilidad ½ de quedar por encima de la mediana, así que X ~ binomial(n, ½).',
-    formula:
-      input.alternative === 'mayor'
-        ? String.raw`P = P(X \ge x \mid p = \tfrac12)`
-        : input.alternative === 'menor'
-          ? String.raw`P = P(X \le x \mid p = \tfrac12)`
-          : String.raw`P = 2P(X ${plus <= size / 2 ? TEX.le : TEX.ge} x \mid p = \tfrac12)`,
+    formula: byAlternative(input.alternative, {
+      mayor: String.raw`P = P(X \ge x \mid p = \tfrac12)`,
+      menor: String.raw`P = P(X \le x \mid p = \tfrac12)`,
+      distinto: String.raw`P = 2P(X ${side} x \mid p = \tfrac12)`,
+    }),
     substitution:
       input.alternative === 'distinto'
-        ? `P = 2P(X ${plus <= size / 2 ? TEX.le : TEX.ge} ${plus}) = 2(${p4(Math.min(low, high))})`
+        ? `P = 2P(X ${side} ${plus}) = 2(${p4(Math.min(low, high))})`
         : undefined,
     result: `P = ${p4(pValue)}`,
   });
@@ -267,13 +281,53 @@ function signTest(input: NonParametricInput): Result {
     summary: [
       { label: 'Signos +', value: String.raw`x = ${plus} \text{ de } n = ${size}`, emphasis: true },
       { label: 'Valor P', value: `P = ${p4(pValue)}` },
-      {
-        label: 'Decisión',
-        value: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
-      },
+      { label: 'Decisión', value: decisionTex(reject) },
     ],
     ...emptyTrace(),
     steps,
+  };
+}
+
+/** Valor P (exacto con n ≤ 50, normal si no) y valor crítico de la prueba de rangos con signo. */
+function signedRankPValue(
+  size: number,
+  statistic: number,
+  name: string,
+  input: NonParametricInput,
+  ties: boolean,
+): { pValue: number; critical: number | null; step: Step } {
+  const area = input.alternative === 'distinto' ? input.alpha / 2 : input.alpha;
+  if (size <= EXACT_SIGNED_RANK) {
+    const dist = signedRankDistribution(size);
+    const critical = criticalFrom(dist, area);
+    const pValue = Math.min(1, tails(input.alternative) * cumulative(dist, statistic));
+    const criticalTex =
+      critical === null ? String.raw`\text{no existe (muestra muy pequeña)}` : String(critical);
+    const tiesNote = ties ? ' Con empates la distribución exacta es aproximada.' : '';
+    return {
+      pValue,
+      critical,
+      step: {
+        title: 'Valor crítico y valor P exactos',
+        explanation: `Bajo H₀ cada rango lleva signo + o − con probabilidad ½; se enumeran las 2^${size} combinaciones. El valor crítico es el mayor w con P(W ≤ w) ≤ ${formatNumber(area)}.${tiesNote}`,
+        formula: String.raw`\text{Se rechaza } H_0 \text{ si } ${name} \le w_c`,
+        result: String.raw`w_c = ${criticalTex}, \qquad P = ${p4(pValue)}`,
+      },
+    };
+  }
+  const mu = (size * (size + 1)) / 4;
+  const sd = Math.sqrt((size * (size + 1) * (2 * size + 1)) / 24);
+  const z = (statistic - mu) / sd;
+  const pValue = Math.min(1, tails(input.alternative) * standardNormalCdf(z));
+  return {
+    pValue,
+    critical: null,
+    step: {
+      title: 'Aproximación normal (n > 50)',
+      formula: String.raw`z = \frac{w - n(n+1)/4}{\sqrt{n(n+1)(2n+1)/24}}`,
+      substitution: String.raw`z = \frac{${n(statistic)} - ${n(mu)}}{${n(sd)}}`,
+      result: String.raw`z = ${n(z)}, \qquad P = ${p4(pValue)}`,
+    },
   };
 }
 
@@ -295,56 +349,31 @@ function signedRankTest(input: NonParametricInput): Result {
   const wPlus = ranks.reduce((s, r, i) => s + (d[i]! > 0 ? r : 0), 0);
   const wMinus = ranks.reduce((s, r, i) => s + (d[i]! < 0 ? r : 0), 0);
   const ties = new Set(d.map(Math.abs)).size !== size;
+  const tiesNote = ties ? 'A los valores empatados se les asigna el promedio de sus rangos.' : '';
   steps.push({
     title: 'Diferencias y rangos',
-    explanation: `Se calculan dᵢ = ${paired ? 'x₁ − x₂' : 'xᵢ'} − μ̃₀, se descartan los ceros (quedan n = ${size}) y se ordenan los |dᵢ| de menor a mayor. ${ties ? 'A los valores empatados se les asigna el promedio de sus rangos.' : ''}`,
+    explanation: `Se calculan dᵢ = ${paired ? 'x₁ − x₂' : 'xᵢ'} − μ̃₀, se descartan los ceros (quedan n = ${size}) y se ordenan los |dᵢ| de menor a mayor. ${tiesNote}`,
     formula: String.raw`w_+ = \sum_{d_i > 0} r_i, \qquad w_- = \sum_{d_i < 0} r_i`,
     result: String.raw`w_+ = ${n(wPlus)}, \quad w_- = ${n(wMinus)} \quad (w_+ + w_- = ${n((size * (size + 1)) / 2)})`,
   });
-  const statistic =
-    input.alternative === 'menor'
-      ? wPlus
-      : input.alternative === 'mayor'
-        ? wMinus
-        : Math.min(wPlus, wMinus);
-  const name = input.alternative === 'menor' ? 'w_+' : input.alternative === 'mayor' ? 'w_-' : 'w';
+  const statistic = byAlternative(input.alternative, {
+    menor: wPlus,
+    mayor: wMinus,
+    distinto: Math.min(wPlus, wMinus),
+  });
+  const name = byAlternative(input.alternative, { menor: 'w_+', mayor: 'w_-', distinto: 'w' });
   steps.push({
     title: 'Estadístico',
-    explanation:
-      input.alternative === 'distinto'
-        ? 'Para la alternativa bilateral se usa el menor de w₊ y w₋.'
-        : input.alternative === 'menor'
-          ? 'Si la mediana fuera menor, habría pocas diferencias positivas: se usa w₊.'
-          : 'Si la mediana fuera mayor, habría pocas diferencias negativas: se usa w₋.',
+    explanation: byAlternative(input.alternative, {
+      distinto: 'Para la alternativa bilateral se usa el menor de w₊ y w₋.',
+      menor: 'Si la mediana fuera menor, habría pocas diferencias positivas: se usa w₊.',
+      mayor: 'Si la mediana fuera mayor, habría pocas diferencias negativas: se usa w₋.',
+    }),
     result: `${name} = ${n(statistic)}`,
   });
-  const area = input.alternative === 'distinto' ? input.alpha / 2 : input.alpha;
-  let pValue: number;
-  let critical: number | null = null;
-  if (size <= EXACT_SIGNED_RANK) {
-    const dist = signedRankDistribution(size);
-    critical = criticalFrom(dist, area);
-    const tail = cumulative(dist, statistic);
-    pValue = Math.min(1, (input.alternative === 'distinto' ? 2 : 1) * tail);
-    steps.push({
-      title: 'Valor crítico y valor P exactos',
-      explanation: `Bajo H₀ cada rango lleva signo + o − con probabilidad ½; se enumeran las 2^${size} combinaciones. El valor crítico es el mayor w con P(W ≤ w) ≤ ${formatNumber(area)}.${ties ? ' Con empates la distribución exacta es aproximada.' : ''}`,
-      formula: String.raw`\text{Se rechaza } H_0 \text{ si } ${name} \le w_c`,
-      result: String.raw`w_c = ${critical === null ? String.raw`\text{no existe (muestra muy pequeña)}` : critical}, \qquad P = ${p4(pValue)}`,
-    });
-  } else {
-    const mu = (size * (size + 1)) / 4;
-    const sd = Math.sqrt((size * (size + 1) * (2 * size + 1)) / 24);
-    const z = (statistic - mu) / sd;
-    pValue = Math.min(1, (input.alternative === 'distinto' ? 2 : 1) * standardNormalCdf(z));
-    steps.push({
-      title: 'Aproximación normal (n > 50)',
-      formula: String.raw`z = \frac{w - n(n+1)/4}{\sqrt{n(n+1)(2n+1)/24}}`,
-      substitution: String.raw`z = \frac{${n(statistic)} - ${n(mu)}}{${n(sd)}}`,
-      result: String.raw`z = ${n(z)}, \qquad P = ${p4(pValue)}`,
-    });
-  }
-  const reject = critical !== null ? statistic <= critical : pValue < input.alpha;
+  const { pValue, critical, step } = signedRankPValue(size, statistic, name, input, ties);
+  steps.push(step);
+  const reject = critical === null ? pValue < input.alpha : statistic <= critical;
   steps.push(decisionSteps(pValue, input.alpha, reject));
   return {
     ok: true,
@@ -353,10 +382,7 @@ function signedRankTest(input: NonParametricInput): Result {
       { label: 'Estadístico', value: `${name} = ${n(statistic)}`, emphasis: true },
       ...(critical === null ? [] : [{ label: 'Valor crítico', value: `w_c = ${critical}` }]),
       { label: 'Valor P', value: `P = ${p4(pValue)}` },
-      {
-        label: 'Decisión',
-        value: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
-      },
+      { label: 'Decisión', value: decisionTex(reject) },
     ],
     ...emptyTrace(),
     steps,
@@ -381,6 +407,48 @@ function signedRankTest(input: NonParametricInput): Result {
   };
 }
 
+/** Valor P (exacto con muestras de hasta 10, normal si no) y valor crítico de la U. */
+function rankSumPValue(
+  n1: number,
+  n2: number,
+  statistic: number,
+  name: string,
+  input: NonParametricInput,
+): { pValue: number; critical: number | null; step: Step } {
+  const area = input.alternative === 'distinto' ? input.alpha / 2 : input.alpha;
+  if (n1 <= EXACT_RANK_SUM && n2 <= EXACT_RANK_SUM) {
+    const dist = rankSumDistribution(n1, n2);
+    const critical = criticalFrom(dist, area);
+    const pValue = Math.min(1, tails(input.alternative) * cumulative(dist, statistic));
+    const criticalTex =
+      critical === null ? String.raw`\text{no existe (muestras muy pequeñas)}` : String(critical);
+    return {
+      pValue,
+      critical,
+      step: {
+        title: 'Valor crítico y valor P exactos',
+        explanation: `Bajo H₀ las C(${n1 + n2}, ${n1}) formas de repartir los rangos son igualmente probables. El valor crítico es el mayor u con P(U ≤ u) ≤ ${formatNumber(area)}.`,
+        formula: String.raw`\text{Se rechaza } H_0 \text{ si } ${name} \le u_c`,
+        result: String.raw`u_c = ${criticalTex}, \qquad P = ${p4(pValue)}`,
+      },
+    };
+  }
+  const mu = (n1 * n2) / 2;
+  const sd = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
+  const z = (statistic - mu) / sd;
+  const pValue = Math.min(1, tails(input.alternative) * standardNormalCdf(z));
+  return {
+    pValue,
+    critical: null,
+    step: {
+      title: 'Aproximación normal',
+      formula: String.raw`z = \frac{u - n_1 n_2/2}{\sqrt{n_1 n_2 (n_1 + n_2 + 1)/12}}`,
+      substitution: String.raw`z = \frac{${n(statistic)} - ${n(mu)}}{${n(sd)}}`,
+      result: String.raw`z = ${n(z)}, \qquad P = ${p4(pValue)}`,
+    },
+  };
+}
+
 function rankSumTest(input: NonParametricInput): Result {
   const a = parseSample(input.sample1, 1) as number[];
   const b = parseSample(input.sample2, 1) as number[];
@@ -391,8 +459,7 @@ function rankSumTest(input: NonParametricInput): Result {
   const w2 = ranks.slice(n1).reduce((s, r) => s + r, 0);
   const u1 = w1 - (n1 * (n1 + 1)) / 2;
   const u2 = w2 - (n2 * (n2 + 1)) / 2;
-  const rel =
-    input.alternative === 'distinto' ? String.raw`\neq` : input.alternative === 'menor' ? '<' : '>';
+  const rel = RELATION[input.alternative];
   const steps: Step[] = [
     {
       title: 'Hipótesis',
@@ -410,43 +477,25 @@ function rankSumTest(input: NonParametricInput): Result {
       result: String.raw`u_1 = ${n(u1)}, \quad u_2 = ${n(u2)} \quad (u_1 + u_2 = n_1 n_2 = ${n1 * n2})`,
     },
   ];
-  const statistic =
-    input.alternative === 'menor' ? u1 : input.alternative === 'mayor' ? u2 : Math.min(u1, u2);
-  const name = input.alternative === 'menor' ? 'u_1' : input.alternative === 'mayor' ? 'u_2' : 'u';
+  const statistic = byAlternative(input.alternative, {
+    menor: u1,
+    mayor: u2,
+    distinto: Math.min(u1, u2),
+  });
+  const name = byAlternative(input.alternative, { menor: 'u_1', mayor: 'u_2', distinto: 'u' });
   steps.push({
     title: 'Estadístico',
-    explanation:
-      input.alternative === 'distinto'
-        ? 'Para la alternativa bilateral se usa el menor de u₁ y u₂.'
-        : `Se usa ${input.alternative === 'menor' ? 'u₁: si la muestra 1 tiende a ser menor, sus rangos son pequeños' : 'u₂: si la muestra 1 tiende a ser mayor, los rangos de la muestra 2 son pequeños'}.`,
+    explanation: byAlternative(input.alternative, {
+      distinto: 'Para la alternativa bilateral se usa el menor de u₁ y u₂.',
+      menor: 'Se usa u₁: si la muestra 1 tiende a ser menor, sus rangos son pequeños.',
+      mayor:
+        'Se usa u₂: si la muestra 1 tiende a ser mayor, los rangos de la muestra 2 son pequeños.',
+    }),
     result: `${name} = ${n(statistic)}`,
   });
-  const area = input.alternative === 'distinto' ? input.alpha / 2 : input.alpha;
-  let pValue: number;
-  let critical: number | null = null;
-  if (n1 <= EXACT_RANK_SUM && n2 <= EXACT_RANK_SUM) {
-    const dist = rankSumDistribution(n1, n2);
-    critical = criticalFrom(dist, area);
-    pValue = Math.min(1, (input.alternative === 'distinto' ? 2 : 1) * cumulative(dist, statistic));
-    steps.push({
-      title: 'Valor crítico y valor P exactos',
-      explanation: `Bajo H₀ las C(${n1 + n2}, ${n1}) formas de repartir los rangos son igualmente probables. El valor crítico es el mayor u con P(U ≤ u) ≤ ${formatNumber(area)}.`,
-      formula: String.raw`\text{Se rechaza } H_0 \text{ si } ${name} \le u_c`,
-      result: String.raw`u_c = ${critical === null ? String.raw`\text{no existe (muestras muy pequeñas)}` : critical}, \qquad P = ${p4(pValue)}`,
-    });
-  } else {
-    const mu = (n1 * n2) / 2;
-    const sd = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
-    const z = (statistic - mu) / sd;
-    pValue = Math.min(1, (input.alternative === 'distinto' ? 2 : 1) * standardNormalCdf(z));
-    steps.push({
-      title: 'Aproximación normal',
-      formula: String.raw`z = \frac{u - n_1 n_2/2}{\sqrt{n_1 n_2 (n_1 + n_2 + 1)/12}}`,
-      substitution: String.raw`z = \frac{${n(statistic)} - ${n(mu)}}{${n(sd)}}`,
-      result: String.raw`z = ${n(z)}, \qquad P = ${p4(pValue)}`,
-    });
-  }
-  const reject = critical !== null ? statistic <= critical : pValue < input.alpha;
+  const { pValue, critical, step } = rankSumPValue(n1, n2, statistic, name, input);
+  steps.push(step);
+  const reject = critical === null ? pValue < input.alpha : statistic <= critical;
   steps.push(decisionSteps(pValue, input.alpha, reject));
   return {
     ok: true,
@@ -455,10 +504,7 @@ function rankSumTest(input: NonParametricInput): Result {
       { label: 'Estadístico', value: `${name} = ${n(statistic)}`, emphasis: true },
       ...(critical === null ? [] : [{ label: 'Valor crítico', value: `u_c = ${critical}` }]),
       { label: 'Valor P', value: `P = ${p4(pValue)}` },
-      {
-        label: 'Decisión',
-        value: reject ? String.raw`\text{Se rechaza } H_0` : String.raw`\text{No se rechaza } H_0`,
-      },
+      { label: 'Decisión', value: decisionTex(reject) },
     ],
     ...emptyTrace(),
     steps,
@@ -493,6 +539,9 @@ function kruskalWallis(input: NonParametricInput): Result {
   const k = groups.length;
   const sumTerm = sums.reduce((s, r, i) => s + (r * r) / groups[i]!.length, 0);
   const h = (12 / (total * (total + 1))) * sumTerm - 3 * (total + 1);
+  const ratios = sums
+    .map((r, i) => String.raw`\frac{${toLatexOperand(r)}^2}{${groups[i]!.length}}`)
+    .join(' + ');
   const steps: Step[] = [
     {
       title: 'Hipótesis',
@@ -508,7 +557,7 @@ function kruskalWallis(input: NonParametricInput): Result {
     {
       title: 'Estadístico H',
       formula: String.raw`h = \frac{12}{N(N + 1)} \sum_i \frac{R_i^2}{n_i} - 3(N + 1)`,
-      substitution: String.raw`h = \frac{12}{${total}(${total + 1})}\left(${sums.map((r, i) => String.raw`\frac{${toLatexOperand(r)}^2}{${groups[i]!.length}}`).join(' + ')}\right) - 3(${total + 1})`,
+      substitution: String.raw`h = \frac{12}{${total}(${total + 1})}\left(${ratios}\right) - 3(${total + 1})`,
       result: `h = ${n(h)}`,
     },
   ];

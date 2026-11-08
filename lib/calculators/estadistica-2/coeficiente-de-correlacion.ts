@@ -93,80 +93,84 @@ function strength(r: number): string {
   return 'muy débil o nula';
 }
 
-export function solveCorrelation(
-  input: CorrelationInput,
-): CalculatorResult<CorrelationValue, CorrelationErrorCode> {
-  const steps: Step[] = [];
-  const series: Series[] = [];
-  let r: number;
-  let size: number;
-  const spearman = input.method === 'spearman';
-  const symbol = spearman ? 'r_s' : 'r';
+type Result = CalculatorResult<CorrelationValue, CorrelationErrorCode>;
 
-  if (input.source === 'datos') {
-    const { x, y } = readPairs(input.x, input.y);
-    size = x.length;
-    let xs = x;
-    let ys = y;
-    if (spearman) {
-      xs = averageRanks(x);
-      ys = averageRanks(y);
-      const ties = new Set(x).size !== size || new Set(y).size !== size;
-      const d2 = xs.reduce((s, rx, i) => s + (rx - ys[i]!) ** 2, 0);
-      steps.push({
-        title: 'Rangos',
-        explanation: `Se ordena cada variable por separado y se reemplaza cada dato por su rango (1 al menor)${ties ? '; los empates reciben el rango promedio' : ''}.`,
-        formula: String.raw`d_i = \text{rango}(x_i) - \text{rango}(y_i)`,
-        result: String.raw`\sum d_i^2 = ${n(d2)}`,
-      });
-      if (!ties) {
-        const rs = 1 - (6 * d2) / (size * (size * size - 1));
-        steps.push({
-          title: 'Coeficiente de Spearman',
-          explanation:
-            'Sin empates, el coeficiente de Pearson de los rangos se simplifica a esta fórmula.',
-          formula: String.raw`r_s = 1 - \frac{6\sum d_i^2}{n(n^2 - 1)}`,
-          substitution: String.raw`r_s = 1 - \frac{6(${n(d2)})}{${size}(${size}^2 - 1)}`,
-          result: `r_s = ${n(rs)}`,
-        });
-      }
-    }
-    const sums = regressionSums(xs, ys);
-    if (sums.sxx === 0 || sums.syy === 0) {
-      return {
-        ok: false,
-        error: {
-          code: 'undefined-correlation',
-          message:
-            'Una de las variables es constante: el coeficiente de correlación no está definido.',
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    r = sums.sxy / Math.sqrt(sums.sxx * sums.syy);
-    if (!spearman || new Set(x).size !== size || new Set(y).size !== size) {
-      steps.push({
-        title: spearman
-          ? 'Coeficiente de Spearman (Pearson de los rangos)'
-          : 'Coeficiente de correlación de Pearson',
-        formula: String.raw`${symbol} = \frac{S_{xy}}{\sqrt{S_{xx} S_{yy}}}`,
-        substitution: String.raw`${symbol} = \frac{${n(sums.sxy)}}{\sqrt{${n(sums.sxx)}(${n(sums.syy)})}}`,
-        result: `${symbol} = ${n(r)}`,
-      });
-    }
-    if (!spearman) {
-      steps.push({
-        title: 'Coeficiente de determinación',
-        explanation: `r² = ${formatNumber(r * r, 4)}: el ${formatNumber(r * r * 100, 4)} % de la variación de y se explica por su relación lineal con x.`,
-        result: `r^2 = ${n(r * r)}`,
-      });
-    }
-    const b1 = sums.sxy / sums.sxx;
-    const b0 = sums.meanY - b1 * sums.meanX;
-    const lo = Math.min(...xs);
-    const hi = Math.max(...xs);
-    series.push({
+/** Rangos de x y de y; sin empates, también la fórmula abreviada de Spearman. */
+function rankSteps(x: number[], y: number[], steps: Step[]): { xs: number[]; ys: number[] } {
+  const size = x.length;
+  const xs = averageRanks(x);
+  const ys = averageRanks(y);
+  const ties = new Set(x).size !== size || new Set(y).size !== size;
+  const d2 = xs.reduce((s, rx, i) => s + (rx - ys[i]!) ** 2, 0);
+  steps.push({
+    title: 'Rangos',
+    explanation: `Se ordena cada variable por separado y se reemplaza cada dato por su rango (1 al menor)${ties ? '; los empates reciben el rango promedio' : ''}.`,
+    formula: String.raw`d_i = \text{rango}(x_i) - \text{rango}(y_i)`,
+    result: String.raw`\sum d_i^2 = ${n(d2)}`,
+  });
+  if (!ties) {
+    const rs = 1 - (6 * d2) / (size * (size * size - 1));
+    steps.push({
+      title: 'Coeficiente de Spearman',
+      explanation:
+        'Sin empates, el coeficiente de Pearson de los rangos se simplifica a esta fórmula.',
+      formula: String.raw`r_s = 1 - \frac{6\sum d_i^2}{n(n^2 - 1)}`,
+      substitution: String.raw`r_s = 1 - \frac{6(${n(d2)})}{${size}(${size}^2 - 1)}`,
+      result: `r_s = ${n(rs)}`,
+    });
+  }
+  return { xs, ys };
+}
+
+/** r (o r_s) desde los pares de datos, con la recta de mínimos cuadrados para la gráfica. */
+function correlationFromData(
+  input: CorrelationInput,
+  symbol: string,
+  steps: Step[],
+): { r: number; size: number; series: Series } | Result {
+  const spearman = input.method === 'spearman';
+  const { x, y } = readPairs(input.x, input.y);
+  const size = x.length;
+  const { xs, ys } = spearman ? rankSteps(x, y, steps) : { xs: x, ys: y };
+  const sums = regressionSums(xs, ys);
+  if (sums.sxx === 0 || sums.syy === 0) {
+    return {
+      ok: false,
+      error: {
+        code: 'undefined-correlation',
+        message:
+          'Una de las variables es constante: el coeficiente de correlación no está definido.',
+      },
+      ...emptyTrace(),
+      steps,
+    };
+  }
+  const r = sums.sxy / Math.sqrt(sums.sxx * sums.syy);
+  if (!spearman || new Set(x).size !== size || new Set(y).size !== size) {
+    steps.push({
+      title: spearman
+        ? 'Coeficiente de Spearman (Pearson de los rangos)'
+        : 'Coeficiente de correlación de Pearson',
+      formula: String.raw`${symbol} = \frac{S_{xy}}{\sqrt{S_{xx} S_{yy}}}`,
+      substitution: String.raw`${symbol} = \frac{${n(sums.sxy)}}{\sqrt{${n(sums.sxx)}(${n(sums.syy)})}}`,
+      result: `${symbol} = ${n(r)}`,
+    });
+  }
+  if (!spearman) {
+    steps.push({
+      title: 'Coeficiente de determinación',
+      explanation: `r² = ${formatNumber(r * r, 4)}: el ${formatNumber(r * r * 100, 4)} % de la variación de y se explica por su relación lineal con x.`,
+      result: `r^2 = ${n(r * r)}`,
+    });
+  }
+  const b1 = sums.sxy / sums.sxx;
+  const b0 = sums.meanY - b1 * sums.meanX;
+  const lo = Math.min(...xs);
+  const hi = Math.max(...xs);
+  return {
+    r,
+    size,
+    series: {
       id: 'dispersion',
       title: spearman ? 'Diagrama de dispersión de los rangos' : 'Diagrama de dispersión',
       xLabel: spearman ? 'rango de x' : 'x',
@@ -177,46 +181,74 @@ export function solveCorrelation(
         { x: hi, y: b0 + b1 * hi },
       ],
       scatter: { label: 'Datos', points: xs.map((xi, i) => ({ x: xi, y: ys[i]! })) },
+    },
+  };
+}
+
+/** t con ν = n − 2 si ρ₀ = 0; z de Fisher si no. */
+function correlationStatistic(
+  r: number,
+  size: number,
+  input: CorrelationInput,
+  symbol: string,
+  steps: Step[],
+): { statistic: number; kind: 't' | 'z' } {
+  const rho = input.rho0;
+  if (rho === 0) {
+    const statistic = (r * Math.sqrt(size - 2)) / Math.sqrt(1 - r * r);
+    const spearmanNote =
+      input.method === 'spearman' ? ' Para Spearman es una aproximación, adecuada con n ≥ 10.' : '';
+    steps.push({
+      title: 'Estadístico t',
+      explanation: `Si ρ = 0, tiene distribución t con ν = n − 2 = ${size - 2} grados de libertad.${spearmanNote}`,
+      formula: String.raw`t = \frac{${symbol}\sqrt{n - 2}}{\sqrt{1 - ${symbol}^2}}`,
+      substitution: String.raw`t = \frac{${op(r)}\sqrt{${size} - 2}}{\sqrt{1 - ${op(r)}^2}}`,
+      result: `t = ${n(statistic)}`,
     });
+    return { statistic, kind: 't' };
+  }
+  const statistic =
+    (Math.sqrt(size - 3) / 2) * Math.log(((1 + r) * (1 - rho)) / ((1 - r) * (1 + rho)));
+  steps.push({
+    title: 'Estadístico z (transformación de Fisher)',
+    explanation: 'Para ρ₀ ≠ 0 se usa la transformación de Fisher, aproximadamente normal.',
+    formula: String.raw`z = \frac{\sqrt{n - 3}}{2}\ln\left[\frac{(1 + r)(1 - \rho_0)}{(1 - r)(1 + \rho_0)}\right]`,
+    substitution: String.raw`z = \frac{\sqrt{${size} - 3}}{2}\ln\left[\frac{(1 + ${op(r)})(1 - ${op(rho)})}{(1 - ${op(r)})(1 + ${op(rho)})}\right]`,
+    result: `z = ${n(statistic)}`,
+  });
+  return { statistic, kind: 'z' };
+}
+
+export function solveCorrelation(input: CorrelationInput): Result {
+  const steps: Step[] = [];
+  const series: Series[] = [];
+  let r: number;
+  let size: number;
+  const spearman = input.method === 'spearman';
+  const symbol = spearman ? 'r_s' : 'r';
+
+  if (input.source === 'datos') {
+    const fromData = correlationFromData(input, symbol, steps);
+    if ('ok' in fromData) return fromData;
+    ({ r, size } = fromData);
+    series.push(fromData.series);
   } else {
     r = input.r!;
     size = input.n!;
     steps.push({ title: 'Datos', result: String.raw`${symbol} = ${n(r)}, \quad n = ${size}` });
   }
 
-  steps.push({
-    title: 'Interpretación',
-    explanation: `La asociación ${spearman ? 'monótona' : 'lineal'} es ${strength(r)}. La correlación no implica causalidad.`,
-  });
-
-  const rho = input.rho0;
-  steps.push({
-    title: 'Hipótesis',
-    result: hypothesesLatex(String.raw`\rho`, n(rho), input.alternative),
-  });
-  let statistic: number;
-  let kind: 't' | 'z';
-  if (rho === 0) {
-    kind = 't';
-    statistic = (r * Math.sqrt(size - 2)) / Math.sqrt(1 - r * r);
-    steps.push({
-      title: 'Estadístico t',
-      explanation: `Si ρ = 0, tiene distribución t con ν = n − 2 = ${size - 2} grados de libertad.${spearman ? ' Para Spearman es una aproximación, adecuada con n ≥ 10.' : ''}`,
-      formula: String.raw`t = \frac{${symbol}\sqrt{n - 2}}{\sqrt{1 - ${symbol}^2}}`,
-      substitution: String.raw`t = \frac{${op(r)}\sqrt{${size} - 2}}{\sqrt{1 - ${op(r)}^2}}`,
-      result: `t = ${n(statistic)}`,
-    });
-  } else {
-    kind = 'z';
-    statistic = (Math.sqrt(size - 3) / 2) * Math.log(((1 + r) * (1 - rho)) / ((1 - r) * (1 + rho)));
-    steps.push({
-      title: 'Estadístico z (transformación de Fisher)',
-      explanation: 'Para ρ₀ ≠ 0 se usa la transformación de Fisher, aproximadamente normal.',
-      formula: String.raw`z = \frac{\sqrt{n - 3}}{2}\ln\left[\frac{(1 + r)(1 - \rho_0)}{(1 - r)(1 + \rho_0)}\right]`,
-      substitution: String.raw`z = \frac{\sqrt{${size} - 3}}{2}\ln\left[\frac{(1 + ${op(r)})(1 - ${op(rho)})}{(1 - ${op(r)})(1 + ${op(rho)})}\right]`,
-      result: `z = ${n(statistic)}`,
-    });
-  }
+  steps.push(
+    {
+      title: 'Interpretación',
+      explanation: `La asociación ${spearman ? 'monótona' : 'lineal'} es ${strength(r)}. La correlación no implica causalidad.`,
+    },
+    {
+      title: 'Hipótesis',
+      result: hypothesesLatex(String.raw`\rho`, n(input.rho0), input.alternative),
+    },
+  );
+  const { statistic, kind } = correlationStatistic(r, size, input, symbol, steps);
   const outcome = testDecision({
     statistic: kind === 't' ? { kind: 't', df: size - 2 } : { kind: 'z' },
     value: statistic,

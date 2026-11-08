@@ -17,6 +17,19 @@ import {
 import { alphaField, alternativeField, RELATION, testDecision } from './hypothesis';
 import { parseSample, positive, refineSample, sampleSize, sampleVariance } from './samples';
 
+/** Con el resumen de las muestras hacen falta n y s de cada una. */
+function refineSummaries(
+  v: { n1?: number; s1?: number; n2?: number; s2?: number },
+  two: boolean,
+  ctx: z.RefinementCtx,
+): void {
+  if (v.n1 === undefined) ctx.addIssue({ code: 'custom', path: ['n1'], message: 'Ingresa n.' });
+  if (v.s1 === undefined) ctx.addIssue({ code: 'custom', path: ['s1'], message: 'Ingresa s.' });
+  if (!two) return;
+  if (v.n2 === undefined) ctx.addIssue({ code: 'custom', path: ['n2'], message: 'Ingresa n₂.' });
+  if (v.s2 === undefined) ctx.addIssue({ code: 'custom', path: ['s2'], message: 'Ingresa s₂.' });
+}
+
 export const varianceTestInputSchema = z
   .object({
     mode: z.enum(['una', 'dos'], { error: 'Elige cuántas poblaciones.' }),
@@ -37,12 +50,7 @@ export const varianceTestInputSchema = z
       refineSample(v.data1, 'data1', ctx, 2, two ? 'la muestra 1' : 'la muestra');
       if (two) refineSample(v.data2, 'data2', ctx, 2, 'la muestra 2');
     } else {
-      if (v.n1 === undefined) ctx.addIssue({ code: 'custom', path: ['n1'], message: 'Ingresa n.' });
-      if (v.s1 === undefined) ctx.addIssue({ code: 'custom', path: ['s1'], message: 'Ingresa s.' });
-      if (two && v.n2 === undefined)
-        ctx.addIssue({ code: 'custom', path: ['n2'], message: 'Ingresa n₂.' });
-      if (two && v.s2 === undefined)
-        ctx.addIssue({ code: 'custom', path: ['s2'], message: 'Ingresa s₂.' });
+      refineSummaries(v, two, ctx);
     }
     if (!two && v.sigma0 === undefined) {
       ctx.addIssue({ code: 'custom', path: ['sigma0'], message: 'Ingresa σ₀.' });

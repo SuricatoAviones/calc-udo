@@ -55,6 +55,103 @@ function parseProbabilities(text: string | undefined): number[] | string {
   return values;
 }
 
+type FitDraft = {
+  distribution: (typeof fitDistributions)[number];
+  probabilities?: string;
+  values?: string;
+  boundaries?: string;
+  trials?: number;
+  parameter1?: number;
+};
+
+function refineProbabilities(v: FitDraft, k: number, ctx: z.RefinementCtx): void {
+  const probs = parseProbabilities(v.probabilities);
+  if (typeof probs === 'string') {
+    ctx.addIssue({ code: 'custom', path: ['probabilities'], message: probs });
+  } else if (probs.length > 0 && probs.length !== k) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['probabilities'],
+      message: `Hay ${k} frecuencias y ${probs.length} probabilidades: deben coincidir.`,
+    });
+  } else if (probs.length > 0 && Math.abs(probs.reduce((s, p) => s + p, 0) - 1) > 1e-6) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['probabilities'],
+      message: 'Las probabilidades deben sumar 1.',
+    });
+  }
+}
+
+function refineBoundaries(v: FitDraft, k: number, ctx: z.RefinementCtx): void {
+  const bounds = parseList(v.boundaries);
+  if (typeof bounds === 'string') {
+    ctx.addIssue({ code: 'custom', path: ['boundaries'], message: bounds });
+  } else if (bounds.length !== k + 1) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['boundaries'],
+      message: `Con ${k} clases hacen falta ${k + 1} límites (el inicio de cada clase y el final de la última).`,
+    });
+  } else if (bounds.some((b, i) => i > 0 && b <= bounds[i - 1]!)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['boundaries'],
+      message: 'Los límites deben ir en orden creciente.',
+    });
+  }
+}
+
+/** Valores de x de la Poisson o la binomial: enteros, crecientes y (binomial) hasta n. */
+function refineDiscreteValues(v: FitDraft, k: number, ctx: z.RefinementCtx): void {
+  const values = parseList(v.values);
+  if (typeof values === 'string') {
+    ctx.addIssue({ code: 'custom', path: ['values'], message: values });
+  } else if (values.length !== k) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['values'],
+      message: `Hay ${k} frecuencias y ${values.length} valores de x: deben coincidir.`,
+    });
+  } else if (
+    values.some((x, i) => !Number.isInteger(x) || x < 0 || (i > 0 && x <= values[i - 1]!))
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['values'],
+      message: 'Los valores de x deben ser enteros no negativos en orden creciente.',
+    });
+  }
+  if (v.distribution === 'binomial') refineBinomial(v, values, ctx);
+  // El parámetro ya es finito (lo valida su campo), así que la comparación directa basta.
+  if (v.distribution === 'poisson' && v.parameter1 !== undefined && v.parameter1 <= 0) {
+    ctx.addIssue({ code: 'custom', path: ['parameter1'], message: 'λ debe ser mayor que 0.' });
+  }
+}
+
+function refineBinomial(v: FitDraft, values: number[] | string, ctx: z.RefinementCtx): void {
+  if (v.trials === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['trials'],
+      message: 'Ingresa el número de ensayos n.',
+    });
+  } else if (typeof values !== 'string' && values.some((x) => x > v.trials!)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['values'],
+      message: 'Ningún x puede ser mayor que el número de ensayos.',
+    });
+  }
+  if (v.parameter1 !== undefined && !(v.parameter1 > 0 && v.parameter1 < 1)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['parameter1'],
+      message: 'p debe estar entre 0 y 1.',
+    });
+  }
+}
+
 export const goodnessOfFitInputSchema = z
   .object({
     distribution: z.enum(fitDistributions, { error: 'Elige la distribución.' }),
@@ -86,87 +183,9 @@ export const goodnessOfFitInputSchema = z
       return;
     }
     const k = observed.length;
-    if (v.distribution === 'probabilidades') {
-      const probs = parseProbabilities(v.probabilities);
-      if (typeof probs === 'string') {
-        ctx.addIssue({ code: 'custom', path: ['probabilities'], message: probs });
-      } else if (probs.length > 0) {
-        if (probs.length !== k) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['probabilities'],
-            message: `Hay ${k} frecuencias y ${probs.length} probabilidades: deben coincidir.`,
-          });
-        } else if (Math.abs(probs.reduce((s, p) => s + p, 0) - 1) > 1e-6) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['probabilities'],
-            message: 'Las probabilidades deben sumar 1.',
-          });
-        }
-      }
-    } else if (v.distribution === 'normal') {
-      const bounds = parseList(v.boundaries);
-      if (typeof bounds === 'string') {
-        ctx.addIssue({ code: 'custom', path: ['boundaries'], message: bounds });
-      } else if (bounds.length !== k + 1) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['boundaries'],
-          message: `Con ${k} clases hacen falta ${k + 1} límites (el inicio de cada clase y el final de la última).`,
-        });
-      } else if (bounds.some((b, i) => i > 0 && !(b > bounds[i - 1]!))) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['boundaries'],
-          message: 'Los límites deben ir en orden creciente.',
-        });
-      }
-    } else {
-      const values = parseList(v.values);
-      if (typeof values === 'string') {
-        ctx.addIssue({ code: 'custom', path: ['values'], message: values });
-      } else if (values.length !== k) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['values'],
-          message: `Hay ${k} frecuencias y ${values.length} valores de x: deben coincidir.`,
-        });
-      } else if (
-        values.some((x, i) => !Number.isInteger(x) || x < 0 || (i > 0 && !(x > values[i - 1]!)))
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['values'],
-          message: 'Los valores de x deben ser enteros no negativos en orden creciente.',
-        });
-      }
-      if (v.distribution === 'binomial') {
-        if (v.trials === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['trials'],
-            message: 'Ingresa el número de ensayos n.',
-          });
-        } else if (typeof values !== 'string' && values.some((x) => x > v.trials!)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['values'],
-            message: 'Ningún x puede ser mayor que el número de ensayos.',
-          });
-        }
-        if (v.parameter1 !== undefined && !(v.parameter1 > 0 && v.parameter1 < 1)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['parameter1'],
-            message: 'p debe estar entre 0 y 1.',
-          });
-        }
-      }
-      if (v.distribution === 'poisson' && v.parameter1 !== undefined && !(v.parameter1 > 0)) {
-        ctx.addIssue({ code: 'custom', path: ['parameter1'], message: 'λ debe ser mayor que 0.' });
-      }
-    }
+    if (v.distribution === 'probabilidades') refineProbabilities(v, k, ctx);
+    else if (v.distribution === 'normal') refineBoundaries(v, k, ctx);
+    else refineDiscreteValues(v, k, ctx);
   });
 
 export type GoodnessOfFitInput = z.infer<typeof goodnessOfFitInputSchema>;
@@ -220,6 +239,157 @@ export function mergeCells(cells: Cell[], total: number): Cell[] {
   return merged;
 }
 
+/** Celdas del modelo con su probabilidad, los parámetros estimados y la hipótesis nula. */
+interface ModelCells {
+  cells: Cell[];
+  estimatedParams: number;
+  hypothesis: string;
+}
+
+function probabilityCells(input: GoodnessOfFitInput, observed: number[]): ModelCells {
+  const k = observed.length;
+  const given = parseProbabilities(input.probabilities) as number[];
+  const probs = given.length === 0 ? observed.map(() => 1 / k) : given;
+  return {
+    cells: observed.map((o, i) => ({ labels: [`${i + 1}`], observed: o, p: probs[i]! })),
+    estimatedParams: 0,
+    hypothesis:
+      given.length === 0
+        ? `las ${k} categorías son igualmente probables (pᵢ = 1/${k})`
+        : 'las categorías tienen las probabilidades dadas',
+  };
+}
+
+/** Normal: los límites de clase, μ y σ dados o estimados con las marcas de clase. */
+function normalCells(input: GoodnessOfFitInput, observed: number[], steps: Step[]): ModelCells {
+  const k = observed.length;
+  const total = observed.reduce((s, v) => s + v, 0);
+  const bounds = parseList(input.boundaries) as number[];
+  const marks = observed.map((_, i) => (bounds[i]! + bounds[i + 1]!) / 2);
+  let mu = input.parameter1;
+  let sigma = input.parameter2;
+  if (mu === undefined || sigma === undefined) {
+    const m = marks.reduce((s, x, i) => s + x * observed[i]!, 0) / total;
+    const s = Math.sqrt(
+      marks.reduce((acc, x, i) => acc + observed[i]! * (x - m) ** 2, 0) / (total - 1),
+    );
+    mu ??= m;
+    sigma ??= s;
+    steps.push({
+      title: 'Parámetros estimados con los datos agrupados',
+      explanation: 'Se usan las marcas de clase (puntos medios) como representantes de cada clase.',
+      formula: String.raw`\bar{x} = \frac{\sum f_i m_i}{n}, \qquad s = \sqrt{\frac{\sum f_i (m_i - \bar{x})^2}{n - 1}}`,
+      result: String.raw`\hat{\mu} = ${n(mu)}, \quad \hat{\sigma} = ${n(sigma)}`,
+    });
+  }
+  const given =
+    input.estimated !== 'si' && input.parameter1 !== undefined && input.parameter2 !== undefined;
+  const mean = mu;
+  const sd = sigma;
+  const cdf = (x: number) => standardNormalCdf((x - mean) / sd);
+  const cells = observed.map((o, i) => {
+    const from = i === 0 ? -Infinity : bounds[i]!;
+    const to = i === k - 1 ? Infinity : bounds[i + 1]!;
+    return {
+      labels: [`${formatNumber(bounds[i]!)}–${formatNumber(bounds[i + 1]!)}`],
+      observed: o,
+      p: (to === Infinity ? 1 : cdf(to)) - (from === -Infinity ? 0 : cdf(from)),
+    };
+  });
+  steps.push({
+    title: 'Probabilidad de cada clase',
+    explanation:
+      'Se estandarizan los límites con z = (x − μ)/σ. La primera clase se extiende hasta −∞ y la última hasta +∞ para que las probabilidades sumen 1.',
+    formula: String.raw`p_i = \Phi\!\left(\frac{b_i - \mu}{\sigma}\right) - \Phi\!\left(\frac{b_{i-1} - \mu}{\sigma}\right)`,
+    result: cells.map((c, i) => `p_{${i + 1}} = ${n(c.p)}`).join(String.raw`,\ `),
+  });
+  return {
+    cells,
+    estimatedParams: given ? 0 : 2,
+    hypothesis: `los datos provienen de una normal con μ = ${formatNumber(mu, 6)} y σ = ${formatNumber(sigma, 6)}`,
+  };
+}
+
+/** Rótulo de la celda i: la primera acumula desde 0 y la última hasta el infinito. */
+function valueLabel(i: number, k: number, x: number): string {
+  if (i === k - 1) return `≥ ${x}`;
+  return i === 0 && x > 0 ? `≤ ${x}` : `${x}`;
+}
+
+function valueRelation(i: number, k: number, x: number): string {
+  if (i === k - 1) return TEX.ge;
+  return i === 0 && x > 0 ? TEX.le : '=';
+}
+
+/** Probabilidad de la celda i: P(X ≤ x) la primera, P(X ≥ x) la última y p(x) las demás. */
+function valueProbability(pmf: (x: number) => number, i: number, k: number, x: number): number {
+  if (i === k - 1) {
+    // Última celda: x o más (la cola completa).
+    let below = 0;
+    for (let j = 0; j < x; j++) below += pmf(j);
+    return Math.max(0, 1 - below);
+  }
+  if (i === 0) {
+    let p = 0;
+    for (let j = 0; j <= x; j++) p += pmf(j);
+    return p;
+  }
+  return pmf(x);
+}
+
+/** Poisson o binomial: λ o p dados o estimados con la media de la muestra. */
+function discreteCells(input: GoodnessOfFitInput, observed: number[], steps: Step[]): ModelCells {
+  const k = observed.length;
+  const total = observed.reduce((s, v) => s + v, 0);
+  const values = parseList(input.values) as number[];
+  const poisson = input.distribution === 'poisson';
+  const trials = input.trials ?? 0;
+  let param = input.parameter1;
+  if (param === undefined) {
+    const meanX = values.reduce((s, x, i) => s + x * observed[i]!, 0) / total;
+    param = poisson ? meanX : meanX / trials;
+    steps.push({
+      title: `Parámetro estimado con la muestra`,
+      formula: poisson
+        ? String.raw`\hat{\lambda} = \bar{x} = \frac{\sum x_i f_i}{n}`
+        : String.raw`\hat{p} = \frac{\bar{x}}{n_{\text{ensayos}}} = \frac{\sum x_i f_i}{n \cdot n_{\text{ensayos}}}`,
+      result: poisson ? String.raw`\hat{\lambda} = ${n(param)}` : String.raw`\hat{p} = ${n(param)}`,
+    });
+  }
+  const estimated = input.estimated === 'si' || input.parameter1 === undefined;
+  const value = param;
+  const pmf = (x: number) => (poisson ? poissonPmf(x, value) : binomialPmf(x, trials, value));
+  const cells = values.map((x, i) => ({
+    labels: [valueLabel(i, k, x)],
+    observed: observed[i]!,
+    p: valueProbability(pmf, i, k, x),
+  }));
+  steps.push({
+    title: 'Probabilidad de cada valor',
+    explanation:
+      'La última celda incluye todos los valores mayores, para que las probabilidades sumen 1.',
+    formula: poisson
+      ? String.raw`p(x) = \frac{e^{-\lambda}\lambda^x}{x!}`
+      : String.raw`p(x) = \binom{n}{x} p^x (1 - p)^{n - x}`,
+    result: values
+      .map((x, i) => `P(X ${valueRelation(i, k, x)} ${x}) = ${n(cells[i]!.p)}`)
+      .join(String.raw`,\ `),
+  });
+  return {
+    cells,
+    estimatedParams: estimated ? 1 : 0,
+    hypothesis: poisson
+      ? `los datos siguen una Poisson con λ = ${formatNumber(param, 6)}`
+      : `los datos siguen una binomial con n = ${trials} y p = ${formatNumber(param, 6)}`,
+  };
+}
+
+function modelCells(input: GoodnessOfFitInput, observed: number[], steps: Step[]): ModelCells {
+  if (input.distribution === 'probabilidades') return probabilityCells(input, observed);
+  if (input.distribution === 'normal') return normalCells(input, observed, steps);
+  return discreteCells(input, observed, steps);
+}
+
 export function solveGoodnessOfFit(
   input: GoodnessOfFitInput,
 ): CalculatorResult<GoodnessOfFitValue, GoodnessOfFitErrorCode> {
@@ -227,117 +397,7 @@ export function solveGoodnessOfFit(
   const total = observed.reduce((s, v) => s + v, 0);
   const k = observed.length;
   const steps: Step[] = [];
-  let cells: Cell[];
-  let estimatedParams = 0;
-  let hypothesis: string;
-
-  if (input.distribution === 'probabilidades') {
-    const given = parseProbabilities(input.probabilities) as number[];
-    const probs = given.length === 0 ? observed.map(() => 1 / k) : given;
-    hypothesis =
-      given.length === 0
-        ? `las ${k} categorías son igualmente probables (pᵢ = 1/${k})`
-        : 'las categorías tienen las probabilidades dadas';
-    cells = observed.map((o, i) => ({ labels: [`${i + 1}`], observed: o, p: probs[i]! }));
-  } else if (input.distribution === 'normal') {
-    const bounds = parseList(input.boundaries) as number[];
-    const marks = observed.map((_, i) => (bounds[i]! + bounds[i + 1]!) / 2);
-    let mu = input.parameter1;
-    let sigma = input.parameter2;
-    if (mu === undefined || sigma === undefined) {
-      const m = marks.reduce((s, x, i) => s + x * observed[i]!, 0) / total;
-      const s = Math.sqrt(
-        marks.reduce((acc, x, i) => acc + observed[i]! * (x - m) ** 2, 0) / (total - 1),
-      );
-      mu ??= m;
-      sigma ??= s;
-      steps.push({
-        title: 'Parámetros estimados con los datos agrupados',
-        explanation:
-          'Se usan las marcas de clase (puntos medios) como representantes de cada clase.',
-        formula: String.raw`\bar{x} = \frac{\sum f_i m_i}{n}, \qquad s = \sqrt{\frac{\sum f_i (m_i - \bar{x})^2}{n - 1}}`,
-        result: String.raw`\hat{\mu} = ${n(mu)}, \quad \hat{\sigma} = ${n(sigma)}`,
-      });
-    }
-    if (
-      input.estimated === 'si' ||
-      input.parameter1 === undefined ||
-      input.parameter2 === undefined
-    ) {
-      estimatedParams = 2;
-    }
-    hypothesis = `los datos provienen de una normal con μ = ${formatNumber(mu, 6)} y σ = ${formatNumber(sigma, 6)}`;
-    const cdf = (x: number) => standardNormalCdf((x - mu!) / sigma!);
-    cells = observed.map((o, i) => {
-      const from = i === 0 ? -Infinity : bounds[i]!;
-      const to = i === k - 1 ? Infinity : bounds[i + 1]!;
-      return {
-        labels: [`${formatNumber(bounds[i]!)}–${formatNumber(bounds[i + 1]!)}`],
-        observed: o,
-        p: (to === Infinity ? 1 : cdf(to)) - (from === -Infinity ? 0 : cdf(from)),
-      };
-    });
-    steps.push({
-      title: 'Probabilidad de cada clase',
-      explanation:
-        'Se estandarizan los límites con z = (x − μ)/σ. La primera clase se extiende hasta −∞ y la última hasta +∞ para que las probabilidades sumen 1.',
-      formula: String.raw`p_i = \Phi\!\left(\frac{b_i - \mu}{\sigma}\right) - \Phi\!\left(\frac{b_{i-1} - \mu}{\sigma}\right)`,
-      result: cells.map((c, i) => `p_{${i + 1}} = ${n(c.p)}`).join(String.raw`,\ `),
-    });
-  } else {
-    const values = parseList(input.values) as number[];
-    const poisson = input.distribution === 'poisson';
-    const trials = input.trials ?? 0;
-    let param = input.parameter1;
-    if (param === undefined) {
-      const meanX = values.reduce((s, x, i) => s + x * observed[i]!, 0) / total;
-      param = poisson ? meanX : meanX / trials;
-      steps.push({
-        title: `Parámetro estimado con la muestra`,
-        formula: poisson
-          ? String.raw`\hat{\lambda} = \bar{x} = \frac{\sum x_i f_i}{n}`
-          : String.raw`\hat{p} = \frac{\bar{x}}{n_{\text{ensayos}}} = \frac{\sum x_i f_i}{n \cdot n_{\text{ensayos}}}`,
-        result: poisson
-          ? String.raw`\hat{\lambda} = ${n(param)}`
-          : String.raw`\hat{p} = ${n(param)}`,
-      });
-    }
-    if (input.estimated === 'si' || input.parameter1 === undefined) estimatedParams = 1;
-    const pmf = (x: number) => (poisson ? poissonPmf(x, param!) : binomialPmf(x, trials, param!));
-    hypothesis = poisson
-      ? `los datos siguen una Poisson con λ = ${formatNumber(param, 6)}`
-      : `los datos siguen una binomial con n = ${trials} y p = ${formatNumber(param, 6)}`;
-    cells = values.map((x, i) => {
-      let p: number;
-      if (i === k - 1) {
-        // Última celda: x o más (la cola completa).
-        let below = 0;
-        for (let j = 0; j < x; j++) below += pmf(j);
-        p = Math.max(0, 1 - below);
-      } else if (i === 0) {
-        p = 0;
-        for (let j = 0; j <= x; j++) p += pmf(j);
-      } else {
-        p = pmf(x);
-      }
-      const label = i === k - 1 ? `≥ ${x}` : i === 0 && x > 0 ? `≤ ${x}` : `${x}`;
-      return { labels: [label], observed: observed[i]!, p };
-    });
-    steps.push({
-      title: 'Probabilidad de cada valor',
-      explanation:
-        'La última celda incluye todos los valores mayores, para que las probabilidades sumen 1.',
-      formula: poisson
-        ? String.raw`p(x) = \frac{e^{-\lambda}\lambda^x}{x!}`
-        : String.raw`p(x) = \binom{n}{x} p^x (1 - p)^{n - x}`,
-      result: values
-        .map((x, i) => {
-          const relation = i === k - 1 ? String.raw`\ge` : i === 0 && x > 0 ? String.raw`\le` : '=';
-          return `P(X ${relation} ${x}) = ${n(cells[i]!.p)}`;
-        })
-        .join(String.raw`,\ `),
-    });
-  }
+  const { cells, estimatedParams, hypothesis } = modelCells(input, observed, steps);
 
   steps.unshift({
     title: 'Hipótesis',
@@ -366,6 +426,7 @@ export function solveGoodnessOfFit(
 
   const statistic = used.reduce((s, c) => s + (c.observed - c.p * total) ** 2 / (c.p * total), 0);
   const df = used.length - 1 - estimatedParams;
+  const minusEstimated = estimatedParams > 0 ? ` - ${estimatedParams}` : '';
   steps.push(
     {
       title: 'Estadístico ji-cuadrada',
@@ -382,8 +443,8 @@ export function solveGoodnessOfFit(
         estimatedParams > 0
           ? `Se resta 1 por la restricción Σeᵢ = n y ${estimatedParams} por cada parámetro estimado con la muestra.`
           : 'Se resta 1 por la restricción Σeᵢ = n (no se estimaron parámetros con la muestra).',
-      formula: String.raw`\nu = k - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
-      substitution: String.raw`\nu = ${used.length} - 1${estimatedParams > 0 ? ` - ${estimatedParams}` : ''}`,
+      formula: String.raw`\nu = k - 1${minusEstimated}`,
+      substitution: String.raw`\nu = ${used.length} - 1${minusEstimated}`,
       result: String.raw`\nu = ${df}`,
     },
   );

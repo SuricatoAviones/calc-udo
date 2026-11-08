@@ -21,7 +21,7 @@ import {
   type Step,
   type SummaryItem,
 } from '../types';
-import { alternativeField, hypothesesLatex, type Alternative } from './hypothesis';
+import { alternativeField, byAlternative, hypothesesLatex, type Alternative } from './hypothesis';
 import { binomialCdf } from './probability';
 import { finite, positive } from './samples';
 
@@ -31,6 +31,43 @@ const probability = (label: string) =>
   z
     .number({ error: `Ingresa ${label}.` })
     .refine((v) => Number.isFinite(v) && v > 0 && v < 1, `${label} debe estar entre 0 y 1.`);
+
+type RequiredKey = 'mu0' | 'sigma' | 'p0' | 'alpha' | 'lower' | 'upper' | 'trueValue';
+
+/** Con valores críticos dados: los que pide la alternativa, en orden, y enteros si es binomial. */
+function refineLimits(
+  v: {
+    model: (typeof errorModels)[number];
+    alternative: Alternative;
+    lower?: number;
+    upper?: number;
+  },
+  need: (key: RequiredKey, message: string) => void,
+  ctx: z.RefinementCtx,
+): void {
+  if (v.alternative !== 'mayor') need('lower', 'Ingresa el valor crítico inferior.');
+  if (v.alternative !== 'menor') need('upper', 'Ingresa el valor crítico superior.');
+  // z.number() no admite NaN, así que la comparación directa basta.
+  const crossed = v.lower !== undefined && v.upper !== undefined && v.lower >= v.upper;
+  if (v.alternative === 'distinto' && crossed) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['upper'],
+      message: 'El valor crítico superior debe ser mayor que el inferior.',
+    });
+  }
+  if (v.model !== 'binomial') return;
+  for (const key of ['lower', 'upper'] as const) {
+    const value = v[key];
+    if (value !== undefined && !Number.isInteger(value)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: 'En el modelo binomial los valores críticos son enteros (número de éxitos).',
+      });
+    }
+  }
+}
 
 export const errorTypesInputSchema = z
   .object({
@@ -51,13 +88,9 @@ export const errorTypesInputSchema = z
     trueValue: finite('el valor de la alternativa').optional(),
   })
   .superRefine((v, ctx) => {
-    const need = (
-      key: 'mu0' | 'sigma' | 'p0' | 'alpha' | 'lower' | 'upper' | 'trueValue',
-      message: string,
-    ) => {
+    const need = (key: RequiredKey, message: string) => {
       if (v[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message });
     };
-    const byLimits = v.model === 'binomial' || v.regionBy === 'limites';
     if (v.model === 'normal') {
       need('mu0', 'Ingresa μ₀.');
       need('sigma', 'Ingresa σ.');
@@ -72,34 +105,7 @@ export const errorTypesInputSchema = z
         });
       }
     }
-    if (byLimits) {
-      if (v.alternative !== 'mayor') need('lower', 'Ingresa el valor crítico inferior.');
-      if (v.alternative !== 'menor') need('upper', 'Ingresa el valor crítico superior.');
-      if (
-        v.alternative === 'distinto' &&
-        v.lower !== undefined &&
-        v.upper !== undefined &&
-        !(v.lower < v.upper)
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['upper'],
-          message: 'El valor crítico superior debe ser mayor que el inferior.',
-        });
-      }
-      if (v.model === 'binomial') {
-        for (const key of ['lower', 'upper'] as const) {
-          const value = v[key];
-          if (value !== undefined && !Number.isInteger(value)) {
-            ctx.addIssue({
-              code: 'custom',
-              path: [key],
-              message: 'En el modelo binomial los valores críticos son enteros (número de éxitos).',
-            });
-          }
-        }
-      }
-    }
+    if (v.model === 'binomial' || v.regionBy === 'limites') refineLimits(v, need, ctx);
   });
 
 export type ErrorTypesInput = z.infer<typeof errorTypesInputSchema>;
@@ -127,6 +133,106 @@ function regionLatex(
   return String.raw`${variable} < ${n(lower!)} \;\text{ o }\; ${variable} > ${n(upper!)}`;
 }
 
+const XBAR = String.raw`\bar{x}`;
+const XBAR_UPPER = String.raw`\bar{X}`;
+
+interface NormalRegion {
+  lower: number | null;
+  upper: number | null;
+  alpha: number;
+  step: Step;
+}
+
+/** Valores críticos de x̄ que dejan α (o α/2) en la cola cuando μ = μ₀. */
+function regionFromAlpha(input: ErrorTypesInput, se: number): NormalRegion {
+  const mu0 = input.mu0!;
+  const alt = input.alternative;
+  const alpha = input.alpha!;
+  const tail = alt === 'distinto' ? alpha / 2 : alpha;
+  const zc = standardNormalQuantile(1 - tail);
+  const lower = alt === 'mayor' ? null : mu0 - zc * se;
+  const upper = alt === 'menor' ? null : mu0 + zc * se;
+  const sign = byAlternative(alt, { menor: '-', mayor: '+', distinto: TEX.pm });
+  return {
+    lower,
+    upper,
+    alpha,
+    step: {
+      title: 'Región crítica a partir de α',
+      explanation: `Se busca el valor de x̄ que deja un área ${formatNumber(tail)} en ${alt === 'distinto' ? 'cada cola' : 'la cola'} cuando μ = μ₀.`,
+      formula: String.raw`\bar{x}_c = \mu_0 ${sign} z_{${formatNumber(tail)}}\,\sigma_{\bar{X}}`,
+      substitution: String.raw`\bar{x}_c = ${n(mu0)} ${sign} ${n(zc)}(${n(se)})`,
+      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${regionLatex(XBAR, alt, lower, upper)}`,
+    },
+  };
+}
+
+/** α con los valores críticos dados: el área de la región crítica cuando μ = μ₀. */
+function regionFromLimits(input: ErrorTypesInput, se: number): NormalRegion {
+  const mu0 = input.mu0!;
+  const alt = input.alternative;
+  const lower = alt === 'mayor' ? null : input.lower!;
+  const upper = alt === 'menor' ? null : input.upper!;
+  const zLow = lower === null ? null : (lower - mu0) / se;
+  const zUp = upper === null ? null : (upper - mu0) / se;
+  const alpha =
+    (zLow === null ? 0 : standardNormalCdf(zLow)) + (zUp === null ? 0 : 1 - standardNormalCdf(zUp));
+  const tailsTex = [
+    zLow === null ? null : `P(Z < ${n(zLow)})`,
+    zUp === null ? null : `P(Z > ${n(zUp)})`,
+  ]
+    .filter(Boolean)
+    .join(' + ');
+  return {
+    lower,
+    upper,
+    alpha,
+    step: {
+      title: 'Probabilidad del error tipo I',
+      explanation: 'Es la probabilidad de caer en la región crítica cuando H₀ es cierta (μ = μ₀).',
+      formula: String.raw`\alpha = P(${regionLatex(XBAR_UPPER, alt, lower, upper)} \mid \mu = ${n(mu0)})`,
+      substitution: [
+        zLow === null
+          ? null
+          : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu0)}}{${n(se)}} = ${n(zLow)}`,
+        zUp === null
+          ? null
+          : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu0)}}{${n(se)}} = ${n(zUp)}`,
+      ]
+        .filter(Boolean)
+        .join(String.raw`,\quad `),
+      result: String.raw`\alpha = ${tailsTex} = ${p4(alpha)}`,
+    },
+  };
+}
+
+/** β en μ₁: la probabilidad de no caer en la región crítica. */
+function betaStep(
+  mu1: number,
+  beta: number,
+  se: number,
+  lower: number | null,
+  upper: number | null,
+): Step {
+  const z1 = lower === null ? null : (lower - mu1) / se;
+  const z2 = upper === null ? null : (upper - mu1) / se;
+  const fromLower = lower === null ? '' : String.raw`${n(lower)} \le `;
+  const toUpper = upper === null ? '' : String.raw` \le ${n(upper)}`;
+  return {
+    title: `Probabilidad del error tipo II cuando μ = ${formatNumber(mu1)}`,
+    explanation:
+      'Es la probabilidad de NO caer en la región crítica cuando la media verdadera es μ₁.',
+    formula: String.raw`\beta = P(${fromLower}\bar{X}${toUpper} \mid \mu = ${n(mu1)})`,
+    substitution: [
+      z1 === null ? null : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu1)}}{${n(se)}} = ${n(z1)}`,
+      z2 === null ? null : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu1)}}{${n(se)}} = ${n(z2)}`,
+    ]
+      .filter(Boolean)
+      .join(String.raw`,\quad `),
+    result: String.raw`\beta = ${p4(beta)}, \qquad \text{potencia} = 1 - \beta = ${p4(1 - beta)}`,
+  };
+}
+
 function solveNormal(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, never> {
   const mu0 = input.mu0!;
   const se = input.sigma! / Math.sqrt(input.n);
@@ -142,47 +248,10 @@ function solveNormal(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, 
     },
   ];
 
-  let lower: number | null = null;
-  let upper: number | null = null;
-  let alpha: number;
-  if (input.regionBy === 'alfa') {
-    alpha = input.alpha!;
-    const tail = alt === 'distinto' ? alpha / 2 : alpha;
-    const zc = standardNormalQuantile(1 - tail);
-    if (alt !== 'mayor') lower = mu0 - zc * se;
-    if (alt !== 'menor') upper = mu0 + zc * se;
-    steps.push({
-      title: 'Región crítica a partir de α',
-      explanation: `Se busca el valor de x̄ que deja un área ${formatNumber(tail)} en ${alt === 'distinto' ? 'cada cola' : 'la cola'} cuando μ = μ₀.`,
-      formula: String.raw`\bar{x}_c = \mu_0 ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : TEX.pm} z_{${formatNumber(tail)}}\,\sigma_{\bar{X}}`,
-      substitution: String.raw`\bar{x}_c = ${n(mu0)} ${alt === 'menor' ? '-' : alt === 'mayor' ? '+' : TEX.pm} ${n(zc)}(${n(se)})`,
-      result: String.raw`\text{Se rechaza } H_0 \text{ si } ${regionLatex(String.raw`\bar{x}`, alt, lower, upper)}`,
-    });
-  } else {
-    lower = alt === 'mayor' ? null : input.lower!;
-    upper = alt === 'menor' ? null : input.upper!;
-    const zLow = lower === null ? null : (lower - mu0) / se;
-    const zUp = upper === null ? null : (upper - mu0) / se;
-    alpha =
-      (zLow === null ? 0 : standardNormalCdf(zLow)) +
-      (zUp === null ? 0 : 1 - standardNormalCdf(zUp));
-    steps.push({
-      title: 'Probabilidad del error tipo I',
-      explanation: 'Es la probabilidad de caer en la región crítica cuando H₀ es cierta (μ = μ₀).',
-      formula: String.raw`\alpha = P(${regionLatex(String.raw`\bar{X}`, alt, lower, upper)} \mid \mu = ${n(mu0)})`,
-      substitution: [
-        zLow === null
-          ? null
-          : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu0)}}{${n(se)}} = ${n(zLow)}`,
-        zUp === null
-          ? null
-          : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu0)}}{${n(se)}} = ${n(zUp)}`,
-      ]
-        .filter(Boolean)
-        .join(String.raw`,\quad `),
-      result: String.raw`\alpha = ${[zLow === null ? null : `P(Z < ${n(zLow)})`, zUp === null ? null : `P(Z > ${n(zUp)})`].filter(Boolean).join(' + ')} = ${p4(alpha)}`,
-    });
-  }
+  const region =
+    input.regionBy === 'alfa' ? regionFromAlpha(input, se) : regionFromLimits(input, se);
+  const { lower, upper, alpha } = region;
+  steps.push(region.step);
 
   const acceptance = (mu: number) => {
     const low = lower === null ? 0 : standardNormalCdf((lower - mu) / se);
@@ -192,23 +261,8 @@ function solveNormal(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, 
 
   let beta: number | null = null;
   if (input.trueValue !== undefined) {
-    const mu1 = input.trueValue;
-    beta = acceptance(mu1);
-    const z1 = lower === null ? null : (lower - mu1) / se;
-    const z2 = upper === null ? null : (upper - mu1) / se;
-    steps.push({
-      title: `Probabilidad del error tipo II cuando μ = ${formatNumber(mu1)}`,
-      explanation:
-        'Es la probabilidad de NO caer en la región crítica cuando la media verdadera es μ₁.',
-      formula: String.raw`\beta = P(${lower === null ? '' : String.raw`${n(lower)} \le `}\bar{X}${upper === null ? '' : String.raw` \le ${n(upper)}`} \mid \mu = ${n(mu1)})`,
-      substitution: [
-        z1 === null ? null : String.raw`z_1 = \frac{${n(lower!)} - ${n(mu1)}}{${n(se)}} = ${n(z1)}`,
-        z2 === null ? null : String.raw`z_2 = \frac{${n(upper!)} - ${n(mu1)}}{${n(se)}} = ${n(z2)}`,
-      ]
-        .filter(Boolean)
-        .join(String.raw`,\quad `),
-      result: String.raw`\beta = ${p4(beta)}, \qquad \text{potencia} = 1 - \beta = ${p4(1 - beta)}`,
-    });
+    beta = acceptance(input.trueValue);
+    steps.push(betaStep(input.trueValue, beta, se, lower, upper));
   }
 
   const spread = 4 * se;
@@ -231,14 +285,7 @@ function solveNormal(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, 
       return { x: mu, y: 1 - acceptance(mu) };
     }),
   };
-  return finish(
-    alpha,
-    beta,
-    [lower, upper],
-    steps,
-    series,
-    regionLatex(String.raw`\bar{x}`, alt, lower, upper),
-  );
+  return finish(alpha, beta, [lower, upper], steps, series, regionLatex(XBAR, alt, lower, upper));
 }
 
 function solveBinomial(input: ErrorTypesInput): CalculatorResult<ErrorTypesValue, never> {
