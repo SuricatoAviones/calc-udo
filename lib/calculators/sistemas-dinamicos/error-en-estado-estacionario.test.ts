@@ -68,7 +68,7 @@ describe('error en estado estacionario', () => {
     expect(r.value.kp).toBeCloseTo(10, 10);
     expect(r.value.errors.step).toBeCloseTo(1 / 11, 10);
     expect(r.value.errors.ramp).toBe(Infinity);
-    expect(r.series.length).toBe(2);
+    expect(r.series).toHaveLength(2);
   });
 
   it('errores de entrada', () => {

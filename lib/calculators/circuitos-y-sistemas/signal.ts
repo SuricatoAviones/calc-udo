@@ -100,34 +100,31 @@ function expTermAt(term: ExpTerm, t: number): Complex {
   );
 }
 
-export function multiplySignals(a: Signal, b: Signal): Signal {
-  const out: Signal = [];
-  for (const x of a) {
-    for (const y of b) {
-      if (x.kind === 'impulse' && y.kind === 'impulse') {
-        throw new SignalError('No se puede multiplicar un impulso por otro impulso.');
-      }
-      if (x.kind === 'impulse' || y.kind === 'impulse') {
-        // Propiedad de muestreo: f(t)·δ(t − a) = f(a)·δ(t − a).
-        const impulse = (x.kind === 'impulse' ? x : y) as ImpulseTerm;
-        const other = (x.kind === 'impulse' ? y : x) as ExpTerm;
-        out.push({
-          kind: 'impulse',
-          coef: C.mul(impulse.coef, expTermAt(other, impulse.shift)),
-          shift: impulse.shift,
-        });
-        continue;
-      }
-      out.push({
-        kind: 'exp',
-        coef: C.mul(x.coef, y.coef),
-        power: x.power + y.power,
-        rate: C.add(x.rate, y.rate),
-        shift: Math.max(x.shift, y.shift),
-      });
-    }
+/** Producto de dos términos; con un impulso, por la propiedad de muestreo f(t)·δ(t − a) = f(a)·δ(t − a). */
+function multiplyTerms(x: Signal[number], y: Signal[number]): Signal[number] {
+  if (x.kind === 'impulse' && y.kind === 'impulse') {
+    throw new SignalError('No se puede multiplicar un impulso por otro impulso.');
   }
-  return normalizeSignal(out);
+  if (x.kind === 'impulse' || y.kind === 'impulse') {
+    const impulse = (x.kind === 'impulse' ? x : y) as ImpulseTerm;
+    const other = (x.kind === 'impulse' ? y : x) as ExpTerm;
+    return {
+      kind: 'impulse',
+      coef: C.mul(impulse.coef, expTermAt(other, impulse.shift)),
+      shift: impulse.shift,
+    };
+  }
+  return {
+    kind: 'exp',
+    coef: C.mul(x.coef, y.coef),
+    power: x.power + y.power,
+    rate: C.add(x.rate, y.rate),
+    shift: Math.max(x.shift, y.shift),
+  };
+}
+
+export function multiplySignals(a: Signal, b: Signal): Signal {
+  return normalizeSignal(a.flatMap((x) => b.map((y) => multiplyTerms(x, y))));
 }
 
 /** Valor real de la señal en t (los impulsos no se pueden evaluar: se ignoran). */
@@ -269,130 +266,161 @@ function constantBasePower(base: Complex, lin: { m: number; c: number }, options
   return exponential(C.scale(ln, lin.m), C.scale(ln, lin.c));
 }
 
+/** Constante real distinta de cero (la señal nula es la lista vacía). */
+function realConstant(value: number): Signal {
+  return value === 0 ? [] : constant(C.complex(value));
+}
+
+function constantNode(node: MathNode): Signal {
+  const value = (node as unknown as { value: unknown }).value;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new SignalError('La expresión tiene un valor que no es un número.');
+  }
+  return realConstant(value);
+}
+
+function symbolNode(node: MathNode, options: SignalOptions): Signal {
+  const name = (node as unknown as { name: string }).name;
+  if (name === options.variable) {
+    return [{ kind: 'exp', coef: C.ONE, power: 1, rate: C.ZERO, shift: 0 }];
+  }
+  if (name === 'e') return constant(C.complex(Math.E));
+  if (name === 'pi') return constant(C.complex(Math.PI));
+  throw new SignalError(
+    `La expresión solo puede depender de ${options.variable}; «${name}» no está definido.`,
+  );
+}
+
+/** base^n con n constante: potencia de constantes o potencia entera de la variable. */
+function constantPower(base: Signal, n: number): Signal {
+  const baseConstant = asConstant(base);
+  if (baseConstant) {
+    const value = Math.pow(baseConstant.re, n);
+    if (!C.isReal(baseConstant) || !Number.isFinite(value)) {
+      throw new SignalError('Una potencia de constantes no da un número real.');
+    }
+    return realConstant(value);
+  }
+  if (!Number.isInteger(n) || n < 0 || n > MAX_POWER) {
+    throw new SignalError(
+      `Las potencias de la variable deben tener exponente entero entre 0 y ${MAX_POWER}.`,
+    );
+  }
+  let out = constant(C.ONE);
+  for (let k = 0; k < n; k++) out = multiplySignals(out, base);
+  return out;
+}
+
+function powerNode(a: MathNode, b: MathNode, options: SignalOptions): Signal {
+  const base = toSignal(a, options);
+  const exponent = toSignal(b, options);
+  const exponentConstant = asConstant(exponent);
+  if (exponentConstant && C.isReal(exponentConstant))
+    return constantPower(base, exponentConstant.re);
+  const baseConstant = asConstant(base);
+  if (!baseConstant) throw new SignalError('Esa potencia no está en la tabla de transformadas.');
+  const lin = asLinear(exponent);
+  if (!lin) {
+    throw new SignalError(`El exponente debe ser de la forma a·${options.variable} + b.`);
+  }
+  return constantBasePower(baseConstant, lin, options);
+}
+
+function divideNode(a: MathNode, b: MathNode, options: SignalOptions): Signal {
+  const divisor = asConstant(toSignal(b, options));
+  if (!divisor || C.isZero(divisor)) {
+    throw new SignalError('Solo se puede dividir entre una constante distinta de cero.');
+  }
+  return scaleSignal(toSignal(a, options), C.div(C.ONE, divisor));
+}
+
+function operatorNode(node: MathNode, options: SignalOptions): Signal {
+  const op = node as unknown as { fn: string; args: MathNode[] };
+  const a = op.args[0]!;
+  const b = op.args[1]!;
+  switch (op.fn) {
+    case 'unaryMinus':
+      return scaleSignal(toSignal(a, options), C.complex(-1));
+    case 'unaryPlus':
+      return toSignal(a, options);
+    case 'add':
+      return addSignals(toSignal(a, options), toSignal(b, options));
+    case 'subtract':
+      return addSignals(toSignal(a, options), scaleSignal(toSignal(b, options), C.complex(-1)));
+    case 'multiply':
+      return multiplySignals(toSignal(a, options), toSignal(b, options));
+    case 'divide':
+      return divideNode(a, b, options);
+    case 'pow':
+      return powerNode(a, b, options);
+    default:
+      throw new SignalError(`El operador «${op.fn}» no está soportado.`);
+  }
+}
+
+const REAL_FUNCTIONS: Record<string, (x: number) => number> = {
+  sin: Math.sin,
+  cos: Math.cos,
+  sinh: Math.sinh,
+  cosh: Math.cosh,
+  exp: Math.exp,
+};
+
+/** sin, cos, sinh, cosh o exp: de una constante, el número; de a·t + b, su desarrollo en exponenciales. */
+function trigNode(name: string, raw: string, arg: MathNode, options: SignalOptions): Signal {
+  const inner = toSignal(arg, options);
+  const constantArg = asConstant(inner);
+  if (constantArg && C.isReal(constantArg))
+    return realConstant(REAL_FUNCTIONS[name]!(constantArg.re));
+  const lin = asLinear(inner);
+  if (!lin) {
+    throw new SignalError(`El argumento de ${raw} debe ser de la forma a·${options.variable} + b.`);
+  }
+  return trig(name, lin);
+}
+
+/** sqrt y abs, solo sobre constantes reales. */
+function constantOnlyNode(
+  name: string,
+  raw: string,
+  arg: MathNode,
+  options: SignalOptions,
+): Signal {
+  const inner = asConstant(toSignal(arg, options));
+  if (!inner || !C.isReal(inner) || (name === 'sqrt' && inner.re < 0)) {
+    throw new SignalError(`${raw} solo se admite sobre constantes.`);
+  }
+  return constant(C.complex(name === 'sqrt' ? Math.sqrt(inner.re) : Math.abs(inner.re)));
+}
+
+function functionNode(node: MathNode, options: SignalOptions): Signal {
+  const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
+  const raw = fn.fn.name;
+  const name = FUNCTION_ALIASES[raw] ?? raw;
+  if (fn.args.length !== 1) throw new SignalError(`«${raw}» recibe un solo argumento.`);
+  const arg = fn.args[0]!;
+  if (name === 'u') return unitStep(linearArgument(arg, options, 'u( )'), options);
+  if (name === 'delta') return impulse(linearArgument(arg, options, 'delta( )'), options);
+  if (Object.hasOwn(REAL_FUNCTIONS, name)) return trigNode(name, raw, arg, options);
+  if (name === 'sqrt' || name === 'abs') return constantOnlyNode(name, raw, arg, options);
+  if (raw === 'log' || raw === 'ln') {
+    throw new SignalError('El logaritmo no está en la tabla de transformadas.');
+  }
+  throw new SignalError(`La función «${raw}» no está en la tabla de transformadas.`);
+}
+
 function toSignal(node: MathNode, options: SignalOptions): Signal {
   switch (node.type) {
-    case 'ConstantNode': {
-      const value = (node as unknown as { value: unknown }).value;
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new SignalError('La expresión tiene un valor que no es un número.');
-      }
-      return value === 0 ? [] : constant(C.complex(value));
-    }
-    case 'SymbolNode': {
-      const name = (node as unknown as { name: string }).name;
-      if (name === options.variable) {
-        return [{ kind: 'exp', coef: C.ONE, power: 1, rate: C.ZERO, shift: 0 }];
-      }
-      if (name === 'e') return constant(C.complex(Math.E));
-      if (name === 'pi') return constant(C.complex(Math.PI));
-      throw new SignalError(
-        `La expresión solo puede depender de ${options.variable}; «${name}» no está definido.`,
-      );
-    }
+    case 'ConstantNode':
+      return constantNode(node);
+    case 'SymbolNode':
+      return symbolNode(node, options);
     case 'ParenthesisNode':
       return toSignal((node as unknown as { content: MathNode }).content, options);
-    case 'OperatorNode': {
-      const op = node as unknown as { fn: string; args: MathNode[] };
-      const [a, b] = op.args;
-      switch (op.fn) {
-        case 'unaryMinus':
-          return scaleSignal(toSignal(a!, options), C.complex(-1));
-        case 'unaryPlus':
-          return toSignal(a!, options);
-        case 'add':
-          return addSignals(toSignal(a!, options), toSignal(b!, options));
-        case 'subtract':
-          return addSignals(
-            toSignal(a!, options),
-            scaleSignal(toSignal(b!, options), C.complex(-1)),
-          );
-        case 'multiply':
-          return multiplySignals(toSignal(a!, options), toSignal(b!, options));
-        case 'divide': {
-          const divisor = asConstant(toSignal(b!, options));
-          if (!divisor || C.isZero(divisor)) {
-            throw new SignalError('Solo se puede dividir entre una constante distinta de cero.');
-          }
-          return scaleSignal(toSignal(a!, options), C.div(C.ONE, divisor));
-        }
-        case 'pow': {
-          const base = toSignal(a!, options);
-          const exponent = toSignal(b!, options);
-          const exponentConstant = asConstant(exponent);
-          const baseConstant = asConstant(base);
-          if (exponentConstant && C.isReal(exponentConstant)) {
-            const n = exponentConstant.re;
-            if (baseConstant) {
-              const value = Math.pow(baseConstant.re, n);
-              if (!C.isReal(baseConstant) || !Number.isFinite(value)) {
-                throw new SignalError('Una potencia de constantes no da un número real.');
-              }
-              return value === 0 ? [] : constant(C.complex(value));
-            }
-            if (!Number.isInteger(n) || n < 0 || n > MAX_POWER) {
-              throw new SignalError(
-                `Las potencias de la variable deben tener exponente entero entre 0 y ${MAX_POWER}.`,
-              );
-            }
-            let out = constant(C.ONE);
-            for (let k = 0; k < n; k++) out = multiplySignals(out, base);
-            return out;
-          }
-          if (baseConstant) {
-            const lin = asLinear(exponent);
-            if (!lin) {
-              throw new SignalError(`El exponente debe ser de la forma a·${options.variable} + b.`);
-            }
-            return constantBasePower(baseConstant, lin, options);
-          }
-          throw new SignalError('Esa potencia no está en la tabla de transformadas.');
-        }
-        default:
-          throw new SignalError(`El operador «${op.fn}» no está soportado.`);
-      }
-    }
-    case 'FunctionNode': {
-      const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
-      const raw = fn.fn.name;
-      const name = FUNCTION_ALIASES[raw] ?? raw;
-      if (fn.args.length !== 1) throw new SignalError(`«${raw}» recibe un solo argumento.`);
-      const arg = fn.args[0]!;
-      if (name === 'u') return unitStep(linearArgument(arg, options, 'u( )'), options);
-      if (name === 'delta') return impulse(linearArgument(arg, options, 'delta( )'), options);
-      if (['sin', 'cos', 'sinh', 'cosh', 'exp'].includes(name)) {
-        const inner = toSignal(arg, options);
-        const constantArg = asConstant(inner);
-        if (constantArg && C.isReal(constantArg)) {
-          const fns: Record<string, (x: number) => number> = {
-            sin: Math.sin,
-            cos: Math.cos,
-            sinh: Math.sinh,
-            cosh: Math.cosh,
-            exp: Math.exp,
-          };
-          const value = fns[name]!(constantArg.re);
-          return value === 0 ? [] : constant(C.complex(value));
-        }
-        const lin = asLinear(inner);
-        if (!lin) {
-          throw new SignalError(
-            `El argumento de ${raw} debe ser de la forma a·${options.variable} + b.`,
-          );
-        }
-        return trig(name, lin);
-      }
-      if (name === 'sqrt' || name === 'abs') {
-        const inner = asConstant(toSignal(arg, options));
-        if (!inner || !C.isReal(inner) || (name === 'sqrt' && inner.re < 0)) {
-          throw new SignalError(`${raw} solo se admite sobre constantes.`);
-        }
-        return constant(C.complex(name === 'sqrt' ? Math.sqrt(inner.re) : Math.abs(inner.re)));
-      }
-      if (raw === 'log' || raw === 'ln') {
-        throw new SignalError('El logaritmo no está en la tabla de transformadas.');
-      }
-      throw new SignalError(`La función «${raw}» no está en la tabla de transformadas.`);
-    }
+    case 'OperatorNode':
+      return operatorNode(node, options);
+    case 'FunctionNode':
+      return functionNode(node, options);
     default:
       throw new SignalError('La expresión no es válida.');
   }
@@ -509,18 +537,23 @@ export function signalTex(source: string): string | null {
 export function plotHorizon(signals: Signal[], fallback = 10): number {
   let horizon = 0;
   let any = false;
-  for (const signal of signals) {
-    for (const term of signal) {
-      horizon = Math.max(horizon, term.shift * 1.5);
-      if (term.kind !== 'exp') continue;
-      any = true;
-      const sigma = term.rate.re;
-      const omega = Math.abs(term.rate.im);
-      if (sigma < -1e-12) horizon = Math.max(horizon, term.shift + 5 / -sigma);
-      if (omega > 1e-12) horizon = Math.max(horizon, term.shift + (3 * 2 * Math.PI) / omega);
-      if (sigma >= -1e-12 && omega <= 1e-12) horizon = Math.max(horizon, term.shift + fallback / 2);
-    }
+  for (const term of signals.flat()) {
+    horizon = Math.max(horizon, term.shift * 1.5);
+    if (term.kind !== 'exp') continue;
+    any = true;
+    horizon = Math.max(horizon, termHorizon(term, fallback));
   }
   if (!any && horizon === 0) return fallback;
   return horizon > 0 ? horizon : fallback;
+}
+
+/** Horizonte de un término: cinco constantes de tiempo, tres periodos o, si es constante, la mitad del de reserva. */
+function termHorizon(term: ExpTerm, fallback: number): number {
+  const sigma = term.rate.re;
+  const omega = Math.abs(term.rate.im);
+  let horizon = 0;
+  if (sigma < -1e-12) horizon = Math.max(horizon, term.shift + 5 / -sigma);
+  if (omega > 1e-12) horizon = Math.max(horizon, term.shift + (3 * 2 * Math.PI) / omega);
+  if (sigma >= -1e-12 && omega <= 1e-12) horizon = Math.max(horizon, term.shift + fallback / 2);
+  return horizon;
 }

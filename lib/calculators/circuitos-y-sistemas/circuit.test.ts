@@ -102,7 +102,7 @@ describe('topología', () => {
     };
     const topo = buildTopology(doc);
     expect(topo.referenceNode).toBe(topo.nodeOf.get('0,4'));
-    expect(topo.nodes.length).toBe(3);
+    expect(topo.nodes).toHaveLength(3);
     expect(topo.components).toHaveLength(2);
   });
 

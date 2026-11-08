@@ -41,7 +41,7 @@ describe('función de transferencia', () => {
     // La corriente del lazo: I/E_i = Cs/(LCs² + RCs + 1) = s/(s² + 2s + 2) (con C = 0.5, monico).
     const current = ok({ mode: 'circuito', output: 'r1', quantity: 'i' });
     expect(current.value.tf.num[0]).toBeCloseTo(1, 10);
-    expect(current.value.tf.num.length).toBe(2);
+    expect(current.value.tf.num).toHaveLength(2);
     expect(current.value.tf.den).toEqual([1, 2, 2]);
   });
 

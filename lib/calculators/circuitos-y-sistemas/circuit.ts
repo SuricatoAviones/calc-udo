@@ -145,7 +145,7 @@ export function parseEngineering(text: string): number | null {
     .replace(/\s+/g, '')
     .replace(/^−/, '-')
     .replace(/(Ω|ohms?|[VAFH])$/, '');
-  const m = /^([+-]?\d+(?:\.\d*)?|\.\d+)([pnumµukKMG]?)$/.exec(s);
+  const m = /^([+-]?\d+(?:\.\d*)?|\.\d+)([pnumµkKMG]?)$/.exec(s);
   if (!m) return null;
   const val = Number(m[1]);
   const mult = ENG_SUFFIX[m[2]!] ?? 1;
@@ -276,7 +276,7 @@ function key(p: GridPoint): string {
 }
 
 class UnionFind {
-  private parent = new Map<string, string>();
+  private readonly parent = new Map<string, string>();
 
   add(p: GridPoint): void {
     const k = key(p);
@@ -347,10 +347,8 @@ function pointOnWire(p: GridPoint, wire: CircuitWire): boolean {
  * Extrae la topología de un circuito: nodos (puntos unidos por cables), referencia y componentes
  * con sus nodos asignados. No valida problemas eléctricos; usa `validateTopology` para eso.
  */
-export function buildTopology(doc: CircuitDocument): CircuitTopology {
-  const uf = new UnionFind();
-
-  // Registrar todos los puntos de cables y terminales.
+/** Registra los puntos de cada tramo de cable (unidos entre sí), los terminales y la tierra. */
+function registerPoints(uf: UnionFind, doc: CircuitDocument): void {
   for (const wire of doc.wires) {
     for (let i = 0; i < wire.points.length - 1; i++) {
       const seg = pointsOnSegment(wire.points[i]!, wire.points[i + 1]!);
@@ -362,123 +360,145 @@ export function buildTopology(doc: CircuitDocument): CircuitTopology {
     for (const { point } of componentTerminals(c)) uf.add(point);
   }
   if (doc.ground) uf.add(doc.ground);
+}
 
-  // Unir terminales que caigan sobre un cable o que coincidan con otro terminal.
+/** Une con el primer punto de cada cable los terminales que caen sobre él. */
+function joinTerminalsOnWires(uf: UnionFind, doc: CircuitDocument): void {
   for (const c of doc.components) {
     for (const { point: t } of componentTerminals(c)) {
-      for (const wire of doc.wires) {
-        if (pointOnWire(t, wire)) {
-          // Unir con un punto del cable (el primero del segmento que lo contiene).
-          const first = wire.points[0]!;
-          uf.union(t, first);
-        }
-      }
+      for (const wire of doc.wires) if (pointOnWire(t, wire)) uf.union(t, wire.points[0]!);
     }
   }
+}
+
+/** Une los terminales a y b que coinciden con un terminal de otro componente. */
+function joinCoincidentTerminals(uf: UnionFind, doc: CircuitDocument): void {
   for (let i = 0; i < doc.components.length; i++) {
     for (let j = i + 1; j < doc.components.length; j++) {
       const a = doc.components[i]!;
       const b = doc.components[j]!;
-      if (pointsEqual(a.a, b.a)) uf.union(a.a, b.a);
-      else if (pointsEqual(a.a, b.b)) uf.union(a.a, b.b);
-      if (pointsEqual(a.b, b.a)) uf.union(a.b, b.a);
-      else if (pointsEqual(a.b, b.b)) uf.union(a.b, b.b);
+      for (const p of [a.a, a.b]) {
+        if (pointsEqual(p, b.a)) uf.union(p, b.a);
+        else if (pointsEqual(p, b.b)) uf.union(p, b.b);
+      }
     }
   }
+}
 
-  // Reconstruir nodos recorriendo todos los puntos registrados.
-  const pointToRoot = new Map<string, string>();
+/** Puntos de cada nodo (agrupados por su raíz), en el orden en que aparecen. */
+function collectNodePoints(uf: UnionFind, doc: CircuitDocument): Map<string, GridPoint[]> {
+  const seen = new Set<string>();
   const rootToPoints = new Map<string, GridPoint[]>();
   const collect = (p: GridPoint) => {
     const k = key(p);
-    if (pointToRoot.has(k)) return;
+    if (seen.has(k)) return;
+    seen.add(k);
     const root = uf.find(p);
-    pointToRoot.set(k, root);
-    if (!rootToPoints.has(root)) rootToPoints.set(root, []);
-    rootToPoints.get(root)!.push(p);
+    const list = rootToPoints.get(root);
+    if (list) list.push(p);
+    else rootToPoints.set(root, [p]);
   };
   for (const c of doc.components) {
     for (const { point } of componentTerminals(c)) collect(point);
   }
-  for (const wire of doc.wires) {
-    for (const p of wire.points) collect(p);
-  }
+  for (const wire of doc.wires) for (const p of wire.points) collect(p);
   if (doc.ground) collect(doc.ground);
+  return rootToPoints;
+}
 
-  const roots = [...rootToPoints.keys()];
-  const rootToIndex = new Map<string, number>();
-  roots.forEach((root, i) => rootToIndex.set(root, i));
-
-  const nodeOf = new Map<string, number>();
-  for (const root of roots) {
-    const idx = rootToIndex.get(root)!;
-    for (const p of rootToPoints.get(root)!) nodeOf.set(key(p), idx);
-  }
-
-  const nodes: CircuitNode[] = roots.map((root, i) => ({
-    index: i,
-    points: rootToPoints.get(root)!,
-    terminals: [],
-    isGround: doc.ground ? uf.find(doc.ground) === root : false,
-  }));
-
-  const mapped: MappedComponent[] = [];
-  for (const c of doc.components) {
+/** Nodos de cada componente; registra además sus terminales en cada nodo. */
+function mapComponents(
+  doc: CircuitDocument,
+  nodes: CircuitNode[],
+  nodeOf: Map<string, number>,
+): MappedComponent[] {
+  return doc.components.map((c) => {
     const nodeA = nodeOf.get(key(c.a))!;
     const nodeB = nodeOf.get(key(c.b))!;
     nodes[nodeA]!.terminals.push({ component: c, terminal: 'a' });
     nodes[nodeB]!.terminals.push({ component: c, terminal: 'b' });
-    if (c.c) {
-      const nodeC = nodeOf.get(key(c.c))!;
-      nodes[nodeC]!.terminals.push({ component: c, terminal: 'c' });
-      mapped.push({ component: c, nodeA, nodeB, nodeC });
-    } else {
-      mapped.push({ component: c, nodeA, nodeB });
-    }
-  }
+    if (!c.c) return { component: c, nodeA, nodeB };
+    const nodeC = nodeOf.get(key(c.c))!;
+    nodes[nodeC]!.terminals.push({ component: c, terminal: 'c' });
+    return { component: c, nodeA, nodeB, nodeC };
+  });
+}
 
-  // Referencia: nodo con tierra, o el que tenga más terminales.
-  let referenceNode = nodes.findIndex((n) => n.isGround);
-  if (referenceNode === -1) {
-    referenceNode =
-      nodes.map((n, i) => ({ i, count: n.terminals.length })).sort((a, b) => b.count - a.count)[0]
-        ?.i ?? 0;
-  }
+/** Referencia: el nodo con tierra o, si no hay, el que tenga más terminales. */
+function referenceOf(nodes: CircuitNode[]): number {
+  const grounded = nodes.findIndex((n) => n.isGround);
+  if (grounded !== -1) return grounded;
+  return (
+    nodes.map((n, i) => ({ i, count: n.terminals.length })).sort((a, b) => b.count - a.count)[0]
+      ?.i ?? 0
+  );
+}
 
-  return { nodes, nodeOf, components: mapped, referenceNode };
+/**
+ * Extrae la topología de un circuito: nodos (puntos unidos por cables), referencia y componentes
+ * con sus nodos asignados. No valida problemas eléctricos; usa `validateTopology` para eso.
+ */
+export function buildTopology(doc: CircuitDocument): CircuitTopology {
+  const uf = new UnionFind();
+  registerPoints(uf, doc);
+  joinTerminalsOnWires(uf, doc);
+  joinCoincidentTerminals(uf, doc);
+
+  const rootToPoints = collectNodePoints(uf, doc);
+  const groundRoot = doc.ground ? uf.find(doc.ground) : undefined;
+  const nodeOf = new Map<string, number>();
+  const nodes: CircuitNode[] = [...rootToPoints].map(([root, points], i) => {
+    for (const p of points) nodeOf.set(key(p), i);
+    return { index: i, points, terminals: [], isGround: root === groundRoot };
+  });
+  const mapped = mapComponents(doc, nodes, nodeOf);
+  return { nodes, nodeOf, components: mapped, referenceNode: referenceOf(nodes) };
 }
 
 // ─── Validación estructural ─────────────────────────────────────────────────
 
-function findVoltageSourceLoop(topology: CircuitTopology): boolean {
-  const n = topology.nodes.length;
-  const adj = Array.from({ length: n }, () => new Set<number>());
-  for (const { component, nodeA, nodeB } of topology.components) {
-    if (component.kind === 'voltage-source') {
-      adj[nodeA]!.add(nodeB);
-      adj[nodeB]!.add(nodeA);
-    }
-  }
+/** ¿El grafo no dirigido tiene un ciclo? (búsqueda en profundidad desde cada componente). */
+function hasCycle(adj: Set<number>[]): boolean {
   const visited = new Set<number>();
   const parent = new Map<number, number>();
-  for (let start = 0; start < n; start++) {
-    if (visited.has(start)) continue;
-    const stack = [start];
-    visited.add(start);
-    while (stack.length) {
-      const u = stack.pop()!;
-      for (const v of adj[u]!) {
-        if (!visited.has(v)) {
-          visited.add(v);
-          parent.set(v, u);
-          stack.push(v);
-        } else if (parent.get(u) !== v) {
-          return true;
-        }
+  for (let start = 0; start < adj.length; start++) {
+    if (!visited.has(start) && reachesCycle(adj, start, visited, parent)) return true;
+  }
+  return false;
+}
+
+/** Recorre la componente de `start`; un vecino ya visitado que no es el padre cierra un ciclo. */
+function reachesCycle(
+  adj: Set<number>[],
+  start: number,
+  visited: Set<number>,
+  parent: Map<number, number>,
+): boolean {
+  const stack = [start];
+  visited.add(start);
+  while (stack.length) {
+    const u = stack.pop()!;
+    for (const v of adj[u]!) {
+      if (!visited.has(v)) {
+        visited.add(v);
+        parent.set(v, u);
+        stack.push(v);
+      } else if (parent.get(u) !== v) {
+        return true;
       }
     }
   }
   return false;
+}
+
+function findVoltageSourceLoop(topology: CircuitTopology): boolean {
+  const adj = Array.from({ length: topology.nodes.length }, () => new Set<number>());
+  for (const { component, nodeA, nodeB } of topology.components) {
+    if (component.kind !== 'voltage-source') continue;
+    adj[nodeA]!.add(nodeB);
+    adj[nodeB]!.add(nodeA);
+  }
+  return hasCycle(adj);
 }
 
 function hasCurrentSourceCut(topology: CircuitTopology): boolean {
@@ -498,51 +518,56 @@ function hasCurrentSourceCut(topology: CircuitTopology): boolean {
 /**
  * Valida un circuito construido. Devuelve `null` si no hay problema estructural.
  */
+/** Errores de los elementos: circuito vacío, tipos que la calculadora no admite, amplificador roto. */
+function elementsError(
+  components: MappedComponent[],
+  allow: readonly ComponentKind[],
+): CircuitError | null {
+  if (components.length === 0) {
+    return { code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
+  }
+  const parts = components.map((c) => c.component);
+  const kindError = storageElementsError(parts) ?? electronicElementsError(parts, allow);
+  if (kindError) return kindError;
+  const broken = components.find((c) => c.component.kind === 'opamp' && c.nodeC === undefined);
+  if (!broken) return null;
+  return {
+    code: 'singular',
+    message: `${componentLabel(broken.component)} no tiene salida: bórralo y vuelve a colocarlo.`,
+  };
+}
+
+/**
+ * ¿Algún nodo con componentes queda sin conexión a la referencia? Un amplificador operacional
+ * liga sus entradas (v₊ = v₋) y su salida queda referida a tierra.
+ */
+function disconnectedFromReference({ nodes, components, referenceNode }: CircuitTopology): boolean {
+  const uf = new UnionFind();
+  for (const n of nodes) for (const p of n.points) uf.add(p);
+  const first = (node: number) => nodes[node]!.points[0]!;
+  for (const { nodeA, nodeB, nodeC } of components) {
+    uf.union(first(nodeA), first(nodeB));
+    if (nodeC !== undefined) uf.union(first(nodeC), first(referenceNode));
+  }
+  const refRoot = uf.find(first(referenceNode));
+  // Los nodos solo de cables no cuentan.
+  return nodes.some(
+    (node, i) => i !== referenceNode && node.terminals.length > 0 && uf.find(first(i)) !== refRoot,
+  );
+}
+
 export function validateTopology(
   topology: CircuitTopology,
   options: { allow?: readonly ComponentKind[] } = {},
 ): CircuitError | null {
-  const { nodes, components, referenceNode } = topology;
-  if (components.length === 0) {
-    return { code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
-  }
-  const storage = storageElementsError(components.map((c) => c.component));
-  if (storage) return storage;
-  const electronic = electronicElementsError(
-    components.map((c) => c.component),
-    options.allow ?? [],
-  );
-  if (electronic) return electronic;
-  const broken = components.find((c) => c.component.kind === 'opamp' && c.nodeC === undefined);
-  if (broken) {
+  const invalid = elementsError(topology.components, options.allow ?? []);
+  if (invalid) return invalid;
+  if (disconnectedFromReference(topology)) {
     return {
-      code: 'singular',
-      message: `${componentLabel(broken.component)} no tiene salida: bórralo y vuelve a colocarlo.`,
+      code: 'circuito-desconectado',
+      message:
+        'El circuito tiene partes desconectadas de la referencia. Agrega un cable o componente que las una.',
     };
-  }
-
-  // Cada nodo con componentes debe estar conectado a la referencia. Un amplificador operacional
-  // liga sus entradas (v₊ = v₋) y su salida queda referida a tierra.
-  const uf = new UnionFind();
-  for (const n of nodes) {
-    for (const p of n.points) uf.add(p);
-  }
-  for (const { nodeA, nodeB, nodeC } of components) {
-    uf.union(nodes[nodeA]!.points[0]!, nodes[nodeB]!.points[0]!);
-    if (nodeC !== undefined) uf.union(nodes[nodeC]!.points[0]!, nodes[referenceNode]!.points[0]!);
-  }
-  const refRoot = uf.find(nodes[referenceNode]!.points[0]!);
-  for (let i = 0; i < nodes.length; i++) {
-    if (i === referenceNode) continue;
-    if (nodes[i]!.terminals.length === 0) continue; // nodo solo de cables
-    const root = uf.find(nodes[i]!.points[0]!);
-    if (root !== refRoot) {
-      return {
-        code: 'circuito-desconectado',
-        message:
-          'El circuito tiene partes desconectadas de la referencia. Agrega un cable o componente que las una.',
-      };
-    }
   }
 
   if (findVoltageSourceLoop(topology)) {
@@ -630,7 +655,7 @@ export function nextLabel(doc: CircuitDocument, kind: ComponentKind): string {
   const prefix = KIND_LABEL[kind];
   const used = new Set<number>();
   for (const c of doc.components) {
-    if (!c.label || !c.label.startsWith(prefix)) continue;
+    if (!c.label?.startsWith(prefix)) continue;
     const n = Number(c.label.slice(prefix.length));
     if (Number.isInteger(n)) used.add(n);
   }

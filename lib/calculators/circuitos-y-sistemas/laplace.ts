@@ -196,7 +196,7 @@ function single(a: Transform): DelayedRational | null {
 
 function constantOf(a: Transform): number | null {
   const r = single(a);
-  if (!r || r.delay !== 0) return null;
+  if (r?.delay !== 0) return null;
   const num = trimPoly(r.num);
   const den = trimPoly(r.den);
   if (num.length !== 1 || den.length !== 1) return null;
@@ -206,7 +206,7 @@ function constantOf(a: Transform): number | null {
 /** Si la transformada es a·x + b (sin retardo), devuelve a y b. */
 function linearOf(a: Transform): { m: number; c: number } | null {
   const r = single(a);
-  if (!r || r.delay !== 0) return null;
+  if (r?.delay !== 0) return null;
   const den = trimPoly(r.den);
   const num = trimPoly(r.num);
   if (den.length !== 1 || num.length > 2) return null;
@@ -214,114 +214,112 @@ function linearOf(a: Transform): { m: number; c: number } | null {
   return scaled.length === 2 ? { m: scaled[0]!, c: scaled[1]! } : { m: 0, c: scaled[0]! };
 }
 
+function constantTransformNode(node: MathNode): Transform {
+  const value = (node as unknown as { value: unknown }).value;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TransformError('La expresión tiene un valor que no es un número.');
+  }
+  return value === 0 ? [] : [{ delay: 0, num: [value], den: [1] }];
+}
+
+function symbolTransformNode(node: MathNode, variable: string): Transform {
+  const name = (node as unknown as { name: string }).name;
+  if (name === variable) return [{ delay: 0, num: [1, 0], den: [1] }];
+  if (name === 'e') return [{ delay: 0, num: [Math.E], den: [1] }];
+  if (name === 'pi') return [{ delay: 0, num: [Math.PI], den: [1] }];
+  throw new TransformError(
+    `La expresión solo puede depender de ${variable}; «${name}» no está definido.`,
+  );
+}
+
+/** Recíproco de un grupo; con retardo no sería causal. */
+function reciprocal(r: DelayedRational, variable: string): Transform {
+  if (r.delay > 0) {
+    throw new TransformError(`Dividir entre e^{-a${variable}} no da una función causal.`);
+  }
+  return [{ delay: 0, num: r.den, den: r.num }];
+}
+
+function divideTransformNode(a: MathNode, b: MathNode, variable: string): Transform {
+  const divisor = single(toTransform(b, variable));
+  if (!divisor || isZeroPoly(divisor.num)) {
+    throw new TransformError(
+      'No se puede dividir entre una suma de términos con distintos retardos.',
+    );
+  }
+  const inverse = reciprocal(divisor, variable);
+  return multiplyTransforms(toTransform(a, variable), inverse);
+}
+
+function powerTransformNode(a: MathNode, b: MathNode, variable: string): Transform {
+  if (a.type === 'SymbolNode' && (a as unknown as { name: string }).name === 'e') {
+    return exponential(toTransform(b, variable), variable);
+  }
+  const exponent = constantOf(toTransform(b, variable));
+  if (exponent === null || !Number.isInteger(exponent) || Math.abs(exponent) > 20) {
+    throw new TransformError(`Los exponentes de ${variable} deben ser enteros (entre −20 y 20).`);
+  }
+  const base = single(toTransform(a, variable));
+  if (!base) throw new TransformError('No se puede elevar a una potencia una suma con retardos.');
+  const k = Math.abs(exponent);
+  const powered = { delay: base.delay * k, num: powPoly(base.num, k), den: powPoly(base.den, k) };
+  return exponent >= 0 ? [powered] : reciprocal(powered, variable);
+}
+
+function operatorTransformNode(node: MathNode, variable: string): Transform {
+  const op = node as unknown as { fn: string; args: MathNode[] };
+  const a = op.args[0]!;
+  const b = op.args[1]!;
+  switch (op.fn) {
+    case 'unaryMinus':
+      return scaleTransform(toTransform(a, variable), -1);
+    case 'unaryPlus':
+      return toTransform(a, variable);
+    case 'add':
+      return addTransforms(toTransform(a, variable), toTransform(b, variable));
+    case 'subtract':
+      return addTransforms(toTransform(a, variable), scaleTransform(toTransform(b, variable), -1));
+    case 'multiply':
+      return multiplyTransforms(toTransform(a, variable), toTransform(b, variable));
+    case 'divide':
+      return divideTransformNode(a, b, variable);
+    case 'pow':
+      return powerTransformNode(a, b, variable);
+    default:
+      throw new TransformError(`El operador «${op.fn}» no está soportado.`);
+  }
+}
+
+function functionTransformNode(node: MathNode, variable: string): Transform {
+  const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
+  const name = fn.fn.name;
+  if (fn.args.length !== 1) throw new TransformError(`«${name}» recibe un solo argumento.`);
+  const arg = () => toTransform(fn.args[0]!, variable);
+  // mathjs lee «s(s + 1)» como una llamada a función: es el producto s·(s + 1).
+  if (name === variable) return multiplyTransforms([{ delay: 0, num: [1, 0], den: [1] }], arg());
+  if (name === 'exp') return exponential(arg(), variable);
+  if (name === 'sqrt') {
+    const value = constantOf(arg());
+    if (value === null || value < 0) {
+      throw new TransformError('sqrt solo se admite sobre constantes no negativas.');
+    }
+    return [{ delay: 0, num: [Math.sqrt(value)], den: [1] }];
+  }
+  throw new TransformError(`La función «${name}» no está soportada en el dominio de ${variable}.`);
+}
+
 function toTransform(node: MathNode, variable: string): Transform {
   switch (node.type) {
-    case 'ConstantNode': {
-      const value = (node as unknown as { value: unknown }).value;
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TransformError('La expresión tiene un valor que no es un número.');
-      }
-      return value === 0 ? [] : [{ delay: 0, num: [value], den: [1] }];
-    }
-    case 'SymbolNode': {
-      const name = (node as unknown as { name: string }).name;
-      if (name === variable) return [{ delay: 0, num: [1, 0], den: [1] }];
-      if (name === 'e') return [{ delay: 0, num: [Math.E], den: [1] }];
-      if (name === 'pi') return [{ delay: 0, num: [Math.PI], den: [1] }];
-      throw new TransformError(
-        `La expresión solo puede depender de ${variable}; «${name}» no está definido.`,
-      );
-    }
+    case 'ConstantNode':
+      return constantTransformNode(node);
+    case 'SymbolNode':
+      return symbolTransformNode(node, variable);
     case 'ParenthesisNode':
       return toTransform((node as unknown as { content: MathNode }).content, variable);
-    case 'OperatorNode': {
-      const op = node as unknown as { fn: string; args: MathNode[] };
-      const [a, b] = op.args;
-      switch (op.fn) {
-        case 'unaryMinus':
-          return scaleTransform(toTransform(a!, variable), -1);
-        case 'unaryPlus':
-          return toTransform(a!, variable);
-        case 'add':
-          return addTransforms(toTransform(a!, variable), toTransform(b!, variable));
-        case 'subtract':
-          return addTransforms(
-            toTransform(a!, variable),
-            scaleTransform(toTransform(b!, variable), -1),
-          );
-        case 'multiply':
-          return multiplyTransforms(toTransform(a!, variable), toTransform(b!, variable));
-        case 'divide': {
-          const divisor = single(toTransform(b!, variable));
-          if (!divisor || isZeroPoly(divisor.num)) {
-            throw new TransformError(
-              'No se puede dividir entre una suma de términos con distintos retardos.',
-            );
-          }
-          if (divisor.delay > 0) {
-            throw new TransformError(`Dividir entre e^{-a${variable}} no da una función causal.`);
-          }
-          return multiplyTransforms(toTransform(a!, variable), [
-            { delay: 0, num: divisor.den, den: divisor.num },
-          ]);
-        }
-        case 'pow': {
-          const exponent = constantOf(toTransform(b!, variable));
-          const baseNode = a!;
-          if (
-            baseNode.type === 'SymbolNode' &&
-            (baseNode as unknown as { name: string }).name === 'e'
-          ) {
-            return exponential(toTransform(b!, variable), variable);
-          }
-          if (exponent === null || !Number.isInteger(exponent) || Math.abs(exponent) > 20) {
-            throw new TransformError(
-              `Los exponentes de ${variable} deben ser enteros (entre −20 y 20).`,
-            );
-          }
-          const base = single(toTransform(baseNode, variable));
-          if (!base) {
-            throw new TransformError('No se puede elevar a una potencia una suma con retardos.');
-          }
-          const k = Math.abs(exponent);
-          const powered = {
-            delay: base.delay * k,
-            num: powPoly(base.num, k),
-            den: powPoly(base.den, k),
-          };
-          if (exponent >= 0) return [powered];
-          if (powered.delay > 0) {
-            throw new TransformError(`Dividir entre e^{-a${variable}} no da una función causal.`);
-          }
-          return [{ delay: 0, num: powered.den, den: powered.num }];
-        }
-        default:
-          throw new TransformError(`El operador «${op.fn}» no está soportado.`);
-      }
-    }
-    case 'FunctionNode': {
-      const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
-      const name = fn.fn.name;
-      if (fn.args.length !== 1) throw new TransformError(`«${name}» recibe un solo argumento.`);
-      // mathjs lee «s(s + 1)» como una llamada a función: es el producto s·(s + 1).
-      if (name === variable) {
-        return multiplyTransforms(
-          [{ delay: 0, num: [1, 0], den: [1] }],
-          toTransform(fn.args[0]!, variable),
-        );
-      }
-      if (name === 'exp') return exponential(toTransform(fn.args[0]!, variable), variable);
-      if (name === 'sqrt') {
-        const value = constantOf(toTransform(fn.args[0]!, variable));
-        if (value === null || value < 0) {
-          throw new TransformError('sqrt solo se admite sobre constantes no negativas.');
-        }
-        return [{ delay: 0, num: [Math.sqrt(value)], den: [1] }];
-      }
-      throw new TransformError(
-        `La función «${name}» no está soportada en el dominio de ${variable}.`,
-      );
-    }
+    case 'OperatorNode':
+      return operatorTransformNode(node, variable);
+    case 'FunctionNode':
+      return functionTransformNode(node, variable);
     default:
       throw new TransformError('La expresión no es válida.');
   }
@@ -430,6 +428,12 @@ function times(coef: number, variable: string): string {
   return `${n(coef)}${variable}`;
 }
 
+/** `x^{k}` en LaTeX: vacío para k = 0 y sin exponente para k = 1. */
+function powerOf(base: string, k: number): string {
+  if (k === 0) return '';
+  return k === 1 ? base : `${base}^{${k}}`;
+}
+
 /** LaTeX de los términos (con su signo) de una lista de piezas, en la variable dada. */
 export function piecesLatexTerms(
   pieces: TimePiece[],
@@ -438,7 +442,7 @@ export function piecesLatexTerms(
   const terms: { coef: number; body: string }[] = [];
   const grouped = variable.length > 1 ? String.raw`\left(${variable}\right)` : variable;
   for (const p of pieces) {
-    const power = p.power === 0 ? '' : p.power === 1 ? grouped : `${grouped}^{${p.power}}`;
+    const power = powerOf(grouped, p.power);
     const exp = p.sigma === 0 ? '' : `e^{${times(p.sigma, grouped)}}`;
     const envelope = `${power}${exp}`;
     if (p.omega === 0) {
@@ -458,7 +462,8 @@ export function joinTerms(terms: { coef: number; body: string }[]): string {
   return terms
     .map(({ coef, body }, i) => {
       const abs = Math.abs(coef);
-      const magnitude = body === '' ? n(abs) : abs === 1 ? '' : n(abs);
+      // Un coeficiente 1 delante de un cuerpo no se escribe; una constante sí.
+      const magnitude = body !== '' && abs === 1 ? '' : n(abs);
       const text = `${magnitude}${body}`;
       if (i === 0) return coef < 0 ? `-${text}` : text;
       return coef < 0 ? ` - ${text}` : ` + ${text}`;
@@ -473,7 +478,7 @@ export function impulseTerms(direct: Poly, variable = 't'): { coef: number; body
   direct.forEach((q, i) => {
     if (q === 0) return;
     const order = degree - i;
-    const prime = order === 0 ? '' : order === 1 ? "'" : order === 2 ? "''" : `^{(${order})}`;
+    const prime = ['', "'", "''"][order] ?? `^{(${order})}`;
     terms.push({ coef: q, body: String.raw`\delta${prime}\left(${variable}\right)` });
   });
   return terms.reverse();
@@ -493,24 +498,31 @@ export function rationalTex(num: Poly, den: Poly, variable = 's'): string {
 }
 
 /** Denominador factorizado: `(s + 2)(s^{2} + 6s + 10)`, `s^{2}(s + 1)`. */
-export function factoredTex(roots: PolyRoot[], lead: number, variable = 's'): string {
-  const factors: string[] = [];
-  for (const r of roots) {
-    if (r.value.im < 0) continue;
-    let base: string;
-    if (r.value.im === 0) {
-      const p = r.value.re;
-      if (p === 0) base = variable;
-      else base = String.raw`\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\right)`;
-    } else {
-      const quad = polyFromRoots([r.value, C.conj(r.value)]);
-      base = String.raw`\left(${polyTex(quad, variable)}\right)`;
-    }
-    if (r.multiplicity === 1) factors.push(base);
-    else factors.push(`${base}^{${r.multiplicity}}`);
+/** Factor de una raíz: `s`, `(s + 2)` o, con su conjugada, `(s^{2} + 6s + 10)`. */
+function rootFactorTex(root: Complex, variable: string): string {
+  if (root.im !== 0) {
+    const quad = polyFromRoots([root, C.conj(root)]);
+    return String.raw`\left(${polyTex(quad, variable)}\right)`;
   }
-  const prefix = lead === 1 ? '' : lead === -1 ? '-' : n(lead);
-  return `${prefix}${factors.join('')}` || n(lead);
+  const p = root.re;
+  if (p === 0) return variable;
+  return String.raw`\left(${variable} ${p < 0 ? '+' : '-'} ${n(Math.abs(p))}\right)`;
+}
+
+/** Coeficiente principal delante de los factores: nada si es 1, `-` si es −1. */
+function leadTex(lead: number): string {
+  if (lead === 1) return '';
+  return lead === -1 ? '-' : n(lead);
+}
+
+export function factoredTex(roots: PolyRoot[], lead: number, variable = 's'): string {
+  const factors = roots
+    .filter((r) => r.value.im >= 0)
+    .map((r) => {
+      const base = rootFactorTex(r.value, variable);
+      return r.multiplicity === 1 ? base : `${base}^{${r.multiplicity}}`;
+    });
+  return `${leadTex(lead)}${factors.join('')}` || n(lead);
 }
 
 /** Factor de retardo `e^{-2s}` (vacío si a = 0). */

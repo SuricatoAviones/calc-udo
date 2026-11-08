@@ -65,8 +65,8 @@ function sinusoidTex(
   angleDeg: number,
 ): string {
   const angle = Math.abs(angleDeg) < 1e-12 ? 0 : angleDeg;
-  const phase =
-    angle === 0 ? '' : String.raw` ${angle < 0 ? '-' : '+'} ${n(Math.abs(angle))}^{\circ}`;
+  const sign = angle < 0 ? '-' : '+';
+  const phase = angle === 0 ? '' : String.raw` ${sign} ${n(Math.abs(angle))}^{\circ}`;
   return `${n(amplitude)}\\${fn}\\left(${n(omega)}t${phase}\\right)`;
 }
 
@@ -74,11 +74,18 @@ function timeTex(magnitude: number, omega: number, angleDeg: number): string {
   return sinusoidTex('cos', magnitude, omega, wrapDegrees(angleDeg));
 }
 
-export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, PhasorErrorCode> {
-  const { omega } = input;
-  const steps: Step[] = [];
+/** `(a + jb)`: un complejo entre paréntesis, para sumarlo con otros. */
+const parenthesized = (zz: Complex) => `(${rect(zz)})`;
+const reciprocalTex = (x: string) => String.raw`\frac{1}{${x}}`;
 
-  // 1. La senoide como coseno con amplitud positiva.
+const ELEMENT_TITLES = { R: 'Resistencia', L: 'Inductor', C: 'Capacitor' } as const;
+
+/**
+ * La senoide como coseno con amplitud positiva: sen x = cos(x − 90°) y −cos x = cos(x + 180°).
+ * Devuelve también las conversiones hechas, para la traza.
+ */
+function cosineForm(input: PhasorInput) {
+  const { omega } = input;
   let magnitude = input.amplitude;
   let angle = input.phase;
   const conversions: string[] = [];
@@ -95,7 +102,115 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     );
     angle += 180;
   }
-  angle = wrapDegrees(angle);
+  return { magnitude, angle: wrapDegrees(angle), conversions };
+}
+
+type PhasorElement = PhasorValue['elements'][number];
+
+/** Impedancia de cada elemento presente (R, L y C mayores que 0) y su paso. */
+function elementImpedances(input: PhasorInput) {
+  const { omega } = input;
+  const elements: Omit<PhasorElement, 'voltage' | 'current'>[] = [];
+  const steps: Step[] = [];
+  if (input.resistance > 0) {
+    elements.push({ name: 'R', impedance: C.complex(input.resistance) });
+    steps.push({
+      title: 'Resistencia',
+      formula: String.raw`\mathbf{Z}_R = R`,
+      result: String.raw`\mathbf{Z}_R = ${n(input.resistance)}\ \Omega`,
+    });
+  }
+  if (input.inductance > 0) {
+    const zl = C.complex(0, omega * input.inductance);
+    elements.push({ name: 'L', impedance: zl });
+    steps.push({
+      title: 'Inductor',
+      explanation: 'La corriente se atrasa 90° respecto del voltaje.',
+      formula: String.raw`\mathbf{Z}_L = j\omega L`,
+      substitution: String.raw`\mathbf{Z}_L = j(${n(omega)})(${n(input.inductance)})`,
+      result: String.raw`\mathbf{Z}_L = ${rect(zl)}\ \Omega`,
+    });
+  }
+  if (input.capacitance > 0) {
+    const zc = C.complex(0, -1 / (omega * input.capacitance));
+    elements.push({ name: 'C', impedance: zc });
+    steps.push({
+      title: 'Capacitor',
+      explanation: 'La corriente se adelanta 90° respecto del voltaje.',
+      formula: String.raw`\mathbf{Z}_C = \frac{1}{j\omega C} = -\frac{j}{\omega C}`,
+      substitution: String.raw`\mathbf{Z}_C = -\frac{j}{(${n(omega)})(${n(input.capacitance)})}`,
+      result: String.raw`\mathbf{Z}_C = ${rect(zc)}\ \Omega`,
+    });
+  }
+  return { elements, steps };
+}
+
+/** Impedancia equivalente: suma en serie; en paralelo, recíproco de la suma de admitancias. */
+function equivalentImpedance(
+  connection: PhasorInput['connection'],
+  elements: Omit<PhasorElement, 'voltage' | 'current'>[],
+): { impedance: Complex; step: Step } {
+  const names = elements.map((e) => String.raw`\mathbf{Z}_${e.name}`);
+  if (connection === 'serie') {
+    const impedance = elements.reduce((s, e) => C.add(s, e.impedance), C.ZERO);
+    return {
+      impedance,
+      step: {
+        title: 'Impedancia equivalente (serie)',
+        formula: String.raw`\mathbf{Z} = ${names.join(' + ')}`,
+        substitution: String.raw`\mathbf{Z} = ${elements.map((e) => parenthesized(e.impedance)).join(' + ')}`,
+        result: String.raw`\mathbf{Z} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
+      },
+    };
+  }
+  const admittance = elements.reduce((s, e) => C.add(s, C.div(C.ONE, e.impedance)), C.ZERO);
+  const impedance = C.div(C.ONE, admittance);
+  const admittances = elements.map((e) => parenthesized(C.div(C.ONE, e.impedance)));
+  return {
+    impedance,
+    step: {
+      title: 'Impedancia equivalente (paralelo)',
+      explanation: 'En paralelo se suman las admitancias Y = 1/Z.',
+      formula: String.raw`\frac{1}{\mathbf{Z}} = ${names.map(reciprocalTex).join(' + ')}`,
+      substitution: String.raw`\mathbf{Y} = ${admittances.join(' + ')} = ${rect(admittance)}\ \text{S}`,
+      result: String.raw`\mathbf{Z} = \frac{1}{\mathbf{Y}} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
+    },
+  };
+}
+
+/** Voltaje (en serie) o corriente (en paralelo) de un elemento, como fasor y en el tiempo. */
+function elementStep(e: PhasorElement, connection: PhasorInput['connection'], omega: number): Step {
+  const title = ELEMENT_TITLES[e.name];
+  if (connection === 'serie') {
+    return {
+      title,
+      formula: String.raw`\mathbf{V}_${e.name} = \mathbf{I}\,\mathbf{Z}_${e.name}`,
+      result: String.raw`\mathbf{V}_${e.name} = ${polar(e.voltage)}\ \text{V} \;\rightarrow\; v_${e.name}(t) = ${timeTex(C.abs(e.voltage), omega, C.degrees(C.arg(e.voltage)))}`,
+    };
+  }
+  return {
+    title,
+    formula: String.raw`\mathbf{I}_${e.name} = \frac{\mathbf{V}}{\mathbf{Z}_${e.name}}`,
+    result: String.raw`\mathbf{I}_${e.name} = ${polar(e.current)}\ \text{A} \;\rightarrow\; i_${e.name}(t) = ${timeTex(C.abs(e.current), omega, C.degrees(C.arg(e.current)))}`,
+  };
+}
+
+/** Carácter del circuito según el ángulo de la impedancia, y cómo queda la corriente. */
+function phaseRelation(zAngle: number): { character: string; relation: string } {
+  if (Math.abs(zAngle) < 1e-9)
+    return { character: 'resistivo', relation: 'está en fase con el voltaje' };
+  const degrees = formatNumber(Math.abs(zAngle), DIGITS);
+  return zAngle > 0
+    ? { character: 'inductivo', relation: `se atrasa ${degrees}° respecto del voltaje` }
+    : { character: 'capacitivo', relation: `se adelanta ${degrees}° respecto del voltaje` };
+}
+
+export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, PhasorErrorCode> {
+  const { omega } = input;
+  const steps: Step[] = [];
+
+  // 1. La senoide como coseno con amplitud positiva.
+  const { magnitude, angle, conversions } = cosineForm(input);
   const voltage = C.fromPolar(magnitude, C.radians(angle));
   steps.push(
     {
@@ -114,64 +229,12 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
   );
 
   // 2. Impedancias de cada elemento.
-  type Element = PhasorValue['elements'][number];
-  const elements: Omit<Element, 'voltage' | 'current'>[] = [];
-  const impedanceSteps: Step[] = [];
-  if (input.resistance > 0) {
-    const zr = C.complex(input.resistance);
-    elements.push({ name: 'R', impedance: zr });
-    impedanceSteps.push({
-      title: 'Resistencia',
-      formula: String.raw`\mathbf{Z}_R = R`,
-      result: String.raw`\mathbf{Z}_R = ${n(input.resistance)}\ \Omega`,
-    });
-  }
-  if (input.inductance > 0) {
-    const zl = C.complex(0, omega * input.inductance);
-    elements.push({ name: 'L', impedance: zl });
-    impedanceSteps.push({
-      title: 'Inductor',
-      explanation: 'La corriente se atrasa 90° respecto del voltaje.',
-      formula: String.raw`\mathbf{Z}_L = j\omega L`,
-      substitution: String.raw`\mathbf{Z}_L = j(${n(omega)})(${n(input.inductance)})`,
-      result: String.raw`\mathbf{Z}_L = ${rect(zl)}\ \Omega`,
-    });
-  }
-  if (input.capacitance > 0) {
-    const zc = C.complex(0, -1 / (omega * input.capacitance));
-    elements.push({ name: 'C', impedance: zc });
-    impedanceSteps.push({
-      title: 'Capacitor',
-      explanation: 'La corriente se adelanta 90° respecto del voltaje.',
-      formula: String.raw`\mathbf{Z}_C = \frac{1}{j\omega C} = -\frac{j}{\omega C}`,
-      substitution: String.raw`\mathbf{Z}_C = -\frac{j}{(${n(omega)})(${n(input.capacitance)})}`,
-      result: String.raw`\mathbf{Z}_C = ${rect(zc)}\ \Omega`,
-    });
-  }
+  const { elements, steps: impedanceSteps } = elementImpedances(input);
   steps.push({ title: 'Impedancia de cada elemento', children: impedanceSteps });
 
   // 3. Impedancia equivalente.
-  const names = elements.map((e) => String.raw`\mathbf{Z}_${e.name}`);
-  let impedance: Complex;
-  if (input.connection === 'serie') {
-    impedance = elements.reduce((s, e) => C.add(s, e.impedance), C.ZERO);
-    steps.push({
-      title: 'Impedancia equivalente (serie)',
-      formula: String.raw`\mathbf{Z} = ${names.join(' + ')}`,
-      substitution: String.raw`\mathbf{Z} = ${elements.map((e) => `(${rect(e.impedance)})`).join(' + ')}`,
-      result: String.raw`\mathbf{Z} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
-    });
-  } else {
-    const admittance = elements.reduce((s, e) => C.add(s, C.div(C.ONE, e.impedance)), C.ZERO);
-    impedance = C.div(C.ONE, admittance);
-    steps.push({
-      title: 'Impedancia equivalente (paralelo)',
-      explanation: 'En paralelo se suman las admitancias Y = 1/Z.',
-      formula: String.raw`\frac{1}{\mathbf{Z}} = ${names.map((x) => String.raw`\frac{1}{${x}}`).join(' + ')}`,
-      substitution: String.raw`\mathbf{Y} = ${elements.map((e) => `(${rect(C.div(C.ONE, e.impedance))})`).join(' + ')} = ${rect(admittance)}\ \text{S}`,
-      result: String.raw`\mathbf{Z} = \frac{1}{\mathbf{Y}} = ${rect(impedance)} = ${polar(impedance)}\ \Omega`,
-    });
-  }
+  const { impedance, step: equivalentStep } = equivalentImpedance(input.connection, elements);
+  steps.push(equivalentStep);
 
   const scale = Math.max(...elements.map((e) => C.abs(e.impedance)));
   const infinite = !Number.isFinite(C.abs(impedance)) || C.abs(impedance) > 1e9 * scale;
@@ -200,45 +263,27 @@ export function solvePhasor(input: PhasorInput): CalculatorResult<PhasorValue, P
     result: String.raw`\mathbf{I} = ${polar(current)} = ${rect(current)}\ \text{A}`,
   });
 
-  const full: Element[] = elements.map((e) =>
-    input.connection === 'serie'
+  const serie = input.connection === 'serie';
+  const full: PhasorElement[] = elements.map((e) =>
+    serie
       ? { ...e, current, voltage: C.mul(current, e.impedance) }
       : { ...e, voltage, current: C.div(voltage, e.impedance) },
   );
   steps.push({
-    title: input.connection === 'serie' ? 'Voltaje en cada elemento' : 'Corriente en cada elemento',
-    explanation:
-      input.connection === 'serie'
-        ? 'La misma corriente pasa por todos: V_k = I·Z_k. La suma de los fasores es V (LVK).'
-        : 'Todos tienen el voltaje de la fuente: I_k = V/Z_k. La suma de los fasores es I (LCK).',
-    children: full.map((e) =>
-      input.connection === 'serie'
-        ? {
-            title: e.name === 'R' ? 'Resistencia' : e.name === 'L' ? 'Inductor' : 'Capacitor',
-            formula: String.raw`\mathbf{V}_${e.name} = \mathbf{I}\,\mathbf{Z}_${e.name}`,
-            result: String.raw`\mathbf{V}_${e.name} = ${polar(e.voltage)}\ \text{V} \;\rightarrow\; v_${e.name}(t) = ${timeTex(C.abs(e.voltage), omega, C.degrees(C.arg(e.voltage)))}`,
-          }
-        : {
-            title: e.name === 'R' ? 'Resistencia' : e.name === 'L' ? 'Inductor' : 'Capacitor',
-            formula: String.raw`\mathbf{I}_${e.name} = \frac{\mathbf{V}}{\mathbf{Z}_${e.name}}`,
-            result: String.raw`\mathbf{I}_${e.name} = ${polar(e.current)}\ \text{A} \;\rightarrow\; i_${e.name}(t) = ${timeTex(C.abs(e.current), omega, C.degrees(C.arg(e.current)))}`,
-          },
-    ),
+    title: serie ? 'Voltaje en cada elemento' : 'Corriente en cada elemento',
+    explanation: serie
+      ? 'La misma corriente pasa por todos: V_k = I·Z_k. La suma de los fasores es V (LVK).'
+      : 'Todos tienen el voltaje de la fuente: I_k = V/Z_k. La suma de los fasores es I (LCK).',
+    children: full.map((e) => elementStep(e, input.connection, omega)),
   });
 
   const iMag = C.abs(current);
   const iAngle = C.degrees(C.arg(current));
   const zAngle = C.degrees(C.arg(impedance));
-  const character = Math.abs(zAngle) < 1e-9 ? 'resistivo' : zAngle > 0 ? 'inductivo' : 'capacitivo';
+  const { character, relation } = phaseRelation(zAngle);
   steps.push({
     title: 'Corriente en el tiempo',
-    explanation: `El circuito es ${character}: la corriente ${
-      character === 'resistivo'
-        ? 'está en fase con el voltaje'
-        : character === 'inductivo'
-          ? `se atrasa ${formatNumber(Math.abs(zAngle), DIGITS)}° respecto del voltaje`
-          : `se adelanta ${formatNumber(Math.abs(zAngle), DIGITS)}° respecto del voltaje`
-    }.`,
+    explanation: `El circuito es ${character}: la corriente ${relation}.`,
     formula: String.raw`\mathbf{I} = I_m\angle\phi \;\rightarrow\; i(t) = I_m\cos(\omega t + \phi)`,
     result: String.raw`i(t) = ${timeTex(iMag, omega, iAngle)}\ \text{A}`,
   });

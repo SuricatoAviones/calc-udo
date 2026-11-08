@@ -24,6 +24,7 @@ import {
   componentUnit,
   type CircuitTopology,
   type ComponentKind,
+  type MappedComponent,
   type TerminalName,
 } from './circuit';
 
@@ -77,10 +78,15 @@ export interface MnaFailure {
 
 export type MnaOutcome = MnaSolve | MnaFailure;
 
+const OPAMP_TERMINALS: Record<TerminalName, string> = {
+  a: 'entrada −',
+  b: 'entrada +',
+  c: 'salida',
+};
+
 /** Nombre del terminal en la tabla de nodos: (+)/(−), o las entradas y la salida del amplificador. */
 function terminalText(kind: ComponentKind, terminal: TerminalName): string {
-  if (kind === 'opamp')
-    return terminal === 'a' ? 'entrada −' : terminal === 'b' ? 'entrada +' : 'salida';
+  if (kind === 'opamp') return OPAMP_TERMINALS[terminal];
   return terminal === 'a' ? '+' : '-';
 }
 
@@ -95,156 +101,200 @@ function voltageSourceIndex(topology: CircuitTopology): Map<string, number> {
   return map;
 }
 
-/**
- * Resuelve el circuito por MNA. Devuelve la traza completa o un fallo `singular`.
- */
-export function solveMna(topology: CircuitTopology): MnaOutcome {
-  const { nodes, components, referenceNode } = topology;
-  const nNodes = nodes.length;
+/** Posición de cada incógnita en el sistema aumentado. */
+interface Layout {
+  /** Fila de cada nodo que no es la referencia. */
+  nodeToRow: Map<number, number>;
+  /** Nodos que no son la referencia, en el orden de sus filas. */
+  rows: number[];
+  vsrcIndex: Map<string, number>;
+  opamps: MappedComponent[];
+  nUnknowns: number;
+  nVsrc: number;
+  size: number;
+}
+
+function layoutOf(topology: CircuitTopology): Layout {
   const nodeToRow = new Map<number, number>();
   const rows: number[] = [];
-  for (let i = 0; i < nNodes; i++) {
-    if (i === referenceNode) continue;
+  for (let i = 0; i < topology.nodes.length; i++) {
+    if (i === topology.referenceNode) continue;
     nodeToRow.set(i, rows.length);
     rows.push(i);
   }
-  const nUnknowns = rows.length;
   const vsrcIndex = voltageSourceIndex(topology);
+  const opamps = topology.components.filter(
+    (c) => c.component.kind === 'opamp' && c.nodeC !== undefined,
+  );
+  const nUnknowns = rows.length;
   const nVsrc = vsrcIndex.size;
-  const opamps = components.filter((c) => c.component.kind === 'opamp' && c.nodeC !== undefined);
-  const size = nUnknowns + nVsrc + opamps.length;
+  return {
+    nodeToRow,
+    rows,
+    vsrcIndex,
+    opamps,
+    nUnknowns,
+    nVsrc,
+    size: nUnknowns + nVsrc + opamps.length,
+  };
+}
 
+/** Conductancia g entre las filas i y j (`undefined` es el nodo de referencia). */
+function stampConductance(a: number[][], i: number | undefined, j: number | undefined, g: number) {
+  if (i !== undefined) addAt(a, i, i, g);
+  if (j !== undefined) addAt(a, j, j, g);
+  if (i !== undefined && j !== undefined) {
+    addAt(a, i, j, -g);
+    addAt(a, j, i, -g);
+  }
+}
+
+/**
+ * Fuente de corriente (positiva: fluye de a a b). En el lado derecho va la corriente inyectada en
+ * cada nodo: la flecha a→b sale de A e ingresa a B.
+ */
+function stampCurrentSource(
+  a: number[][],
+  i: number | undefined,
+  j: number | undefined,
+  value: number,
+  rhs: number,
+) {
+  if (i !== undefined) addAt(a, i, rhs, -value);
+  if (j !== undefined) addAt(a, j, rhs, value);
+}
+
+/**
+ * Fuente de voltaje en la fila k: su corriente i_k ingresa por el terminal positivo (nodo A) y su
+ * ecuación es v_A − v_B = E.
+ */
+function stampVoltageSource(
+  a: number[][],
+  i: number | undefined,
+  j: number | undefined,
+  k: number,
+  value: number,
+) {
+  if (i !== undefined) {
+    addAt(a, i, k, 1);
+    addAt(a, k, i, 1);
+  }
+  if (j !== undefined) {
+    addAt(a, j, k, -1);
+    addAt(a, k, j, -1);
+  }
+  setAt(a, k, a.length, value);
+}
+
+/**
+ * Amplificador operacional ideal en la fila k: la corriente que entra por su salida es la
+ * incógnita (KCL en la salida) y su ecuación es el cortocircuito virtual v₊ − v₋ = 0 (a es la
+ * entrada −; b, la +).
+ */
+function stampOpAmp(a: number[][], layout: Layout, opamp: MappedComponent, k: number) {
+  const out = layout.nodeToRow.get(opamp.nodeC!);
+  if (out !== undefined) addAt(a, out, k, 1);
+  const minus = layout.nodeToRow.get(opamp.nodeA);
+  const plus = layout.nodeToRow.get(opamp.nodeB);
+  if (plus !== undefined) addAt(a, k, plus, 1);
+  if (minus !== undefined) addAt(a, k, minus, -1);
+}
+
+function stampMatrix(topology: CircuitTopology, layout: Layout): number[][] {
+  const { nodeToRow, vsrcIndex, nUnknowns, nVsrc, size } = layout;
   const a: number[][] = Array.from({ length: size }, () => new Array(size + 1).fill(0));
-
-  // Estampado.
-  for (const { component, nodeA, nodeB } of components) {
+  for (const { component, nodeA, nodeB } of topology.components) {
     const i = nodeToRow.get(nodeA);
     const j = nodeToRow.get(nodeB);
-    if (component.kind === 'resistor') {
-      const g = 1 / component.value;
-      if (i !== undefined && j !== undefined) {
-        addAt(a, i, i, g);
-        addAt(a, j, j, g);
-        addAt(a, i, j, -g);
-        addAt(a, j, i, -g);
-      } else if (i !== undefined) {
-        addAt(a, i, i, g);
-      } else if (j !== undefined) {
-        addAt(a, j, j, g);
-      }
-    } else if (component.kind === 'current-source') {
-      const value = component.value; // positivo: fluye de nodeA a nodeB
-      // RHS: inyectado en el nodo (corriente entrante positiva).
-      // La flecha a→b sale de A e ingresa a B.
-      if (i !== undefined) addAt(a, i, size, -value);
-      if (j !== undefined) addAt(a, j, size, value);
-    } else if (component.kind === 'voltage-source') {
-      const k = vsrcIndex.get(component.id)! + nUnknowns;
-      // Corriente i_k ingresa por el terminal positivo (nodeA).
-      if (i !== undefined) addAt(a, i, k, 1);
-      if (j !== undefined) addAt(a, j, k, -1);
-      // Ecuación de la fuente: v_A - v_B = E.
-      if (i !== undefined) addAt(a, k, i, 1);
-      if (j !== undefined) addAt(a, k, j, -1);
-      setAt(a, k, size, component.value);
-    }
+    if (component.kind === 'resistor') stampConductance(a, i, j, 1 / component.value);
+    else if (component.kind === 'current-source')
+      stampCurrentSource(a, i, j, component.value, size);
+    else if (component.kind === 'voltage-source')
+      stampVoltageSource(a, i, j, vsrcIndex.get(component.id)! + nUnknowns, component.value);
   }
-  opamps.forEach(({ nodeA, nodeB, nodeC }, idx) => {
-    const k = nUnknowns + nVsrc + idx;
-    // KCL en la salida: la corriente que entra al amplificador por su salida es la incógnita.
-    const out = nodeToRow.get(nodeC!);
-    if (out !== undefined) addAt(a, out, k, 1);
-    // Cortocircuito virtual: v₊ − v₋ = 0 (a es la entrada −; b, la +).
-    const minus = nodeToRow.get(nodeA);
-    const plus = nodeToRow.get(nodeB);
-    if (plus !== undefined) addAt(a, k, plus, 1);
-    if (minus !== undefined) addAt(a, k, minus, -1);
-  });
+  layout.opamps.forEach((opamp, idx) => stampOpAmp(a, layout, opamp, nUnknowns + nVsrc + idx));
+  return a;
+}
 
-  // Identificación de nodos.
-  const nodeRows = rows.map((nodeIdx, row) => ({
-    nodo: nodeIdx,
-    fila: row,
-    componentes: nodes[nodeIdx]!.terminals.map(
-      (t) => `${componentLabel(t.component)} (${terminalText(t.component.kind, t.terminal)})`,
-    ).join(', '),
-  }));
+/** El otro extremo de la rama (a, b) vista desde `node`, o −1 si no la toca. */
+function otherEnd(nodeA: number, nodeB: number, node: number): number {
+  if (nodeA === node) return nodeB;
+  return nodeB === node ? nodeA : -1;
+}
 
-  const nodeTable: ResultTable = {
-    id: 'nodos',
-    title: 'Nodos del circuito',
-    columns: [
-      { key: 'nodo', header: 'Nodo' },
-      { key: 'componentes', header: 'Terminales conectadas' },
-      { key: 'voltaje', header: 'Voltaje (V)' },
-    ],
-    rows: [],
-  };
-
-  // Sistema simbólico por nodo (KCL) para la traza.
-  const kclSteps: Step[] = [];
-  for (let r = 0; r < nUnknowns; r++) {
-    const nodeIdx = rows[r]!;
-    const terms: string[] = [];
-    const subs: string[] = [];
-    // Conductancias conectadas a este nodo.
-    const seen = new Set<string>();
-    for (const { component, nodeA, nodeB } of components) {
-      if (component.kind !== 'resistor') continue;
-      const other = nodeA === nodeIdx ? nodeB : nodeB === nodeIdx ? nodeA : -1;
-      if (other === -1) continue;
-      const g = 1 / component.value;
-      const label = componentLabel(component);
-      if (other === referenceNode) {
-        terms.push(`G_{${label}} v_${nodeIdx + 1}`);
-        subs.push(`${n(g)} v_${nodeIdx + 1}`);
-      } else {
-        const pair = [nodeIdx, other].sort((a, b) => a - b).join('-');
-        if (!seen.has(pair)) {
-          seen.add(pair);
-          terms.push(`G_{${label}} (v_${nodeIdx + 1} - v_${other + 1})`);
-          subs.push(`${n(g)} (v_${nodeIdx + 1} - v_${other + 1})`);
-        }
-      }
-    }
-    // Corriente que entra a la salida de un amplificador operacional conectado aquí.
-    for (const { component, nodeC } of opamps) {
-      if (nodeC !== nodeIdx) continue;
-      terms.push(`i_{${componentLabel(component)}}`);
-      subs.push(`i_{${componentLabel(component)}}`);
-    }
-    // Fuentes de corriente incidentes.
-    const currents: string[] = [];
-    for (const { component, nodeA, nodeB } of components) {
-      if (component.kind !== 'current-source') continue;
-      if (nodeA === nodeIdx) {
-        currents.push(String.raw`-${component.value}\text{ A}`);
-      } else if (nodeB === nodeIdx) {
-        currents.push(String.raw`+${component.value}\text{ A}`);
-      }
-    }
-    if (terms.length || currents.length) {
-      kclSteps.push({
-        title: `KCL en el nodo ${nodeIdx + 1}`,
-        formula: terms.join(' + ') + (currents.length ? ` = ${currents.join(' ')}` : ' = 0'),
-        substitution: subs.join(' + ') + (currents.length ? ` = ${currents.join(' ')}` : ' = 0'),
-      });
-    }
-  }
-  // Ecuaciones de fuentes de voltaje.
-  for (const { component, nodeA, nodeB } of components) {
-    if (component.kind !== 'voltage-source') continue;
+/** Términos G·(v_i − v_j) de las resistencias conectadas al nodo (una por par de nodos). */
+function conductanceTerms(topology: CircuitTopology, nodeIdx: number) {
+  const terms: string[] = [];
+  const subs: string[] = [];
+  const seen = new Set<string>();
+  for (const { component, nodeA, nodeB } of topology.components) {
+    if (component.kind !== 'resistor') continue;
+    const other = otherEnd(nodeA, nodeB, nodeIdx);
+    if (other === -1) continue;
+    const g = 1 / component.value;
     const label = componentLabel(component);
-    kclSteps.push({
-      title: `Fuente de voltaje ${label}`,
+    if (other === topology.referenceNode) {
+      terms.push(`G_{${label}} v_${nodeIdx + 1}`);
+      subs.push(`${n(g)} v_${nodeIdx + 1}`);
+      continue;
+    }
+    const pair = [nodeIdx, other].sort((a, b) => a - b).join('-');
+    if (seen.has(pair)) continue;
+    seen.add(pair);
+    terms.push(`G_{${label}} (v_${nodeIdx + 1} - v_${other + 1})`);
+    subs.push(`${n(g)} (v_${nodeIdx + 1} - v_${other + 1})`);
+  }
+  return { terms, subs };
+}
+
+/** Corrientes de las fuentes que salen (−) o entran (+) al nodo. */
+function injectedCurrents(topology: CircuitTopology, nodeIdx: number): string[] {
+  const currents: string[] = [];
+  for (const { component, nodeA, nodeB } of topology.components) {
+    if (component.kind !== 'current-source') continue;
+    if (nodeA === nodeIdx) currents.push(String.raw`-${component.value}\text{ A}`);
+    else if (nodeB === nodeIdx) currents.push(String.raw`+${component.value}\text{ A}`);
+  }
+  return currents;
+}
+
+/** KCL simbólica y con números en un nodo; `null` si no hay nada conectado. */
+function kclStep(topology: CircuitTopology, layout: Layout, nodeIdx: number): Step | null {
+  const { terms, subs } = conductanceTerms(topology, nodeIdx);
+  // Corriente que entra a la salida de un amplificador operacional conectado aquí.
+  for (const { component, nodeC } of layout.opamps) {
+    if (nodeC !== nodeIdx) continue;
+    terms.push(`i_{${componentLabel(component)}}`);
+    subs.push(`i_{${componentLabel(component)}}`);
+  }
+  const currents = injectedCurrents(topology, nodeIdx);
+  if (terms.length === 0 && currents.length === 0) return null;
+  const rhs = currents.length ? ` = ${currents.join(' ')}` : ' = 0';
+  return {
+    title: `KCL en el nodo ${nodeIdx + 1}`,
+    formula: terms.join(' + ') + rhs,
+    substitution: subs.join(' + ') + rhs,
+  };
+}
+
+/** KCL por nodo, la ecuación de cada fuente de voltaje y la de cada amplificador. */
+function equationSteps(topology: CircuitTopology, layout: Layout): Step[] {
+  const steps: Step[] = [];
+  for (const nodeIdx of layout.rows) {
+    const step = kclStep(topology, layout, nodeIdx);
+    if (step) steps.push(step);
+  }
+  for (const { component, nodeA, nodeB } of topology.components) {
+    if (component.kind !== 'voltage-source') continue;
+    steps.push({
+      title: `Fuente de voltaje ${componentLabel(component)}`,
       formula: `v_${nodeA + 1} - v_${nodeB + 1} = E`,
       substitution: String.raw`v_${nodeA + 1} - v_${nodeB + 1} = ${n(component.value)}\text{ V}`,
     });
   }
-  // Ecuaciones de los amplificadores operacionales.
-  for (const { component, nodeA, nodeB } of opamps) {
-    const v = (node: number) => (node === referenceNode ? '0' : `v_${node + 1}`);
-    kclSteps.push({
+  const v = (node: number) => (node === topology.referenceNode ? '0' : `v_${node + 1}`);
+  for (const { component, nodeA, nodeB } of layout.opamps) {
+    steps.push({
       title: `Amplificador ${componentLabel(component)}`,
       explanation:
         'Ideal y con realimentación negativa: no entra corriente por sus entradas y ambas quedan al mismo voltaje (cortocircuito virtual).',
@@ -252,8 +302,115 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
       substitution: `${v(nodeB)} - ${v(nodeA)} = 0`,
     });
   }
+  return steps;
+}
 
-  // Resolver.
+/** Estado de una rama según el signo de su potencia (convención pasiva). */
+export function powerState(p: number): string {
+  if (Math.abs(p) < 1e-12) return 'cero';
+  return p > 0 ? 'absorbe' : 'entrega';
+}
+
+/** Corriente de la rama (a → b, convención pasiva). */
+function branchCurrent(
+  mapped: MappedComponent,
+  layout: Layout,
+  x: number[],
+  opamp: number,
+  v: number,
+): number {
+  const { component } = mapped;
+  if (opamp >= 0) return x[layout.nUnknowns + layout.nVsrc + opamp]!;
+  if (component.kind === 'resistor') return v / component.value;
+  // i_k está definida como la corriente que entra por el terminal positivo (nodo A).
+  if (component.kind === 'voltage-source')
+    return x[layout.nUnknowns + layout.vsrcIndex.get(component.id)!]!;
+  if (component.kind === 'current-source') return component.value;
+  return 0;
+}
+
+/**
+ * Voltaje, corriente y potencia de cada rama. La salida de un amplificador operacional es una
+ * rama de la salida a tierra: la potencia que entrega sale de su alimentación.
+ */
+function branchResultsOf(
+  topology: CircuitTopology,
+  layout: Layout,
+  x: number[],
+  nodeVoltages: number[],
+): { results: BranchResult[]; table: ResultTable } {
+  const results: BranchResult[] = [];
+  const table: ResultTable = {
+    id: 'ramas',
+    title: 'Corrientes y potencias por rama',
+    columns: [
+      { key: 'rama', header: 'Rama' },
+      { key: 'v', header: 'V (V)' },
+      { key: 'i', header: 'I (A)' },
+      { key: 'p', header: 'P (W)' },
+      { key: 'estado', header: 'Estado' },
+    ],
+    rows: [],
+  };
+  for (const mapped of topology.components) {
+    const { component } = mapped;
+    const opamp = component.kind === 'opamp' ? layout.opamps.indexOf(mapped) : -1;
+    if (component.kind === 'opamp' && opamp < 0) continue;
+    const nodeA = opamp >= 0 ? mapped.nodeC! : mapped.nodeA;
+    const nodeB = opamp >= 0 ? topology.referenceNode : mapped.nodeB;
+    const v = nodeVoltages[nodeA]! - nodeVoltages[nodeB]!;
+    const i = branchCurrent(mapped, layout, x, opamp, v);
+    const p = v * i;
+    const label = componentLabel(component);
+    results.push({ id: component.id, label, kind: component.kind, nodeA, nodeB, v, i, p });
+    const unit = opamp >= 0 ? 'salida' : componentUnit(component.kind);
+    table.rows.push({
+      rama: `${label} (${unit})`,
+      v: formatNumber(v, DIGITS),
+      i: formatNumber(i, DIGITS),
+      p: formatNumber(p, DIGITS),
+      estado: powerState(p),
+    });
+  }
+  return { results, table };
+}
+
+/** Tabla de nodos: terminales conectadas y voltaje de cada uno. */
+function nodeTableOf(
+  topology: CircuitTopology,
+  layout: Layout,
+  nodeVoltages: number[],
+): ResultTable {
+  const rows: ResultTable['rows'] = layout.rows.map((nodeIdx) => ({
+    nodo: `Nodo ${nodeIdx + 1}`,
+    componentes: topology.nodes[nodeIdx]!.terminals.map(
+      (t) => `${componentLabel(t.component)} (${terminalText(t.component.kind, t.terminal)})`,
+    ).join(', '),
+    voltaje: formatNumber(nodeVoltages[nodeIdx]!, DIGITS),
+  }));
+  if (layout.nVsrc > 0) rows.push({ nodo: 'Referencia', componentes: '(tierra)', voltaje: '0' });
+  return {
+    id: 'nodos',
+    title: 'Nodos del circuito',
+    columns: [
+      { key: 'nodo', header: 'Nodo' },
+      { key: 'componentes', header: 'Terminales conectadas' },
+      { key: 'voltaje', header: 'Voltaje (V)' },
+    ],
+    rows,
+  };
+}
+
+/**
+ * Resuelve el circuito por MNA. Devuelve la traza completa o un fallo `singular`.
+ */
+export function solveMna(topology: CircuitTopology): MnaOutcome {
+  const { nodes, referenceNode } = topology;
+  const layout = layoutOf(topology);
+  const { nodeToRow, rows, nUnknowns, size, opamps } = layout;
+  const a = stampMatrix(topology, layout);
+  const kclSteps = equationSteps(topology, layout);
+
   const elim = forwardElimination(a, {
     pivotColumns: size,
     pivoting: true,
@@ -271,76 +428,13 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
 
   const nodeVoltages = nodes.map((_, i) => (i === referenceNode ? 0 : x[nodeToRow.get(i)!]!));
   const sourceCurrents = x.slice(nUnknowns);
-
-  // Tabla de nodos con voltajes reales.
-  nodeTable.rows = rows.map((nodeIdx, r) => ({
-    nodo: `Nodo ${nodeIdx + 1}`,
-    componentes: nodeRows[r]!.componentes,
-    voltaje: formatNumber(nodeVoltages[nodeIdx]!, DIGITS),
-  }));
-  if (nVsrc > 0) {
-    nodeTable.rows.push({
-      nodo: 'Referencia',
-      componentes: '(tierra)',
-      voltaje: '0',
-    });
-  }
-
-  // Resultados por rama.
-  const branchResults: BranchResult[] = [];
-  const branchTable: ResultTable = {
-    id: 'ramas',
-    title: 'Corrientes y potencias por rama',
-    columns: [
-      { key: 'rama', header: 'Rama' },
-      { key: 'v', header: 'V (V)' },
-      { key: 'i', header: 'I (A)' },
-      { key: 'p', header: 'P (W)' },
-      { key: 'estado', header: 'Estado' },
-    ],
-    rows: [],
-  };
-
-  for (const mapped of components) {
-    const { component } = mapped;
-    // La salida de un amplificador operacional es una rama de la salida a tierra: la potencia
-    // que entrega sale de su alimentación.
-    const opamp = component.kind === 'opamp' ? opamps.indexOf(mapped) : -1;
-    if (component.kind === 'opamp' && opamp < 0) continue;
-    const nodeA = opamp >= 0 ? mapped.nodeC! : mapped.nodeA;
-    const nodeB = opamp >= 0 ? referenceNode : mapped.nodeB;
-    const v = nodeVoltages[nodeA]! - nodeVoltages[nodeB]!;
-    let i = 0;
-    if (opamp >= 0) {
-      i = x[nUnknowns + nVsrc + opamp]!;
-    } else if (component.kind === 'resistor') {
-      i = v / component.value;
-    } else if (component.kind === 'voltage-source') {
-      const idx = vsrcIndex.get(component.id)!;
-      // i_k definido como corriente que entra por el terminal positivo (nodeA).
-      i = sourceCurrents[idx]!;
-    } else if (component.kind === 'current-source') {
-      i = component.value;
-    }
-    const p = v * i;
-    branchResults.push({
-      id: component.id,
-      label: componentLabel(component),
-      kind: component.kind,
-      nodeA,
-      nodeB,
-      v,
-      i,
-      p,
-    });
-    branchTable.rows.push({
-      rama: `${componentLabel(component)} (${opamp >= 0 ? 'salida' : componentUnit(component.kind)})`,
-      v: formatNumber(v, DIGITS),
-      i: formatNumber(i, DIGITS),
-      p: formatNumber(p, DIGITS),
-      estado: Math.abs(p) < 1e-12 ? 'cero' : p > 0 ? 'absorbe' : 'entrega',
-    });
-  }
+  const nodeTable = nodeTableOf(topology, layout, nodeVoltages);
+  const { results: branchResults, table: branchTable } = branchResultsOf(
+    topology,
+    layout,
+    x,
+    nodeVoltages,
+  );
 
   const totalPower = branchResults.reduce((s, b) => s + b.p, 0);
   const notices: Notice[] = [];
@@ -351,6 +445,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     });
   }
 
+  const opampNote = opamps.length ? ' y de los amplificadores operacionales' : '';
   const steps: Step[] = [
     {
       title: 'Identificación de nodos',
@@ -359,9 +454,7 @@ export function solveMna(topology: CircuitTopology): MnaOutcome {
     ...kclSteps,
     {
       title: 'Sistema de ecuaciones aumentado',
-      explanation: `Las primeras filas son KCL en cada nodo desconocido; las últimas filas son las ecuaciones de las fuentes de voltaje${
-        opamps.length ? ' y de los amplificadores operacionales' : ''
-      }. La última columna es el lado derecho.`,
+      explanation: `Las primeras filas son KCL en cada nodo desconocido; las últimas filas son las ecuaciones de las fuentes de voltaje${opampNote}. La última columna es el lado derecho.`,
       result: texAugmented(a, 1, DIGITS),
     },
     ...elim.steps,

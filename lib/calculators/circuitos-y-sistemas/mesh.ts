@@ -26,7 +26,7 @@ import {
   type CircuitDocument,
   type GridPoint,
 } from './circuit';
-import type { BranchResult } from './mna';
+import { powerState, type BranchResult } from './mna';
 
 const DIGITS = 6;
 const n = (v: number) => toLatexNumber(v, DIGITS);
@@ -100,22 +100,29 @@ interface PlanarFaces {
   toOf: (h: number) => GridPoint;
 }
 
-/** Recorre las caras del embebido planar (aristas = componentes + tramos de cable). */
-function buildPlanarFaces(doc: CircuitDocument): PlanarFaces {
-  const edges: EdgeDef[] = [];
-  for (const c of doc.components) {
-    edges.push({ key: c.id, kind: 'component', component: c, a: c.a, b: c.b });
-  }
+/** Aristas del embebido: cada componente y cada tramo de cable. */
+function edgesOf(doc: CircuitDocument): EdgeDef[] {
+  const edges = doc.components.map((c): EdgeDef => ({
+    key: c.id,
+    kind: 'component',
+    component: c,
+    a: c.a,
+    b: c.b,
+  }));
   for (const w of doc.wires) {
     for (let i = 0; i < w.points.length - 1; i++) {
       edges.push({ key: `${w.id}#${i}`, kind: 'wire', a: w.points[i]!, b: w.points[i + 1]! });
     }
   }
-  const halfCount = edges.length * 2;
-  const fromOf = (h: number): GridPoint => (h % 2 === 0 ? edges[h >> 1]!.a : edges[h >> 1]!.b);
-  const toOf = (h: number): GridPoint => (h % 2 === 0 ? edges[h >> 1]!.b : edges[h >> 1]!.a);
+  return edges;
+}
 
-  // Semiaristas que salen de cada vértice, ordenadas por ángulo.
+/** Semiaristas que salen de cada vértice, ordenadas por ángulo. */
+function outgoingByAngle(
+  halfCount: number,
+  fromOf: (h: number) => GridPoint,
+  toOf: (h: number) => GridPoint,
+): Map<string, number[]> {
   const adj = new Map<string, number[]>();
   for (let h = 0; h < halfCount; h++) {
     const k = keyOf(fromOf(h));
@@ -123,26 +130,17 @@ function buildPlanarFaces(doc: CircuitDocument): PlanarFaces {
     if (list) list.push(h);
     else adj.set(k, [h]);
   }
-  for (const list of adj.values()) {
-    list.sort((h1, h2) => {
-      const p1 = fromOf(h1);
-      const q1 = toOf(h1);
-      const p2 = fromOf(h2);
-      const q2 = toOf(h2);
-      return Math.atan2(q1.y - p1.y, q1.x - p1.x) - Math.atan2(q2.y - p2.y, q2.x - p2.x);
-    });
-  }
-  const posOf = new Map<number, number>();
-  for (const list of adj.values()) list.forEach((h, i) => posOf.set(h, i));
-
-  // Siguiente semiarista de la cara: la inmediatamente anterior en sentido horario a la gemela.
-  const nextHalf = (h: number): number => {
-    const twin = h ^ 1;
-    const list = adj.get(keyOf(fromOf(twin)))!;
-    const pos = posOf.get(twin)!;
-    return list[(pos - 1 + list.length) % list.length]!;
+  const angle = (h: number) => {
+    const p = fromOf(h);
+    const q = toOf(h);
+    return Math.atan2(q.y - p.y, q.x - p.x);
   };
+  for (const list of adj.values()) list.sort((h1, h2) => angle(h1) - angle(h2));
+  return adj;
+}
 
+/** Recorre cada cara siguiendo `nextHalf` hasta volver a la semiarista inicial. */
+function traceFaces(halfCount: number, nextHalf: (h: number) => number) {
   const faceOfHalf = new Array<number>(halfCount).fill(-1);
   const faces: number[][] = [];
   for (let h = 0; h < halfCount; h++) {
@@ -159,33 +157,53 @@ function buildPlanarFaces(doc: CircuitDocument): PlanarFaces {
     } while (cur !== h && guard <= halfCount + 1);
     faces.push(cycle);
   }
+  return { faceOfHalf, faces };
+}
 
-  const faceArea = faces.map((cycle) => {
-    let area = 0;
-    for (const h of cycle) {
-      const p = fromOf(h);
-      const q = toOf(h);
-      area += p.x * q.y - q.x * p.y;
-    }
-    return area / 2;
-  });
-
-  // La cara exterior es la de mayor área absoluta; las acotadas tienen el signo opuesto.
+/** La cara exterior es la de mayor área absoluta; las acotadas (mallas) tienen el signo opuesto. */
+function classifyFaces(faceArea: number[]) {
   let outer = 0;
   for (let i = 1; i < faceArea.length; i++) {
     if (Math.abs(faceArea[i]!) > Math.abs(faceArea[outer]!)) outer = i;
   }
   const outerSign = Math.sign(faceArea[outer] ?? 0) || -1;
   const boundedFaces: number[] = [];
-  const meshOfFace = new Array<number>(faces.length).fill(-1);
-  for (let i = 0; i < faces.length; i++) {
-    if (i === outer) continue;
-    if (Math.sign(faceArea[i]!) === -outerSign && Math.abs(faceArea[i]!) > 1e-9) {
-      meshOfFace[i] = boundedFaces.length;
-      boundedFaces.push(i);
-    }
-  }
+  const meshOfFace = new Array<number>(faceArea.length).fill(-1);
+  faceArea.forEach((area, i) => {
+    if (i === outer || Math.sign(area) !== -outerSign || Math.abs(area) <= 1e-9) return;
+    meshOfFace[i] = boundedFaces.length;
+    boundedFaces.push(i);
+  });
+  return { boundedFaces, meshOfFace };
+}
 
+/** Recorre las caras del embebido planar (aristas = componentes + tramos de cable). */
+function buildPlanarFaces(doc: CircuitDocument): PlanarFaces {
+  const edges = edgesOf(doc);
+  const halfCount = edges.length * 2;
+  const fromOf = (h: number): GridPoint => (h % 2 === 0 ? edges[h >> 1]!.a : edges[h >> 1]!.b);
+  const toOf = (h: number): GridPoint => (h % 2 === 0 ? edges[h >> 1]!.b : edges[h >> 1]!.a);
+  const adj = outgoingByAngle(halfCount, fromOf, toOf);
+  const posOf = new Map<number, number>();
+  for (const list of adj.values()) list.forEach((h, i) => posOf.set(h, i));
+
+  // Siguiente semiarista de la cara: la inmediatamente anterior en sentido horario a la gemela.
+  const nextHalf = (h: number): number => {
+    const twin = h ^ 1;
+    const list = adj.get(keyOf(fromOf(twin)))!;
+    const pos = posOf.get(twin)!;
+    return list[(pos - 1 + list.length) % list.length]!;
+  };
+  const { faceOfHalf, faces } = traceFaces(halfCount, nextHalf);
+  const faceArea = faces.map(
+    (cycle) =>
+      cycle.reduce((area, h) => {
+        const p = fromOf(h);
+        const q = toOf(h);
+        return area + (p.x * q.y - q.x * p.y);
+      }, 0) / 2,
+  );
+  const { boundedFaces, meshOfFace } = classifyFaces(faceArea);
   return { edges, faceOfHalf, faces, faceArea, boundedFaces, meshOfFace, fromOf, toOf };
 }
 
@@ -195,25 +213,24 @@ function joinSigned(terms: string[]): string {
   return joined.startsWith('+ ') ? joined.slice(2) : joined;
 }
 
-/** Resuelve el circuito por análisis de mallas. */
-export function solveMesh(doc: CircuitDocument): MeshOutcome {
+/** Errores de los elementos dibujados: circuito vacío, almacenadores o no lineales. */
+function elementsError(doc: CircuitDocument): MeshFailure | null {
   if (doc.components.length === 0) {
     return { ok: false, code: 'circuito-vacio', message: 'El circuito no tiene componentes.' };
   }
   const storage = storageElementsError(doc.components);
   if (storage) return { ok: false, code: 'elementos-almacenadores', message: storage.message };
   const electronic = electronicElementsError(doc.components);
-  if (electronic) {
-    return {
-      ok: false,
-      code: electronic.code as 'elementos-no-lineales' | 'elementos-no-admitidos',
-      message: electronic.message,
-    };
-  }
-  const planar = buildPlanarFaces(doc);
-  const { edges, faceOfHalf, faces, boundedFaces, meshOfFace } = planar;
+  if (!electronic) return null;
+  return {
+    ok: false,
+    code: electronic.code as 'elementos-no-lineales' | 'elementos-no-admitidos',
+    message: electronic.message,
+  };
+}
 
-  // El dibujo debe ser conexo: la cara exterior es única y así se clasifican bien las mallas.
+/** ¿El dibujo es conexo? Así la cara exterior es única y las mallas se clasifican bien. */
+function isConnected(edges: EdgeDef[]): boolean {
   const parent = new Map<string, string>();
   const find = (k: string): string => {
     let r = k;
@@ -226,9 +243,179 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
     const rb = find(keyOf(e.b));
     if (ra !== rb) parent.set(ra, rb);
   }
-  const roots = new Set<string>();
-  for (const e of edges) roots.add(find(keyOf(e.a)));
-  if (roots.size > 1) {
+  return new Set(edges.map((e) => find(keyOf(e.a)))).size <= 1;
+}
+
+type FacesOf = (c: CircuitComponent) => [number, number];
+
+/** Malla a cada lado de un componente: f1 para la semiarista a→b, f2 para b→a (−1: exterior). */
+function componentFacesOf(planar: PlanarFaces): FacesOf {
+  const edgeOfComponent = new Map<string, number>();
+  planar.edges.forEach((e, i) => {
+    if (e.kind === 'component' && e.component) edgeOfComponent.set(e.component.id, i);
+  });
+  return (c) => {
+    const e = edgeOfComponent.get(c.id)!;
+    return [
+      planar.meshOfFace[planar.faceOfHalf[2 * e]!]!,
+      planar.meshOfFace[planar.faceOfHalf[2 * e + 1]!]!,
+    ];
+  };
+}
+
+/** Ramas que no separan dos mallas distintas y mallas formadas solo por cables. */
+function meshShapeError(
+  doc: CircuitDocument,
+  planar: PlanarFaces,
+  facesOf: FacesOf,
+): MeshFailure | null {
+  const dangling = doc.components.find((c) => {
+    const [f1, f2] = facesOf(c);
+    return f1 === f2;
+  });
+  if (dangling) {
+    return {
+      ok: false,
+      code: 'rama-colgante',
+      message: `La rama ${componentLabel(dangling)} no forma parte de una malla (es colgante o un puente). Conéctala a ambos lados para incluirla.`,
+    };
+  }
+  const wireOnly = planar.boundedFaces.findIndex(
+    (gf) => !(planar.faces[gf] ?? []).some((h) => planar.edges[h >> 1]!.kind === 'component'),
+  );
+  if (wireOnly < 0) return null;
+  return {
+    ok: false,
+    code: 'malla-sin-componentes',
+    message: `La malla ${wireOnly + 1} está formada solo por cables; agrega un componente para poder calcular su corriente.`,
+  };
+}
+
+interface KvlTerms {
+  sym: string[];
+  num: string[];
+}
+
+/** Sistema de mallas: M corrientes de malla + la tensión de cada fuente de corriente. */
+interface MeshSystem {
+  a: number[][];
+  size: number;
+  /** Columna de la tensión de cada fuente de corriente. */
+  unknownOf: Map<string, number>;
+  meshTerms: KvlTerms[];
+}
+
+/**
+ * Aporte de un componente a la KVL de la malla `mf`, que lo recorre en el sentido `sign` (+1 de a
+ * a b). `other` es la malla del otro lado (−1 si es la exterior).
+ */
+function addKvlTerm(
+  system: Omit<MeshSystem, 'meshTerms'>,
+  mf: number,
+  c: CircuitComponent,
+  sign: number,
+  other: number,
+  terms: KvlTerms,
+) {
+  const { a, size, unknownOf } = system;
+  const label = componentLabel(c);
+  if (c.kind === 'resistor') {
+    addAt(a, mf, mf, c.value);
+    if (other < 0) {
+      terms.sym.push(`+ R_{${label}} i_${mf + 1}`);
+      terms.num.push(`+ ${n(c.value)} i_${mf + 1}`);
+      return;
+    }
+    addAt(a, mf, other, -c.value);
+    terms.sym.push(`+ R_{${label}}(i_{${mf + 1}} - i_{${other + 1}})`);
+    terms.num.push(`+ ${n(c.value)} (i_${mf + 1} - i_${other + 1})`);
+    return;
+  }
+  if (c.kind === 'voltage-source') {
+    addAt(a, mf, size, -sign * c.value);
+    const s = sign > 0 ? '-' : '+';
+    terms.sym.push(`${s} E_{${label}}`);
+    terms.num.push(`${s} ${n(c.value)}`);
+    return;
+  }
+  addAt(a, mf, unknownOf.get(c.id)!, sign);
+  const s = sign > 0 ? '+' : '-';
+  terms.sym.push(`${s} u_{${label}}`);
+  terms.num.push(`${s} u_{${label}}`);
+}
+
+function buildMeshSystem(doc: CircuitDocument, planar: PlanarFaces, facesOf: FacesOf): MeshSystem {
+  const M = planar.boundedFaces.length;
+  const unknownOf = new Map<string, number>();
+  for (const c of doc.components) {
+    if (c.kind === 'current-source') unknownOf.set(c.id, M + unknownOf.size);
+  }
+  const size = M + unknownOf.size;
+  const a: number[][] = Array.from({ length: size }, () => new Array(size + 1).fill(0));
+  const system = { a, size, unknownOf };
+
+  // Filas de KVL por malla.
+  const meshTerms = planar.boundedFaces.map((gf, mf) => {
+    const terms: KvlTerms = { sym: [], num: [] };
+    for (const h of planar.faces[gf] ?? []) {
+      const edge = planar.edges[h >> 1]!;
+      if (edge.kind !== 'component') continue;
+      const c = edge.component!;
+      const [f1, f2] = facesOf(c);
+      addKvlTerm(system, mf, c, h % 2 === 0 ? 1 : -1, f1 === mf ? f2 : f1, terms);
+    }
+    return terms;
+  });
+
+  // Filas de restricción de las fuentes de corriente: i_ab = I.
+  for (const c of doc.components) {
+    const row = unknownOf.get(c.id);
+    if (row === undefined) continue;
+    const [f1, f2] = facesOf(c);
+    if (f1 >= 0) addAt(a, row, f1, 1);
+    if (f2 >= 0) addAt(a, row, f2, -1);
+    a[row]![size] = c.value;
+  }
+  return { ...system, meshTerms };
+}
+
+/** Corriente (diferencia de las mallas a cada lado), tensión y potencia de cada rama. */
+function meshBranchResults(
+  doc: CircuitDocument,
+  facesOf: FacesOf,
+  x: number[],
+  unknownOf: Map<string, number>,
+): BranchResult[] {
+  return doc.components.map((c) => {
+    const [f1, f2] = facesOf(c);
+    const i = (f1 >= 0 ? x[f1]! : 0) - (f2 >= 0 ? x[f2]! : 0);
+    let v: number;
+    if (c.kind === 'resistor') v = c.value * i;
+    else if (c.kind === 'voltage-source') v = c.value;
+    else v = x[unknownOf.get(c.id)!]!;
+    return { id: c.id, label: componentLabel(c), kind: c.kind, nodeA: 0, nodeB: 0, v, i, p: v * i };
+  });
+}
+
+/** Componentes del borde de cada malla, sin repetir. */
+function meshInfoOf(planar: PlanarFaces): MeshInfo[] {
+  return planar.boundedFaces.map((gf) => {
+    const comps: CircuitComponent[] = [];
+    for (const h of planar.faces[gf] ?? []) {
+      const edge = planar.edges[h >> 1]!;
+      const c = edge.kind === 'component' ? edge.component : undefined;
+      if (c && !comps.includes(c)) comps.push(c);
+    }
+    return { branches: comps.map((c) => componentLabel(c)), components: comps };
+  });
+}
+
+/** Resuelve el circuito por análisis de mallas. */
+export function solveMesh(doc: CircuitDocument): MeshOutcome {
+  const invalid = elementsError(doc);
+  if (invalid) return invalid;
+  const planar = buildPlanarFaces(doc);
+  if (!isConnected(planar.edges)) {
     return {
       ok: false,
       code: 'desconectado',
@@ -236,9 +423,7 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
         'El dibujo tiene partes separadas. El análisis de mallas necesita un circuito conexo: únelas con un cable o un componente.',
     };
   }
-
-  const M = boundedFaces.length;
-
+  const M = planar.boundedFaces.length;
   if (M === 0) {
     return {
       ok: false,
@@ -247,105 +432,12 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
         'El circuito no tiene mallas: se necesitan componentes formando lazos cerrados (no solo cables).',
     };
   }
+  const facesOf = componentFacesOf(planar);
+  const shape = meshShapeError(doc, planar, facesOf);
+  if (shape) return shape;
 
-  const edgeOfComponent = new Map<string, number>();
-  edges.forEach((e, i) => {
-    if (e.kind === 'component' && e.component) edgeOfComponent.set(e.component.id, i);
-  });
-
-  // Cara de cada lado de un componente: f1 para la semiarista a→b, f2 para b→a.
-  const componentFaces = (c: CircuitComponent): [number, number] => {
-    const e = edgeOfComponent.get(c.id)!;
-    return [meshOfFace[faceOfHalf[2 * e]!]!, meshOfFace[faceOfHalf[2 * e + 1]!]!];
-  };
-
-  for (const c of doc.components) {
-    const [f1, f2] = componentFaces(c);
-    if (f1 === f2) {
-      return {
-        ok: false,
-        code: 'rama-colgante',
-        message: `La rama ${componentLabel(c)} no forma parte de una malla (es colgante o un puente). Conéctala a ambos lados para incluirla.`,
-      };
-    }
-  }
-
-  for (let mf = 0; mf < M; mf++) {
-    const gf = boundedFaces[mf]!;
-    const hasComponent = (faces[gf] ?? []).some((h) => edges[h >> 1]!.kind === 'component');
-    if (!hasComponent) {
-      return {
-        ok: false,
-        code: 'malla-sin-componentes',
-        message: `La malla ${mf + 1} está formada solo por cables; agrega un componente para poder calcular su corriente.`,
-      };
-    }
-  }
-
-  // Incógnitas: M corrientes de malla + una tensión por fuente de corriente.
-  const currentSourceUnknown = new Map<string, number>();
-  let k = 0;
-  for (const c of doc.components) {
-    if (c.kind === 'current-source') currentSourceUnknown.set(c.id, M + k++);
-  }
-  const size = M + k;
-  const a: number[][] = Array.from({ length: size }, () => new Array(size + 1).fill(0));
-
-  // Filas de KVL por malla.
-  const meshTerms: { sym: string[]; num: string[] }[] = [];
-  for (let mf = 0; mf < M; mf++) {
-    const gf = boundedFaces[mf]!;
-    const sym: string[] = [];
-    const num: string[] = [];
-    for (const h of faces[gf] ?? []) {
-      const e = h >> 1;
-      const edge = edges[e]!;
-      if (edge.kind !== 'component') continue;
-      const c = edge.component!;
-      const sign = h % 2 === 0 ? 1 : -1;
-      const [f1, f2] = componentFaces(c);
-      const other = f1 === mf ? f2 : f1;
-      if (c.kind === 'resistor') {
-        addAt(a, mf, mf, c.value);
-        if (other >= 0) addAt(a, mf, other, -c.value);
-        const label = componentLabel(c);
-        if (other >= 0) {
-          sym.push(`+ R_{${label}}(i_{${mf + 1}} - i_{${other + 1}})`);
-          num.push(`+ ${n(c.value)} (i_${mf + 1} - i_${other + 1})`);
-        } else {
-          sym.push(`+ R_{${label}} i_${mf + 1}`);
-          num.push(`+ ${n(c.value)} i_${mf + 1}`);
-        }
-      } else if (c.kind === 'voltage-source') {
-        addAt(a, mf, size, -sign * c.value);
-        const label = componentLabel(c);
-        if (sign > 0) {
-          sym.push(`- E_{${label}}`);
-          num.push(`- ${n(c.value)}`);
-        } else {
-          sym.push(`+ E_{${label}}`);
-          num.push(`+ ${n(c.value)}`);
-        }
-      } else {
-        const u = currentSourceUnknown.get(c.id)!;
-        addAt(a, mf, u, sign);
-        const label = componentLabel(c);
-        sym.push(`${sign > 0 ? '+' : '-'} u_{${label}}`);
-        num.push(`${sign > 0 ? '+' : '-'} u_{${label}}`);
-      }
-    }
-    meshTerms.push({ sym, num });
-  }
-
-  // Filas de restricción de las fuentes de corriente: i_ab = I.
-  for (const c of doc.components) {
-    if (c.kind !== 'current-source') continue;
-    const row = currentSourceUnknown.get(c.id)!;
-    const [f1, f2] = componentFaces(c);
-    if (f1 >= 0) addAt(a, row, f1, 1);
-    if (f2 >= 0) addAt(a, row, f2, -1);
-    a[row]![size] = c.value;
-  }
+  const { a, size, unknownOf, meshTerms } = buildMeshSystem(doc, planar, facesOf);
+  const k = unknownOf.size;
 
   const elim = forwardElimination(a, { pivotColumns: size, pivoting: true, augmentedColumns: 1 });
   if (elim.zeroPivotColumn !== null) {
@@ -358,41 +450,8 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
   }
   const { x, steps: backSteps } = backSubstitution(elim.upper);
   const meshCurrents = x.slice(0, M);
-
-  // Corrientes y potencias por rama.
-  const branchResults: BranchResult[] = [];
-  for (const c of doc.components) {
-    const [f1, f2] = componentFaces(c);
-    const i = (f1 >= 0 ? x[f1]! : 0) - (f2 >= 0 ? x[f2]! : 0);
-    let v: number;
-    if (c.kind === 'resistor') v = c.value * i;
-    else if (c.kind === 'voltage-source') v = c.value;
-    else v = x[currentSourceUnknown.get(c.id)!]!;
-    branchResults.push({
-      id: c.id,
-      label: componentLabel(c),
-      kind: c.kind,
-      nodeA: 0,
-      nodeB: 0,
-      v,
-      i,
-      p: v * i,
-    });
-  }
-
-  // Tabla de mallas.
-  const meshInfo: MeshInfo[] = boundedFaces.map((gf) => {
-    const comps: CircuitComponent[] = [];
-    const seen = new Set<string>();
-    for (const h of faces[gf] ?? []) {
-      const edge = edges[h >> 1]!;
-      if (edge.kind !== 'component' || !edge.component) continue;
-      if (seen.has(edge.component.id)) continue;
-      seen.add(edge.component.id);
-      comps.push(edge.component);
-    }
-    return { branches: comps.map((c) => componentLabel(c)), components: comps };
-  });
+  const branchResults = meshBranchResults(doc, facesOf, x, unknownOf);
+  const meshInfo = meshInfoOf(planar);
 
   const meshTable: ResultTable = {
     id: 'mallas',
@@ -424,7 +483,7 @@ export function solveMesh(doc: CircuitDocument): MeshOutcome {
       v: formatNumber(b.v, DIGITS),
       i: formatNumber(b.i, DIGITS),
       p: formatNumber(b.p, DIGITS),
-      estado: Math.abs(b.p) < 1e-12 ? 'cero' : b.p > 0 ? 'absorbe' : 'entrega',
+      estado: powerState(b.p),
     })),
   };
 
