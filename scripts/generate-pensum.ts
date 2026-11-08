@@ -59,12 +59,77 @@ function statusCounts(subject: Subject): Record<CalculatorStatus, number> {
   return counts;
 }
 
+/** Fila de la tabla de resumen de una materia. */
+function summaryRow(s: Subject): string {
+  const c = statusCounts(s);
+  const counts =
+    s.content === 'pendiente'
+      ? '⏳ | ⏳ | ⏳'
+      : `${c.implementada} | ${c['en-progreso']} | ${c.roadmap}`;
+  return `| ${s.code} | [${s.name}](#${s.slug}) | ${formatSemester(s)} | ${prerequisites(s)} | ${s.creditsLabel} | ${counts} |`;
+}
+
+/** Filas tema → calculadora de una materia; los temas sin calculadora llevan una sola fila. */
+function topicRows(s: Subject): string[] {
+  const rows: string[] = [];
+  for (const topic of s.topics) {
+    const topicLabel = topic.unit ? `${topic.unit} — ${topic.name}` : topic.name;
+    const locations = getTopicCalculators(topic);
+    if (locations.length === 0) {
+      rows.push(`| ${topicLabel} | _Tema conceptual, sin calculadora_ | — | — |`);
+      continue;
+    }
+    for (const location of locations) {
+      const isReference = location.subject.slug !== s.slug || location.topic.slug !== topic.slug;
+      const status = getCalculatorStatus(location.calculator, implementedCalculatorIds);
+      const marker = isReference ? '↪︎ ' : '';
+      rows.push(
+        `| ${topicLabel} | ${marker}${location.calculator.title} | ${STATUS_LABEL[status]} | \`${calculatorPath(location)}\` |`,
+      );
+    }
+  }
+  return rows;
+}
+
+/** Sección de una materia: datos, objetivo, temas con sus calculadoras y bibliografía. */
+function subjectSection(s: Subject): string[] {
+  const lines = [
+    '',
+    '---',
+    '',
+    `<a id="${s.slug}"></a>`,
+    '',
+    `## ${s.name}`,
+    '',
+    `**Código:** ${s.code} · **Ubicación:** ${formatSemester(s)} · **Prelación:** ${prerequisites(s)} · **Créditos:** ${s.creditsLabel}`,
+    '',
+  ];
+  if (s.content === 'pendiente') {
+    lines.push(
+      '⏳ **Contenido pendiente de definir.** El pensum no incluye el programa sinóptico/analítico',
+      'de esta materia; solo aparece en la malla curricular.',
+    );
+    return lines;
+  }
+  if (s.objective) lines.push(`**Objetivo general:** ${s.objective}`, '');
+  lines.push(
+    '| Tema | Calculadora | Estado | Ruta |',
+    '|---|---|---|---|',
+    ...topicRows(s),
+    '',
+    '**Bibliografía**',
+    '',
+  );
+  for (const id of s.bibliography) {
+    const source = getSource(id);
+    if (source) lines.push(`- ${formatSource(source)} <sub>\`${id}\`</sub>`);
+  }
+  return lines;
+}
+
 export function renderPensum(): string {
   const subjects = getSubjects();
-  const out: string[] = [];
-  const push = (...lines: string[]) => out.push(...lines);
-
-  push(
+  const out: string[] = [
     '# Pensum → temas → calculadoras',
     '',
     '<!-- ARCHIVO GENERADO por scripts/generate-pensum.ts. No lo edites a mano: cambia',
@@ -90,57 +155,10 @@ export function renderPensum(): string {
     '',
     '| Código | Materia | Ubicación | Prelación | Créditos | ✅ | 🛠️ | 🗺️ |',
     '|---|---|---|---|---|---:|---:|---:|',
-  );
-  for (const s of subjects) {
-    const c = statusCounts(s);
-    const counts =
-      s.content === 'pendiente'
-        ? '⏳ | ⏳ | ⏳'
-        : `${c.implementada} | ${c['en-progreso']} | ${c.roadmap}`;
-    push(
-      `| ${s.code} | [${s.name}](#${s.slug}) | ${formatSemester(s)} | ${prerequisites(s)} | ${s.creditsLabel} | ${counts} |`,
-    );
-  }
-
-  for (const s of subjects) {
-    push('', '---', '', `<a id="${s.slug}"></a>`, '', `## ${s.name}`, '');
-    push(
-      `**Código:** ${s.code} · **Ubicación:** ${formatSemester(s)} · **Prelación:** ${prerequisites(s)} · **Créditos:** ${s.creditsLabel}`,
-      '',
-    );
-    if (s.content === 'pendiente') {
-      push(
-        '⏳ **Contenido pendiente de definir.** El pensum no incluye el programa sinóptico/analítico',
-        'de esta materia; solo aparece en la malla curricular.',
-      );
-      continue;
-    }
-    if (s.objective) push(`**Objetivo general:** ${s.objective}`, '');
-
-    push('| Tema | Calculadora | Estado | Ruta |', '|---|---|---|---|');
-    for (const topic of s.topics) {
-      const topicLabel = topic.unit ? `${topic.unit} — ${topic.name}` : topic.name;
-      const locations = getTopicCalculators(topic);
-      if (locations.length === 0) {
-        push(`| ${topicLabel} | _Tema conceptual, sin calculadora_ | — | — |`);
-        continue;
-      }
-      for (const location of locations) {
-        const isReference = location.subject.slug !== s.slug || location.topic.slug !== topic.slug;
-        const status = getCalculatorStatus(location.calculator, implementedCalculatorIds);
-        push(
-          `| ${topicLabel} | ${isReference ? '↪︎ ' : ''}${location.calculator.title} | ${STATUS_LABEL[status]} | \`${calculatorPath(location)}\` |`,
-        );
-      }
-    }
-
-    push('', '**Bibliografía**', '');
-    for (const id of s.bibliography) {
-      const source = getSource(id);
-      if (source) push(`- ${formatSource(source)} <sub>\`${id}\`</sub>`);
-    }
-  }
-  push('');
+    ...subjects.map((s) => summaryRow(s)),
+  ];
+  for (const s of subjects) out.push(...subjectSection(s));
+  out.push('');
   return out.join('\n');
 }
 
