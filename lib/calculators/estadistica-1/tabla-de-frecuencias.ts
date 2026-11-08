@@ -114,10 +114,12 @@ export function solveFrequencyTable(input: FrequencyTableInput): Result {
   const start = input.start ?? min;
   const range = max - start;
 
+  const decimalsText = decimals === 1 ? '1 decimal' : `${decimals} decimales`;
+  const precision = decimals === 0 ? 'precisión de enteros' : decimalsText;
   const steps: Step[] = [
     {
       title: 'Datos',
-      explanation: `Hay n = ${count} datos, registrados con ${decimals === 0 ? 'precisión de enteros' : `${decimals} decimal${decimals === 1 ? '' : 'es'}`} (u = ${formatNumber(unit)}).`,
+      explanation: `Hay n = ${count} datos, registrados con ${precision} (u = ${formatNumber(unit)}).`,
       formula: String.raw`R = x_{\max} - x_{\min}`,
       substitution: `R = ${n(max)} - ${n(min)}`,
       result: `R = ${n(round(max - min))}`,

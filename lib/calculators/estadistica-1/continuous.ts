@@ -36,7 +36,7 @@ export const continuousBetweenError = {
 export interface ContinuousQueryInput {
   query: ContinuousQuery;
   x: number;
-  x2?: number | undefined;
+  x2?: number;
 }
 
 export interface ContinuousModel {
@@ -97,6 +97,46 @@ function plotRange(model: ContinuousModel, limits: number[]): [number, number] {
   return [from, to];
 }
 
+/** Lo que depende de la consulta: la probabilidad, cómo se obtiene y el área sombreada. */
+function queryParts(
+  input: ContinuousQueryInput,
+  values: number[],
+  target: string,
+  [from, to]: [number, number],
+): {
+  probability: number;
+  explanation: string;
+  formula: string;
+  substitution?: string;
+  highlight: { from: number; to: number };
+} {
+  const F = values[0]!;
+  if (input.query === 'menor') {
+    return {
+      probability: F,
+      explanation: 'Es el área a la izquierda de x: F(x). Como X es continua, P(X < x) = P(X ≤ x).',
+      formula: `${target} = F(x)`,
+      highlight: { from, to: Math.min(input.x, to) },
+    };
+  }
+  if (input.query === 'mayor') {
+    return {
+      probability: 1 - F,
+      explanation: 'Es el área a la derecha de x: el complemento de F(x).',
+      formula: `${target} = 1 - F(x)`,
+      substitution: `${target} = 1 - ${n(F)}`,
+      highlight: { from: Math.max(input.x, from), to },
+    };
+  }
+  return {
+    probability: Math.max(0, values[1]! - F),
+    explanation: 'Es el área entre a y b: lo acumulado hasta b menos lo acumulado hasta a.',
+    formula: `${target} = F(b) - F(a)`,
+    substitution: `${target} = ${n(values[1]!)} - ${n(F)}`,
+    highlight: { from: Math.max(input.x, from), to: Math.min(input.x2 ?? input.x, to) },
+  };
+}
+
 export function solveContinuous(
   input: ContinuousQueryInput,
   model: ContinuousModel,
@@ -105,12 +145,9 @@ export function solveContinuous(
   const limits = query === 'entre' ? [input.x, input.x2 ?? input.x] : [input.x];
   const values = limits.map((v) => model.cdf(v));
   const target = queryLatex(input);
-  const probability =
-    query === 'menor'
-      ? values[0]!
-      : query === 'mayor'
-        ? 1 - values[0]!
-        : Math.max(0, values[1]! - values[0]!);
+  const [from, to] = plotRange(model, limits);
+  const parts = queryParts(input, values, target, [from, to]);
+  const { probability } = parts;
   const [lo, hi] = model.support;
 
   const evaluate: Step[] = limits.map((v, i) => {
@@ -153,24 +190,9 @@ export function solveContinuous(
     ...evaluate,
     {
       title: 'Calcular la probabilidad',
-      explanation:
-        query === 'menor'
-          ? 'Es el área a la izquierda de x: F(x). Como X es continua, P(X < x) = P(X ≤ x).'
-          : query === 'mayor'
-            ? 'Es el área a la derecha de x: el complemento de F(x).'
-            : 'Es el área entre a y b: lo acumulado hasta b menos lo acumulado hasta a.',
-      formula:
-        query === 'menor'
-          ? `${target} = F(x)`
-          : query === 'mayor'
-            ? `${target} = 1 - F(x)`
-            : `${target} = F(b) - F(a)`,
-      substitution:
-        query === 'menor'
-          ? undefined
-          : query === 'mayor'
-            ? `${target} = 1 - ${n(values[0]!)}`
-            : `${target} = ${n(values[1]!)} - ${n(values[0]!)}`,
+      explanation: parts.explanation,
+      formula: parts.formula,
+      substitution: parts.substitution,
       result: `${target} = ${n(probability)}`,
     },
     {
@@ -180,17 +202,11 @@ export function solveContinuous(
     },
   ];
 
-  const [from, to] = plotRange(model, limits);
   const density = Array.from({ length: POINTS + 1 }, (_, k) => {
     const x = from + ((to - from) * k) / POINTS;
     return { x, y: model.pdf(x) };
   });
-  const highlight =
-    query === 'menor'
-      ? { from, to: Math.min(input.x, to) }
-      : query === 'mayor'
-        ? { from: Math.max(input.x, from), to }
-        : { from: Math.max(input.x, from), to: Math.min(input.x2 ?? input.x, to) };
+  const { highlight } = parts;
 
   return {
     ok: true,

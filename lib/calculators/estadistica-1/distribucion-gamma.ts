@@ -42,9 +42,11 @@ function poissonSum(y: number, alpha: number): string {
   const yTex = toLatexOperand(y);
   const power = (k: number) =>
     Number.isInteger(y) && y >= 0 ? `${n(y)}^{${k}}` : `(${n(y)})^{${k}}`;
-  const terms = Array.from({ length: alpha }, (_, k) =>
-    k === 0 ? '1' : k === 1 ? yTex : String.raw`\frac{${power(k)}}{${k}!}`,
-  );
+  const term = (k: number) => {
+    if (k === 0) return '1';
+    return k === 1 ? yTex : String.raw`\frac{${power(k)}}{${k}!}`;
+  };
+  const terms = Array.from({ length: alpha }, (_, k) => term(k));
   return String.raw`1 - e^{-${yTex}}\left(${terms.join(' + ')}\right)`;
 }
 
@@ -56,7 +58,8 @@ function gammaModel(alpha: number, beta: number): ContinuousModel {
     support: [0, Infinity],
     pdf: (x) => {
       if (x < 0) return 0;
-      if (x === 0) return alpha < 1 ? Infinity : alpha === 1 ? 1 / beta : 0;
+      if (x === 0 && alpha < 1) return Infinity;
+      if (x === 0) return alpha === 1 ? 1 / beta : 0;
       return Math.exp((alpha - 1) * Math.log(x) - x / beta - lnNormalizer);
     },
     cdf: (x) => regularizedGammaP(alpha, x / beta),

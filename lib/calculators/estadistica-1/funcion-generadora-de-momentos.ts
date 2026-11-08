@@ -46,6 +46,23 @@ const n = toLatexNumber;
 
 const ordinal = ['primer', 'segundo', 'tercer', 'cuarto'];
 
+/** μ'_r: la r-ésima derivada de M_X(t) en t = 0 (la derivada se omite si es muy larga). */
+function momentStep(r: number, derivativeTex: string, value: number): Step {
+  const prime = String.raw`\mu'_{${r}}`;
+  const power = r === 1 ? '' : `^{${r}}`;
+  const derivative = String.raw`\frac{d${power} M_X(t)}{dt${power}}`;
+  const name = ordinal[r - 1]!;
+  const long = derivativeTex.length > MAX_TEX_LENGTH;
+  const times = r === 1 ? 'una vez' : `${r} veces`;
+  return {
+    title: `${name.charAt(0).toUpperCase()}${name.slice(1)} momento`,
+    explanation: long ? `Se deriva M_X(t) ${times}; la derivada es larga y se omite.` : undefined,
+    formula: String.raw`${prime} = E(X${power}) = \left.${derivative}\right|_{t=0}`,
+    substitution: long ? undefined : `${derivative} = ${derivativeTex}`,
+    result: `${prime} = ${n(value)}`,
+  };
+}
+
 export function solveMgf(input: MgfInput): Result {
   const fail = (code: MgfErrorCode, message: string, steps: Step[] = []): Result => ({
     ok: false,
@@ -96,20 +113,7 @@ export function solveMgf(input: MgfInput): Result {
     if (!derived.ok) return fail('not-differentiable', derived.message, steps);
     current = derived.expr;
     const value = current.evaluate(0);
-    const prime = String.raw`\mu'_{${r}}`;
-    const power = r === 1 ? '' : `^{${r}}`;
-    const derivative = String.raw`\frac{d${power} M_X(t)}{dt${power}}`;
-    steps.push({
-      title: `${ordinal[r - 1]![0]!.toUpperCase()}${ordinal[r - 1]!.slice(1)} momento`,
-      explanation:
-        current.tex.length > MAX_TEX_LENGTH
-          ? `Se deriva M_X(t) ${r === 1 ? 'una vez' : `${r} veces`}; la derivada es larga y se omite.`
-          : undefined,
-      formula: String.raw`${prime} = E(X${power}) = \left.${derivative}\right|_{t=0}`,
-      substitution:
-        current.tex.length > MAX_TEX_LENGTH ? undefined : `${derivative} = ${current.tex}`,
-      result: `${prime} = ${n(value)}`,
-    });
+    steps.push(momentStep(r, current.tex, value));
     if (!Number.isFinite(value)) {
       return fail(
         'not-differentiable',

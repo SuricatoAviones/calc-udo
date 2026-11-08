@@ -121,6 +121,9 @@ export function solveMultinomial(
   const pTex = (o: (typeof outcomes)[number]) => fractionToLatex(o.text);
   const indices = outcomes.map((_, i) => i + 1);
 
+  const factorialsTex = indices.map((i) => `x_{${i}}!`).join(TEX.thinSpace);
+  const valueFactorials = outcomes.map((o) => `${o.x}!`).join(TEX.thinSpace);
+  const powersTex = indices.map((i) => `p_{${i}}^{x_{${i}}}`).join('');
   const steps: Step[] = [
     {
       title: 'Distribución multinomial',
@@ -142,8 +145,8 @@ export function solveMultinomial(
       title: 'Coeficiente multinomial',
       explanation:
         'Cuenta los órdenes distintos en que pueden salir los resultados: las particiones de los n ensayos en grupos de x₁, x₂, …, x_k.',
-      formula: String.raw`\binom{n}{x_1, \ldots, x_k} = \frac{n!}{${indices.map((i) => `x_{${i}}!`).join(TEX.thinSpace)}}`,
-      substitution: String.raw`\frac{${trials}!}{${outcomes.map((o) => `${o.x}!`).join(TEX.thinSpace)}}`,
+      formula: String.raw`\binom{n}{x_1, \ldots, x_k} = \frac{n!}{${factorialsTex}}`,
+      substitution: String.raw`\frac{${trials}!}{${valueFactorials}}`,
       result: String.raw`\binom{${trials}}{${outcomes.map((o) => o.x).join(', ')}} = ${n(coefficient)}`,
     },
     {
@@ -151,13 +154,13 @@ export function solveMultinomial(
       explanation: impossible
         ? 'Un resultado con probabilidad 0 ocurre al menos una vez: esa muestra es imposible.'
         : 'Como los ensayos son independientes, la probabilidad de un orden concreto es el producto de las probabilidades.',
-      formula: indices.map((i) => `p_{${i}}^{x_{${i}}}`).join(''),
+      formula: powersTex,
       substitution: outcomes.map((o) => String.raw`\left(${pTex(o)}\right)^{${o.x}}`).join(''),
       result: `= ${n(product)}`,
     },
     {
       title: 'Multiplicar',
-      formula: String.raw`f = \binom{n}{x_1, \ldots, x_k} ${indices.map((i) => `p_{${i}}^{x_{${i}}}`).join('')}`,
+      formula: String.raw`f = \binom{n}{x_1, \ldots, x_k} ${powersTex}`,
       substitution: `f = (${n(coefficient)})(${n(product)})`,
       result: `f = ${n(probability)}`,
     },

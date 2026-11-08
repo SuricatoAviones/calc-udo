@@ -82,10 +82,11 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
   const joints = events.map((e) => e.prior * e.likelihood);
   const evidence = joints.reduce((s, j) => s + j, 0);
 
+  const eventList = events.map((e) => `B${e.index} (${e.name})`).join(', ');
   const steps: Step[] = [
     {
       title: 'Partición del espacio muestral',
-      explanation: `Los eventos ${events.map((e) => `B${e.index} (${e.name})`).join(', ')} son mutuamente excluyentes y cubren todos los casos, así que sus probabilidades suman 1. A es el evento observado.`,
+      explanation: `Los eventos ${eventList} son mutuamente excluyentes y cubren todos los casos, así que sus probabilidades suman 1. A es el evento observado.`,
       formula: String.raw`\sum P(B_i) = 1`,
       substitution: `${events.map((e) => fractionToLatex(e.priorText)).join(' + ')} = ${n(
         events.reduce((s, e) => s + e.prior, 0),
@@ -173,7 +174,7 @@ export function solveBayes(input: BayesInput): CalculatorResult<BayesValue, Baye
           { key: 'posterior', header: String.raw`P(B_i \mid A)` },
         ],
         rows: events.map((e, i) => ({
-          event: String.raw`B_{${e.index}}\ ${toLatexText(`(${e.name})`)}`,
+          event: String.raw`B_{${e.index}}\ ${toLatexText('(' + e.name + ')')}`,
           prior: e.prior,
           likelihood: e.likelihood,
           joint: joints[i]!,

@@ -48,6 +48,54 @@ export interface CentralLimitValue {
 
 const n = toLatexNumber;
 
+/** Lo que depende de la consulta: los rótulos, la probabilidad, su fórmula y el área sombreada. */
+function meanQuery(
+  query: CentralLimitInput['query'],
+  limits: number[],
+  zs: number[],
+  phis: number[],
+  [from, to]: [number, number],
+) {
+  const a = limits[0]!;
+  const z1 = n(zs[0]!, 6);
+  const phi1 = phis[0]!;
+  if (query === 'menor') {
+    const target = String.raw`P(\bar{X} < ${n(a)})`;
+    const targetZ = `P(Z < ${z1})`;
+    return {
+      target,
+      targetZ,
+      probability: phi1,
+      formula: String.raw`${target} \approx ${targetZ} = \Phi(z_1)`,
+      substitution: undefined,
+      highlight: { from, to: Math.min(a, to) },
+    };
+  }
+  if (query === 'mayor') {
+    const target = String.raw`P(\bar{X} > ${n(a)})`;
+    const targetZ = `P(Z > ${z1})`;
+    return {
+      target,
+      targetZ,
+      probability: 1 - phi1,
+      formula: String.raw`${target} \approx ${targetZ} = 1 - \Phi(z_1)`,
+      substitution: String.raw`${target} \approx 1 - ${n(phi1, 6)}`,
+      highlight: { from: Math.max(a, from), to },
+    };
+  }
+  const b = limits[1]!;
+  const target = String.raw`P(${n(a)} < \bar{X} < ${n(b)})`;
+  const targetZ = `P(${z1} < Z < ${n(zs[1]!, 6)})`;
+  return {
+    target,
+    targetZ,
+    probability: phis[1]! - phi1,
+    formula: String.raw`${target} \approx ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
+    substitution: String.raw`${target} \approx ${n(phis[1]!, 6)} - ${n(phi1, 6)}`,
+    highlight: { from: Math.max(a, from), to: Math.min(b, to) },
+  };
+}
+
 export function solveCentralLimit(
   input: CentralLimitInput,
 ): CalculatorResult<CentralLimitValue, never> {
@@ -56,26 +104,21 @@ export function solveCentralLimit(
   const limits = query === 'entre' ? [input.x, input.x2 ?? input.x] : [input.x];
   const zs = limits.map((v) => (v - mu) / se);
   const phis = zs.map(standardNormalCdf);
-  const probability =
-    query === 'menor' ? phis[0]! : query === 'mayor' ? 1 - phis[0]! : phis[1]! - phis[0]!;
-
-  const target =
-    query === 'menor'
-      ? String.raw`P(\bar{X} < ${n(limits[0]!)})`
-      : query === 'mayor'
-        ? String.raw`P(\bar{X} > ${n(limits[0]!)})`
-        : String.raw`P(${n(limits[0]!)} < \bar{X} < ${n(limits[1]!)})`;
-  const targetZ =
-    query === 'menor'
-      ? `P(Z < ${n(zs[0]!, 6)})`
-      : query === 'mayor'
-        ? `P(Z > ${n(zs[0]!, 6)})`
-        : `P(${n(zs[0]!, 6)} < Z < ${n(zs[1]!, 6)})`;
+  const from = mu - 4 * se;
+  const to = mu + 4 * se;
+  const { target, targetZ, probability, formula, substitution, highlight } = meanQuery(
+    query,
+    limits,
+    zs,
+    phis,
+    [from, to],
+  );
+  const smaller = size > 1 ? `√${size} veces menor` : 'igual a σ';
 
   const steps: Step[] = [
     {
       title: 'Distribución muestral de la media',
-      explanation: `Por el teorema del límite central, X̄ es aproximadamente normal con la misma media que la población y una desviación estándar (error estándar) ${size > 1 ? `√${size} veces menor` : 'igual a σ'}.`,
+      explanation: `Por el teorema del límite central, X̄ es aproximadamente normal con la misma media que la población y una desviación estándar (error estándar) ${smaller}.`,
       formula: String.raw`\mu_{\bar{X}} = \mu, \qquad \sigma_{\bar{X}} = \frac{\sigma}{\sqrt{n}}`,
       substitution: String.raw`\mu_{\bar{X}} = ${n(mu)}, \qquad \sigma_{\bar{X}} = \frac{${n(sigma)}}{\sqrt{${size}}}`,
       result: String.raw`\sigma_{\bar{X}} = ${n(se)}`,
@@ -98,18 +141,8 @@ export function solveCentralLimit(
     },
     {
       title: 'Calcular la probabilidad',
-      formula:
-        query === 'menor'
-          ? String.raw`${target} \approx ${targetZ} = \Phi(z_1)`
-          : query === 'mayor'
-            ? String.raw`${target} \approx ${targetZ} = 1 - \Phi(z_1)`
-            : String.raw`${target} \approx ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
-      substitution:
-        query === 'menor'
-          ? undefined
-          : query === 'mayor'
-            ? String.raw`${target} \approx 1 - ${n(phis[0]!, 6)}`
-            : String.raw`${target} \approx ${n(phis[1]!, 6)} - ${n(phis[0]!, 6)}`,
+      formula,
+      substitution,
       result: String.raw`${target} \approx ${n(probability, 6)}`,
     },
   ];
@@ -129,18 +162,10 @@ export function solveCentralLimit(
     });
   }
 
-  const from = mu - 4 * se;
-  const to = mu + 4 * se;
   const density = Array.from({ length: 161 }, (_, k) => {
     const x = from + ((to - from) * k) / 160;
     return { x, y: normalDensity(x, mu, se) };
   });
-  const highlight =
-    query === 'menor'
-      ? { from, to: Math.min(limits[0]!, to) }
-      : query === 'mayor'
-        ? { from: Math.max(limits[0]!, from), to }
-        : { from: Math.max(limits[0]!, from), to: Math.min(limits[1]!, to) };
 
   return {
     ok: true,

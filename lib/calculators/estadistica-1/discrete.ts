@@ -31,7 +31,7 @@ export const discreteQueryShape = {
 };
 
 /** Refinamiento: con "entre" hace falta k2 ≥ k. */
-export const betweenIsValid = (v: { query: DiscreteQuery; k: number; k2?: number | undefined }) =>
+export const betweenIsValid = (v: { query: DiscreteQuery; k: number; k2?: number }) =>
   v.query !== 'entre' || (v.k2 !== undefined && v.k2 >= v.k);
 export const betweenError = {
   message: 'Para P(a ≤ X ≤ b) indica un límite superior b mayor o igual que a.',
@@ -41,7 +41,7 @@ export const betweenError = {
 export interface DiscreteQueryInput {
   query: DiscreteQuery;
   k: number;
-  k2?: number | undefined;
+  k2?: number;
 }
 
 export interface DiscreteModel {
@@ -119,6 +119,113 @@ function range(a: number, b: number): number[] {
   return Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
 }
 
+function setupExplanation(useComplement: boolean, single: boolean): string | undefined {
+  if (useComplement) {
+    return 'Es más corto calcular el complemento: la probabilidad de los valores que NO cumplen la condición, y restarla de 1.';
+  }
+  return single
+    ? undefined
+    : 'Es la suma de la función de probabilidad en cada valor que cumple la condición.';
+}
+
+function sumTitle(useComplement: boolean, single: boolean): string {
+  if (useComplement) return 'Sumar los términos y restar de 1';
+  return single ? 'Resultado' : 'Sumar los términos';
+}
+
+function sumSubstitution(
+  target: string,
+  values: number[],
+  sum: number,
+  useComplement: boolean,
+): string | undefined {
+  if (useComplement) return `${target} = 1 - ${n(sum)}`;
+  if (values.length <= 1) return undefined;
+  const added = values.length <= 8 ? values.map((v) => n(v, 6)).join(' + ') : n(sum);
+  return `${target} = ${added}`;
+}
+
+/** Suma de p(x) en los valores pedidos (o en su complemento, restada de 1), con sus pasos. */
+function sumSteps(
+  model: DiscreteModel,
+  target: string,
+  terms: number[],
+  useComplement: boolean,
+): { probability: number; steps: Step[] } {
+  const values = terms.map((x) => model.pmf(x));
+  const sum = values.reduce((s, v) => s + v, 0);
+  const probability = useComplement ? 1 - sum : sum;
+  const single = terms.length === 1;
+
+  const rangeText = (xs: number[]) => {
+    if (xs.length === 1) return `${model.notation(String(xs[0]))}`;
+    const contiguous = xs.every((x, i) => i === 0 || x === xs[i - 1]! + 1);
+    return contiguous
+      ? String.raw`\sum_{x=${xs[0]}}^{${xs.at(-1)}} ${model.notation('x')}`
+      : xs.map((x) => model.notation(String(x))).join(' + ');
+  };
+
+  const detailed = terms.slice(0, SUBSTITUTED_TERMS).map((x) => ({
+    title: `Evaluar en x = ${x}`,
+    formula: `${model.notation(String(x))} = ${model.pmfSubstitution(x)}`,
+    result: `${model.notation(String(x))} = ${n(model.pmf(x))}`,
+  }));
+  const rest =
+    terms.length > SUBSTITUTED_TERMS
+      ? [
+          {
+            title: `Los otros ${terms.length - SUBSTITUTED_TERMS} términos`,
+            explanation: 'Se calculan igual; sus valores están en la tabla de resultados.',
+            result:
+              terms
+                .slice(SUBSTITUTED_TERMS, SUBSTITUTED_TERMS + 6)
+                .map(
+                  (x, i) =>
+                    `${model.notation(String(x))} = ${n(values[SUBSTITUTED_TERMS + i]!, 6)}`,
+                )
+                .join(String.raw`,\quad `) +
+              (terms.length > SUBSTITUTED_TERMS + 6 ? String.raw`,\ \ldots` : ''),
+          },
+        ]
+      : [];
+  return {
+    probability,
+    steps: [
+      {
+        title: 'Plantear la probabilidad',
+        explanation: setupExplanation(useComplement, single),
+        formula: useComplement
+          ? String.raw`${target} = 1 - \left[${rangeText(terms)}\right]`
+          : `${target} = ${rangeText(terms)}`,
+      },
+      { title: 'Calcular cada término', children: [...detailed, ...rest] },
+      {
+        title: sumTitle(useComplement, single),
+        substitution: sumSubstitution(target, values, sum, useComplement),
+        result: `${target} = ${n(probability)}`,
+      },
+    ],
+  };
+}
+
+/** Filas de la tabla: los valores con probabilidad apreciable, los de la consulta y los dos primeros. */
+function distributionRows(
+  model: DiscreteModel,
+  min: number,
+  upper: number,
+  [a, b]: [number, number],
+): { x: number; px: number; cumulative: number }[] {
+  let cumulative = 0;
+  const rows: { x: number; px: number; cumulative: number }[] = [];
+  for (let x = min; x <= upper && rows.length < MAX_TABLE_ROWS; x++) {
+    const px = model.pmf(x);
+    cumulative += px;
+    const inQuery = x >= a && x <= b;
+    if (px >= 1e-6 || inQuery || x <= min + 1) rows.push({ x, px, cumulative });
+  }
+  return rows;
+}
+
 export function solveDiscrete(
   input: DiscreteQueryInput,
   model: DiscreteModel,
@@ -158,71 +265,9 @@ export function solveDiscrete(
       result: `${target} = 0`,
     });
   } else {
-    const terms = useComplement ? complementTerms : direct;
-    const values = terms.map((x) => model.pmf(x));
-    const sum = values.reduce((s, v) => s + v, 0);
-    probability = useComplement ? 1 - sum : sum;
-
-    const rangeText = (xs: number[]) => {
-      if (xs.length === 1) return `${model.notation(String(xs[0]))}`;
-      const contiguous = xs.every((x, i) => i === 0 || x === xs[i - 1]! + 1);
-      return contiguous
-        ? String.raw`\sum_{x=${xs[0]}}^{${xs.at(-1)}} ${model.notation('x')}`
-        : xs.map((x) => model.notation(String(x))).join(' + ');
-    };
-
-    steps.push({
-      title: 'Plantear la probabilidad',
-      explanation: useComplement
-        ? 'Es más corto calcular el complemento: la probabilidad de los valores que NO cumplen la condición, y restarla de 1.'
-        : terms.length === 1
-          ? undefined
-          : 'Es la suma de la función de probabilidad en cada valor que cumple la condición.',
-      formula: useComplement
-        ? String.raw`${target} = 1 - \left[${rangeText(terms)}\right]`
-        : `${target} = ${rangeText(terms)}`,
-    });
-
-    const detailed = terms.slice(0, SUBSTITUTED_TERMS).map((x) => ({
-      title: `Evaluar en x = ${x}`,
-      formula: `${model.notation(String(x))} = ${model.pmfSubstitution(x)}`,
-      result: `${model.notation(String(x))} = ${n(model.pmf(x))}`,
-    }));
-    const rest =
-      terms.length > SUBSTITUTED_TERMS
-        ? [
-            {
-              title: `Los otros ${terms.length - SUBSTITUTED_TERMS} términos`,
-              explanation: 'Se calculan igual; sus valores están en la tabla de resultados.',
-              result:
-                terms
-                  .slice(SUBSTITUTED_TERMS, SUBSTITUTED_TERMS + 6)
-                  .map(
-                    (x, i) =>
-                      `${model.notation(String(x))} = ${n(values[SUBSTITUTED_TERMS + i]!, 6)}`,
-                  )
-                  .join(String.raw`,\quad `) +
-                (terms.length > SUBSTITUTED_TERMS + 6 ? String.raw`,\ \ldots` : ''),
-            },
-          ]
-        : [];
-    steps.push(
-      { title: 'Calcular cada término', children: [...detailed, ...rest] },
-      {
-        title: useComplement
-          ? 'Sumar los términos y restar de 1'
-          : terms.length === 1
-            ? 'Resultado'
-            : 'Sumar los términos',
-        substitution:
-          terms.length > 1 || useComplement
-            ? useComplement
-              ? `${target} = 1 - ${n(sum)}`
-              : `${target} = ${values.length <= 8 ? values.map((v) => n(v, 6)).join(' + ') : n(sum)}`
-            : undefined,
-        result: `${target} = ${n(probability)}`,
-      },
-    );
+    const summed = sumSteps(model, target, useComplement ? complementTerms : direct, useComplement);
+    probability = summed.probability;
+    steps.push(...summed.steps);
   }
 
   const standardDeviation = Math.sqrt(model.variance);
@@ -233,17 +278,11 @@ export function solveDiscrete(
   });
 
   // Tabla y gráfica: todos los valores con probabilidad apreciable y los de la consulta.
+  const lastQueried = b === Infinity ? a : b;
   const upper = Number.isFinite(model.max)
     ? model.max
-    : Math.max(b === Infinity ? a : b, Math.ceil(model.mean + 10 * standardDeviation + 10));
-  let cumulative = 0;
-  const rows: { x: number; px: number; cumulative: number }[] = [];
-  for (let x = min; x <= upper && rows.length < MAX_TABLE_ROWS; x++) {
-    const px = model.pmf(x);
-    cumulative += px;
-    const inQuery = x >= a && x <= b;
-    if (px >= 1e-6 || inQuery || x <= min + 1) rows.push({ x, px, cumulative });
-  }
+    : Math.max(lastQueried, Math.ceil(model.mean + 10 * standardDeviation + 10));
+  const rows = distributionRows(model, min, upper, [a, b]);
 
   const summary: SummaryItem[] = [
     { label: 'Probabilidad', value: `${target} = ${n(probability, 6)}`, emphasis: true },

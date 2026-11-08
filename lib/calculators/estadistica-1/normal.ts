@@ -43,27 +43,65 @@ export interface NormalValue {
 
 const n = toLatexNumber;
 
+/** Lo que depende de la consulta: los rótulos, la probabilidad, su fórmula y el área sombreada. */
+function normalQuery(
+  input: NormalInput,
+  zs: number[],
+  phis: number[],
+  [from, to]: [number, number],
+) {
+  const { query, x } = input;
+  const z1 = n(zs[0]!, 6);
+  const phi1 = phis[0]!;
+  if (query === 'menor') {
+    const target = `P(X < ${n(x)})`;
+    const targetZ = `P(Z < ${z1})`;
+    return {
+      target,
+      targetZ,
+      probability: phi1,
+      formula: String.raw`${target} = ${targetZ} = \Phi(z_1)`,
+      substitution: undefined,
+      highlight: { from, to: Math.min(x, to) },
+    };
+  }
+  if (query === 'mayor') {
+    const target = `P(X > ${n(x)})`;
+    const targetZ = `P(Z > ${z1})`;
+    return {
+      target,
+      targetZ,
+      probability: 1 - phi1,
+      formula: String.raw`${target} = ${targetZ} = 1 - \Phi(z_1)`,
+      substitution: `${target} = 1 - ${n(phi1, 6)}`,
+      highlight: { from: Math.max(x, from), to },
+    };
+  }
+  const target = `P(${n(x)} < X < ${n(input.x2!)})`;
+  const targetZ = `P(${z1} < Z < ${n(zs[1]!, 6)})`;
+  return {
+    target,
+    targetZ,
+    probability: phis[1]! - phi1,
+    formula: String.raw`${target} = ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
+    substitution: `${target} = ${n(phis[1]!, 6)} - ${n(phi1, 6)}`,
+    highlight: { from: Math.max(x, from), to: Math.min(input.x2!, to) },
+  };
+}
+
 export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, never> {
   const { mean: mu, sd: sigma, query, x } = input;
   const limits = query === 'entre' ? [x, input.x2!] : [x];
   const zs = limits.map((v) => (v - mu) / sigma);
   const phis = zs.map(standardNormalCdf);
-
-  const target =
-    query === 'menor'
-      ? `P(X < ${n(x)})`
-      : query === 'mayor'
-        ? `P(X > ${n(x)})`
-        : `P(${n(x)} < X < ${n(input.x2!)})`;
-  const targetZ =
-    query === 'menor'
-      ? `P(Z < ${n(zs[0]!, 6)})`
-      : query === 'mayor'
-        ? `P(Z > ${n(zs[0]!, 6)})`
-        : `P(${n(zs[0]!, 6)} < Z < ${n(zs[1]!, 6)})`;
-
-  const probability =
-    query === 'menor' ? phis[0]! : query === 'mayor' ? 1 - phis[0]! : phis[1]! - phis[0]!;
+  const from = mu - 4 * sigma;
+  const to = mu + 4 * sigma;
+  const { target, targetZ, probability, formula, substitution, highlight } = normalQuery(
+    input,
+    zs,
+    phis,
+    [from, to],
+  );
 
   const steps: Step[] = [
     {
@@ -88,34 +126,16 @@ export function solveNormal(input: NormalInput): CalculatorResult<NormalValue, n
     },
     {
       title: 'Calcular la probabilidad',
-      formula:
-        query === 'menor'
-          ? String.raw`${target} = ${targetZ} = \Phi(z_1)`
-          : query === 'mayor'
-            ? String.raw`${target} = ${targetZ} = 1 - \Phi(z_1)`
-            : String.raw`${target} = ${targetZ} = \Phi(z_2) - \Phi(z_1)`,
-      substitution:
-        query === 'menor'
-          ? undefined
-          : query === 'mayor'
-            ? `${target} = 1 - ${n(phis[0]!, 6)}`
-            : `${target} = ${n(phis[1]!, 6)} - ${n(phis[0]!, 6)}`,
+      formula,
+      substitution,
       result: `${target} = ${n(probability, 6)}`,
     },
   ];
 
-  const from = mu - 4 * sigma;
-  const to = mu + 4 * sigma;
   const density = Array.from({ length: 161 }, (_, k) => {
     const v = from + ((to - from) * k) / 160;
     return { x: v, y: normalDensity(v, mu, sigma) };
   });
-  const highlight =
-    query === 'menor'
-      ? { from, to: Math.min(x, to) }
-      : query === 'mayor'
-        ? { from: Math.max(x, from), to }
-        : { from: Math.max(x, from), to: Math.min(input.x2!, to) };
 
   return {
     ok: true,

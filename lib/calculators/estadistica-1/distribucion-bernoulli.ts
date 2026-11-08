@@ -40,7 +40,10 @@ function bernoulliModel(p: number): DiscreteModel {
   return {
     name: 'de Bernoulli',
     max: 1,
-    pmf: (x) => (x === 1 ? p : x === 0 ? q : 0),
+    pmf: (x) => {
+      if (x === 1) return p;
+      return x === 0 ? q : 0;
+    },
     notation: (x) => String.raw`f(${x};\ ${n(p)})`,
     pmfFormula: String.raw`p^x q^{1-x}, \quad x = 0, 1`,
     pmfSubstitution: (x) => `(${n(p)})^{${x}} (${n(q)})^{${1 - x}}`,

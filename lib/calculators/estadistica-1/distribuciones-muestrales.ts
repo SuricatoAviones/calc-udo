@@ -20,6 +20,7 @@ export const replacementTypes = ['con', 'sin'] as const;
 const MAX_POPULATION = 20;
 const MAX_SAMPLES = 20_000;
 const MAX_LISTED = 200;
+const FIRST_LISTED = ` (las primeras ${MAX_LISTED})`;
 
 function sampleCount(size: number, n: number, withReplacement: boolean): number {
   if (withReplacement) return size ** n;
@@ -162,7 +163,7 @@ export function solveSampling(
     },
     {
       title: 'Media de cada muestra',
-      explanation: `Se calcula x̄ para cada muestra; la tabla las lista${count > MAX_LISTED ? ` (las primeras ${MAX_LISTED})` : ''} y la gráfica muestra su distribución.`,
+      explanation: `Se calcula x̄ para cada muestra; la tabla las lista${count > MAX_LISTED ? FIRST_LISTED : ''} y la gráfica muestra su distribución.`,
       result:
         samples
           .slice(0, 4)

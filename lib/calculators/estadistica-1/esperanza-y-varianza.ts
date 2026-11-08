@@ -14,6 +14,7 @@ import {
   fractionToLatex,
   parseDecimal,
   parseFraction,
+  TEX,
   toLatexNumber,
   toLatexOperand,
 } from '@/lib/math/format';
@@ -199,10 +200,10 @@ function solveDiscreteCase(input: ExpectationInput): Result {
   const products = (power: 1 | 2) =>
     sorted.length <= 8
       ? sorted
-          .map(
-            (r) =>
-              String.raw`${power === 1 ? toLatexOperand(r.x) : `(${n(r.x)})^2`}\left(${fractionToLatex(r.text)}\right)`,
-          )
+          .map((r) => {
+            const x = power === 1 ? toLatexOperand(r.x) : `(${n(r.x)})^2`;
+            return String.raw`${x}\left(${fractionToLatex(r.text)}\right)`;
+          })
           .join(' + ')
       : undefined;
 
@@ -281,8 +282,31 @@ function solveDiscreteCase(input: ExpectationInput): Result {
   };
 }
 
-const boundLatex = (v: number): string =>
-  v === Infinity ? String.raw`\infty` : v === -Infinity ? String.raw`-\infty` : n(v);
+function boundLatex(v: number): string {
+  if (v === Infinity) return TEX.infty;
+  return v === -Infinity ? TEX.negInfty : n(v);
+}
+
+/** Por qué f no es una densidad en [a, b] (negativa en algún punto o con área distinta de 1). */
+function densityProblem(
+  f: (x: number) => number,
+  a: number,
+  b: number,
+  area: number,
+): string | null {
+  // Muestreo para detectar valores negativos (una densidad no puede serlo en ningún punto).
+  const lo = Number.isFinite(a) ? a : Math.min(-10, b - 10);
+  const hi = Number.isFinite(b) ? b : Math.max(10, a + 10);
+  const samples = Array.from({ length: 401 }, (_, k) => lo + ((hi - lo) * (k + 0.5)) / 401);
+  const negative = samples.find((x) => f(x) < 0);
+  if (negative !== undefined) {
+    return `f(x) es negativa en x = ${formatNumber(negative, 4)}: no es una función de densidad.`;
+  }
+  if (Math.abs(area - 1) > DENSITY_TOLERANCE) {
+    return `El área bajo f(x) es ${formatNumber(area, 8)}, no 1: no es una función de densidad (revisa la constante o el soporte).`;
+  }
+  return null;
+}
 
 function solveContinuousCase(input: ExpectationInput): Result {
   const parsed = parseFunction(input.density ?? '');
@@ -313,20 +337,8 @@ function solveContinuousCase(input: ExpectationInput): Result {
       steps,
     );
   }
-  // Muestreo para detectar valores negativos (una densidad no puede serlo en ningún punto).
-  const lo = Number.isFinite(a) ? a : Math.min(-10, b - 10);
-  const hi = Number.isFinite(b) ? b : Math.max(10, a + 10);
-  const samples = Array.from({ length: 401 }, (_, k) => lo + ((hi - lo) * (k + 0.5)) / 401);
-  const negative = samples.find((x) => f(x) < 0);
-  if (negative !== undefined || Math.abs(area.value - 1) > DENSITY_TOLERANCE) {
-    return fail(
-      'not-a-density',
-      negative !== undefined
-        ? `f(x) es negativa en x = ${formatNumber(negative, 4)}: no es una función de densidad.`
-        : `El área bajo f(x) es ${formatNumber(area.value, 8)}, no 1: no es una función de densidad (revisa la constante o el soporte).`,
-      steps,
-    );
-  }
+  const problem = densityProblem(f, a, b, area.value);
+  if (problem) return fail('not-a-density', problem, steps);
 
   const first = integrate((x) => x * f(x), a, b);
   steps.push({

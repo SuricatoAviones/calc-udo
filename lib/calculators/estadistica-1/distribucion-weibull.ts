@@ -36,6 +36,14 @@ export type WeibullInput = z.infer<typeof weibullInputSchema>;
 
 const n = toLatexNumber;
 
+/** Cómo cambia la tasa de fallas según la forma β. */
+function failureRate(beta: number): string {
+  if (beta < 1) return 'con β < 1 la tasa de fallas disminuye con el tiempo (fallas tempranas).';
+  return beta === 1
+    ? 'con β = 1 la tasa de fallas es constante y la distribución es la exponencial con media 1/α.'
+    : 'con β > 1 la tasa de fallas aumenta con el tiempo (desgaste).';
+}
+
 function weibullModel(alpha: number, beta: number): ContinuousModel {
   const g1 = gammaFunction(1 + 1 / beta);
   const g2 = gammaFunction(1 + 2 / beta);
@@ -53,13 +61,7 @@ function weibullModel(alpha: number, beta: number): ContinuousModel {
     variance: alpha ** (-2 / beta) * (g2 - g1 ** 2),
     meanFormula: String.raw`\alpha^{-1/\beta}\,\Gamma\left(1 + \tfrac{1}{\beta}\right) = (${n(alpha)})^{-1/${n(beta)}}\,\Gamma(${n(1 + 1 / beta)})`,
     varianceFormula: String.raw`\alpha^{-2/\beta}\left\{\Gamma\left(1 + \tfrac{2}{\beta}\right) - \left[\Gamma\left(1 + \tfrac{1}{\beta}\right)\right]^2\right\} = (${n(alpha)})^{-2/${n(beta)}}\left[\Gamma(${n(1 + 2 / beta)}) - \Gamma(${n(1 + 1 / beta)})^2\right]`,
-    explanation: `X es el tiempo hasta la falla de un componente. β = ${formatNumber(beta)} da la forma: ${
-      beta < 1
-        ? 'con β < 1 la tasa de fallas disminuye con el tiempo (fallas tempranas).'
-        : beta === 1
-          ? 'con β = 1 la tasa de fallas es constante y la distribución es la exponencial con media 1/α.'
-          : 'con β > 1 la tasa de fallas aumenta con el tiempo (desgaste).'
-    }`,
+    explanation: `X es el tiempo hasta la falla de un componente. β = ${formatNumber(beta)} da la forma: ${failureRate(beta)}`,
   };
 }
 

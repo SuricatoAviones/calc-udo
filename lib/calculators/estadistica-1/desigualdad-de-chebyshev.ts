@@ -81,6 +81,98 @@ export type ChebyshevErrorCode = 'invalid-input';
 
 const n = toLatexNumber;
 
+/** k desde el intervalo (a, b): el extremo más cercano a μ si no es simétrico. */
+function kFromInterval(
+  input: ChebyshevInput,
+  sigma: number,
+  steps: Step[],
+  notices: Notice[],
+): number {
+  const mu = input.mean;
+  const a = input.lower ?? Number.NaN;
+  const b = input.upper ?? Number.NaN;
+  const below = (mu - a) / sigma;
+  const above = (b - mu) / sigma;
+  const k = Math.max(0, Math.min(below, above));
+  const symmetric = Math.abs(below - above) <= 1e-9 * Math.max(1, Math.abs(below));
+  steps.push({
+    title: 'Número de desviaciones estándar',
+    explanation: symmetric
+      ? 'El intervalo es simétrico alrededor de la media: sus extremos están a k desviaciones estándar de μ.'
+      : 'El intervalo no es simétrico alrededor de la media. Se usa el extremo más cercano a μ: el intervalo contiene a (μ − kσ, μ + kσ), así que la cota sigue valiendo (aunque es más débil).',
+    formula: symmetric
+      ? String.raw`k = \frac{b - \mu}{\sigma} = \frac{\mu - a}{\sigma}`
+      : String.raw`k = \min\left(\frac{\mu - a}{\sigma}, \frac{b - \mu}{\sigma}\right)`,
+    substitution: symmetric
+      ? String.raw`k = \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}`
+      : String.raw`k = \min\left(\frac{${n(mu)} - ${toLatexOperand(a)}}{${n(sigma)}}, \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}\right)`,
+    result: `k = ${n(k)}`,
+  });
+  if (!symmetric) {
+    notices.push({
+      level: 'info',
+      message: `El intervalo no es simétrico alrededor de μ = ${formatNumber(mu)}; la cota se calcula con el lado más cercano.`,
+    });
+  }
+  return k;
+}
+
+/** Número de desviaciones estándar según lo que se dio: k, la distancia c o el intervalo. */
+function kOf(input: ChebyshevInput, sigma: number, steps: Step[], notices: Notice[]): number {
+  const mu = input.mean;
+  if (input.mode === 'k') {
+    const k = input.k ?? Number.NaN;
+    steps.push({
+      title: 'Intervalo de k desviaciones estándar',
+      formula: String.raw`\mu \pm k\sigma`,
+      substitution: String.raw`${n(mu)} \pm (${n(k)})(${n(sigma)})`,
+      result: String.raw`(${n(mu - k * sigma)},\ ${n(mu + k * sigma)})`,
+    });
+    return k;
+  }
+  if (input.mode === 'fuera') {
+    const c = input.distance ?? Number.NaN;
+    const k = c / sigma;
+    steps.push({
+      title: 'Número de desviaciones estándar',
+      explanation: `Alejarse al menos c = ${formatNumber(c)} de la media es alejarse al menos k desviaciones estándar.`,
+      formula: String.raw`k = \frac{c}{\sigma}`,
+      substitution: String.raw`k = \frac{${n(c)}}{${n(sigma)}}`,
+      result: `k = ${n(k)}`,
+    });
+    return k;
+  }
+  return kFromInterval(input, sigma, steps, notices);
+}
+
+function targetTex(input: ChebyshevInput, interval: [number, number]): string {
+  if (input.mode === 'intervalo') return `P(${n(input.lower!)} < X < ${n(input.upper!)})`;
+  if (input.mode === 'fuera') {
+    return String.raw`P(|X - ${toLatexOperand(input.mean)}| \ge ${n(input.distance!)})`;
+  }
+  return `P(${n(interval[0])} < X < ${n(interval[1])})`;
+}
+
+function theoremStep(inside: boolean, target: string, k: number, boundTex: string): Step {
+  if (inside) {
+    return {
+      title: 'Teorema de Chebyshev',
+      explanation:
+        'Para cualquier distribución, al menos 1 − 1/k² de la probabilidad está a menos de k desviaciones estándar de la media.',
+      formula: String.raw`P(\mu - k\sigma < X < \mu + k\sigma) \ge 1 - \frac{1}{k^2}`,
+      substitution: String.raw`${target} \ge 1 - \frac{1}{(${n(k)})^2}`,
+      result: `${target} ${TEX.ge} ${boundTex}`,
+    };
+  }
+  return {
+    title: 'Teorema de Chebyshev',
+    explanation: 'Por complemento: P(|X − μ| ≥ kσ) = 1 − P(|X − μ| < kσ) ≤ 1 − (1 − 1/k²) = 1/k².',
+    formula: String.raw`P(|X - \mu| \ge k\sigma) \le \frac{1}{k^2}`,
+    substitution: String.raw`${target} \le \frac{1}{(${n(k)})^2}`,
+    result: `${target} ${TEX.le} ${boundTex}`,
+  };
+}
+
 export function solveChebyshev(
   input: ChebyshevInput,
 ): CalculatorResult<ChebyshevValue, ChebyshevErrorCode> {
@@ -99,77 +191,13 @@ export function solveChebyshev(
     });
   }
 
-  let k: number;
-  if (mode === 'k') {
-    k = input.k ?? Number.NaN;
-    steps.push({
-      title: 'Intervalo de k desviaciones estándar',
-      formula: String.raw`\mu \pm k\sigma`,
-      substitution: String.raw`${n(mu)} \pm (${n(k)})(${n(sigma)})`,
-      result: String.raw`(${n(mu - k * sigma)},\ ${n(mu + k * sigma)})`,
-    });
-  } else if (mode === 'fuera') {
-    const c = input.distance ?? Number.NaN;
-    k = c / sigma;
-    steps.push({
-      title: 'Número de desviaciones estándar',
-      explanation: `Alejarse al menos c = ${formatNumber(c)} de la media es alejarse al menos k desviaciones estándar.`,
-      formula: String.raw`k = \frac{c}{\sigma}`,
-      substitution: String.raw`k = \frac{${n(c)}}{${n(sigma)}}`,
-      result: `k = ${n(k)}`,
-    });
-  } else {
-    const a = input.lower ?? Number.NaN;
-    const b = input.upper ?? Number.NaN;
-    const below = (mu - a) / sigma;
-    const above = (b - mu) / sigma;
-    k = Math.max(0, Math.min(below, above));
-    const symmetric = Math.abs(below - above) <= 1e-9 * Math.max(1, Math.abs(below));
-    steps.push({
-      title: 'Número de desviaciones estándar',
-      explanation: symmetric
-        ? 'El intervalo es simétrico alrededor de la media: sus extremos están a k desviaciones estándar de μ.'
-        : 'El intervalo no es simétrico alrededor de la media. Se usa el extremo más cercano a μ: el intervalo contiene a (μ − kσ, μ + kσ), así que la cota sigue valiendo (aunque es más débil).',
-      formula: symmetric
-        ? String.raw`k = \frac{b - \mu}{\sigma} = \frac{\mu - a}{\sigma}`
-        : String.raw`k = \min\left(\frac{\mu - a}{\sigma}, \frac{b - \mu}{\sigma}\right)`,
-      substitution: symmetric
-        ? String.raw`k = \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}`
-        : String.raw`k = \min\left(\frac{${n(mu)} - ${toLatexOperand(a)}}{${n(sigma)}}, \frac{${n(b)} - ${toLatexOperand(mu)}}{${n(sigma)}}\right)`,
-      result: `k = ${n(k)}`,
-    });
-    if (!symmetric) {
-      notices.push({
-        level: 'info',
-        message: `El intervalo no es simétrico alrededor de μ = ${formatNumber(mu)}; la cota se calcula con el lado más cercano.`,
-      });
-    }
-  }
-
+  const k = kOf(input, sigma, steps, notices);
   const inside = mode !== 'fuera';
   const bound = inside ? Math.max(0, 1 - 1 / k ** 2) : Math.min(1, 1 / k ** 2);
   const interval: [number, number] = [mu - k * sigma, mu + k * sigma];
-  const target =
-    mode === 'intervalo'
-      ? `P(${n(input.lower!)} < X < ${n(input.upper!)})`
-      : mode === 'fuera'
-        ? String.raw`P(|X - ${toLatexOperand(mu)}| \ge ${n(input.distance!)})`
-        : `P(${n(interval[0])} < X < ${n(interval[1])})`;
+  const target = targetTex(input, interval);
   const boundTex = toLatexRational(bound);
-
-  steps.push({
-    title: 'Teorema de Chebyshev',
-    explanation: inside
-      ? 'Para cualquier distribución, al menos 1 − 1/k² de la probabilidad está a menos de k desviaciones estándar de la media.'
-      : 'Por complemento: P(|X − μ| ≥ kσ) = 1 − P(|X − μ| < kσ) ≤ 1 − (1 − 1/k²) = 1/k².',
-    formula: inside
-      ? String.raw`P(\mu - k\sigma < X < \mu + k\sigma) \ge 1 - \frac{1}{k^2}`
-      : String.raw`P(|X - \mu| \ge k\sigma) \le \frac{1}{k^2}`,
-    substitution: inside
-      ? String.raw`${target} \ge 1 - \frac{1}{(${n(k)})^2}`
-      : String.raw`${target} \le \frac{1}{(${n(k)})^2}`,
-    result: `${target} ${inside ? TEX.ge : TEX.le} ${boundTex}`,
-  });
+  steps.push(theoremStep(inside, target, k, boundTex));
 
   if (k <= 1) {
     notices.push({

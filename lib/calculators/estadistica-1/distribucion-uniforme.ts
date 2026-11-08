@@ -40,7 +40,10 @@ function uniformModel(a: number, b: number): ContinuousModel {
     name: 'uniforme',
     support: [a, b],
     pdf: (x) => (x < a || x > b ? 0 : 1 / width),
-    cdf: (x) => (x <= a ? 0 : x >= b ? 1 : (x - a) / width),
+    cdf: (x) => {
+      if (x <= a) return 0;
+      return x >= b ? 1 : (x - a) / width;
+    },
     pdfFormula: String.raw`\frac{1}{B - A} = \frac{1}{${n(b)} - ${toLatexOperand(a)}}, \quad ${n(a)} \le x \le ${n(b)}`,
     cdfFormula: String.raw`\frac{x - A}{B - A}`,
     cdfExplanation:

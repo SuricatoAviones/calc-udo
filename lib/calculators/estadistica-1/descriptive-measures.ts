@@ -96,6 +96,10 @@ export function solveDescriptive(
           .filter(([, f]) => f === topFrequency)
           .map(([v]) => v)
           .sort((a, b) => a - b);
+  const repeated =
+    modes.length === 1
+      ? 'El valor que más se repite aparece'
+      : 'Los valores que más se repiten aparecen';
 
   const min = sorted[0]!;
   const max = sorted.at(-1)!;
@@ -142,7 +146,7 @@ export function solveDescriptive(
       explanation:
         modes.length === 0
           ? 'Ningún valor se repite, así que la muestra no tiene moda.'
-          : `${modes.length === 1 ? 'El valor que más se repite aparece' : 'Los valores que más se repiten aparecen'} ${topFrequency} veces.`,
+          : `${repeated} ${topFrequency} veces.`,
       result:
         modes.length === 0
           ? undefined

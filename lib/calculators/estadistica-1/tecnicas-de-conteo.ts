@@ -137,6 +137,157 @@ const LABEL: Record<CountingType, string> = {
   particiones: 'Particiones',
 };
 
+/** Lo que deja cada técnica: el total exacto, su símbolo y los pasos. */
+interface Count {
+  count: bigint;
+  symbol: string;
+  steps: Step[];
+}
+
+function permutations(n: number, r: number): Count {
+  const count = fallingFactorial(n, r);
+  const symbol = `{}_{${n}}P_{${r}}`;
+  const expanded = expandedProduct(n, r);
+  const product = expanded ? ` = ${expanded}` : '';
+  return {
+    count,
+    symbol,
+    steps: [
+      {
+        title: 'Identificar el conteo',
+        explanation:
+          'El orden importa y no se repiten objetos: se eligen r de n objetos distintos y se acomodan en r posiciones distinguibles (p. ej. presidente y tesorero). Con r = n es n!.',
+        formula: String.raw`{}_{n}P_{r} = \frac{n!}{(n-r)!} = n(n-1)\cdots(n-r+1)`,
+      },
+      {
+        title: 'Sustituir',
+        substitution: String.raw`${symbol} = \frac{${n}!}{(${n} - ${r})!} = \frac{${n}!}{${n - r}!}${product}`,
+        result: `${symbol} = ${bigLatex(count)}`,
+      },
+    ],
+  };
+}
+
+function combinations(n: number, r: number): Count {
+  const k = Math.min(r, n - r);
+  const count = fallingFactorial(n, k) / factorial(k);
+  const symbol = String.raw`\binom{${n}}{${r}}`;
+  const expanded = expandedProduct(n, k);
+  const product = expanded ? String.raw` = \frac{${expanded}}{${k}!}` : '';
+  return {
+    count,
+    symbol,
+    steps: [
+      {
+        title: 'Identificar el conteo',
+        explanation:
+          'El orden no importa: solo cuenta qué r objetos se eligen de los n. Cada selección aparece r! veces entre las permutaciones, por eso se divide entre r!.',
+        formula: String.raw`\binom{n}{r} = \frac{n!}{r!\,(n-r)!}`,
+      },
+      {
+        title: 'Sustituir',
+        explanation:
+          k !== r && expanded
+            ? `Como C(n, r) = C(n, n − r), se simplifica con el menor de r y n − r (${k}).`
+            : undefined,
+        substitution: String.raw`${symbol} = \frac{${n}!}{${r}!\,(${n} - ${r})!}${product}`,
+        result: `${symbol} = ${bigLatex(count)}`,
+      },
+    ],
+  };
+}
+
+function withRepetition(n: number, r: number): Count {
+  const count = BigInt(n) ** BigInt(r);
+  const symbol = `${n}^{${r}}`;
+  return {
+    count,
+    symbol,
+    steps: [
+      {
+        title: 'Identificar el conteo',
+        explanation:
+          'Cada una de las r posiciones puede ocuparse con cualquiera de los n objetos, aunque se repitan. Por la regla de multiplicación son n · n ⋯ n, r veces.',
+        formula: 'n^r',
+      },
+      { title: 'Sustituir', substitution: symbol, result: `${symbol} = ${bigLatex(count)}` },
+    ],
+  };
+}
+
+function circular(n: number): Count {
+  const count = factorial(n - 1);
+  return {
+    count,
+    symbol: `(${n} - 1)!`,
+    steps: [
+      {
+        title: 'Identificar el conteo',
+        explanation:
+          'En un círculo, girar a todos una posición no produce un arreglo nuevo. Se fija un objeto como referencia y se ordenan los otros n − 1.',
+        formula: '(n-1)!',
+      },
+      {
+        title: 'Sustituir',
+        substitution: `(${n} - 1)! = ${n - 1}!`,
+        result: `${n - 1}! = ${bigLatex(count)}`,
+      },
+    ],
+  };
+}
+
+/** Permutaciones con objetos repetidos y particiones: n! entre el factorial de cada grupo. */
+function byGroups(partitions: boolean, n: number, groups: number[]): Count {
+  const count = groups.reduce((acc, g) => acc / factorial(g), factorial(n));
+  const symbol = String.raw`\binom{${n}}{${groups.join(', ')}}`;
+  const denominators = groups.map((g) => `${g}!`).join(String.raw`\,`);
+  const values = n <= 20 ? groups.map((g) => factorial(g).toString()) : [];
+  const valueProduct = values.map((v) => `(${v})`).join('');
+  const expanded = values.length > 0 ? String.raw` = \frac{${factorial(n)}}{${valueProduct}}` : '';
+  return {
+    count,
+    symbol,
+    steps: [
+      {
+        title: 'Identificar el conteo',
+        explanation: partitions
+          ? 'Se reparten n objetos en celdas con n₁, n₂, … elementos; el orden dentro de cada celda no importa, así que se divide n! entre las permutaciones de cada celda.'
+          : 'Permutaciones de n objetos donde n₁ son de una clase, n₂ de otra, etc. Los objetos de una misma clase no se distinguen, así que se divide n! entre las permutaciones de cada clase.',
+        formula: partitions
+          ? String.raw`\binom{n}{n_1, n_2, \ldots, n_r} = \frac{n!}{n_1!\,n_2!\cdots n_r!}`
+          : String.raw`\frac{n!}{n_1!\,n_2!\cdots n_k!}`,
+      },
+      {
+        title: 'Total de objetos',
+        formula: String.raw`n = n_1 + n_2 + \cdots`,
+        substitution: `n = ${groups.join(' + ')}`,
+        result: `n = ${n}`,
+      },
+      {
+        title: 'Sustituir',
+        substitution: String.raw`\frac{${n}!}{${denominators}}` + expanded,
+        result: `${symbol} = ${bigLatex(count)}`,
+      },
+    ],
+  };
+}
+
+function countOf(type: CountingType, n: number, r: number, groups: number[]): Count {
+  switch (type) {
+    case 'permutaciones':
+      return permutations(n, r);
+    case 'combinaciones':
+      return combinations(n, r);
+    case 'con-repeticion':
+      return withRepetition(n, r);
+    case 'circulares':
+      return circular(n);
+    case 'objetos-repetidos':
+    case 'particiones':
+      return byGroups(type === 'particiones', n, groups);
+  }
+}
+
 export function solveCounting(
   input: CountingInput,
 ): CalculatorResult<CountingValue, CountingErrorCode> {
@@ -162,123 +313,7 @@ export function solveCounting(
     };
   }
 
-  const steps: Step[] = [];
-  let count: bigint;
-  let symbol: string;
-
-  switch (type) {
-    case 'permutaciones': {
-      count = fallingFactorial(n, r);
-      symbol = `{}_{${n}}P_{${r}}`;
-      const expanded = expandedProduct(n, r);
-      steps.push(
-        {
-          title: 'Identificar el conteo',
-          explanation:
-            'El orden importa y no se repiten objetos: se eligen r de n objetos distintos y se acomodan en r posiciones distinguibles (p. ej. presidente y tesorero). Con r = n es n!.',
-          formula: String.raw`{}_{n}P_{r} = \frac{n!}{(n-r)!} = n(n-1)\cdots(n-r+1)`,
-        },
-        {
-          title: 'Sustituir',
-          substitution: String.raw`${symbol} = \frac{${n}!}{(${n} - ${r})!} = \frac{${n}!}{${n - r}!}${expanded ? ` = ${expanded}` : ''}`,
-          result: `${symbol} = ${bigLatex(count)}`,
-        },
-      );
-      break;
-    }
-    case 'combinaciones': {
-      const k = Math.min(r, n - r);
-      count = fallingFactorial(n, k) / factorial(k);
-      symbol = String.raw`\binom{${n}}{${r}}`;
-      const expanded = expandedProduct(n, k);
-      steps.push(
-        {
-          title: 'Identificar el conteo',
-          explanation:
-            'El orden no importa: solo cuenta qué r objetos se eligen de los n. Cada selección aparece r! veces entre las permutaciones, por eso se divide entre r!.',
-          formula: String.raw`\binom{n}{r} = \frac{n!}{r!\,(n-r)!}`,
-        },
-        {
-          title: 'Sustituir',
-          explanation:
-            k !== r && expanded
-              ? `Como C(n, r) = C(n, n − r), se simplifica con el menor de r y n − r (${k}).`
-              : undefined,
-          substitution: String.raw`${symbol} = \frac{${n}!}{${r}!\,(${n} - ${r})!}${expanded ? String.raw` = \frac{${expanded}}{${k}!}` : ''}`,
-          result: `${symbol} = ${bigLatex(count)}`,
-        },
-      );
-      break;
-    }
-    case 'con-repeticion': {
-      count = BigInt(n) ** BigInt(r);
-      symbol = `${n}^{${r}}`;
-      steps.push(
-        {
-          title: 'Identificar el conteo',
-          explanation:
-            'Cada una de las r posiciones puede ocuparse con cualquiera de los n objetos, aunque se repitan. Por la regla de multiplicación son n · n ⋯ n, r veces.',
-          formula: 'n^r',
-        },
-        { title: 'Sustituir', substitution: symbol, result: `${symbol} = ${bigLatex(count)}` },
-      );
-      break;
-    }
-    case 'circulares': {
-      count = factorial(n - 1);
-      symbol = `(${n} - 1)!`;
-      steps.push(
-        {
-          title: 'Identificar el conteo',
-          explanation:
-            'En un círculo, girar a todos una posición no produce un arreglo nuevo. Se fija un objeto como referencia y se ordenan los otros n − 1.',
-          formula: '(n-1)!',
-        },
-        {
-          title: 'Sustituir',
-          substitution: `(${n} - 1)! = ${n - 1}!`,
-          result: `${n - 1}! = ${bigLatex(count)}`,
-        },
-      );
-      break;
-    }
-    case 'objetos-repetidos':
-    case 'particiones': {
-      count = groups.reduce((acc, g) => acc / factorial(g), factorial(n));
-      symbol = String.raw`\binom{${n}}{${groups.join(', ')}}`;
-      const denominators = groups.map((g) => `${g}!`).join(String.raw`\,`);
-      const values = n <= 20 ? groups.map((g) => factorial(g).toString()) : [];
-      steps.push(
-        {
-          title: 'Identificar el conteo',
-          explanation:
-            type === 'particiones'
-              ? 'Se reparten n objetos en celdas con n₁, n₂, … elementos; el orden dentro de cada celda no importa, así que se divide n! entre las permutaciones de cada celda.'
-              : 'Permutaciones de n objetos donde n₁ son de una clase, n₂ de otra, etc. Los objetos de una misma clase no se distinguen, así que se divide n! entre las permutaciones de cada clase.',
-          formula:
-            type === 'particiones'
-              ? String.raw`\binom{n}{n_1, n_2, \ldots, n_r} = \frac{n!}{n_1!\,n_2!\cdots n_r!}`
-              : String.raw`\frac{n!}{n_1!\,n_2!\cdots n_k!}`,
-        },
-        {
-          title: 'Total de objetos',
-          formula: String.raw`n = n_1 + n_2 + \cdots`,
-          substitution: `n = ${groups.join(' + ')}`,
-          result: `n = ${n}`,
-        },
-        {
-          title: 'Sustituir',
-          substitution:
-            String.raw`\frac{${n}!}{${denominators}}` +
-            (values.length > 0
-              ? String.raw` = \frac{${factorial(n)}}{${values.map((v) => `(${v})`).join('')}}`
-              : ''),
-          result: `${symbol} = ${bigLatex(count)}`,
-        },
-      );
-      break;
-    }
-  }
+  const { count, symbol, steps } = countOf(type, n, r, groups);
 
   return {
     ok: true,
