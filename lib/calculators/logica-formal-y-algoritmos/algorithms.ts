@@ -48,6 +48,8 @@ export function listLatex(
  * Pseudocódigo en LaTeX: cada renglón con su sangría (número de niveles) y las palabras
  * reservadas escritas como `**si**`, que se pasan a negrita.
  */
+const QUAD = String.raw`\quad `;
+
 export function pseudocode(lines: [number, string][]): string {
   return latexLines(
     lines.map(([indent, text]) => {
@@ -56,7 +58,7 @@ export function pseudocode(lines: [number, string][]): string {
         .filter((part) => part !== '')
         .map((part) => (part.startsWith('**') ? String.raw`\textbf{${part.slice(2, -2)}}` : part))
         .join(String.raw`\ `);
-      return `${String.raw`\quad `.repeat(indent)}${body}`;
+      return QUAD.repeat(indent) + body;
     }),
   );
 }

@@ -65,6 +65,50 @@ export function bitsLatex(bits: string): string {
   return String.raw`\mathtt{${groups.join(TEX.thinSpace)}}`;
 }
 
+/** Signo y magnitud y complemento a 1 de x con n bits (cuando |x| cabe en n − 1 bits). */
+function signAndOnes(
+  magnitude: number,
+  n: number,
+  negative: boolean,
+): { signMagnitude: string; onesComplement: string; steps: Step[] } {
+  const body = toBits(magnitude, n - 1);
+  const signBit = negative ? '1' : '0';
+  const signMagnitude = `${signBit}${body}`;
+  const plain = toBits(magnitude, n);
+  const onesComplement = negative ? invert(plain) : plain;
+  return {
+    signMagnitude,
+    onesComplement,
+    steps: [
+      {
+        title: 'Signo y magnitud',
+        explanation: `El primer bit es el signo (${negative ? '1 porque x es negativo' : '0 porque x no es negativo'}) y los ${n - 1} restantes son la magnitud, completada con ceros a la izquierda.`,
+        result: String.raw`${signBit} \mid ${bitsLatex(body)} \;\Rightarrow\; ${bitsLatex(signMagnitude)}`,
+      },
+      {
+        title: 'Complemento a 1',
+        explanation: negative
+          ? `Se escribe |x| con ${n} bits y se invierten todos (cada 0 pasa a 1 y cada 1 a 0).`
+          : 'Los positivos se escriben igual que en binario, con ceros a la izquierda.',
+        result: negative
+          ? String.raw`\overline{${bitsLatex(plain)}} = ${bitsLatex(onesComplement)}`
+          : bitsLatex(onesComplement),
+      },
+    ],
+  };
+}
+
+/** C₂ de un negativo: complemento a 1 más 1 o, si no hay C₁, 2ⁿ − |x|. */
+function negativeTwosTex(
+  onesComplement: string | null,
+  twosComplement: string,
+  n: number,
+  magnitude: number,
+): string {
+  if (onesComplement) return `${bitsLatex(onesComplement)} + 1 = ${bitsLatex(twosComplement)}`;
+  return `2^{${n}} - ${magnitude} = ${2 ** n - magnitude} = ${bitsLatex(twosComplement)}`;
+}
+
 export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, BinaryErrorCode> {
   const { value: x, bits: n } = input;
   const half = 2 ** (n - 1);
@@ -110,25 +154,10 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
   let signMagnitude: string | null = null;
   let onesComplement: string | null = null;
   if (fitsSm) {
-    const body = toBits(magnitude, n - 1);
-    signMagnitude = `${negative ? '1' : '0'}${body}`;
-    onesComplement = negative ? invert(toBits(magnitude, n)) : toBits(magnitude, n);
-    steps.push(
-      {
-        title: 'Signo y magnitud',
-        explanation: `El primer bit es el signo (${negative ? '1 porque x es negativo' : '0 porque x no es negativo'}) y los ${n - 1} restantes son la magnitud, completada con ceros a la izquierda.`,
-        result: String.raw`${negative ? '1' : '0'} \mid ${bitsLatex(body)} \;\Rightarrow\; ${bitsLatex(signMagnitude)}`,
-      },
-      {
-        title: 'Complemento a 1',
-        explanation: negative
-          ? `Se escribe |x| con ${n} bits y se invierten todos (cada 0 pasa a 1 y cada 1 a 0).`
-          : 'Los positivos se escriben igual que en binario, con ceros a la izquierda.',
-        result: negative
-          ? String.raw`\overline{${bitsLatex(toBits(magnitude, n))}} = ${bitsLatex(onesComplement)}`
-          : bitsLatex(onesComplement),
-      },
-    );
+    const sm = signAndOnes(magnitude, n, negative);
+    signMagnitude = sm.signMagnitude;
+    onesComplement = sm.onesComplement;
+    steps.push(...sm.steps);
   } else {
     notices.push({
       level: 'info',
@@ -145,9 +174,7 @@ export function solveBinary(input: BinaryInput): CalculatorResult<BinaryValue, B
       : 'Los positivos se escriben igual que en binario, con ceros a la izquierda.',
     formula: negative ? `C_2(x) = 2^{${n}} - |x|` : undefined,
     result: negative
-      ? onesComplement
-        ? `${bitsLatex(onesComplement)} + 1 = ${bitsLatex(twosComplement)}`
-        : `2^{${n}} - ${magnitude} = ${twosValue} = ${bitsLatex(twosComplement)}`
+      ? negativeTwosTex(onesComplement, twosComplement, n, magnitude)
       : bitsLatex(twosComplement),
   });
 

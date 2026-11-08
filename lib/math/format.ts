@@ -147,6 +147,11 @@ export function toLatexVector(vector: number[], significantDigits = 6): string {
   return String.raw`\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(TEX.listSep)}\right)`;
 }
 
+/** La forma singular si `count` es 1 y la plural si no: `plural(2, 'fila', 'filas')`. */
+export function plural(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
+}
+
 /** `x^{k}` en LaTeX: vacío para k = 0 y la variable sola para k = 1 (`s`, `s^{2}`). */
 export function powerTex(variable: string, k: number): string {
   if (k === 0) return '';

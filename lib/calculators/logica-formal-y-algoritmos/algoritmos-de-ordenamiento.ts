@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { formatNumber } from '@/lib/math/format';
+import { formatNumber, plural } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import { listField, listLatex, pseudocode } from './algorithms';
 
@@ -121,7 +121,7 @@ function insertion(a: number[], outOfOrder: (x: number, y: number) => boolean): 
       explanation:
         shifted.length === 0
           ? `Se inserta ${f(key)}: ya está en su lugar respecto de a1 … a${i}, no se desplaza nada.`
-          : `Se inserta ${f(key)}: se ${shifted.length === 1 ? 'desplaza' : 'desplazan'} ${shifted.map((v) => f(v)).join(', ')} una posición a la derecha y ${f(key)} queda en la posición ${j + 2}.`,
+          : `Se inserta ${f(key)}: se ${plural(shifted.length, 'desplaza', 'desplazan')}${shifted.map((v) => f(v)).join(', ')} una posición a la derecha y ${f(key)} queda en la posición ${j + 2}.`,
       bold: (k) => k <= i,
     });
   }
@@ -194,12 +194,11 @@ export function solveSort(input: SortInput): CalculatorResult<SortValue, SortErr
   const outOfOrder = (x: number, y: number) => (ascending ? x > y : x < y);
   const before = (x: number, y: number) => (ascending ? x < y : x > y);
   const a = [...values];
-  const passes =
-    input.method === 'burbuja'
-      ? bubble(a, outOfOrder)
-      : input.method === 'seleccion'
-        ? selection(a, before, ascending ? 'menor' : 'mayor')
-        : insertion(a, outOfOrder);
+  const extreme = ascending ? 'menor' : 'mayor';
+  let passes;
+  if (input.method === 'burbuja') passes = bubble(a, outOfOrder);
+  else if (input.method === 'seleccion') passes = selection(a, before, extreme);
+  else passes = insertion(a, outOfOrder);
   const comparisons = passes.reduce((s, p) => s + p.comparisons, 0);
   const moves = passes.reduce((s, p) => s + p.moves, 0);
   const moveName = input.method === 'insercion' ? 'desplazamientos' : 'intercambios';

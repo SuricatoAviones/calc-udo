@@ -40,7 +40,8 @@ export function parseNumeral(text: string, base: number): Numeral | string {
     for (const ch of s) {
       const d = DIGITS.indexOf(ch);
       if (d < 0 || d >= base) {
-        return `«${ch}» no es un dígito de la base ${base}${base <= 10 ? ` (usa 0 a ${base - 1})` : ` (usa 0 a 9 y A a ${digitChar(base - 1)})`}`;
+        const allowed = base <= 10 ? `0 a ${base - 1}` : `0 a 9 y A a ${digitChar(base - 1)}`;
+        return `«${ch}» no es un dígito de la base ${base} (usa ${allowed})`;
       }
       out.push(d);
     }
@@ -136,7 +137,8 @@ export function successiveMultiplications(
 export function numeralText(negative: boolean, intDigits: number[], fracDigits: number[]): string {
   const int = intDigits.map(digitChar).join('');
   const frac = fracDigits.map(digitChar).join('');
-  return `${negative ? '-' : ''}${int}${frac ? `.${frac}` : ''}`;
+  const fraction = frac ? '.' + frac : '';
+  return `${negative ? '-' : ''}${int}${fraction}`;
 }
 
 /** LaTeX del número con su base como subíndice; el período, con una raya encima. */
@@ -157,7 +159,9 @@ export function numeralLatex(
       .join('');
     const period =
       periodStart === null ? '' : fracDigits.slice(periodStart).map(digitChar).join('');
-    frac = `.${fixed}${period ? String.raw`\overline{${period}}` : ''}${truncated ? String.raw`\ldots` : ''}`;
+    const periodTex = period ? String.raw`\overline{${period}}` : '';
+    const dots = truncated ? String.raw`\ldots` : '';
+    frac = `.${fixed}${periodTex}${dots}`;
   }
   return `${negative ? '-' : ''}${int}${frac}_{${base}}`;
 }

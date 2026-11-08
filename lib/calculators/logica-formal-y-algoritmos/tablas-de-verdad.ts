@@ -61,12 +61,9 @@ const CONNECTIVE_NAMES = {
 
 /** Paso común: cómo se leyó la proposición y cuál es su conector principal. */
 export function readingStep(title: string, f: Formula): Step {
-  const main =
-    f.type === 'bin'
-      ? ` Su conector principal es ${CONNECTIVE_NAMES[f.op]}.`
-      : f.type === 'not'
-        ? ' Su conector principal es la negación.'
-        : '';
+  let main = '';
+  if (f.type === 'bin') main = ` Su conector principal es ${CONNECTIVE_NAMES[f.op]}.`;
+  else if (f.type === 'not') main = ' Su conector principal es la negación.';
   return {
     title,
     explanation: `Se aplica la jerarquía de los conectores (¬, luego ∧, luego ∨ y ⊕, luego →, y al final ↔) y se agregan los paréntesis que indica.${main}`,

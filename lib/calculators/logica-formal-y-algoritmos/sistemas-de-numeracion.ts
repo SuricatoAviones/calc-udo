@@ -79,8 +79,6 @@ export interface NumeralValue {
 
 export type NumeralErrorCode = 'invalid-number';
 
-const bigLatex = (n: bigint) => String(n);
-
 /** Desarrollo posicional: 1·2⁴ + 1·2³ + … */
 function positionalLatex(intDigits: number[], fracDigits: number[], base: number): string {
   const terms = [
@@ -124,14 +122,17 @@ function groupingStep(
     return {
       title: `Atajo: cada dígito a ${size} bits`,
       explanation: `Como ${from} = ${POWER[size]}, cada dígito en base ${from} equivale exactamente a ${size} bits. Se reemplaza cada uno y se quitan los ceros de más a la izquierda (y a la derecha de la parte fraccionaria).`,
-      result: `${part(intDigits)}${fracDigits.length > 0 ? String.raw`\,.\,${part(fracDigits)}` : ''}`,
+      result: part(intDigits) + fractionPart(fracDigits.length > 0, () => part(fracDigits)),
     };
   }
   const intBits = intDigits.join('');
   const fracBits = fracDigits.join('');
   const padInt = intBits.padStart(Math.ceil(intBits.length / size) * size, '0');
   const padFrac = fracBits.padEnd(Math.ceil(fracBits.length / size) * size, '0');
-  const chunks = (s: string) => s.match(new RegExp(`.{${size}}`, 'g')) ?? [];
+  const chunks = (s: string) =>
+    Array.from({ length: Math.floor(s.length / size) }, (_, i) =>
+      s.slice(i * size, (i + 1) * size),
+    );
   const part = (s: string) =>
     chunks(s)
       .map((g) => String.raw`\underbrace{${g}}_{${digitChar(Number.parseInt(g, 2))}}`)
@@ -139,8 +140,105 @@ function groupingStep(
   return {
     title: `Atajo: grupos de ${size} bits`,
     explanation: `Como ${to} = ${POWER[size]}, se agrupan los bits de a ${size} desde el punto (hacia la izquierda en la parte entera y hacia la derecha en la fraccionaria, completando con ceros) y cada grupo se convierte en un dígito.`,
-    result: `${part(padInt)}${padFrac ? String.raw`\,.\,${part(padFrac)}` : ''}`,
+    result: part(padInt) + fractionPart(padFrac !== '', () => part(padFrac)),
   };
+}
+
+/** ` . ` y la parte fraccionaria, si la hay. */
+function fractionPart(present: boolean, tex: () => string): string {
+  return present ? String.raw`\,.\,${tex()}` : '';
+}
+
+/** Parte entera por divisiones sucesivas entre la base de destino. */
+function integerPartSteps(
+  int: bigint,
+  to: number,
+  resultInt: number[],
+): { step: Step; tables: ResultTable[] } {
+  const divisions = successiveDivisions(int, to);
+  const step: Step = {
+    title: 'Parte entera: divisiones sucesivas',
+    explanation:
+      int === 0n
+        ? 'La parte entera es 0.'
+        : `Se divide ${int} entre ${to}, luego el cociente entre ${to}, y así hasta que el cociente sea 0. Los residuos, leídos del último al primero, son los dígitos en base ${to}.`,
+    result:
+      int === 0n ? `0_{10} = 0_{${to}}` : `${int}_{10} = ${numeralLatex(false, resultInt, [], to)}`,
+  };
+  if (divisions.length === 0) return { step, tables: [] };
+  return {
+    step,
+    tables: [
+      {
+        id: 'divisiones',
+        title: `Divisiones sucesivas entre ${to}`,
+        columns: [
+          { key: 'dividend', header: String.raw`\text{Dividendo}`, format: 'text' },
+          { key: 'quotient', header: String.raw`\text{Cociente}`, format: 'text' },
+          { key: 'remainder', header: String.raw`\text{Residuo}`, format: 'text' },
+          { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
+        ],
+        rows: divisions.map((r) => ({
+          dividend: String(r.dividend),
+          quotient: String(r.quotient),
+          remainder: String(r.remainder),
+          digit: digitChar(r.remainder),
+        })),
+      },
+    ],
+  };
+}
+
+/** Cómo termina el desarrollo: exacto, periódico o truncado. */
+function expansionEnd(expansion: ReturnType<typeof successiveMultiplications>): string {
+  if (expansion.periodStart !== null) {
+    return 'Una parte fraccionaria se repitió, así que los dígitos se repiten desde ahí: el resultado es periódico (la raya indica el período).';
+  }
+  if (expansion.truncated) {
+    return `Tras ${MAX_FRACTION_DIGITS} dígitos la parte fraccionaria no se anuló ni se repitió: el resultado se trunca.`;
+  }
+  return 'Se termina cuando la parte fraccionaria es 0.';
+}
+
+/** Parte fraccionaria por multiplicaciones sucesivas por la base de destino. */
+function fractionPartSteps(
+  frac: Rational,
+  to: number,
+  expansion: ReturnType<typeof successiveMultiplications>,
+): { step: Step; table: ResultTable; notice?: Notice } {
+  const truncated = expansion.periodStart === null && expansion.truncated;
+  return {
+    step: {
+      title: 'Parte fraccionaria: multiplicaciones sucesivas',
+      explanation: `Se multiplica la parte fraccionaria por ${to}: la parte entera del producto es el siguiente dígito y la parte fraccionaria se vuelve a multiplicar. ${expansionEnd(expansion)}`,
+      result: `${frac.toLatex()}_{10} = ${numeralLatex(false, [0], expansion.digits, to, expansion)}`,
+    },
+    table: {
+      id: 'multiplicaciones',
+      title: `Multiplicaciones sucesivas por ${to}`,
+      columns: [
+        { key: 'fraction', header: String.raw`\text{Fracción}`, format: 'latex' },
+        { key: 'product', header: String.raw`\times ${to}`, format: 'latex' },
+        { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
+      ],
+      rows: expansion.rows.map((r) => ({
+        fraction: r.fraction.toLatex(),
+        product: r.product.toLatex(),
+        digit: digitChar(r.digit),
+      })),
+    },
+    notice: truncated
+      ? {
+          level: 'warning',
+          message: `La parte fraccionaria no termina en base ${to}: se muestran ${MAX_FRACTION_DIGITS} dígitos.`,
+        }
+      : undefined,
+  };
+}
+
+function positionalExplanation(from: number): string {
+  const letters = from > 10 ? ' Las letras valen A = 10, B = 11, …' : '';
+  return `Cada dígito se multiplica por la potencia de ${from} que corresponde a su posición: ${from}⁰ para el primero a la izquierda del punto, ${from}¹ para el siguiente, y ${from}⁻¹, ${from}⁻², … a la derecha del punto.${letters}`;
 }
 
 export function solveNumeral(
@@ -174,7 +272,7 @@ export function solveNumeral(
   if (from !== 10) {
     steps.push({
       title: 'Valor en base 10',
-      explanation: `Cada dígito se multiplica por la potencia de ${from} que corresponde a su posición: ${from}⁰ para el primero a la izquierda del punto, ${from}¹ para el siguiente, y ${from}⁻¹, ${from}⁻², … a la derecha del punto.${from > 10 ? ` Las letras valen A = 10, B = 11, …` : ''}`,
+      explanation: positionalExplanation(from),
       formula: String.raw`N = \sum_i d_i\, ${from}^{i}`,
       substitution: positionalLatex(intDigits, fracDigits, from),
       result: `${source} = ${decimal}`,
@@ -185,70 +283,14 @@ export function solveNumeral(
   const expansion = successiveMultiplications(frac, to);
   const tables: ResultTable[] = [];
   if (to !== 10) {
-    const divisions = successiveDivisions(int, to);
-    steps.push({
-      title: 'Parte entera: divisiones sucesivas',
-      explanation:
-        int === 0n
-          ? 'La parte entera es 0.'
-          : `Se divide ${int} entre ${to}, luego el cociente entre ${to}, y así hasta que el cociente sea 0. Los residuos, leídos del último al primero, son los dígitos en base ${to}.`,
-      result:
-        int === 0n
-          ? `0_{10} = 0_{${to}}`
-          : `${bigLatex(int)}_{10} = ${numeralLatex(false, resultInt, [], to)}`,
-    });
-    if (divisions.length > 0) {
-      tables.push({
-        id: 'divisiones',
-        title: `Divisiones sucesivas entre ${to}`,
-        columns: [
-          { key: 'dividend', header: String.raw`\text{Dividendo}`, format: 'text' },
-          { key: 'quotient', header: String.raw`\text{Cociente}`, format: 'text' },
-          { key: 'remainder', header: String.raw`\text{Residuo}`, format: 'text' },
-          { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
-        ],
-        rows: divisions.map((r) => ({
-          dividend: String(r.dividend),
-          quotient: String(r.quotient),
-          remainder: String(r.remainder),
-          digit: digitChar(r.remainder),
-        })),
-      });
-    }
+    const integer = integerPartSteps(int, to, resultInt);
+    steps.push(integer.step);
+    tables.push(...integer.tables);
     if (!frac.isZero()) {
-      const kind =
-        expansion.periodStart !== null ? 'periodic' : expansion.truncated ? 'truncated' : 'exact';
-      steps.push({
-        title: 'Parte fraccionaria: multiplicaciones sucesivas',
-        explanation: `Se multiplica la parte fraccionaria por ${to}: la parte entera del producto es el siguiente dígito y la parte fraccionaria se vuelve a multiplicar. ${
-          kind === 'exact'
-            ? 'Se termina cuando la parte fraccionaria es 0.'
-            : kind === 'periodic'
-              ? 'Una parte fraccionaria se repitió, así que los dígitos se repiten desde ahí: el resultado es periódico (la raya indica el período).'
-              : `Tras ${MAX_FRACTION_DIGITS} dígitos la parte fraccionaria no se anuló ni se repitió: el resultado se trunca.`
-        }`,
-        result: `${frac.toLatex()}_{10} = ${numeralLatex(false, [0], expansion.digits, to, expansion)}`,
-      });
-      tables.push({
-        id: 'multiplicaciones',
-        title: `Multiplicaciones sucesivas por ${to}`,
-        columns: [
-          { key: 'fraction', header: String.raw`\text{Fracción}`, format: 'latex' },
-          { key: 'product', header: String.raw`\times ${to}`, format: 'latex' },
-          { key: 'digit', header: String.raw`\text{Dígito}`, format: 'text' },
-        ],
-        rows: expansion.rows.map((r) => ({
-          fraction: r.fraction.toLatex(),
-          product: r.product.toLatex(),
-          digit: digitChar(r.digit),
-        })),
-      });
-      if (kind === 'truncated') {
-        notices.push({
-          level: 'warning',
-          message: `La parte fraccionaria no termina en base ${to}: se muestran ${MAX_FRACTION_DIGITS} dígitos.`,
-        });
-      }
+      const fraction = fractionPartSteps(frac, to, expansion);
+      steps.push(fraction.step);
+      tables.push(fraction.table);
+      if (fraction.notice) notices.push(fraction.notice);
     }
   }
 

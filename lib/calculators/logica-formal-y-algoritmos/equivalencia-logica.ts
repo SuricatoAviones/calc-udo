@@ -5,7 +5,7 @@
  * implicación, distributividad…) se nombra la ley.
  */
 import { z } from 'zod';
-import { latexLines } from '@/lib/math/format';
+import { latexLines, plural } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import {
   assignments,
@@ -95,21 +95,27 @@ export function recognizeLaw(a: Formula, b: Formula): { name: string; statement:
   return null;
 }
 
+function unreadable(
+  which: 'primera' | 'segunda',
+  message: string,
+): CalculatorResult<EquivalenceValue, EquivalenceErrorCode> {
+  return {
+    ok: false,
+    error: {
+      code: 'invalid-formula',
+      message: `No se pudo leer la ${which} proposición: ${message}.`,
+    },
+    ...emptyTrace(),
+  };
+}
+
 export function solveEquivalence(
   input: EquivalenceInput,
 ): CalculatorResult<EquivalenceValue, EquivalenceErrorCode> {
   const a = parseFormula(input.left);
   const b = parseFormula(input.right);
-  if (typeof a === 'string' || typeof b === 'string') {
-    return {
-      ok: false,
-      error: {
-        code: 'invalid-formula',
-        message: `No se pudo leer la ${typeof a === 'string' ? 'primera' : 'segunda'} proposición: ${typeof a === 'string' ? a : b}.`,
-      },
-      ...emptyTrace(),
-    };
-  }
+  if (typeof a === 'string') return unreadable('primera', a);
+  if (typeof b === 'string') return unreadable('segunda', b);
   const variables = variablesOf([a, b]);
   const rows = assignments(variables);
   const iff: Formula = { type: 'bin', op: 'iff', left: a, right: b };
@@ -146,7 +152,7 @@ export function solveEquivalence(
       title: 'Comparación',
       explanation: equivalent
         ? `Las columnas coinciden en las ${rows.length} filas, así que A ↔ B es una tautología.`
-        : `Las columnas difieren en ${differentRows.length === 1 ? 'la fila' : 'las filas'} ${differentRows.join(', ')}: A ↔ B es F allí, así que no es una tautología.`,
+        : `Las columnas difieren en ${plural(differentRows.length, 'la fila', 'las filas')} ${differentRows.join(', ')}: A ↔ B es F allí, así que no es una tautología.`,
       formula: String.raw`A \equiv B \iff A \leftrightarrow B \text{ es tautología}`,
       result: equivalent ? String.raw`${A} \equiv ${B}` : String.raw`${A} \not\equiv ${B}`,
     },

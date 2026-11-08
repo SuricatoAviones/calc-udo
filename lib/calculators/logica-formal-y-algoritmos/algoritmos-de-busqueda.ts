@@ -7,6 +7,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
+import { plural } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import { listField, listLatex, num, pseudocode } from './algorithms';
 
@@ -200,8 +201,8 @@ function resultStep(position: number | null, comparisons: number): Step {
     title: 'Resultado',
     explanation:
       position === null
-        ? `x no está en la lista. Se hicieron ${comparisons} ${comparisons === 1 ? 'comparación' : 'comparaciones'}.`
-        : `x está en la posición ${position}. Se hicieron ${comparisons} ${comparisons === 1 ? 'comparación' : 'comparaciones'}.`,
+        ? `x no está en la lista. Se hicieron ${comparisons} ${plural(comparisons, 'comparación', 'comparaciones')}.`
+        : `x está en la posición ${position}. Se hicieron ${comparisons} ${plural(comparisons, 'comparación', 'comparaciones')}.`,
     result:
       position === null
         ? String.raw`\text{no encontrado}`

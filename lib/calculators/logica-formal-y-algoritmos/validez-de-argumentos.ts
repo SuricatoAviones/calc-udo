@@ -7,7 +7,7 @@
  * tollens, silogismo hipotético…) o es una falacia clásica, se nombra.
  */
 import { z } from 'zod';
-import { latexLines, TEX } from '@/lib/math/format';
+import { latexLines, plural, TEX } from '@/lib/math/format';
 import { emptyTrace, type Calculator, type CalculatorResult, type Step } from '../types';
 import {
   assignments,
@@ -159,35 +159,38 @@ export function recognizeForm(
   return null;
 }
 
-export function solveArgument(
-  input: ArgumentInput,
-): CalculatorResult<ArgumentValue, ArgumentErrorCode> {
+type Result = CalculatorResult<ArgumentValue, ArgumentErrorCode>;
+
+function invalidFormula(message: string): Result {
+  return { ok: false, error: { code: 'invalid-formula', message }, ...emptyTrace() };
+}
+
+/** Las premisas y la conclusión leídas, o el error de la primera que no se pudo leer. */
+function readArgument(input: ArgumentInput): { premises: Formula[]; conclusion: Formula } | Result {
   const premises: Formula[] = [];
   for (const [k, line] of splitPremises(input.premises).entries()) {
     const p = parseFormula(line);
-    if (typeof p === 'string') {
-      return {
-        ok: false,
-        error: { code: 'invalid-formula', message: `No se pudo leer la premisa ${k + 1}: ${p}.` },
-        ...emptyTrace(),
-      };
-    }
+    if (typeof p === 'string') return invalidFormula(`No se pudo leer la premisa ${k + 1}: ${p}.`);
     premises.push(p);
   }
   const conclusion = parseFormula(input.conclusion);
-  if (typeof conclusion === 'string' || premises.length === 0) {
-    return {
-      ok: false,
-      error: {
-        code: 'invalid-formula',
-        message:
-          typeof conclusion === 'string'
-            ? `No se pudo leer la conclusión: ${conclusion}.`
-            : 'Escribe al menos una premisa.',
-      },
-      ...emptyTrace(),
-    };
+  if (typeof conclusion === 'string') {
+    return invalidFormula(`No se pudo leer la conclusión: ${conclusion}.`);
   }
+  if (premises.length === 0) return invalidFormula('Escribe al menos una premisa.');
+  return { premises, conclusion };
+}
+
+/** Columna «fila crítica» de la tabla. */
+function criticalLabel(row: number, criticalRows: number[], counterexamples: number[]): string {
+  if (!criticalRows.includes(row)) return '—';
+  return counterexamples.includes(row) ? 'sí, C = F (contraejemplo)' : 'sí, C = V';
+}
+
+export function solveArgument(input: ArgumentInput): Result {
+  const read = readArgument(input);
+  if ('ok' in read) return read;
+  const { premises, conclusion } = read;
 
   const variables = variablesOf([...premises, conclusion]);
   const rows = assignments(variables);
@@ -232,7 +235,7 @@ export function solveArgument(
     explanation:
       criticalRows.length === 0
         ? 'Ninguna fila hace verdaderas a todas las premisas (son inconsistentes entre sí): el razonamiento es válido, pero de forma trivial.'
-        : `En ${criticalRows.length === 1 ? 'la fila' : 'las filas'} ${criticalRows.join(', ')} todas las premisas son V. Se revisa la conclusión en ${criticalRows.length === 1 ? 'ella' : 'cada una'}.`,
+        : `En ${plural(criticalRows.length, 'la fila', 'las filas')} ${criticalRows.join(', ')} todas las premisas son V. Se revisa la conclusión en ${plural(criticalRows.length, 'ella', 'cada una')}.`,
     result:
       criticalRows.length === 0
         ? String.raw`\text{sin filas críticas}`
@@ -256,18 +259,14 @@ export function solveArgument(
     title: 'Conclusión',
     explanation: valid
       ? 'Ninguna fila crítica tiene la conclusión F: el razonamiento es válido.'
-      : `En ${counterexamples.length === 1 ? 'la fila' : 'las filas'} ${counterexamples.join(', ')} las premisas son V y la conclusión es F: ${counterexamples.length === 1 ? 'es un contraejemplo' : 'son contraejemplos'}, así que el razonamiento no es válido.`,
+      : `En ${plural(counterexamples.length, 'la fila', 'las filas')} ${counterexamples.join(', ')} las premisas son V y la conclusión es F: ${plural(counterexamples.length, 'es un contraejemplo', 'son contraejemplos')}, así que el razonamiento no es válido.`,
     result: valid ? String.raw`\text{Válido}` : String.raw`\text{No válido}`,
   });
 
   const columns = [...premises, conclusion];
   const table = rows.map((values, i) => {
     const row: Record<string, string> = truthTableRow(variables, columns, values);
-    row.critical = !criticalRows.includes(i + 1)
-      ? '—'
-      : counterexamples.includes(i + 1)
-        ? 'sí, C = F (contraejemplo)'
-        : 'sí, C = V';
+    row.critical = criticalLabel(i + 1, criticalRows, counterexamples);
     return row;
   });
 
