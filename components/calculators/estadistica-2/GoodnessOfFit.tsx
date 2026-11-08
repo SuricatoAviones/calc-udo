@@ -13,6 +13,12 @@ import {
   type FitDistribution,
 } from '@/lib/calculators/estadistica-2/bondad-de-ajuste';
 
+/** Etiqueta del primer parámetro de H₀ (la normal usa μ). */
+const FIRST_PARAMETER_LABEL: Partial<Record<FitDistribution, string>> = {
+  poisson: 'λ (opcional)',
+  binomial: 'p (opcional)',
+};
+
 function Fields() {
   const { control } = useFormContext();
   const distribution =
@@ -72,13 +78,7 @@ function Fields() {
           <NumberField
             name="parameter1"
             optional
-            label={
-              distribution === 'poisson'
-                ? 'λ (opcional)'
-                : distribution === 'binomial'
-                  ? 'p (opcional)'
-                  : 'μ (opcional)'
-            }
+            label={FIRST_PARAMETER_LABEL[distribution] ?? 'μ (opcional)'}
           />
           {distribution === 'normal' && (
             <NumberField name="parameter2" optional label="σ (opcional)" />

@@ -145,8 +145,7 @@ function simplify(points: BdPoint[]): BdPoint[] {
     out.push(p);
     while (out.length >= 3) {
       const [a, b, c] = out.slice(-3) as [BdPoint, BdPoint, BdPoint];
-      if ((a.x === b.x && b.x === c.x) || (a.y === b.y && b.y === c.y))
-        out.splice(out.length - 2, 1);
+      if ((a.x === b.x && b.x === c.x) || (a.y === b.y && b.y === c.y)) out.splice(-2, 1);
       else break;
     }
   }
@@ -159,12 +158,24 @@ function orthogonal(from: BdPoint, to: BdPoint): BdPoint[] {
   return [{ x: to.x, y: from.y }, to];
 }
 
+/** Nombre base de cada elemento nuevo y los que se prueban antes de numerarlo. */
+const BASE_NAMES: Record<BdKind, string> = { block: 'G', sum: 'C', input: 'R', output: 'C' };
+const ALTERNATIVE_NAMES: Partial<Record<BdKind, string[]>> = {
+  input: ['D', 'N'],
+  output: ['Y', 'E'],
+};
+const ELEMENT_TITLES: Record<BdKind, string> = {
+  block: 'Bloque',
+  sum: 'Punto suma',
+  input: 'Entrada',
+  output: 'Salida',
+};
+
 function nextName(doc: BlockDiagramDocument, kind: BdKind): string {
   const used = new Set(doc.elements.map((e) => (e.kind === 'block' ? e.gain : e.label)));
-  const base = kind === 'block' ? 'G' : kind === 'input' ? 'R' : 'C';
+  const base = BASE_NAMES[kind];
   if (kind !== 'block' && !used.has(base)) return base;
-  const alternatives = kind === 'input' ? ['D', 'N'] : kind === 'output' ? ['Y', 'E'] : [];
-  for (const a of alternatives) if (!used.has(a)) return a;
+  for (const a of ALTERNATIVE_NAMES[kind] ?? []) if (!used.has(a)) return a;
   for (let k = 1; ; k++) if (!used.has(`${base}${k}`)) return `${base}${k}`;
 }
 
@@ -176,11 +187,52 @@ function newElement(doc: BlockDiagramDocument, kind: BdKind, p: BdPoint): BdElem
   return { id, kind, x: p.x, y: p.y, dir: 0, label: nextName(doc, kind) };
 }
 
+/** Medio lado del recuadro de cada elemento; las entradas y salidas dejan espacio al rótulo. */
+function extentOf(kind: BdKind): number {
+  if (kind === 'block') return BLOCK_HALF + 0.5;
+  return kind === 'sum' ? 1.8 : 3;
+}
+
+/** Alineación del nombre de una entrada o salida según hacia dónde apunta. */
+function labelAnchor(u: BdPoint, isInput: boolean): 'start' | 'middle' | 'end' {
+  if (u.x === 0) return 'middle';
+  return isInput === u.x > 0 ? 'end' : 'start';
+}
+
+function canvasCursor(tool: Tool, panning: boolean): string {
+  if (tool !== 'select') return 'crosshair';
+  return panning ? 'grabbing' : 'default';
+}
+
+/**
+ * Mueve con el elemento los extremos del cable pegados a sus terminales (`before`) y mantiene
+ * los tramos ortogonales agregando un codo junto al extremo movido.
+ */
+function moveAttachedEnds(w: BdWire, before: BdPoint[], dx: number, dy: number): BdWire {
+  const points = [...w.points];
+  let changed = false;
+  for (const i of [0, points.length - 1]) {
+    if (before.some((b) => same(b, points[i]!))) {
+      points[i] = { x: points[i]!.x + dx, y: points[i]!.y + dy };
+      changed = true;
+    }
+  }
+  if (!changed) return w;
+  const fixed: BdPoint[] = [points[0]!];
+  for (let i = 1; i < points.length; i++) {
+    const a = fixed.at(-1)!;
+    const b = points[i]!;
+    if (a.x !== b.x && a.y !== b.y)
+      fixed.push(i === points.length - 1 ? { x: a.x, y: b.y } : { x: b.x, y: a.y });
+    fixed.push(b);
+  }
+  return { ...w, points: simplify(fixed) };
+}
+
 function bounds(doc: BlockDiagramDocument) {
   const pts: BdPoint[] = [];
   for (const e of doc.elements) {
-    // Las entradas y salidas llevan su nombre al lado: se deja espacio para el rótulo.
-    const r = e.kind === 'block' ? BLOCK_HALF + 0.5 : e.kind === 'sum' ? 1.8 : 3;
+    const r = extentOf(e.kind);
     pts.push({ x: e.x - r, y: e.y - r }, { x: e.x + r, y: e.y + r });
   }
   for (const w of doc.wires) pts.push(...w.points);
@@ -197,7 +249,7 @@ function bounds(doc: BlockDiagramDocument) {
  * Constructor de diagramas de bloques. La entrada de la calculadora es el documento
  * (`BlockDiagramDocument`): bloques, puntos suma, entradas, salidas y cables en una cuadrícula.
  */
-export function BlockDiagramField({ name }: { name: string }) {
+export function BlockDiagramField({ name }: Readonly<{ name: string }>) {
   const { control } = useFormContext();
   const { field } = useController({ name, control, defaultValue: EMPTY });
   const doc = (field.value as BlockDiagramDocument | undefined) ?? EMPTY;
@@ -427,28 +479,7 @@ export function BlockDiagramField({ name }: { name: string }) {
     // Los extremos de cable pegados a los terminales del elemento se mueven con él.
     const moved = { ...original, x: original.x + dx, y: original.y + dy };
     const before = elementTerminals(original).map((t) => t.point);
-    const wires = drag.doc.wires.map((w) => {
-      const points = [...w.points];
-      const ends = [0, points.length - 1];
-      let changed = false;
-      for (const i of ends) {
-        if (before.some((b) => same(b, points[i]!))) {
-          points[i] = { x: points[i]!.x + dx, y: points[i]!.y + dy };
-          changed = true;
-        }
-      }
-      if (!changed) return w;
-      // Mantener los tramos ortogonales: se agrega un codo junto al extremo movido.
-      const fixed: BdPoint[] = [points[0]!];
-      for (let i = 1; i < points.length; i++) {
-        const a = fixed.at(-1)!;
-        const b = points[i]!;
-        if (a.x !== b.x && a.y !== b.y)
-          fixed.push(i === points.length - 1 ? { x: a.x, y: b.y } : { x: b.x, y: a.y });
-        fixed.push(b);
-      }
-      return { ...w, points: simplify(fixed) };
-    });
+    const wires = drag.doc.wires.map((w) => moveAttachedEnds(w, before, dx, dy));
     field.onChange({
       elements: drag.doc.elements.map((e) => (e.id === drag.id ? moved : e)),
       wires,
@@ -464,43 +495,63 @@ export function BlockDiagramField({ name }: { name: string }) {
     setDrag(null);
   };
 
+  /** Ctrl/⌘+Z deshace (con Shift rehace) y Ctrl/⌘+Y rehace; `false` si no es uno de ellos. */
+  const historyShortcut = (event: KeyboardEvent, key: string): boolean => {
+    if (key !== 'z' && key !== 'y') return false;
+    event.preventDefault();
+    if (key === 'y' || event.shiftKey) redo();
+    else undo();
+    return true;
+  };
+
+  /** Atajos de edición; cada uno devuelve `true` si se aplicó. */
+  const editShortcuts = new Map<string, (event: KeyboardEvent) => boolean>([
+    [
+      'escape',
+      () => {
+        setDraft(null);
+        setSelection(null);
+        setTool('select');
+        return true;
+      },
+    ],
+    [
+      'enter',
+      () => {
+        if (!draft) return false;
+        finishDraft();
+        return true;
+      },
+    ],
+    ['delete', (event) => removeSelection(event)],
+    ['backspace', (event) => removeSelection(event)],
+    [
+      'r',
+      () => {
+        if (selection?.kind !== 'element') return false;
+        const e = doc.elements.find((x) => x.id === selection.id);
+        if (e) updateElement(e.id, { dir: rotate(e.dir) });
+        return true;
+      },
+    ],
+  ]);
+
+  const removeSelection = (event: KeyboardEvent): boolean => {
+    if (!selection) return false;
+    event.preventDefault();
+    remove(selection);
+    return true;
+  };
+
   const onKeyDown = (event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') return;
     const key = event.key.toLowerCase();
-    if ((event.ctrlKey || event.metaKey) && key === 'z') {
-      event.preventDefault();
-      if (event.shiftKey) redo();
-      else undo();
-      return;
-    }
-    if ((event.ctrlKey || event.metaKey) && key === 'y') {
-      event.preventDefault();
-      redo();
-      return;
-    }
-    if (key === 'escape') {
-      setDraft(null);
-      setSelection(null);
-      setTool('select');
-      return;
-    }
-    if (key === 'enter' && draft) {
-      finishDraft();
-      return;
-    }
-    if ((key === 'delete' || key === 'backspace') && selection) {
-      event.preventDefault();
-      remove(selection);
-      return;
-    }
-    if (key === 'r' && selection?.kind === 'element') {
-      const e = doc.elements.find((x) => x.id === selection.id);
-      if (e) updateElement(e.id, { dir: rotate(e.dir) });
-      return;
-    }
-    const shortcut = TOOLS.find((t) => t.key.toLowerCase() === key);
-    if (shortcut && !event.ctrlKey && !event.metaKey) {
+    const modifier = event.ctrlKey || event.metaKey;
+    if (modifier && historyShortcut(event, key)) return;
+    if (editShortcuts.get(key)?.(event)) return;
+    const shortcut = modifier ? undefined : TOOLS.find((t) => t.key.toLowerCase() === key);
+    if (shortcut) {
       setTool(shortcut.tool);
       setDraft(null);
     }
@@ -522,122 +573,137 @@ export function BlockDiagramField({ name }: { name: string }) {
 
   const renderElement = (e: BdElement) => {
     const isSel = selection?.kind === 'element' && selection.id === e.id;
+    if (e.kind === 'block') return renderBlock(e, isSel);
+    if (e.kind === 'sum') return renderSum(e, isSel);
+    return renderTerminal(e, isSel);
+  };
+
+  const renderBlock = (e: BdElement, isSel: boolean) => {
     const stroke = isSel ? 'var(--primary)' : 'var(--foreground)';
     const u = unit(e.dir);
     const cx = sx(e.x);
     const cy = sy(e.y);
-    if (e.kind === 'block') {
-      const horizontal = u.y === 0;
-      const w = (horizontal ? 2 * BLOCK_HALF : 2) * s;
-      const h = (horizontal ? 2 : 2 * BLOCK_HALF) * s;
-      const tex = gainPreviewTex(e.gain ?? '');
-      return (
-        <g key={e.id}>
-          <rect
-            x={cx - w / 2}
-            y={cy - h / 2}
-            width={w}
-            height={h}
-            rx={3}
-            fill="var(--card)"
-            stroke={stroke}
-            strokeWidth={isSel ? 2.5 : 1.6}
-          />
-          <foreignObject
-            x={cx - w / 2 + 2}
-            y={cy - h / 2 + 1}
-            width={w - 4}
-            height={h - 2}
-            pointerEvents="none"
+    const horizontal = u.y === 0;
+    const w = (horizontal ? 2 * BLOCK_HALF : 2) * s;
+    const h = (horizontal ? 2 : 2 * BLOCK_HALF) * s;
+    const tex = gainPreviewTex(e.gain ?? '');
+    return (
+      <g key={e.id}>
+        <rect
+          x={cx - w / 2}
+          y={cy - h / 2}
+          width={w}
+          height={h}
+          rx={3}
+          fill="var(--card)"
+          stroke={stroke}
+          strokeWidth={isSel ? 2.5 : 1.6}
+        />
+        <foreignObject
+          x={cx - w / 2 + 2}
+          y={cy - h / 2 + 1}
+          width={w - 4}
+          height={h - 2}
+          pointerEvents="none"
+        >
+          <div
+            className={cn(
+              'flex h-full w-full items-center justify-center overflow-hidden leading-none',
+              !tex && 'text-destructive',
+            )}
+            style={{ fontSize: Math.max(8, Math.min(16, s * 0.62)) }}
           >
-            <div
-              className={cn(
-                'flex h-full w-full items-center justify-center overflow-hidden leading-none',
-                !tex && 'text-destructive',
-              )}
-              style={{ fontSize: Math.max(8, Math.min(16, s * 0.62)) }}
+            {tex ? <Formula tex={tex} /> : <span className="font-mono">{e.gain || '?'}</span>}
+          </div>
+        </foreignObject>
+      </g>
+    );
+  };
+
+  const renderSum = (e: BdElement, isSel: boolean) => {
+    const stroke = isSel ? 'var(--primary)' : 'var(--foreground)';
+    const u = unit(e.dir);
+    const cx = sx(e.x);
+    const cy = sy(e.y);
+    const r = SUM_RADIUS * s;
+    const d = r * 0.7;
+    return (
+      <g key={e.id}>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="var(--card)"
+          stroke={stroke}
+          strokeWidth={isSel ? 2.5 : 1.6}
+        />
+        <line
+          x1={cx - d}
+          y1={cy - d}
+          x2={cx + d}
+          y2={cy + d}
+          stroke={stroke}
+          strokeWidth={1}
+          opacity={0.5}
+        />
+        <line
+          x1={cx - d}
+          y1={cy + d}
+          x2={cx + d}
+          y2={cy - d}
+          stroke={stroke}
+          strokeWidth={1}
+          opacity={0.5}
+        />
+        {SUM_PORTS.map((port) => {
+          const v = portVector(e, port);
+          const connected = connectedPorts.has(`${e.id}:${port}`);
+          const sign = e.signs?.[port] === '-' ? '−' : '+';
+          // El signo va junto al cable de la entrada, sin taparlo: arriba del cable de atrás y
+          // del lado de atrás en las entradas laterales.
+          const l = leftOf(e.dir);
+          const off =
+            port === 'back' ? { x: l.x * 0.7, y: l.y * 0.7 } : { x: -u.x * 0.75, y: -u.y * 0.75 };
+          const px = cx + (v.x * 1.4 + off.x) * s;
+          const py = cy + (v.y * 1.4 + off.y) * s;
+          return (
+            <text
+              key={port}
+              x={px}
+              y={py}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={Math.max(9, s * 0.8)}
+              fontWeight={600}
+              fill={connected ? 'var(--foreground)' : 'var(--muted-foreground)'}
+              opacity={connected ? 1 : 0.35}
+              style={{ cursor: 'pointer' }}
+              onPointerDown={(ev) => {
+                ev.stopPropagation();
+                const signs = { ...e.signs, [port]: e.signs?.[port] === '-' ? '+' : '-' };
+                updateElement(e.id, { signs });
+                setSelection({ kind: 'element', id: e.id });
+              }}
             >
-              {tex ? <Formula tex={tex} /> : <span className="font-mono">{e.gain || '?'}</span>}
-            </div>
-          </foreignObject>
-        </g>
-      );
-    }
-    if (e.kind === 'sum') {
-      const r = SUM_RADIUS * s;
-      const d = r * 0.7;
-      return (
-        <g key={e.id}>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="var(--card)"
-            stroke={stroke}
-            strokeWidth={isSel ? 2.5 : 1.6}
-          />
-          <line
-            x1={cx - d}
-            y1={cy - d}
-            x2={cx + d}
-            y2={cy + d}
-            stroke={stroke}
-            strokeWidth={1}
-            opacity={0.5}
-          />
-          <line
-            x1={cx - d}
-            y1={cy + d}
-            x2={cx + d}
-            y2={cy - d}
-            stroke={stroke}
-            strokeWidth={1}
-            opacity={0.5}
-          />
-          {SUM_PORTS.map((port) => {
-            const v = portVector(e, port);
-            const connected = connectedPorts.has(`${e.id}:${port}`);
-            const sign = e.signs?.[port] === '-' ? '−' : '+';
-            // El signo va junto al cable de la entrada, sin taparlo: arriba del cable de atrás y
-            // del lado de atrás en las entradas laterales.
-            const l = leftOf(e.dir);
-            const off =
-              port === 'back' ? { x: l.x * 0.7, y: l.y * 0.7 } : { x: -u.x * 0.75, y: -u.y * 0.75 };
-            const px = cx + (v.x * 1.4 + off.x) * s;
-            const py = cy + (v.y * 1.4 + off.y) * s;
-            return (
-              <text
-                key={port}
-                x={px}
-                y={py}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={Math.max(9, s * 0.8)}
-                fontWeight={600}
-                fill={connected ? 'var(--foreground)' : 'var(--muted-foreground)'}
-                opacity={connected ? 1 : 0.35}
-                style={{ cursor: 'pointer' }}
-                onPointerDown={(ev) => {
-                  ev.stopPropagation();
-                  const signs = { ...e.signs, [port]: e.signs?.[port] === '-' ? '+' : '-' };
-                  updateElement(e.id, { signs });
-                  setSelection({ kind: 'element', id: e.id });
-                }}
-              >
-                {sign}
-              </text>
-            );
-          })}
-        </g>
-      );
-    }
-    // Entrada o salida: marcador con su nombre.
+              {sign}
+            </text>
+          );
+        })}
+      </g>
+    );
+  };
+
+  /** Entrada o salida: marcador con su nombre. */
+  const renderTerminal = (e: BdElement, isSel: boolean) => {
+    const u = unit(e.dir);
+    const cx = sx(e.x);
+    const cy = sy(e.y);
     const isInput = e.kind === 'input';
     const back = { x: -u.x, y: -u.y };
     const labelAt = isInput
       ? { x: e.x + back.x * 1.1, y: e.y + back.y * 1.1 }
       : { x: e.x + u.x * 1.2, y: e.y + u.y * 1.2 };
-    const anchor = u.x !== 0 ? (isInput === u.x > 0 ? 'end' : 'start') : 'middle';
+    const anchor = labelAnchor(u, isInput);
     return (
       <g key={e.id}>
         <circle
@@ -690,10 +756,6 @@ export function BlockDiagramField({ name }: { name: string }) {
     });
 
   const draftPreview = draft && hover ? [...draft, ...orthogonal(draft.at(-1)!, hover)] : draft;
-  const signs =
-    selected?.kind === 'sum'
-      ? SUM_PORTS.map((port) => ({ port, side: sideName(portVector(selected, port)) }))
-      : [];
 
   const content = (
     <div
@@ -815,7 +877,7 @@ export function BlockDiagramField({ name }: { name: string }) {
         role="application"
         aria-label="Lienzo del diagrama de bloques"
         style={{
-          cursor: tool === 'select' ? (drag?.kind === 'pan' ? 'grabbing' : 'default') : 'crosshair',
+          cursor: canvasCursor(tool, drag?.kind === 'pan'),
         }}
       >
         <defs>
@@ -887,101 +949,7 @@ export function BlockDiagramField({ name }: { name: string }) {
         </div>
       )}
 
-      {selected && (
-        <div className="flex flex-col gap-2 rounded-md border p-2">
-          <p className="text-sm font-medium">
-            {selected.kind === 'block'
-              ? 'Bloque'
-              : selected.kind === 'sum'
-                ? 'Punto suma'
-                : selected.kind === 'input'
-                  ? 'Entrada'
-                  : 'Salida'}
-          </p>
-          {selected.kind === 'block' && (
-            <label className="flex flex-col gap-1 text-xs">
-              Función de transferencia
-              <Input
-                key={selected.id}
-                defaultValue={selected.gain}
-                className="font-mono"
-                autoComplete="off"
-                spellCheck={false}
-                onFocus={() => setPast((p) => [...p.slice(-60), doc])}
-                onChange={(ev) => updateElement(selected.id, { gain: ev.target.value }, false)}
-              />
-              <span className="text-muted-foreground">
-                Un símbolo (<code>G1</code>, <code>H2</code>) o una función de s como{' '}
-                <code>10/(s+1)</code>.
-              </span>
-            </label>
-          )}
-          {(selected.kind === 'input' || selected.kind === 'output') && (
-            <label className="flex flex-col gap-1 text-xs">
-              Nombre de la señal
-              <Input
-                key={selected.id}
-                defaultValue={selected.label}
-                maxLength={6}
-                className="font-mono"
-                autoComplete="off"
-                onFocus={() => setPast((p) => [...p.slice(-60), doc])}
-                onChange={(ev) =>
-                  updateElement(
-                    selected.id,
-                    { label: ev.target.value.replace(/[^A-Za-z0-9]/g, '') },
-                    false,
-                  )
-                }
-              />
-            </label>
-          )}
-          {selected.kind === 'sum' && (
-            <div className="grid grid-cols-3 gap-2">
-              {signs.map(({ port, side }) => (
-                <label key={port} className="flex flex-col gap-1 text-xs">
-                  Entrada de {side}
-                  <select
-                    className="border-input bg-card h-8 rounded-md border px-2 text-sm"
-                    value={selected.signs?.[port] ?? '+'}
-                    onChange={(ev) =>
-                      updateElement(selected.id, {
-                        signs: { ...selected.signs, [port]: ev.target.value as '+' | '-' },
-                      })
-                    }
-                  >
-                    <option value="+">+</option>
-                    <option value="-">−</option>
-                  </select>
-                </label>
-              ))}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => updateElement(selected.id, { dir: rotate(selected.dir) })}
-            >
-              <RotateCw className="size-4" /> Girar (R)
-            </Button>
-            {selected.kind === 'block' && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => updateElement(selected.id, { dir: rotate(selected.dir, 2) })}
-              >
-                Invertir sentido
-              </Button>
-            )}
-            <Button type="button" size="sm" variant="outline" onClick={() => remove(selection)}>
-              <Trash2 className="size-4" /> Eliminar
-            </Button>
-          </div>
-        </div>
-      )}
+      {selected && renderProperties(selected)}
       {selection?.kind === 'wire' && (
         <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
           Cable seleccionado
@@ -996,6 +964,101 @@ export function BlockDiagramField({ name }: { name: string }) {
   // El panel del formulario es sticky (crea su propio contexto de apilamiento): en pantalla
   // completa el editor se dibuja directamente en el body para quedar sobre el encabezado.
   return expanded ? createPortal(content, document.body) : content;
+
+  /** Panel de propiedades del elemento seleccionado. */
+  function renderProperties(selected: BdElement) {
+    const signs =
+      selected.kind === 'sum'
+        ? SUM_PORTS.map((port) => ({ port, side: sideName(portVector(selected, port)) }))
+        : [];
+    return (
+      <div className="flex flex-col gap-2 rounded-md border p-2">
+        <p className="text-sm font-medium">{ELEMENT_TITLES[selected.kind]}</p>
+        {selected.kind === 'block' && (
+          <label className="flex flex-col gap-1 text-xs">
+            Función de transferencia
+            <Input
+              key={selected.id}
+              defaultValue={selected.gain}
+              className="font-mono"
+              autoComplete="off"
+              spellCheck={false}
+              onFocus={() => setPast((p) => [...p.slice(-60), doc])}
+              onChange={(ev) => updateElement(selected.id, { gain: ev.target.value }, false)}
+            />
+            <span className="text-muted-foreground">
+              Un símbolo (<code>G1</code>, <code>H2</code>) o una función de s como{' '}
+              <code>10/(s+1)</code>.
+            </span>
+          </label>
+        )}
+        {(selected.kind === 'input' || selected.kind === 'output') && (
+          <label className="flex flex-col gap-1 text-xs">
+            Nombre de la señal
+            <Input
+              key={selected.id}
+              defaultValue={selected.label}
+              maxLength={6}
+              className="font-mono"
+              autoComplete="off"
+              onFocus={() => setPast((p) => [...p.slice(-60), doc])}
+              onChange={(ev) =>
+                updateElement(
+                  selected.id,
+                  { label: ev.target.value.replace(/[^A-Za-z0-9]/g, '') },
+                  false,
+                )
+              }
+            />
+          </label>
+        )}
+        {selected.kind === 'sum' && (
+          <div className="grid grid-cols-3 gap-2">
+            {signs.map(({ port, side }) => (
+              <label key={port} className="flex flex-col gap-1 text-xs">
+                Entrada de {side}
+                <select
+                  className="border-input bg-card h-8 rounded-md border px-2 text-sm"
+                  value={selected.signs?.[port] ?? '+'}
+                  onChange={(ev) =>
+                    updateElement(selected.id, {
+                      signs: { ...selected.signs, [port]: ev.target.value as '+' | '-' },
+                    })
+                  }
+                >
+                  <option value="+">+</option>
+                  <option value="-">−</option>
+                </select>
+              </label>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => updateElement(selected.id, { dir: rotate(selected.dir) })}
+          >
+            <RotateCw className="size-4" /> Girar (R)
+          </Button>
+          {selected.kind === 'block' && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => updateElement(selected.id, { dir: rotate(selected.dir, 2) })}
+            >
+              Invertir sentido
+            </Button>
+          )}
+          <Button type="button" size="sm" variant="outline" onClick={() => remove(selection)}>
+            <Trash2 className="size-4" /> Eliminar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 }
 
 /** Instrucciones bajo el lienzo. */

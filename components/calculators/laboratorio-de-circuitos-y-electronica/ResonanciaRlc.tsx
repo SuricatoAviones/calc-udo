@@ -14,6 +14,13 @@ const tex = (symbol: string, unit?: string) => (
   </>
 );
 
+const CIRCUIT_DESCRIPTION = {
+  serie: 'R, L y C en serie con una fuente de voltaje.',
+  paralelo: 'R, L y C en paralelo con una fuente de corriente.',
+  'paralelo-practico':
+    'Bobina real (L con su resistencia R₁ en serie) en paralelo con C y, opcionalmente, con R₂.',
+} as const;
+
 function CircuitFields() {
   const { control } = useFormContext();
   const type = useWatch({ control, name: 'type' }) as 'serie' | 'paralelo' | 'paralelo-practico';
@@ -21,11 +28,7 @@ function CircuitFields() {
   return (
     <>
       <p className="text-muted-foreground text-xs">
-        {type === 'serie'
-          ? 'R, L y C en serie con una fuente de voltaje.'
-          : type === 'paralelo'
-            ? 'R, L y C en paralelo con una fuente de corriente.'
-            : 'Bobina real (L con su resistencia R₁ en serie) en paralelo con C y, opcionalmente, con R₂.'}
+        {CIRCUIT_DESCRIPTION[type] ?? CIRCUIT_DESCRIPTION['paralelo-practico']}
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {practical ? (

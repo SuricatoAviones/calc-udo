@@ -73,7 +73,7 @@ export function LinearSystemField({
                   <tr>
                     {system[0]?.map((_, j) => (
                       <th
-                        key={j}
+                        key={`col-${j}`}
                         scope="col"
                         className={cn(
                           'text-muted-foreground text-xs font-normal',
@@ -87,7 +87,7 @@ export function LinearSystemField({
                 </thead>
                 <tbody>
                   {system.map((row, i) => (
-                    <tr key={i}>
+                    <tr key={`fila-${i}`}>
                       {row.map((v, j) => (
                         <td
                           key={`${size}-${i}-${j}`}

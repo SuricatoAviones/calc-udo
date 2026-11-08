@@ -8,6 +8,14 @@
 
 import { trimDecimalZeros } from './format';
 
+/** Signo de un número o de una comparación. */
+export type Sign = -1 | 0 | 1;
+
+function signOf(value: bigint): Sign {
+  if (value < 0n) return -1;
+  return value > 0n ? 1 : 0;
+}
+
 function gcd(a: bigint, b: bigint): bigint {
   let x = a < 0n ? -a : a;
   let y = b < 0n ? -b : b;
@@ -78,13 +86,12 @@ export class Rational {
   }
 
   /** −1, 0 o 1. */
-  sign(): -1 | 0 | 1 {
-    return this.num < 0n ? -1 : this.num > 0n ? 1 : 0;
+  sign(): Sign {
+    return signOf(this.num);
   }
 
-  cmp(o: Rational): -1 | 0 | 1 {
-    const d = this.num * o.den - o.num * this.den;
-    return d < 0n ? -1 : d > 0n ? 1 : 0;
+  cmp(o: Rational): Sign {
+    return signOf(this.num * o.den - o.num * this.den);
   }
 
   eq(o: Rational): boolean {

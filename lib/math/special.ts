@@ -46,17 +46,24 @@ export function regularizedGammaP(a: number, x: number): number {
   if (x <= 0) return 0;
   if (x === Infinity) return 1;
   const front = Math.exp(-x + a * Math.log(x) - lnGamma(a));
-  if (x < a + 1) {
-    let term = 1 / a;
-    let sum = term;
-    for (let n = 1; n < MAX_ITERATIONS; n++) {
-      term *= x / (a + n);
-      sum += term;
-      if (Math.abs(term) < Math.abs(sum) * EPSILON) break;
-    }
-    return Math.min(1, sum * front);
+  if (x < a + 1) return Math.min(1, gammaSeries(a, x) * front);
+  return Math.max(0, 1 - front * gammaContinuedFraction(a, x));
+}
+
+/** Serie de P(a, x) sin el factor e⁻ˣ xᵃ / Γ(a). */
+function gammaSeries(a: number, x: number): number {
+  let term = 1 / a;
+  let sum = term;
+  for (let n = 1; n < MAX_ITERATIONS; n++) {
+    term *= x / (a + n);
+    sum += term;
+    if (Math.abs(term) < Math.abs(sum) * EPSILON) break;
   }
-  // Fracción continua de Q(a, x) por el método de Lentz modificado.
+  return sum;
+}
+
+/** Fracción continua de Q(a, x) por el método de Lentz modificado, sin el factor e⁻ˣ xᵃ / Γ(a). */
+function gammaContinuedFraction(a: number, x: number): number {
   let b = x + 1 - a;
   let c = 1 / TINY;
   let d = 1 / b;
@@ -73,14 +80,17 @@ export function regularizedGammaP(a: number, x: number): number {
     h *= delta;
     if (Math.abs(delta - 1) < EPSILON) break;
   }
-  return Math.max(0, 1 - front * h);
+  return h;
 }
 
-/** Fracción continua de la beta incompleta (Numerical Recipes, betacf). */
-function betaContinuedFraction(x: number, a: number, b: number): number {
-  const qab = a + b;
-  const qap = a + 1;
-  const qam = a - 1;
+/**
+ * Fracción continua de la beta incompleta Iₓ(p, q) (Numerical Recipes, betacf). Los parámetros se
+ * llaman p y q porque `regularizedBeta` la llama también con (1 − x, b, a), por la simetría.
+ */
+function betaContinuedFraction(x: number, p: number, q: number): number {
+  const qab = p + q;
+  const qap = p + 1;
+  const qam = p - 1;
   let c = 1;
   let d = 1 - (qab * x) / qap;
   if (Math.abs(d) < TINY) d = TINY;
@@ -88,14 +98,14 @@ function betaContinuedFraction(x: number, a: number, b: number): number {
   let h = d;
   for (let m = 1; m < MAX_ITERATIONS; m++) {
     const m2 = 2 * m;
-    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    let aa = (m * (q - m) * x) / ((qam + m2) * (p + m2));
     d = 1 + aa * d;
     if (Math.abs(d) < TINY) d = TINY;
     c = 1 + aa / c;
     if (Math.abs(c) < TINY) c = TINY;
     d = 1 / d;
     h *= d * c;
-    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    aa = (-(p + m) * (qab + m) * x) / ((p + m2) * (qap + m2));
     d = 1 + aa * d;
     if (Math.abs(d) < TINY) d = TINY;
     c = 1 + aa / c;

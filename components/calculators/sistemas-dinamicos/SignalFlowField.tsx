@@ -2,6 +2,7 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { TableField, type TableFieldColumn } from '@/components/calculators/form/TableField';
+import { withKeys } from '@/components/calculators/keys';
 
 interface BranchRow {
   from: string;
@@ -40,6 +41,24 @@ const COLUMNS: TableFieldColumn[] = [
  * Dibujo del flujograma: los nodos en una fila en el orden en que aparecen, las ramas hacia
  * adelante por arriba, las de realimentación por abajo y los lazos propios como un rizo.
  */
+/**
+ * Trazo de una rama entre nodos distintos: recta entre vecinos hacia adelante; si no, una curva
+ * por arriba (hacia adelante) o por abajo (realimentación), más alta cuanto más lejos.
+ */
+function branchGeometry(x1: number, x2: number, mid: number, gap: number) {
+  const forward = x2 > x1;
+  const span = Math.abs(x2 - x1);
+  const adjacent = span <= gap + 1;
+  const mx = (x1 + x2) / 2;
+  if (adjacent && forward)
+    return { path: `M ${x1 + 6} ${mid} L ${x2 - 6} ${mid}`, mx, ly: mid - 6 };
+  const bend = adjacent ? 0 : Math.min(70, 18 + span * 0.18);
+  const cy = forward ? mid - bend : mid + Math.max(26, bend);
+  const endY = mid + (forward ? -6 : 6);
+  const path = `M ${x1} ${endY} Q ${mx} ${cy} ${x2} ${endY}`;
+  return { path, mx, ly: (mid + cy) / 2 + (forward ? -6 : 12) };
+}
+
 function SignalFlowPreview({ branches }: Readonly<{ branches: BranchRow[] }>) {
   const valid = branches.filter((b) => b.from?.trim() && b.to?.trim());
   const nodes: string[] = [];
@@ -74,25 +93,49 @@ function SignalFlowPreview({ branches }: Readonly<{ branches: BranchRow[] }>) {
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--foreground)" />
             </marker>
           </defs>
-          {valid.map((b, i) => {
-            const from = b.from.trim();
-            const to = b.to.trim();
-            const x1 = x(from);
-            const x2 = x(to);
-            const label = b.gain?.trim() || '?';
-            if (from === to) {
+          {withKeys(valid, (b) => `${b.from.trim()}>${b.to.trim()}:${b.gain ?? ''}`).map(
+            ({ item: b, key }) => {
+              const from = b.from.trim();
+              const to = b.to.trim();
+              const x1 = x(from);
+              const x2 = x(to);
+              const label = b.gain?.trim() || '?';
+              if (from === to) {
+                return (
+                  <g key={key}>
+                    <path
+                      d={`M ${x1 - 6} ${mid - 6} C ${x1 - 26} ${mid - 46}, ${x1 + 26} ${mid - 46}, ${x1 + 6} ${mid - 6}`}
+                      fill="none"
+                      stroke="var(--foreground)"
+                      strokeWidth={1.3}
+                      markerEnd="url(#sfg-arrow)"
+                    />
+                    <text
+                      x={x1}
+                      y={mid - 42}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fontFamily="monospace"
+                      fill="var(--foreground)"
+                    >
+                      {label}
+                    </text>
+                  </g>
+                );
+              }
+              const { path, mx, ly } = branchGeometry(x1, x2, mid, gap);
               return (
-                <g key={i}>
+                <g key={key}>
                   <path
-                    d={`M ${x1 - 6} ${mid - 6} C ${x1 - 26} ${mid - 46}, ${x1 + 26} ${mid - 46}, ${x1 + 6} ${mid - 6}`}
+                    d={path}
                     fill="none"
                     stroke="var(--foreground)"
                     strokeWidth={1.3}
                     markerEnd="url(#sfg-arrow)"
                   />
                   <text
-                    x={x1}
-                    y={mid - 42}
+                    x={mx}
+                    y={ly}
                     textAnchor="middle"
                     fontSize="11"
                     fontFamily="monospace"
@@ -102,40 +145,8 @@ function SignalFlowPreview({ branches }: Readonly<{ branches: BranchRow[] }>) {
                   </text>
                 </g>
               );
-            }
-            const forward = x2 > x1;
-            const span = Math.abs(x2 - x1);
-            const adjacent = span <= gap + 1;
-            const bend = adjacent ? 0 : Math.min(70, 18 + span * 0.18);
-            const cy = forward ? mid - bend : mid + Math.max(26, bend);
-            const mx = (x1 + x2) / 2;
-            const path =
-              adjacent && forward
-                ? `M ${x1 + 6} ${mid} L ${x2 - 6} ${mid}`
-                : `M ${x1} ${mid + (forward ? -6 : 6)} Q ${mx} ${cy} ${x2} ${mid + (forward ? -6 : 6)}`;
-            const ly = adjacent && forward ? mid - 6 : (mid + cy) / 2 + (forward ? -6 : 12);
-            return (
-              <g key={i}>
-                <path
-                  d={path}
-                  fill="none"
-                  stroke="var(--foreground)"
-                  strokeWidth={1.3}
-                  markerEnd="url(#sfg-arrow)"
-                />
-                <text
-                  x={mx}
-                  y={ly}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fontFamily="monospace"
-                  fill="var(--foreground)"
-                >
-                  {label}
-                </text>
-              </g>
-            );
-          })}
+            },
+          )}
           {nodes.map((n) => (
             <g key={n}>
               <circle

@@ -179,22 +179,29 @@ function aberth(p: Poly): Complex[] {
   for (let iter = 0; iter < 800; iter++) {
     let maxStep = 0;
     for (let i = 0; i < n; i++) {
-      const pz = evalPolyComplex(monic, z[i]!);
-      if (C.abs(pz) === 0) continue;
-      const dpz = evalPolyComplex(dp, z[i]!);
-      const ratio = C.abs(dpz) === 0 ? C.complex(1e-8) : C.div(pz, dpz);
-      let sum = C.ZERO;
-      for (let j = 0; j < n; j++) {
-        if (j !== i) sum = C.add(sum, C.div(C.ONE, C.sub(z[i]!, z[j]!)));
-      }
-      const step = C.div(ratio, C.sub(C.ONE, C.mul(ratio, sum)));
-      if (!Number.isFinite(step.re) || !Number.isFinite(step.im)) continue;
+      const step = aberthStep(monic, dp, z, i);
+      if (!step) continue;
       z[i] = C.sub(z[i]!, step);
       maxStep = Math.max(maxStep, C.abs(step) / Math.max(1, C.abs(z[i]!)));
     }
     if (maxStep < 1e-16) break;
   }
   return z;
+}
+
+/** Corrección de Aberth para la aproximación z[i]; `null` si ya es raíz o el paso no es finito. */
+function aberthStep(monic: Poly, dp: Poly, z: Complex[], i: number): Complex | null {
+  const zi = z[i]!;
+  const pz = evalPolyComplex(monic, zi);
+  if (C.abs(pz) === 0) return null;
+  const dpz = evalPolyComplex(dp, zi);
+  const ratio = C.abs(dpz) === 0 ? C.complex(1e-8) : C.div(pz, dpz);
+  let sum = C.ZERO;
+  z.forEach((zj, j) => {
+    if (j !== i) sum = C.add(sum, C.div(C.ONE, C.sub(zi, zj)));
+  });
+  const step = C.div(ratio, C.sub(C.ONE, C.mul(ratio, sum)));
+  return Number.isFinite(step.re) && Number.isFinite(step.im) ? step : null;
 }
 
 /** Redondea a un decimal "limpio" si la diferencia es solo ruido de coma flotante. */
@@ -355,7 +362,7 @@ export function reduceRational(num: Poly, den: Poly): { num: Poly; den: Poly; re
   let N = trimPoly(num);
   let D = trimPoly(den);
   let reduced = false;
-  while (N.length > 1 && D.length > 1 && N[N.length - 1] === 0 && D[D.length - 1] === 0) {
+  while (N.length > 1 && D.length > 1 && N.at(-1) === 0 && D.at(-1) === 0) {
     N = N.slice(0, -1);
     D = D.slice(0, -1);
     reduced = true;
@@ -382,7 +389,7 @@ export function polyRoots(input: Poly): PolyRoot[] {
   if (p.length <= 1) return [];
   const roots: PolyRoot[] = [];
   let zeros = 0;
-  while (p.length > 1 && p[p.length - 1] === 0) {
+  while (p.length > 1 && p.at(-1) === 0) {
     p = p.slice(0, -1);
     zeros++;
   }
@@ -399,20 +406,26 @@ export function polyRoots(input: Poly): PolyRoot[] {
     }
   } else {
     for (const r of clusterRoots(aberth(p))) {
-      let value = r.value;
-      // Un grupo que coincide con su conjugado es una raíz real (el polinomio es real).
-      if (Math.abs(value.im) <= 1e-4 * Math.max(1, C.abs(value))) value = C.complex(value.re);
-      // Pulido: la raíz de multiplicidad m es raíz simple de la derivada (m − 1).
-      let q: Poly = p;
-      for (let k = 1; k < r.multiplicity; k++) q = derivPoly(q);
-      const dq = derivPoly(q);
-      for (let iter = 0; iter < 8; iter++) {
-        const step = C.div(evalPolyComplex(q, value), evalPolyComplex(dq, value));
-        if (!Number.isFinite(step.re) || !Number.isFinite(step.im)) break;
-        value = C.sub(value, step);
-      }
-      roots.push({ value: snapComplex(value), multiplicity: r.multiplicity });
+      roots.push({ value: snapComplex(polishRoot(p, r)), multiplicity: r.multiplicity });
     }
   }
   return sortRoots(enforceConjugates(roots));
+}
+
+/**
+ * Pule un grupo de raíces numéricas: si coincide con su conjugado es real (el polinomio es real),
+ * y la raíz de multiplicidad m se refina con Newton como raíz simple de la derivada (m − 1).
+ */
+function polishRoot(p: Poly, root: PolyRoot): Complex {
+  let value = root.value;
+  if (Math.abs(value.im) <= 1e-4 * Math.max(1, C.abs(value))) value = C.complex(value.re);
+  let q: Poly = p;
+  for (let k = 1; k < root.multiplicity; k++) q = derivPoly(q);
+  const dq = derivPoly(q);
+  for (let iter = 0; iter < 8; iter++) {
+    const step = C.div(evalPolyComplex(q, value), evalPolyComplex(dq, value));
+    if (!Number.isFinite(step.re) || !Number.isFinite(step.im)) break;
+    value = C.sub(value, step);
+  }
+  return value;
 }

@@ -2,6 +2,9 @@
 
 import type { Point, Series } from '@/lib/calculators/types';
 import { formatNumber } from '@/lib/math/format';
+import { withKeys } from '../keys';
+
+type MarkerShape = NonNullable<Series['markers']>[number]['shape'];
 
 /** Lado del lienzo en unidades del viewBox (la figura se escala al ancho disponible). */
 const SIZE = 400;
@@ -15,12 +18,43 @@ const COLORS = [
   'var(--chart-3)',
 ];
 
+/** Factor «redondo» según la mantisa del paso: hasta 1.5 → 1, hasta 3.5 → 2, hasta 7.5 → 5. */
+const NICE_FACTORS: readonly (readonly [limit: number, factor: number])[] = [
+  [1.5, 1],
+  [3.5, 2],
+  [7.5, 5],
+];
+
 /** Paso «redondo» (1, 2 o 5 por una potencia de 10) para unas 6 a 8 marcas. */
 function niceStep(span: number): number {
   const raw = span / 6;
   const power = 10 ** Math.floor(Math.log10(raw));
   const unit = raw / power;
-  return (unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10) * power;
+  const factor = NICE_FACTORS.find(([limit]) => unit < limit)?.[1] ?? 10;
+  return factor * power;
+}
+
+const MARKER_COLORS: Record<MarkerShape, string> = {
+  cross: 'var(--foreground)',
+  circle: 'var(--chart-2)',
+  dot: 'var(--chart-4)',
+};
+
+/** Ícono del marcador en la leyenda: × para polos, ○ para ceros, ● para puntos calculados. */
+function MarkerIcon({ shape }: Readonly<{ shape: MarkerShape }>) {
+  const color = MARKER_COLORS[shape];
+  if (shape === 'cross') {
+    return (
+      <g stroke={color} strokeWidth={1.8}>
+        <line x1="2" y1="2" x2="10" y2="10" />
+        <line x1="2" y1="10" x2="10" y2="2" />
+      </g>
+    );
+  }
+  if (shape === 'circle') {
+    return <circle cx="6" cy="6" r="4" fill="none" stroke={color} strokeWidth={1.8} />;
+  }
+  return <circle cx="6" cy="6" r="3.5" fill={color} />;
 }
 
 /**
@@ -65,12 +99,6 @@ export function PlaneChart({ series }: Readonly<{ series: Series }>) {
 
   const labels = [...new Set(curves.map((c) => c.label))];
   const colorOf = (label: string) => COLORS[labels.indexOf(label) % COLORS.length]!;
-  const markerColor = (shape: string) =>
-    shape === 'cross'
-      ? 'var(--foreground)'
-      : shape === 'circle'
-        ? 'var(--chart-2)'
-        : 'var(--chart-4)';
   const clipId = `plano-${series.id}`;
 
   return (
@@ -148,9 +176,9 @@ export function PlaneChart({ series }: Readonly<{ series: Series }>) {
               stroke="var(--muted-foreground)"
               strokeWidth={1}
             />
-            {curves.map((c, i) => (
+            {withKeys(curves, (c) => c.label).map(({ item: c, key }) => (
               <polyline
-                key={i}
+                key={key}
                 points={c.points.map((p) => `${px(p.x)},${py(p.y)}`).join(' ')}
                 fill="none"
                 stroke={c.dashed ? 'var(--muted-foreground)' : colorOf(c.label)}
@@ -163,7 +191,7 @@ export function PlaneChart({ series }: Readonly<{ series: Series }>) {
               m.points.map((p, j) => {
                 const x = px(p.x);
                 const y = py(p.y);
-                const color = markerColor(m.shape);
+                const color = MARKER_COLORS[m.shape];
                 if (m.shape === 'cross') {
                   return (
                     <g key={`${m.label}-${j}`} stroke={color} strokeWidth={2}>
@@ -236,23 +264,7 @@ export function PlaneChart({ series }: Readonly<{ series: Series }>) {
         {markers.map((m) => (
           <li key={m.label} className="flex items-center gap-1.5">
             <svg width="12" height="12" aria-hidden className="shrink-0">
-              {m.shape === 'cross' ? (
-                <g stroke={markerColor(m.shape)} strokeWidth={1.8}>
-                  <line x1="2" y1="2" x2="10" y2="10" />
-                  <line x1="2" y1="10" x2="10" y2="2" />
-                </g>
-              ) : m.shape === 'circle' ? (
-                <circle
-                  cx="6"
-                  cy="6"
-                  r="4"
-                  fill="none"
-                  stroke={markerColor(m.shape)}
-                  strokeWidth={1.8}
-                />
-              ) : (
-                <circle cx="6" cy="6" r="3.5" fill={markerColor(m.shape)} />
-              )}
+              <MarkerIcon shape={m.shape} />
             </svg>
             {m.label}
           </li>

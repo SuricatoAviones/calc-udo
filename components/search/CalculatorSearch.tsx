@@ -138,13 +138,12 @@ export function CalculatorSearch({
           className="h-11 pl-9 text-base"
         />
       </div>
-      <p
+      <output
         id={`${id}-status`}
-        role="status"
-        className={cn('text-xs', results.length > 0 ? 'sr-only' : 'text-muted-foreground')}
+        className={cn('block text-xs', results.length > 0 ? 'sr-only' : 'text-muted-foreground')}
       >
         {status}
-      </p>
+      </output>
       {hasQuery && results.length > 0 && (
         <ul ref={listRef} className="bg-card flex flex-col overflow-hidden rounded-lg border">
           {results.map(({ entry }) => {

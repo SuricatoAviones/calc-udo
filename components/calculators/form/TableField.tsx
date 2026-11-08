@@ -6,6 +6,7 @@ import { useFieldArray, useFormContext, type FieldErrors } from 'react-hook-form
 import { Button } from '@/components/ui/button';
 import { parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
+import { fieldText } from './Field';
 
 export interface TableFieldColumn {
   /** Propiedad de cada fila en el schema. */
@@ -133,7 +134,7 @@ export function TableField({
                             ? {
                                 setValueAs: (v: unknown) => {
                                   if (typeof v === 'number') return v;
-                                  const text = String(v ?? '').trim();
+                                  const text = fieldText(v);
                                   if (text === '') return column.optional ? undefined : Number.NaN;
                                   return parseDecimal(text);
                                 },

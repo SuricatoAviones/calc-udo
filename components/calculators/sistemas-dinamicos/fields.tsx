@@ -93,7 +93,7 @@ export function GridField({
               <table className="border-separate border-spacing-1">
                 <tbody>
                   {matrix.map((row, i) => (
-                    <tr key={i}>
+                    <tr key={`fila-${i}`}>
                       {row.map((v, j) => (
                         <td key={`${rows}-${cols}-${i}-${j}`} className="w-16 min-w-14">
                           <input

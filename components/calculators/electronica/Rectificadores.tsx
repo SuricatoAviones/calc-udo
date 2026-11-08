@@ -24,11 +24,7 @@ function SourceFields() {
         />
         <NumberField
           name="ratio"
-          label={
-            <>
-              <Formula tex="N_1 : N_2" />
-            </>
-          }
+          label={<Formula tex="N_1 : N_2" />}
           hint="Relación de espiras; 10 significa 10:1."
         />
       </div>

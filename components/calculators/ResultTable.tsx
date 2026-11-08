@@ -6,6 +6,7 @@ import type {
 import { formatNumber } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
 import { Formula } from './Formula';
+import { withKeys } from './keys';
 
 function Cell({ value, column }: Readonly<{ value: CellValue; column: TableColumn }>) {
   if (value === null) return <span className="text-muted-foreground">—</span>;
@@ -38,26 +39,28 @@ export function ResultTable({ table }: Readonly<{ table: ResultTableData }>) {
             </tr>
           </thead>
           <tbody>
-            {table.rows.map((row, i) => (
-              <tr key={i} className="even:bg-muted/25 border-b last:border-b-0">
-                {table.columns.map((column) => {
-                  const value = row[column.key] ?? null;
-                  return (
-                    <td
-                      key={column.key}
-                      className={cn(
-                        'px-3 py-1.5 whitespace-nowrap',
-                        typeof value === 'number' || value === null
-                          ? 'tabular text-right font-mono text-[0.8125rem]'
-                          : 'text-left',
-                      )}
-                    >
-                      <Cell value={value} column={column} />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {withKeys(table.rows, (r) => table.columns.map((c) => r[c.key] ?? '').join('|')).map(
+              ({ item: row, key }) => (
+                <tr key={key} className="even:bg-muted/25 border-b last:border-b-0">
+                  {table.columns.map((column) => {
+                    const value = row[column.key] ?? null;
+                    return (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          'px-3 py-1.5 whitespace-nowrap',
+                          typeof value === 'number' || value === null
+                            ? 'tabular text-right font-mono text-[0.8125rem]'
+                            : 'text-left',
+                        )}
+                      >
+                        <Cell value={value} column={column} />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
       </div>

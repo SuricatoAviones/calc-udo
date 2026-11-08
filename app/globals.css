@@ -186,11 +186,15 @@
   padding: 0.25rem 0;
 }
 
+/*
+ * Sin capa, esta regla ya gana a las utilidades de Tailwind y de tw-animate-css (que van en
+ * @layer), así que no necesita !important: no hay animaciones en estilos en línea.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
   }
 }

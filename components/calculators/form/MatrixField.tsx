@@ -30,6 +30,13 @@ export function firstErrorMessage(error: unknown): string | undefined {
   return undefined;
 }
 
+/** Copia de la matriz con la celda (i, j) leída del texto escrito. */
+function withCell(matrix: number[][], i: number, j: number, text: string): number[][] {
+  const next = matrix.map((row) => [...row]);
+  next[i]![j] = parseDecimal(text);
+  return next;
+}
+
 function resize(matrix: number[][], size: number): number[][] {
   return Array.from({ length: size }, (_, i) =>
     Array.from({ length: size }, (_, j) => matrix[i]?.[j] ?? (i === j ? 1 : 0)),
@@ -70,11 +77,8 @@ export function MatrixField({
         const matrix = (field.value as number[][] | undefined) ?? resize([], min);
         const size = matrix.length;
         const setSize = (next: number) => field.onChange(resize(matrix, next));
-        const setCell = (i: number, j: number, text: string) => {
-          const next = matrix.map((row) => [...row]);
-          next[i]![j] = parseDecimal(text);
-          field.onChange(next);
-        };
+        const setCell = (i: number, j: number, text: string) =>
+          field.onChange(withCell(matrix, i, j, text));
         const error = firstErrorMessage(fieldState.error);
         return (
           <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
@@ -114,7 +118,11 @@ export function MatrixField({
                   <tr>
                     <th className="w-6" />
                     {matrix.map((_, j) => (
-                      <th key={j} scope="col" className="text-muted-foreground text-xs font-normal">
+                      <th
+                        key={`col-${j}`}
+                        scope="col"
+                        className="text-muted-foreground text-xs font-normal"
+                      >
                         {j + 1}
                       </th>
                     ))}
@@ -130,7 +138,7 @@ export function MatrixField({
                     const sum = row.reduce((s, v) => s + (Number.isNaN(v) ? 0 : v), 0);
                     const sumOk = Math.abs(sum - 1) <= 1e-6;
                     return (
-                      <tr key={i}>
+                      <tr key={`fila-${i}`}>
                         <th scope="row" className="text-muted-foreground text-xs font-normal">
                           {i + 1}
                         </th>
@@ -277,11 +285,8 @@ export function RectangularMatrixField({
         const matrix = (field.value as number[][] | undefined) ?? resizeRect([], min, min);
         const rows = matrix.length;
         const cols = matrix[0]?.length ?? min;
-        const setCell = (i: number, j: number, text: string) => {
-          const next = matrix.map((row) => [...row]);
-          next[i]![j] = parseDecimal(text);
-          field.onChange(next);
-        };
+        const setCell = (i: number, j: number, text: string) =>
+          field.onChange(withCell(matrix, i, j, text));
         const error = firstErrorMessage(fieldState.error);
         return (
           <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${name}-help`}>
@@ -310,7 +315,11 @@ export function RectangularMatrixField({
                   <tr>
                     <th className="w-8" />
                     {matrix[0]?.map((_, j) => (
-                      <th key={j} scope="col" className="text-muted-foreground text-xs font-normal">
+                      <th
+                        key={`col-${j}`}
+                        scope="col"
+                        className="text-muted-foreground text-xs font-normal"
+                      >
                         {colPrefix}
                         {j + 1}
                       </th>
@@ -319,7 +328,7 @@ export function RectangularMatrixField({
                 </thead>
                 <tbody>
                   {matrix.map((row, i) => (
-                    <tr key={i}>
+                    <tr key={`fila-${i}`}>
                       <th scope="row" className="text-muted-foreground text-xs font-normal">
                         {rowPrefix}
                         {i + 1}

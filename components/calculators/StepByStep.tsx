@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import type { Step } from '@/lib/calculators/types';
 import { Formula } from './Formula';
+import { withKeys } from './keys';
 
 /** Con más pasos que esto, solo el primero y el último empiezan abiertos. */
 const OPEN_ALL_THRESHOLD = 6;
@@ -26,8 +27,8 @@ function StepBody({ step, nested = false }: Readonly<{ step: Step; nested?: bool
         ))}
       {step.children && step.children.length > 0 && (
         <ol className="border-border mt-1 flex flex-col gap-3 border-l pl-4">
-          {step.children.map((child, i) => (
-            <li key={i}>
+          {withKeys(step.children, (c) => c.title).map(({ item: child, key }) => (
+            <li key={key}>
               <p className="text-sm font-medium">{child.title}</p>
               <StepBody step={child} nested />
             </li>
@@ -44,8 +45,8 @@ export function StepByStep({ steps }: Readonly<{ steps: Step[] }>) {
   const openAll = steps.length <= OPEN_ALL_THRESHOLD;
   return (
     <ol className="flex flex-col gap-2">
-      {steps.map((step, i) => (
-        <li key={i}>
+      {withKeys(steps, (s) => s.title).map(({ item: step, key }, i) => (
+        <li key={key}>
           <details
             open={openAll || i === 0 || i === steps.length - 1}
             className="group bg-card rounded-lg border"

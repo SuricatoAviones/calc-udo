@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { parseFunction } from '@/lib/math/expression';
 import { parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
-import { Field, describedBy } from './Field';
+import { Field, describedBy, fieldText } from './Field';
 
 /** Error del campo `name` (admite rutas anidadas como `matrix.0.1`). */
 function useFieldError(name: string): string | undefined {
@@ -54,7 +54,7 @@ export function NumberField({
           {...register(name, {
             setValueAs: (v: unknown) => {
               if (typeof v === 'number') return v;
-              const text = String(v ?? '').trim();
+              const text = fieldText(v);
               if (optional && text === '') return undefined;
               return parseDecimal(text);
             },
@@ -94,6 +94,17 @@ export function TextField({
   );
 }
 
+/** LaTeX de la vista previa: el de `toTex` si se da, si no el de la función leída por mathjs. */
+function previewTex(
+  source: string,
+  variables: string[],
+  toTex: ((source: string) => string | null) | undefined,
+): string | null {
+  if (toTex) return toTex(source);
+  const parsed = parseFunction(source, variables);
+  return parsed.ok ? parsed.expr.tex : null;
+}
+
 /** Campo para una función escrita por el estudiante, con vista previa en LaTeX. */
 export function ExpressionField({
   name,
@@ -118,14 +129,7 @@ export function ExpressionField({
   const { register, control } = useFormContext();
   const error = useFieldError(name);
   const source = useWatch({ control, name }) as string | undefined;
-  const tex = !source
-    ? null
-    : toTex
-      ? toTex(source)
-      : (() => {
-          const parsed = parseFunction(source, variables);
-          return parsed.ok ? parsed.expr.tex : null;
-        })();
+  const tex = source ? previewTex(source, variables, toTex) : null;
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <Field id={name} label={label} hint={hint} error={error}>
@@ -138,7 +142,7 @@ export function ExpressionField({
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy(name, Boolean(error))}
           {...register(name, {
-            setValueAs: (v: unknown) => (optional && String(v ?? '').trim() === '' ? undefined : v),
+            setValueAs: (v: unknown) => (optional && fieldText(v) === '' ? undefined : v),
           })}
         />
       </Field>

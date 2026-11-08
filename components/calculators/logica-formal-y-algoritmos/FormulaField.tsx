@@ -113,7 +113,7 @@ export function FormulaField({
           />
         )}
       </Field>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Insertar conector">
+      <fieldset className="flex min-w-0 flex-wrap gap-1" aria-label="Insertar conector">
         {SYMBOLS.map(({ symbol, name: symbolName }) => (
           <Button
             key={symbol}
@@ -128,7 +128,7 @@ export function FormulaField({
             {symbol}
           </Button>
         ))}
-      </div>
+      </fieldset>
       {tex && (
         <div className="bg-muted/60 overflow-x-auto rounded-md px-3 py-1.5 text-sm">
           <Formula tex={tex} />

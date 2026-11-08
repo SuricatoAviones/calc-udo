@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import type { Series } from '@/lib/calculators/types';
 import { formatNumber } from '@/lib/math/format';
+import { withKeys } from '../keys';
 import { PlaneChart } from './PlaneChart';
 
 interface Row {
@@ -37,12 +38,13 @@ const MAX_DOTS = 30;
 /** Colores de las líneas adicionales, distintos del de la serie principal. */
 const OTHER_COLORS = ['var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-2)'];
 
+// Recharts clona el elemento de `content` con las props del tooltip; por eso son opcionales.
 function ChartTooltip({
   active,
   payload,
   label,
   series,
-}: TooltipContentProps & { series: Series }) {
+}: Readonly<Partial<TooltipContentProps> & { series: Series }>) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload as Row | undefined;
   if (!row) return null;
@@ -72,9 +74,9 @@ function ChartTooltip({
           <span className="text-foreground tabular font-mono">{formatNumber(row.sc, 6)}</span>
         </p>
       )}
-      {series.others?.map((other, i) =>
+      {withKeys(series.others ?? [], (o) => o.label).map(({ item: other, key }, i) =>
         row.others?.[i] === undefined ? null : (
-          <p key={i} className="text-muted-foreground">
+          <p key={key} className="text-muted-foreground">
             {other.label}:{' '}
             <span className="text-foreground tabular font-mono">
               {formatNumber(row.others[i], 6)}
@@ -177,24 +179,53 @@ function mergeRows(series: Series, isLog: boolean): Row[] {
   fillRegion(sorted, series);
   const { highlight } = series;
   if (!highlight || (series.kind ?? 'line') !== 'line') return sorted;
+  return withHighlight(sorted, highlight);
+}
 
-  // Se agregan los extremos del rango (interpolando) para que el área empiece y termine
-  // exactamente en ellos, aunque la curva esté muestreada en otros puntos.
+/**
+ * Marca las filas del rango resaltado (`hl`). Se agregan los extremos del rango (interpolando)
+ * para que el área empiece y termine exactamente en ellos, aunque la curva esté muestreada en
+ * otros puntos.
+ */
+function withHighlight(sorted: Row[], highlight: { from: number; to: number }): Row[] {
   const withEdges = [...sorted];
   for (const edge of [highlight.from, highlight.to]) {
-    if (rows.has(edge)) continue;
+    if (sorted.some((r) => r.x === edge)) continue;
     const right = sorted.findIndex((r) => r.x > edge && r.y !== undefined);
     const left = sorted[right - 1];
     const next = sorted[right];
-    if (right <= 0 || !left || !next || left.y === undefined || next.y === undefined) continue;
+    if (right <= 0 || left?.y === undefined || next?.y === undefined) continue;
     const t = (edge - left.x) / (next.x - left.x);
     withEdges.push({ x: edge, y: left.y + t * (next.y - left.y) });
   }
-  return withEdges
-    .sort((a, b) => a.x - b.x)
-    .map((r) =>
-      r.y !== undefined && r.x >= highlight.from && r.x <= highlight.to ? { ...r, hl: r.y } : r,
-    );
+  withEdges.sort((a, b) => a.x - b.x);
+  return withEdges.map((r) =>
+    r.y !== undefined && r.x >= highlight.from && r.x <= highlight.to ? { ...r, hl: r.y } : r,
+  );
+}
+
+/**
+ * Marcas de los ejes. Recharts calcula mal el dominio automático en escala log (recorta el último
+ * punto), así que se fija en potencias de 10 que envuelven los datos, con una marca por década.
+ */
+function axisTicks(rows: Row[], isLog: boolean, xLog: boolean) {
+  const yValues = rows
+    .flatMap((r) => [r.y, r.ref, r.sc, ...Object.values(r.others ?? {}), ...(r.band ?? [])])
+    .filter((v): v is number => v !== undefined);
+  return {
+    logTicks: isLog ? decadeTicks(yValues) : undefined,
+    xTicks: xLog ? decadeTicks(rows.map((r) => r.x)) : undefined,
+    digits: isLog ? 2 : tickDigits(yValues),
+  };
+}
+
+/** Dominio del eje y: décadas en escala log; en barras, desde 0. */
+function yDomain(
+  logTicks: number[] | undefined,
+  kind: Series['kind'],
+): Readonly<[number | 'auto', number | 'auto']> {
+  if (logTicks) return [logTicks[0]!, logTicks.at(-1)!];
+  return kind === 'line' ? ['auto', 'auto'] : [0, 'auto'];
 }
 
 /**
@@ -218,18 +249,13 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
   const others = kind === 'line' ? (series.others ?? []) : [];
   const region = kind === 'line' ? series.region : undefined;
   const scatter = kind === 'line' ? series.scatter : undefined;
-  const yValues = rows
-    .flatMap((r) => [r.y, r.ref, r.sc, ...Object.values(r.others ?? {}), ...(r.band ?? [])])
-    .filter((v): v is number => v !== undefined);
-  // Recharts calcula mal el dominio automático en escala log (recorta el último punto), así que
-  // se fija en potencias de 10 que envuelven los datos, con una marca por década.
-  const logTicks = isLog ? decadeTicks(yValues) : undefined;
-  const xTicks = xLog ? decadeTicks(rows.map((r) => r.x)) : undefined;
-  const digits = isLog ? 2 : tickDigits(yValues);
+  const { logTicks, xTicks, digits } = axisTicks(rows, isLog, xLog);
   const allIntegers = rows.every((r) => Number.isInteger(r.x));
   const showDots = mainCount <= MAX_DOTS && kind !== 'bar';
-  const hasLegend =
-    Boolean(series.reference) || others.length > 0 || Boolean(region) || Boolean(scatter);
+  const mainDot = showDots
+    ? { r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }
+    : false;
+  const keyedOthers = withKeys(others, (o) => o.label);
   const inHighlight = (x: number) =>
     series.highlight !== undefined && x >= series.highlight.from && x <= series.highlight.to;
 
@@ -269,13 +295,7 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
             <YAxis
               type="number"
               scale={isLog ? 'log' : 'linear'}
-              domain={
-                logTicks
-                  ? [logTicks[0]!, logTicks.at(-1)!]
-                  : kind === 'line'
-                    ? ['auto', 'auto']
-                    : [0, 'auto']
-              }
+              domain={yDomain(logTicks, kind)}
               ticks={logTicks}
               tickFormatter={(v: number) => formatNumber(v, digits)}
               tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
@@ -283,7 +303,7 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
               width={64}
             />
             <Tooltip
-              content={(props) => <ChartTooltip {...props} series={series} />}
+              content={<ChartTooltip series={series} />}
               cursor={
                 kind === 'bar'
                   ? { fill: 'var(--muted)', opacity: 0.5 }
@@ -305,9 +325,9 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
                 activeDot={false}
               />
             )}
-            {others.map((other, i) => (
+            {keyedOthers.map(({ item: other, key }, i) => (
               <Line
-                key={i}
+                key={key}
                 type="linear"
                 dataKey={(row: Row) => row.others?.[i]}
                 name={other.label}
@@ -357,11 +377,7 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
                 strokeWidth={2}
                 fill="var(--chart-1)"
                 fillOpacity={0.15}
-                dot={
-                  showDots
-                    ? { r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }
-                    : false
-                }
+                dot={mainDot}
                 isAnimationActive={false}
                 connectNulls
               />
@@ -373,11 +389,7 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
                 name={series.label ?? series.yLabel}
                 stroke="var(--chart-1)"
                 strokeWidth={2}
-                dot={
-                  showDots
-                    ? { r: 4, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }
-                    : false
-                }
+                dot={mainDot}
                 activeDot={{ r: 6, stroke: 'var(--card)', strokeWidth: 2 }}
                 isAnimationActive={false}
                 connectNulls
@@ -412,25 +424,41 @@ function CartesianChart({ series }: Readonly<{ series: Series }>) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {hasLegend && (
-        <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <LegendItem color="var(--chart-1)" label={series.label ?? series.yLabel} />
-          {region && <LegendItem color="var(--chart-1)" label={region.label} area />}
-          {scatter && <LegendItem color="var(--chart-2)" label={scatter.label} dot />}
-          {series.reference && (
-            <LegendItem color="var(--chart-2)" label={series.reference.label} dashed />
-          )}
-          {others.map((other, i) => (
-            <LegendItem
-              key={i}
-              color={OTHER_COLORS[i % OTHER_COLORS.length]!}
-              label={other.label}
-              thin
-            />
-          ))}
-        </ul>
-      )}
+      <ChartLegend series={series} keyedOthers={keyedOthers} region={region} scatter={scatter} />
     </figure>
+  );
+}
+
+/** Leyenda de la gráfica; con una sola serie no hay leyenda (el título la nombra). */
+function ChartLegend({
+  series,
+  keyedOthers,
+  region,
+  scatter,
+}: Readonly<{
+  series: Series;
+  keyedOthers: { item: NonNullable<Series['others']>[number]; key: string }[];
+  region: Series['region'];
+  scatter: Series['scatter'];
+}>) {
+  if (!series.reference && keyedOthers.length === 0 && !region && !scatter) return null;
+  return (
+    <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      <LegendItem color="var(--chart-1)" label={series.label ?? series.yLabel} />
+      {region && <LegendItem color="var(--chart-1)" label={region.label} area />}
+      {scatter && <LegendItem color="var(--chart-2)" label={scatter.label} dot />}
+      {series.reference && (
+        <LegendItem color="var(--chart-2)" label={series.reference.label} dashed />
+      )}
+      {keyedOthers.map(({ item: other, key }, i) => (
+        <LegendItem
+          key={key}
+          color={OTHER_COLORS[i % OTHER_COLORS.length]!}
+          label={other.label}
+          thin
+        />
+      ))}
+    </ul>
   );
 }
 

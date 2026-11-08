@@ -13,10 +13,13 @@
  */
 import { lnGamma, regularizedBeta, regularizedGammaP } from './special';
 
+/** ¿Grados de libertad válidos? NaN no lo es (por eso no basta con `df <= 0`). */
+const invalidDf = (df: number) => Number.isNaN(df) || df <= 0;
+
 // ─── t de Student ───────────────────────────────────────────────────────────
 
 export function studentTCdf(t: number, df: number): number {
-  if (Number.isNaN(t) || !(df > 0)) return Number.NaN;
+  if (Number.isNaN(t) || invalidDf(df)) return Number.NaN;
   if (t === Infinity) return 1;
   if (t === -Infinity) return 0;
   const tail = 0.5 * regularizedBeta(df / (df + t * t), df / 2, 0.5);
@@ -31,14 +34,20 @@ export function studentTDensity(t: number, df: number): number {
 // ─── Ji-cuadrada ────────────────────────────────────────────────────────────
 
 export function chiSquareCdf(x: number, df: number): number {
-  if (Number.isNaN(x) || !(df > 0)) return Number.NaN;
+  if (Number.isNaN(x) || invalidDf(df)) return Number.NaN;
   if (x <= 0) return 0;
   return regularizedGammaP(df / 2, x / 2);
 }
 
+/** Valor de una densidad en x = 0: finito si el exponente de x es 0, infinito si es negativo. */
+function densityAtZero(df: number, valueAtTwo: number): number {
+  if (df === 2) return valueAtTwo;
+  return df < 2 ? Infinity : 0;
+}
+
 export function chiSquareDensity(x: number, df: number): number {
   if (x < 0) return 0;
-  if (x === 0) return df === 2 ? 0.5 : df < 2 ? Infinity : 0;
+  if (x === 0) return densityAtZero(df, 0.5);
   const k = df / 2;
   return Math.exp((k - 1) * Math.log(x) - x / 2 - k * Math.LN2 - lnGamma(k));
 }
@@ -46,7 +55,7 @@ export function chiSquareDensity(x: number, df: number): number {
 // ─── F de Fisher ────────────────────────────────────────────────────────────
 
 export function fCdf(x: number, df1: number, df2: number): number {
-  if (Number.isNaN(x) || !(df1 > 0) || !(df2 > 0)) return Number.NaN;
+  if (Number.isNaN(x) || invalidDf(df1) || invalidDf(df2)) return Number.NaN;
   if (x <= 0) return 0;
   if (x === Infinity) return 1;
   return regularizedBeta((df1 * x) / (df1 * x + df2), df1 / 2, df2 / 2);
@@ -54,7 +63,7 @@ export function fCdf(x: number, df1: number, df2: number): number {
 
 export function fDensity(x: number, df1: number, df2: number): number {
   if (x < 0) return 0;
-  if (x === 0) return df1 === 2 ? 1 : df1 < 2 ? Infinity : 0;
+  if (x === 0) return densityAtZero(df1, 1);
   const lnB = lnGamma(df1 / 2) + lnGamma(df2 / 2) - lnGamma((df1 + df2) / 2);
   const lnNum =
     (df1 / 2) * Math.log(df1 / df2) +

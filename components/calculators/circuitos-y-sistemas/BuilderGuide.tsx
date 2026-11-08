@@ -122,6 +122,17 @@ function useCoarsePointer(): boolean {
   );
 }
 
+/** Texto del último paso según lo que resuelve la calculadora. */
+function calculateText(canSimulate: boolean, hasDiodes: boolean, hasOpAmps: boolean): string {
+  if (canSimulate)
+    return 'Pulsa Calcular para ver el procedimiento paso a paso. Simular (K) anima la corriente en el lienzo.';
+  if (hasDiodes)
+    return 'Pulsa Calcular: se supone el estado de cada diodo, se resuelve el circuito y se verifica cada suposición.';
+  if (hasOpAmps)
+    return 'Pulsa Calcular: se verifica la realimentación de cada amplificador y se resuelve por nodos con el cortocircuito virtual.';
+  return 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.';
+}
+
 /**
  * Guía del constructor de circuitos: primeros pasos, leyenda de los elementos disponibles y
  * ayuda por tipo de dispositivo (en pantallas táctiles abre en la pestaña táctil). Se pliega.
@@ -135,7 +146,7 @@ export function BuilderGuide({
 }>) {
   const id = useId();
   const [open, setOpen] = useState(true);
-  const [chosenTab, setTab] = useState<Tab | null>(null);
+  const [chosenTab, setChosenTab] = useState<Tab | null>(null);
   const coarse = useCoarsePointer();
   const tab: Tab = chosenTab ?? (coarse ? 'tactil' : 'raton');
   const hasStorage = kinds.includes('capacitor') || kinds.includes('inductor');
@@ -164,13 +175,7 @@ export function BuilderGuide({
     },
     {
       title: 'Calcula',
-      text: canSimulate
-        ? 'Pulsa Calcular para ver el procedimiento paso a paso. Simular (K) anima la corriente en el lienzo.'
-        : hasDiodes
-          ? 'Pulsa Calcular: se supone el estado de cada diodo, se resuelve el circuito y se verifica cada suposición.'
-          : hasOpAmps
-            ? 'Pulsa Calcular: se verifica la realimentación de cada amplificador y se resuelve por nodos con el cortocircuito virtual.'
-            : 'Pulsa Calcular para formular las ecuaciones y ver la respuesta en el tiempo.',
+      text: calculateText(canSimulate, hasDiodes, hasOpAmps),
       icon: <Calculator className="size-5" aria-hidden />,
     },
   ];
@@ -279,7 +284,7 @@ export function BuilderGuide({
                   id={`${id}-${tabId}`}
                   aria-selected={tab === tabId}
                   aria-controls={`${id}-${tabId}-panel`}
-                  onClick={() => setTab(tabId)}
+                  onClick={() => setChosenTab(tabId)}
                   className={cn(
                     'focus-visible:ring-ring/50 inline-flex min-w-0 items-center justify-center gap-1.5 rounded px-2 py-1.5 text-sm whitespace-nowrap outline-none focus-visible:ring-[3px]',
                     tab === tabId

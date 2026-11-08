@@ -10,11 +10,7 @@ export function OdeFields() {
       <ExpressionField
         name="expression"
         variables={['x', 'y']}
-        label={
-          <>
-            <Formula tex="\dfrac{dy}{dx} = f(x, y)" />
-          </>
-        }
+        label={<Formula tex="\dfrac{dy}{dx} = f(x, y)" />}
         previewPrefix="\frac{dy}{dx} ="
         hint={
           <>

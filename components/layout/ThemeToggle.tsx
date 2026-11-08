@@ -8,21 +8,21 @@ const STORAGE_KEY = 'calcudo-theme';
 /** Se inyecta en <head>: lee la preferencia guardada o la del sistema. */
 export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})();`;
 
-export function ThemeToggle() {
-  function toggle() {
-    const isDark = document.documentElement.classList.toggle('dark');
-    try {
-      localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
-    } catch {
-      // Navegación privada o almacenamiento bloqueado: el cambio vale solo para esta visita.
-    }
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  try {
+    localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
+  } catch {
+    // Navegación privada o almacenamiento bloqueado: el cambio vale solo para esta visita.
   }
+}
 
+export function ThemeToggle() {
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggle}
+      onClick={toggleTheme}
       aria-label="Cambiar entre tema claro y oscuro"
     >
       <Sun className="hidden size-5 dark:block" aria-hidden />

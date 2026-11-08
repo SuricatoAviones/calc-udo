@@ -35,3 +35,13 @@ export function Field({ id, label, hint, error, children }: Readonly<FieldProps>
 export function describedBy(id: string, hasError: boolean): string {
   return hasError ? `${id}-error` : `${id}-hint`;
 }
+
+/**
+ * Texto de un valor del formulario, sin espacios en los extremos. Los inputs entregan strings; un
+ * número llega del valor por defecto; cualquier otra cosa (null, undefined) cuenta como vacío.
+ */
+export function fieldText(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return String(value);
+  return '';
+}

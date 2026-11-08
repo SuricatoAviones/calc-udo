@@ -235,26 +235,39 @@ function distToSegment(p: GridPoint, a: GridPoint, b: GridPoint): number {
   return Math.hypot(p.x - (a.x + t * vx), p.y - (a.y + t * vy));
 }
 
+/** Rectángulo alineado a la cuadrícula. */
+interface Box {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+/** ¿Algún tramo de cable cumple la condición? */
+function someWireSegment(
+  doc: CircuitDocument,
+  test: (a: GridPoint, b: GridPoint) => boolean,
+): boolean {
+  return doc.wires.some((w) => w.points.slice(1).some((p, i) => test(w.points[i]!, p)));
+}
+
+/** ¿Dos rectángulos se solapan en un área (no solo en un borde)? */
+function boxesOverlap(a: Box, b: Box): boolean {
+  return a.maxX > b.minX && a.minX < b.maxX && a.maxY > b.minY && a.minY < b.maxY;
+}
+
 function segmentConflicts(
   doc: CircuitDocument,
   a: GridPoint,
   b: GridPoint,
   ignoreId?: string,
 ): boolean {
-  for (const c of doc.components) {
-    if (c.id === ignoreId) continue;
-    if (c.kind === 'opamp' && c.c) {
-      if (segmentCrossesBox(a, b, opAmpBody(c.a, c.b, c.c))) return true;
-      continue;
-    }
-    if (collinearOverlap(a, b, c.a, c.b)) return true;
-  }
-  for (const w of doc.wires) {
-    for (let i = 0; i < w.points.length - 1; i++) {
-      if (collinearOverlap(a, b, w.points[i]!, w.points[i + 1]!)) return true;
-    }
-  }
-  return false;
+  const hitsComponent = doc.components.some((c) => {
+    if (c.id === ignoreId) return false;
+    if (c.kind === 'opamp' && c.c) return segmentCrossesBox(a, b, opAmpBody(c.a, c.b, c.c));
+    return collinearOverlap(a, b, c.a, c.b);
+  });
+  return hitsComponent || someWireSegment(doc, (p, q) => collinearOverlap(a, b, p, q));
 }
 
 /** ¿Un amplificador operacional en esa posición se cruza con otro elemento? */
@@ -264,28 +277,13 @@ function opAmpConflicts(
   ignoreId?: string,
 ): boolean {
   const body = opAmpBody(pts.a, pts.b, pts.c);
-  for (const comp of doc.components) {
-    if (comp.id === ignoreId) continue;
-    if (comp.kind === 'opamp' && comp.c) {
-      const other = opAmpBody(comp.a, comp.b, comp.c);
-      if (
-        other.maxX > body.minX &&
-        other.minX < body.maxX &&
-        other.maxY > body.minY &&
-        other.minY < body.maxY
-      ) {
-        return true;
-      }
-      continue;
-    }
-    if (segmentCrossesBox(comp.a, comp.b, body)) return true;
-  }
-  for (const w of doc.wires) {
-    for (let i = 0; i < w.points.length - 1; i++) {
-      if (segmentCrossesBox(w.points[i]!, w.points[i + 1]!, body)) return true;
-    }
-  }
-  return false;
+  const hitsComponent = doc.components.some((comp) => {
+    if (comp.id === ignoreId) return false;
+    if (comp.kind === 'opamp' && comp.c)
+      return boxesOverlap(opAmpBody(comp.a, comp.b, comp.c), body);
+    return segmentCrossesBox(comp.a, comp.b, body);
+  });
+  return hitsComponent || someWireSegment(doc, (p, q) => segmentCrossesBox(p, q, body));
 }
 
 /** Punto del circuito (terminal o nodo de cable) más cercano dentro de una tolerancia. */
@@ -315,26 +313,150 @@ function nearestAnchor(
 function orthogonalize(points: GridPoint[]): GridPoint[] {
   const out: GridPoint[] = [];
   for (const p of points) {
-    const prev = out[out.length - 1];
+    const prev = out.at(-1);
     if (prev) {
       if (prev.x !== p.x && prev.y !== p.y) out.push({ x: p.x, y: prev.y });
-      if (samePoint(out[out.length - 1]!, p)) continue;
+      if (samePoint(out.at(-1)!, p)) continue;
     }
     out.push(p);
   }
   return out;
 }
 
-function boxIntersects(
-  box: { minX: number; minY: number; maxX: number; maxY: number },
-  a: GridPoint,
-  b: GridPoint,
-): boolean {
+function boxIntersects(box: Box, a: GridPoint, b: GridPoint): boolean {
   const segMinX = Math.min(a.x, b.x);
   const segMaxX = Math.max(a.x, b.x);
   const segMinY = Math.min(a.y, b.y);
   const segMaxY = Math.max(a.y, b.y);
   return segMaxX >= box.minX && segMinX <= box.maxX && segMaxY >= box.minY && segMinY <= box.maxY;
+}
+
+/** Rectángulo con esquinas opuestas en a y b. */
+function boxOf(a: GridPoint, b: GridPoint): Box {
+  return {
+    minX: Math.min(a.x, b.x),
+    maxX: Math.max(a.x, b.x),
+    minY: Math.min(a.y, b.y),
+    maxY: Math.max(a.y, b.y),
+  };
+}
+
+/** Componentes y cables que tocan el rectángulo de selección. */
+function idsInBox(doc: CircuitDocument, box: Box): string[] {
+  const components = doc.components.filter((c) => {
+    const pts = pointsOf(c);
+    return pts.some((p, i) => boxIntersects(box, p, pts[(i + 1) % pts.length]!));
+  });
+  const wires = doc.wires.filter((w) =>
+    w.points.slice(1).some((p, i) => boxIntersects(box, w.points[i]!, p)),
+  );
+  return [...components.map((c) => c.id), ...wires.map((w) => w.id)];
+}
+
+/** Codo interior de cable (ni el primer ni el último punto) más cercano, dentro de `tol`. */
+function nearestInteriorVertex(
+  doc: CircuitDocument,
+  world: GridPoint,
+  tol: number,
+): { wire: CircuitWire; index: number } | null {
+  let best: { wire: CircuitWire; index: number } | null = null;
+  let bestDist = tol;
+  for (const w of doc.wires) {
+    for (let k = 1; k < w.points.length - 1; k++) {
+      const p = w.points[k]!;
+      const d = Math.hypot(world.x - p.x, world.y - p.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { wire: w, index: k };
+      }
+    }
+  }
+  return best;
+}
+
+/** Tramo de cable más cercano, dentro de `tol`; `index` es el de su primer punto. */
+function nearestSegment(
+  doc: CircuitDocument,
+  world: GridPoint,
+  tol: number,
+): { wire: CircuitWire; index: number } | null {
+  let best: { wire: CircuitWire; index: number } | null = null;
+  let bestDist = tol;
+  for (const w of doc.wires) {
+    for (let i = 0; i < w.points.length - 1; i++) {
+      const d = distToSegment(world, w.points[i]!, w.points[i + 1]!);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { wire: w, index: i };
+      }
+    }
+  }
+  return best;
+}
+
+/** Punto del tramo (a, b) a la altura del cursor, si cae estrictamente entre sus extremos. */
+function elbowOn(a: GridPoint, b: GridPoint, world: GridPoint): GridPoint | null {
+  if (a.x === b.x) {
+    const y = Math.round(world.y);
+    return y > Math.min(a.y, b.y) && y < Math.max(a.y, b.y) ? { x: a.x, y } : null;
+  }
+  const x = Math.round(world.x);
+  return x > Math.min(a.x, b.x) && x < Math.max(a.x, b.x) ? { x, y: a.y } : null;
+}
+
+/** Selección tras un clic: con Shift (o Ctrl) se agrega; si no, queda solo ese elemento. */
+function selectionWith(ids: string[], id: string, additive: boolean): string[] {
+  if (!additive) return [id];
+  return ids.includes(id) ? ids : [...ids, id];
+}
+
+/** ¿El foco está en un campo de texto? Entonces las teclas se escriben, no son atajos. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+}
+
+const ARROW_STEPS: Record<string, [number, number]> = {
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+};
+
+/** Ayuda de la barra de estado según la herramienta. */
+function statusHintFor(tool: Tool): string {
+  if (tool === 'select')
+    return 'Arrastra para mover o desplazar • los puntos se agarran a los nodos • Shift+arrastrar selecciona varios';
+  if (tool === 'wire') return 'Clic para trazar el cable • doble clic o Esc para terminar';
+  if (tool === 'ground') return 'Clic sobre un nodo para marcar la referencia (tierra)';
+  return 'Clic para colocar • R para girar • Esc para cancelar';
+}
+
+/** Qué seleccionar para voltear, según los componentes de la paleta. */
+function flipHint(kinds: readonly ComponentKind[], canSimulate: boolean): string {
+  if (kinds.includes('opamp'))
+    return 'Selecciona una fuente o un amplificador (intercambia sus entradas − y +).';
+  if (kinds.includes('diode')) return 'Selecciona una fuente o un diodo para voltear su polaridad.';
+  if (canSimulate)
+    return 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.';
+  return 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.';
+}
+
+/** Rectángulo de selección que se está arrastrando, en coordenadas del mundo. */
+function selectBoxRect(drag: Drag | null) {
+  if (drag?.kind !== 'select-box') return null;
+  return {
+    x: Math.min(drag.start.x, drag.current.x),
+    y: Math.min(drag.start.y, drag.current.y),
+    w: Math.abs(drag.current.x - drag.start.x),
+    h: Math.abs(drag.current.y - drag.start.y),
+  };
+}
+
+/** Estado de una rama según el signo de su potencia (convención pasiva). */
+function powerState(p: number): string {
+  if (Math.abs(p) < 1e-12) return '—';
+  return p > 0 ? 'absorbe' : 'entrega';
 }
 
 export function CircuitBuilderField({
@@ -442,82 +564,81 @@ export function CircuitBuilderField({
     function onKeyUp(e: KeyboardEvent) {
       if (e.key === ' ') spaceRef.current = false;
     }
+    // Con Ctrl/⌘ (se evita la acción del navegador); sin modificador, las letras de las herramientas.
+    const withModifier = new Map<string, (e: KeyboardEvent) => void>([
+      [
+        'z',
+        (e) => {
+          if (e.shiftKey) redo();
+          else undo();
+        },
+      ],
+      ['y', () => redo()],
+      ['a', () => selectAll()],
+      ['d', () => duplicateSelected()],
+    ]);
+    const plain = new Map<string, () => void>([
+      [
+        'escape',
+        () => {
+          setTool('select');
+          setWireDraft([]);
+          setSelectedIds([]);
+        },
+      ],
+      [
+        'r',
+        () => {
+          if (selectedComponents.length > 0)
+            for (const c of selectedComponents) rotateComponent(c.id);
+          else setOrientation((o) => (o + 1) % 4);
+        },
+      ],
+      ['f', () => flipSelected()],
+      [
+        'w',
+        () => {
+          setTool('wire');
+          setWireDraft([]);
+        },
+      ],
+      ['g', () => setTool('ground')],
+      ['s', () => setTool('select')],
+      [
+        'k',
+        () => {
+          if (canSimulate) setSimulating((s) => !s);
+        },
+      ],
+    ]);
     function onKeyDown(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      ) {
-        return;
-      }
-      const mod = e.ctrlKey || e.metaKey;
+      if (isEditableTarget(e.target)) return;
       if (e.key === ' ') {
         e.preventDefault();
         spaceRef.current = true;
         return;
       }
-      if (mod && (e.key === 'z' || e.key === 'Z')) {
+      const key = e.key.toLowerCase();
+      const modified = e.ctrlKey || e.metaKey ? withModifier.get(key) : undefined;
+      if (modified) {
         e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
+        modified(e);
         return;
       }
-      if (mod && (e.key === 'y' || e.key === 'Y')) {
-        e.preventDefault();
-        redo();
-        return;
-      }
-      if (mod && (e.key === 'a' || e.key === 'A')) {
-        e.preventDefault();
-        selectAll();
-        return;
-      }
-      if (mod && (e.key === 'd' || e.key === 'D')) {
-        e.preventDefault();
-        duplicateSelected();
-        return;
-      }
-      if (e.key === 'Escape') {
-        setTool('select');
-        setWireDraft([]);
-        setSelectedIds([]);
-        return;
-      }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+      const hasSelection = selectedIds.length > 0;
+      if ((key === 'delete' || key === 'backspace') && hasSelection) {
         e.preventDefault();
         deleteSelected();
         return;
       }
-      if (e.key === 'r' || e.key === 'R') {
-        if (selectedComponents.length > 0)
-          for (const c of selectedComponents) rotateComponent(c.id);
-        else setOrientation((o) => (o + 1) % 4);
-        return;
-      }
-      if (e.key === 'f' || e.key === 'F') {
-        flipSelected();
-        return;
-      }
-      if (e.key === 'w' || e.key === 'W') {
-        setTool('wire');
-        setWireDraft([]);
-      } else if (e.key === 'g' || e.key === 'G') {
-        setTool('ground');
-      } else if (e.key === 's' || e.key === 'S') {
-        setTool('select');
-      } else if ((e.key === 'k' || e.key === 'K') && canSimulate) {
-        setSimulating((s) => !s);
-      } else if (e.key.startsWith('Arrow') && selectedIds.length > 0) {
+      const arrow = ARROW_STEPS[e.key];
+      if (arrow) {
+        if (!hasSelection) return;
         e.preventDefault();
-        const step: Record<string, [number, number]> = {
-          ArrowUp: [0, -1],
-          ArrowDown: [0, 1],
-          ArrowLeft: [-1, 0],
-          ArrowRight: [1, 0],
-        };
-        const d = step[e.key];
-        if (d) nudge(d[0], d[1]);
+        nudge(arrow[0], arrow[1]);
+        return;
       }
+      plain.get(key)?.();
     }
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
@@ -693,51 +814,60 @@ export function CircuitBuilderField({
       ...doc,
       components: doc.components.map((c) => {
         const item = items.find((i) => i.kind === 'component' && i.id === c.id);
-        if (!item || item.kind !== 'component') return c;
+        if (item?.kind !== 'component') return c;
         return shifted({ ...c, a: item.a, b: item.b, ...(item.c ? { c: item.c } : {}) }, dx, dy);
       }),
       wires: doc.wires.map((w) => {
         const item = items.find((i) => i.kind === 'wire' && i.id === w.id);
-        if (!item || item.kind !== 'wire') return w;
+        if (item?.kind !== 'wire') return w;
         return { ...w, points: item.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
       }),
     });
   }
 
   function applyEndpoint(handle: Handle, snapped: GridPoint, basePoints: GridPoint[] | null) {
-    if (handle.kind === 'ground') {
-      field.onChange({ ...doc, ground: snapped });
+    if (handle.kind === 'ground') field.onChange({ ...doc, ground: snapped });
+    else if (handle.kind === 'terminal') applyTerminal(handle, snapped);
+    else applyWireVertex(handle, snapped, basePoints);
+  }
+
+  function applyTerminal(handle: Extract<Handle, { kind: 'terminal' }>, snapped: GridPoint) {
+    const c = doc.components.find((x) => x.id === handle.id);
+    if (!c) return;
+    if (c.kind === 'opamp' && c.c) {
+      moveOpAmpBy(c, c[handle.terminal]!, snapped);
       return;
     }
-    if (handle.kind === 'terminal') {
-      const c = doc.components.find((x) => x.id === handle.id);
-      if (!c) return;
-      if (c.kind === 'opamp' && c.c) {
-        // El amplificador es rígido: arrastrar un terminal mueve la pieza entera.
-        const from = c[handle.terminal]!;
-        const target = nearestAnchor(doc, snapped, 0.6, from);
-        const dx = target.x - from.x;
-        const dy = target.y - from.y;
-        if (dx === 0 && dy === 0) return;
-        const next = shifted(c, dx, dy);
-        if (opAmpConflicts(doc, { a: next.a, b: next.b, c: next.c! }, c.id)) return;
-        field.onChange({
-          ...doc,
-          components: doc.components.map((x) => (x.id === c.id ? next : x)),
-        });
-        return;
-      }
-      const other = handle.terminal === 'a' ? c.b : c.a;
-      const target = nearestAnchor(doc, snapped, 0.6, other);
-      if (samePoint(target, other)) return;
-      field.onChange({
-        ...doc,
-        components: doc.components.map((x) =>
-          x.id === handle.id ? { ...x, [handle.terminal]: target } : x,
-        ),
-      });
-      return;
-    }
+    const other = handle.terminal === 'a' ? c.b : c.a;
+    const target = nearestAnchor(doc, snapped, 0.6, other);
+    if (samePoint(target, other)) return;
+    field.onChange({
+      ...doc,
+      components: doc.components.map((x) =>
+        x.id === handle.id ? { ...x, [handle.terminal]: target } : x,
+      ),
+    });
+  }
+
+  /** El amplificador es rígido: arrastrar un terminal (`from`) mueve la pieza entera. */
+  function moveOpAmpBy(c: CircuitComponent, from: GridPoint, snapped: GridPoint) {
+    const target = nearestAnchor(doc, snapped, 0.6, from);
+    const dx = target.x - from.x;
+    const dy = target.y - from.y;
+    if (dx === 0 && dy === 0) return;
+    const next = shifted(c, dx, dy);
+    if (opAmpConflicts(doc, { a: next.a, b: next.b, c: next.c! }, c.id)) return;
+    field.onChange({
+      ...doc,
+      components: doc.components.map((x) => (x.id === c.id ? next : x)),
+    });
+  }
+
+  function applyWireVertex(
+    handle: Extract<Handle, { kind: 'wire-vertex' }>,
+    snapped: GridPoint,
+    basePoints: GridPoint[] | null,
+  ) {
     const w = doc.wires.find((x) => x.id === handle.id);
     if (!w) return;
     const base = basePoints ?? w.points;
@@ -780,11 +910,11 @@ export function CircuitBuilderField({
     const at = nearestAnchor(doc, p, 0.6);
     setWireDraft((points) => {
       if (points.length === 0) return [at];
-      const last = points[points.length - 1]!;
+      const last = points.at(-1)!;
       if (samePoint(last, at)) return points;
       const next = [...points];
       if (at.x !== last.x && at.y !== last.y) next.push({ x: at.x, y: last.y });
-      const from = next[next.length - 1]!;
+      const from = next.at(-1)!;
       if (segmentConflicts(doc, from, at)) {
         flashMessage('Ese tramo se solapa con un componente existente.');
         return points;
@@ -853,15 +983,7 @@ export function CircuitBuilderField({
       (c) => selectedIds.includes(c.id) && c.kind !== 'resistor',
     );
     if (sources.length === 0) {
-      flashMessage(
-        kinds.includes('opamp')
-          ? 'Selecciona una fuente o un amplificador (intercambia sus entradas − y +).'
-          : kinds.includes('diode')
-            ? 'Selecciona una fuente o un diodo para voltear su polaridad.'
-            : canSimulate
-              ? 'Selecciona una fuente de voltaje o de corriente para voltear su polaridad.'
-              : 'Selecciona una fuente, un capacitor o un inductor para voltear su polaridad.',
-      );
+      flashMessage(flipHint(kinds, canSimulate));
       return;
     }
     commit({
@@ -927,113 +1049,105 @@ export function CircuitBuilderField({
   }
 
   // ── Eventos de puntero ─────────────────────────────────────────────────────
-  function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    const world = toWorld(e.clientX, e.clientY);
-    const snapped = snapWorld(world);
-    const tol = 9 / view.scale;
-    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+  function startPan(e: React.PointerEvent<SVGSVGElement>) {
+    dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
 
+  /** Coloca con la herramienta activa; `false` si la herramienta es la de seleccionar. */
+  function placeWithTool(at: GridPoint): boolean {
+    if (isComponentTool(tool)) placeComponent(tool, at);
+    else if (tool === 'wire') addWirePoint(at);
+    else if (tool === 'ground') placeGround(at);
+    else return false;
+    return true;
+  }
+
+  function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
     if (e.button === 1 || e.button === 2) {
-      dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
-      e.currentTarget.setPointerCapture(e.pointerId);
+      startPan(e);
       e.preventDefault();
       return;
     }
     if (e.button !== 0) return;
-
     if (spaceRef.current) {
-      dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
-      e.currentTarget.setPointerCapture(e.pointerId);
+      startPan(e);
       return;
     }
+    const world = toWorld(e.clientX, e.clientY);
+    const snapped = snapWorld(world);
+    if (placeWithTool(snapped)) return;
 
-    if (isComponentTool(tool)) {
-      placeComponent(tool, snapped);
-      return;
-    }
-    if (tool === 'wire') {
-      addWirePoint(snapped);
-      return;
-    }
-    if (tool === 'ground') {
-      placeGround(snapped);
-      return;
-    }
-
-    const handle = hitHandle(world, tol);
-    if (handle) {
-      const owner = handleOwnerId(handle);
-      setSelectedIds(
-        additive ? (selectedIds.includes(owner) ? selectedIds : [...selectedIds, owner]) : [owner],
-      );
-      const basePoints =
-        handle.kind === 'wire-vertex'
-          ? (doc.wires.find((w) => w.id === handle.id)?.points.map((p) => ({ ...p })) ?? null)
-          : null;
-      dragRef.current = {
-        kind: 'endpoint',
-        handle,
-        basePoints,
-        moved: false,
-        historyPushed: false,
-      };
-      e.currentTarget.setPointerCapture(e.pointerId);
-      return;
-    }
-
-    const component = hitComponent(world, tol);
-    const wire = component ? undefined : hitWire(world, tol);
-    const target = component?.id ?? wire?.id;
-    if (target) {
-      if (additive) {
-        toggleSelected(target);
-        return;
-      }
-      const ids = selectedIds.includes(target) ? selectedIds : [target];
-      setSelectedIds(ids);
-      dragRef.current = {
-        kind: 'move',
-        grab: snapped,
-        items: snapshotIds(ids),
-        moved: false,
-        historyPushed: false,
-      };
-      e.currentTarget.setPointerCapture(e.pointerId);
-      return;
-    }
-
+    const tol = 9 / view.scale;
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+    if (grabHandle(e, world, tol, additive)) return;
+    if (grabItem(e, world, snapped, tol, additive)) return;
     if (additive) {
       dragRef.current = { kind: 'select-box', start: world, current: world };
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
     setSelectedIds([]);
-    dragRef.current = { kind: 'pan', last: { x: e.clientX, y: e.clientY }, moved: false };
+    startPan(e);
+  }
+
+  /** Empieza a arrastrar un terminal, un vértice de cable o la tierra, si hay uno bajo el cursor. */
+  function grabHandle(
+    e: React.PointerEvent<SVGSVGElement>,
+    world: GridPoint,
+    tol: number,
+    additive: boolean,
+  ): boolean {
+    const handle = hitHandle(world, tol);
+    if (!handle) return false;
+    setSelectedIds(selectionWith(selectedIds, handleOwnerId(handle), additive));
+    const basePoints =
+      handle.kind === 'wire-vertex'
+        ? (doc.wires.find((w) => w.id === handle.id)?.points.map((p) => ({ ...p })) ?? null)
+        : null;
+    dragRef.current = {
+      kind: 'endpoint',
+      handle,
+      basePoints,
+      moved: false,
+      historyPushed: false,
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
+    return true;
+  }
+
+  /** Selecciona (o empieza a mover) el componente o cable bajo el cursor, si hay uno. */
+  function grabItem(
+    e: React.PointerEvent<SVGSVGElement>,
+    world: GridPoint,
+    snapped: GridPoint,
+    tol: number,
+    additive: boolean,
+  ): boolean {
+    const target = hitComponent(world, tol)?.id ?? hitWire(world, tol)?.id;
+    if (!target) return false;
+    if (additive) {
+      toggleSelected(target);
+      return true;
+    }
+    const ids = selectedIds.includes(target) ? selectedIds : [target];
+    setSelectedIds(ids);
+    dragRef.current = {
+      kind: 'move',
+      grab: snapped,
+      items: snapshotIds(ids),
+      moved: false,
+      historyPushed: false,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    return true;
   }
 
   function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointersRef.current.size === 2 && dragRef.current?.kind === 'pan') {
-      const pts = [...pointersRef.current.values()];
-      const p1 = pts[0]!;
-      const p2 = pts[1]!;
-      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-      const prev = pinchRef.current;
-      if (prev) {
-        const rect = svgRef.current?.getBoundingClientRect();
-        if (rect) {
-          zoomAt(dist / prev.dist, mid.x - rect.left, mid.y - rect.top);
-          setView((v) => ({
-            ...v,
-            tx: v.tx + (mid.x - prev.mid.x),
-            ty: v.ty + (mid.y - prev.mid.y),
-          }));
-        }
-      }
-      pinchRef.current = { dist, mid };
+      pinch();
       return;
     }
 
@@ -1042,8 +1156,33 @@ export function CircuitBuilderField({
     setPointer({ world, snapped });
 
     const drag = dragRef.current;
-    if (!drag) return;
+    if (drag) continueDrag(drag, e, world, snapped);
+  }
 
+  /** Zoom y desplazamiento con dos dedos. */
+  function pinch() {
+    const [p1, p2] = [...pointersRef.current.values()] as [GridPoint, GridPoint];
+    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    const prev = pinchRef.current;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (prev && rect) {
+      zoomAt(dist / prev.dist, mid.x - rect.left, mid.y - rect.top);
+      setView((v) => ({
+        ...v,
+        tx: v.tx + (mid.x - prev.mid.x),
+        ty: v.ty + (mid.y - prev.mid.y),
+      }));
+    }
+    pinchRef.current = { dist, mid };
+  }
+
+  function continueDrag(
+    drag: Drag,
+    e: React.PointerEvent<SVGSVGElement>,
+    world: GridPoint,
+    snapped: GridPoint,
+  ) {
     if (drag.kind === 'pan') {
       const dx = e.clientX - drag.last.x;
       const dy = e.clientY - drag.last.y;
@@ -1078,29 +1217,11 @@ export function CircuitBuilderField({
     pinchRef.current = null;
     const drag = dragRef.current;
     dragRef.current = null;
-    if (drag?.kind === 'select-box') {
-      const minX = Math.min(drag.start.x, drag.current.x);
-      const maxX = Math.max(drag.start.x, drag.current.x);
-      const minY = Math.min(drag.start.y, drag.current.y);
-      const maxY = Math.max(drag.start.y, drag.current.y);
-      if (maxX - minX > 0.2 || maxY - minY > 0.2) {
-        const box = { minX, minY, maxX, maxY };
-        const ids: string[] = [];
-        for (const c of doc.components) {
-          const pts = pointsOf(c);
-          if (pts.some((p, i) => boxIntersects(box, p, pts[(i + 1) % pts.length]!))) ids.push(c.id);
-        }
-        for (const w of doc.wires) {
-          for (let i = 0; i < w.points.length - 1; i++) {
-            if (boxIntersects(box, w.points[i]!, w.points[i + 1]!)) {
-              ids.push(w.id);
-              break;
-            }
-          }
-        }
-        setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
-      }
-    }
+    if (drag?.kind !== 'select-box') return;
+    const box = boxOf(drag.start, drag.current);
+    if (box.maxX - box.minX <= 0.2 && box.maxY - box.minY <= 0.2) return;
+    const ids = idsInBox(doc, box);
+    setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
   }
 
   function onDoubleClick(e: React.MouseEvent<SVGSVGElement>) {
@@ -1111,61 +1232,32 @@ export function CircuitBuilderField({
     if (tool !== 'select') return;
     const world = toWorld(e.clientX, e.clientY);
     const tol = 9 / view.scale;
-
-    // Quitar un codo interior si se hace doble clic sobre él.
-    let vertex: { id: string; index: number } | null = null;
-    let vertexDist = tol;
-    for (const w of doc.wires) {
-      for (let k = 1; k < w.points.length - 1; k++) {
-        const p = w.points[k]!;
-        const d = Math.hypot(world.x - p.x, world.y - p.y);
-        if (d < vertexDist) {
-          vertexDist = d;
-          vertex = { id: w.id, index: k };
-        }
-      }
-    }
+    // Doble clic sobre un codo interior lo quita; sobre un tramo, agrega uno.
+    const vertex = nearestInteriorVertex(doc, world, tol);
     if (vertex) {
-      const w = doc.wires.find((x) => x.id === vertex!.id)!;
-      const prev = w.points[vertex.index - 1]!;
-      const next = w.points[vertex.index + 1]!;
-      if (prev.x === next.x || prev.y === next.y) {
-        const points = w.points.filter((_, k) => k !== vertex!.index);
-        commit({ ...doc, wires: doc.wires.map((x) => (x.id === w.id ? { ...x, points } : x)) });
-        flashMessage('Codo eliminado.');
-      } else {
-        flashMessage('No se puede quitar el codo: el tramo quedaría en diagonal.');
-      }
+      removeElbow(vertex.wire, vertex.index);
       return;
     }
+    const segment = nearestSegment(doc, world, tol);
+    if (segment) addElbow(segment.wire, segment.index, world);
+  }
 
-    // Agregar un codo en el tramo de cable más cercano.
-    let segment: { id: string; index: number } | null = null;
-    let segmentDist = tol;
-    for (const w of doc.wires) {
-      for (let i = 0; i < w.points.length - 1; i++) {
-        const d = distToSegment(world, w.points[i]!, w.points[i + 1]!);
-        if (d < segmentDist) {
-          segmentDist = d;
-          segment = { id: w.id, index: i };
-        }
-      }
+  function removeElbow(w: CircuitWire, index: number) {
+    const prev = w.points[index - 1]!;
+    const next = w.points[index + 1]!;
+    if (prev.x !== next.x && prev.y !== next.y) {
+      flashMessage('No se puede quitar el codo: el tramo quedaría en diagonal.');
+      return;
     }
-    if (!segment) return;
-    const w = doc.wires.find((x) => x.id === segment!.id)!;
-    const a = w.points[segment.index]!;
-    const b = w.points[segment.index + 1]!;
-    const p = a.x === b.x ? { x: a.x, y: Math.round(world.y) } : { x: Math.round(world.x), y: a.y };
-    const between =
-      a.x === b.x
-        ? p.y > Math.min(a.y, b.y) && p.y < Math.max(a.y, b.y)
-        : p.x > Math.min(a.x, b.x) && p.x < Math.max(a.x, b.x);
-    if (!between) return;
-    const points = [
-      ...w.points.slice(0, segment.index + 1),
-      p,
-      ...w.points.slice(segment.index + 1),
-    ];
+    const points = w.points.filter((_, k) => k !== index);
+    commit({ ...doc, wires: doc.wires.map((x) => (x.id === w.id ? { ...x, points } : x)) });
+    flashMessage('Codo eliminado.');
+  }
+
+  function addElbow(w: CircuitWire, index: number, world: GridPoint) {
+    const p = elbowOn(w.points[index]!, w.points[index + 1]!, world);
+    if (!p) return;
+    const points = [...w.points.slice(0, index + 1), p, ...w.points.slice(index + 1)];
     commit({ ...doc, wires: doc.wires.map((x) => (x.id === w.id ? { ...x, points } : x)) });
     flashMessage('Codo agregado. Arrástralo para ajustarlo.');
   }
@@ -1196,7 +1288,7 @@ export function CircuitBuilderField({
 
   const previewWire = useMemo(() => {
     if (tool !== 'wire' || !pointer || wireDraft.length === 0) return null;
-    const last = wireDraft[wireDraft.length - 1]!;
+    const last = wireDraft.at(-1)!;
     const hover = pointer.snapped;
     if (samePoint(last, hover)) return null;
     const elbow = hover.x !== last.x && hover.y !== last.y ? { x: hover.x, y: last.y } : null;
@@ -1209,25 +1301,8 @@ export function CircuitBuilderField({
     [tool, pointer, view.scale, doc],
   );
 
-  const dragState = dragRef.current;
-  const selectBox =
-    dragState?.kind === 'select-box'
-      ? {
-          x: Math.min(dragState.start.x, dragState.current.x),
-          y: Math.min(dragState.start.y, dragState.current.y),
-          w: Math.abs(dragState.current.x - dragState.start.x),
-          h: Math.abs(dragState.current.y - dragState.start.y),
-        }
-      : null;
-
-  const statusHint =
-    tool === 'select'
-      ? 'Arrastra para mover o desplazar • los puntos se agarran a los nodos • Shift+arrastrar selecciona varios'
-      : tool === 'wire'
-        ? 'Clic para trazar el cable • doble clic o Esc para terminar'
-        : tool === 'ground'
-          ? 'Clic sobre un nodo para marcar la referencia (tierra)'
-          : 'Clic para colocar • R para girar • Esc para cancelar';
+  const selectBox = selectBoxRect(dragRef.current);
+  const statusHint = statusHintFor(tool);
 
   return (
     <div className="flex flex-col gap-3">
@@ -1670,9 +1745,7 @@ export function CircuitBuilderField({
                   <TableCell className="font-mono">{b.label}</TableCell>
                   <TableCell className="text-right font-mono">{fmtNumber(b.i, 'A')}</TableCell>
                   <TableCell className="text-right font-mono">{fmtNumber(b.p, 'W')}</TableCell>
-                  <TableCell className="text-right">
-                    {Math.abs(b.p) < 1e-12 ? '—' : b.p > 0 ? 'absorbe' : 'entrega'}
-                  </TableCell>
+                  <TableCell className="text-right">{powerState(b.p)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1697,8 +1770,22 @@ export function CircuitBuilderField({
   );
 }
 
+/** Tipo del componente seleccionado, para el encabezado del panel de propiedades. */
+function kindDescription(c: CircuitComponent): string {
+  if (c.kind === 'diode') return 'diodo (ánodo → cátodo)';
+  if (c.kind === 'opamp') return 'amplificador operacional ideal';
+  return componentUnit(c.kind);
+}
+
+function invalidValueMessage(field: 'valor' | 'inicial', diode: boolean): string {
+  if (field === 'inicial') return 'Escribe un número, p. ej. 5, −0.3 o 150m.';
+  return diode
+    ? 'Escribe el umbral en voltios: 0.7 (silicio), 0.3 (germanio), 1.8 (LED rojo).'
+    : 'Escribe un número positivo, p. ej. 2.2k, 470m o 10µ.';
+}
+
 function isActiveHandle(a: Handle | null, b: Handle): boolean {
-  if (!a || a.kind !== b.kind) return false;
+  if (a?.kind !== b.kind) return false;
   if (a.kind === 'terminal' && b.kind === 'terminal')
     return a.id === b.id && a.terminal === b.terminal;
   if (a.kind === 'wire-vertex' && b.kind === 'wire-vertex')
@@ -1815,12 +1902,7 @@ function PropertiesPanel({
       <div className="flex flex-col gap-3 rounded-md border p-3" key={single.id}>
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">
-            {componentLabel(single)} ·{' '}
-            {single.kind === 'diode'
-              ? 'diodo (ánodo → cátodo)'
-              : single.kind === 'opamp'
-                ? 'amplificador operacional ideal'
-                : componentUnit(single.kind)}
+            {componentLabel(single)} · {kindDescription(single)}
           </span>
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onRotate(single.id)}>
@@ -1963,11 +2045,7 @@ function ValueAndLabelEditor({
       </div>
       {invalid && (
         <p className="text-destructive text-xs" role="alert">
-          {invalid === 'valor'
-            ? diode
-              ? 'Escribe el umbral en voltios: 0.7 (silicio), 0.3 (germanio), 1.8 (LED rojo).'
-              : 'Escribe un número positivo, p. ej. 2.2k, 470m o 10µ.'
-            : 'Escribe un número, p. ej. 5, −0.3 o 150m.'}
+          {invalidValueMessage(invalid, diode)}
         </p>
       )}
     </div>

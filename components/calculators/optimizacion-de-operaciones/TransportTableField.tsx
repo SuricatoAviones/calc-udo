@@ -28,6 +28,14 @@ const total = (v: number[]) => v.reduce((s, x) => s + (Number.isFinite(x) ? x : 
  * Tabla de transporte editable: costos unitarios cᵢⱼ de cada origen a cada destino, la oferta de
  * cada origen (última columna) y la demanda de cada destino (última fila), como en Taha.
  */
+/** Cómo se balancea el problema, tras «oferta total / demanda total». */
+function balanceNote(balanced: boolean, supplyExceeds: boolean): string {
+  if (balanced) return ': el problema está balanceado.';
+  return supplyExceeds
+    ? ': sobra oferta, así que se agregará un destino ficticio de costo 0.'
+    : ': falta oferta, así que se agregará un origen ficticio de costo 0.';
+}
+
 export function TransportTableField() {
   const { control } = useFormContext();
   const costs = useController({ control, name: 'costs' });
@@ -107,7 +115,7 @@ export function TransportTableField() {
           </thead>
           <tbody>
             {matrix.map((row, i) => (
-              <tr key={i}>
+              <tr key={`origen-${i}`}>
                 <th scope="row" className={headerClass}>
                   O{i + 1}
                 </th>
@@ -181,11 +189,7 @@ export function TransportTableField() {
           <p className="text-muted-foreground text-xs">
             Cada celda es el costo de enviar una unidad del origen al destino. La esquina muestra
             oferta total / demanda total
-            {balanced
-              ? ': el problema está balanceado.'
-              : totalSupply > totalDemand
-                ? ': sobra oferta, así que se agregará un destino ficticio de costo 0.'
-                : ': falta oferta, así que se agregará un origen ficticio de costo 0.'}
+            {balanceNote(balanced, totalSupply > totalDemand)}
           </p>
         )}
       </div>

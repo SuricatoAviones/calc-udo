@@ -39,16 +39,21 @@ const PIVOT_EPSILON = 1e-12;
  * Resuelve A x = b por eliminación de Gauss con pivoteo parcial y sustitución hacia atrás.
  * Devuelve `null` si el sistema es singular (no tiene solución única).
  */
+/** Pivoteo parcial: la fila (desde `col`) con el mayor |valor| en la columna `col`. */
+function pivotRowFor(m: Matrix, col: number): number {
+  let pivotRow = col;
+  for (let r = col + 1; r < m.length; r++) {
+    if (Math.abs(m[r]![col]!) > Math.abs(m[pivotRow]![col]!)) pivotRow = r;
+  }
+  return pivotRow;
+}
+
 export function solveLinearSystem(a: Matrix, b: Vector): Vector | null {
   const size = a.length;
   const m = a.map((row, i) => [...row, b[i]!]);
 
   for (let col = 0; col < size; col++) {
-    // Pivoteo parcial: la fila con el mayor |valor| en esta columna pasa a ser la del pivote.
-    let pivotRow = col;
-    for (let r = col + 1; r < size; r++) {
-      if (Math.abs(m[r]![col]!) > Math.abs(m[pivotRow]![col]!)) pivotRow = r;
-    }
+    const pivotRow = pivotRowFor(m, col);
     if (Math.abs(m[pivotRow]![col]!) < PIVOT_EPSILON) return null;
     [m[col], m[pivotRow]] = [m[pivotRow]!, m[col]!];
 

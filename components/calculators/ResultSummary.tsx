@@ -2,6 +2,7 @@ import { AlertTriangle, CircleCheck, CircleX, Info } from 'lucide-react';
 import type { CalculatorResult, Notice } from '@/lib/calculators/types';
 import { cn } from '@/lib/utils';
 import { Formula } from './Formula';
+import { withKeys } from './keys';
 
 const NOTICE_STYLE: Record<
   Notice['level'],
@@ -16,10 +17,10 @@ export function Notices({ notices }: Readonly<{ notices: Notice[] }>) {
   if (notices.length === 0) return null;
   return (
     <ul className="flex flex-col gap-2">
-      {notices.map((notice, i) => {
+      {withKeys(notices, (n) => n.message).map(({ item: notice, key }) => {
         const { icon: Icon, className, label } = NOTICE_STYLE[notice.level];
         return (
-          <li key={i} className={cn('flex gap-2 rounded-md border px-3 py-2 text-sm', className)}>
+          <li key={key} className={cn('flex gap-2 rounded-md border px-3 py-2 text-sm', className)}>
             <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
             <p>
               <span className="sr-only">{label}: </span>
