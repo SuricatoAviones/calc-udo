@@ -60,6 +60,12 @@ function fail(message: string): CalculatorResult<ControllabilityValue, Controlla
   };
 }
 
+/** `B`, `AB` y `A` con el exponente dado y `B` (`A^2B` en el título, `A^{2}B` en LaTeX). */
+function powerProduct(k: number, power: string): string {
+  if (k === 0) return 'B';
+  return k === 1 ? 'AB' : `A${power}B`;
+}
+
 function rankStep(
   title: string,
   name: string,
@@ -109,10 +115,10 @@ export function solveControllability(
   const ctrl = controllabilityMatrix(A, B);
   steps.push({
     title: 'Productos AᵏB',
-    children: ctrl.blocks.map((b, k) => ({
-      title: k === 0 ? 'B' : `A${k === 1 ? '' : `^${k}`}B`,
-      result: `${k === 0 ? 'B' : k === 1 ? 'AB' : `A^{${k}}B`} = ${tex(b)}`,
-    })),
+    children: ctrl.blocks.map((b, k) => {
+      const product = powerProduct(k, `^{${k}}`);
+      return { title: powerProduct(k, `^${k}`), result: `${product} = ${tex(b)}` };
+    }),
   });
   const c = rankStep(
     'Controlabilidad completa del estado',
@@ -154,13 +160,14 @@ export function solveControllability(
   if (B[0]!.length === 1 && m === 1) {
     const result = stateSpaceToTf(A, B, Cm, D);
     cancellation = result.reduced;
+    const reducedTex = result.reduced ? ` = ${tfTex(result.tf)}` : '';
     steps.push({
       title: 'Condición en el plano s',
       explanation: result.reduced
         ? 'Al formar la función de transferencia se cancelan polos y ceros: el modo cancelado no se puede controlar desde la entrada u observar desde la salida (Ogata, sec. 11-6 y 11-7).'
         : 'La función de transferencia no tiene cancelaciones, como corresponde a un sistema controlable y observable.',
       children: result.steps,
-      result: `G(s) = ${tfTex(result.raw)}${result.reduced ? ` = ${tfTex(result.tf)}` : ''}`,
+      result: `G(s) = ${tfTex(result.raw)}${reducedTex}`,
     });
   }
 

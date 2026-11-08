@@ -10,7 +10,7 @@
  * Antes se verifica que el lazo cerrado sea estable: si no, el teorema del valor final no aplica.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, powerTex, toLatexNumber } from '@/lib/math/format';
 import {
   addPoly,
   isZeroPoly,
@@ -19,9 +19,11 @@ import {
   scalePoly,
   trimPoly,
   type Poly,
+  type PolyRoot,
 } from '@/lib/math/polynomials';
 import type {
   Calculator,
+  CalculatorFailure,
   CalculatorResult,
   Notice,
   ResultTable,
@@ -42,6 +44,7 @@ import {
   tfReduce,
   tfTex,
   zeroMultiplicity,
+  type TransferFunction,
 } from './transfer-function';
 
 const DIGITS = 6;
@@ -97,11 +100,7 @@ function valueTex(v: number): string {
   return v === Infinity ? String.raw`\infty` : n(v);
 }
 
-function fail(
-  code: SteadyStateErrorCode,
-  message: string,
-  steps: Step[] = [],
-): CalculatorResult<SteadyStateValue, SteadyStateErrorCode> {
+function fail(code: SteadyStateErrorCode, message: string, steps: Step[] = []): Failure {
   return {
     ok: false,
     error: { code, message },
@@ -112,182 +111,177 @@ function fail(
   };
 }
 
-export function solveSteadyState(
-  input: SteadyStateInput,
-): CalculatorResult<SteadyStateValue, SteadyStateErrorCode> {
-  const G = parseTf(input.forward, 'G(s)');
-  if (!G.ok) return fail('funcion-invalida', G.message);
-  const H = parseTf(input.feedback, 'H(s)');
-  if (!H.ok) return fail('funcion-invalida', H.message);
-  const R = input.amplitude;
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
+type Failure = CalculatorFailure<SteadyStateErrorCode>;
+type Errors = SteadyStateValue['errors'];
 
-  const unityH =
-    trimPoly(H.tf.num).length === 1 &&
-    trimPoly(H.tf.den).length === 1 &&
-    H.tf.num[0]! / H.tf.den[0]! === 1;
-  const closed = tfReduce(tfFeedback(G.tf, H.tf, -1)).tf;
-  const characteristic = addPoly(mulPoly(G.tf.den, H.tf.den), mulPoly(G.tf.num, H.tf.num));
-  const roots = polyRoots(characteristic);
+/** H(s) = 1: numerador y denominador constantes con cociente 1. */
+function isUnity(tf: TransferFunction): boolean {
+  if (trimPoly(tf.num).length !== 1 || trimPoly(tf.den).length !== 1) return false;
+  const gain = tf.num[0]! / tf.den[0]!;
+  return gain === 1;
+}
+
+/** Constante de error de orden `power` para un sistema de tipo `type` y ganancia K. */
+function staticConstant(type: number, power: number, K: number): number {
+  if (type > power) return Infinity;
+  return type === power ? K : 0;
+}
+
+/** e_ss = R/(1 + Kp), R/Kv o R/Ka; 0 si la constante es infinita y ∞ si es 0. */
+function constantError(R: number, constant: number, plusOne: boolean): number {
+  if (constant === Infinity) return 0;
+  if (plusOne) return R / (1 + constant);
+  return constant === 0 ? Infinity : R / constant;
+}
+
+/** Realimentación unitaria (Ogata, sec. 5-10): Kp, Kv, Ka y los errores. */
+function unityAnalysis(
+  G: TransferFunction,
+  type: number,
+  R: number,
+  steps: Step[],
+  summary: SummaryItem[],
+): { kp: number; kv: number; ka: number; errors: Errors } {
+  const K = lowFrequencyGain(G);
+  const kp = staticConstant(type, 0, K);
+  const kv = staticConstant(type, 1, K);
+  const ka = staticConstant(type, 2, K);
+  const constSteps: Step[] = [
+    { name: 'K_p', k: 0, value: kp },
+    { name: 'K_v', k: 1, value: kv },
+    { name: 'K_a', k: 2, value: ka },
+  ].map(({ name, k, value }) => ({
+    title: `Constante ${name}`,
+    formula: String.raw`${name} = \lim_{s \to 0} ${powerTex('s', k)}G(s)`,
+    result: `${name} = ${valueTex(value)}`,
+  }));
+  steps.push({ title: 'Constantes de error estático', children: constSteps });
+  const errors: Errors = {
+    step: constantError(R, kp, true),
+    ramp: constantError(R, kv, false),
+    parabola: constantError(R, ka, false),
+  };
   steps.push({
-    title: 'Estabilidad en lazo cerrado',
-    explanation: `El teorema del valor final solo vale si el lazo cerrado es estable. Raíces de la ecuación característica: ${rootsText(roots)}.`,
-    formula: '1 + G(s)H(s) = 0',
-    result: `${polyTex(characteristic)} = 0`,
+    title: 'Errores en estado estacionario',
+    children: [
+      {
+        title: 'Escalón R·u(t)',
+        formula: String.raw`e_{ss} = \frac{R}{1 + K_p}`,
+        substitution: String.raw`e_{ss} = \frac{${n(R)}}{1 + ${valueTex(kp)}}`,
+        result: `e_{ss} = ${valueTex(errors.step)}`,
+      },
+      {
+        title: 'Rampa R·t',
+        formula: String.raw`e_{ss} = \frac{R}{K_v}`,
+        substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(kv)}}`,
+        result: `e_{ss} = ${valueTex(errors.ramp)}`,
+      },
+      {
+        title: 'Parábola R·t²/2',
+        formula: String.raw`e_{ss} = \frac{R}{K_a}`,
+        substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(ka)}}`,
+        result: `e_{ss} = ${valueTex(errors.parabola)}`,
+      },
+    ],
   });
-  const unstable = roots.filter((r) => r.value.re >= -1e-9);
-  if (unstable.length > 0) {
+  summary.push(
+    { label: 'Tipo', value: `${Math.max(type, 0)}` },
+    {
+      label: 'Constantes',
+      value: String.raw`K_p = ${valueTex(kp)},\ K_v = ${valueTex(kv)},\ K_a = ${valueTex(ka)}`,
+    },
+  );
+  return { kp, kv, ka, errors };
+}
+
+/**
+ * lím s·R/sᵖ·P(s)/(K_H·D(s)) con P(s) = sᶻ(…): 0 si z > p − 1, finito si z = p − 1 e infinito si
+ * z < p − 1.
+ */
+function finalValue(P: Poly, z0: number, k: number, R: number, denominator: number): number {
+  if (z0 > k) return 0;
+  return z0 === k ? (R * coefficientOf(P, k)) / denominator : Infinity;
+}
+
+/** Realimentación no unitaria con H(0) = K_H (Kuo, sec. 7-3, ec. 7-36). */
+function nonUnityAnalysis(
+  H: TransferFunction,
+  closed: TransferFunction,
+  R: number,
+  steps: Step[],
+): Errors | Failure {
+  const Hnum = stripZeroRoots(H.num);
+  const Hden = stripZeroRoots(H.den);
+  if (Hnum.k !== Hden.k || isZeroPoly(H.num)) {
     return fail(
-      'lazo-cerrado-inestable',
-      `El lazo cerrado no es estable (hay raíces en ${rootsText(unstable)}): el error crece sin límite y el análisis del error en estado estable no tiene sentido (Kuo, ejemplo 7-2(b)).`,
+      'realimentacion-singular',
+      'H(s) tiene un polo o un cero en s = 0: H(0) debe ser una constante distinta de 0 para definir el error (Kuo, ec. 7-35).',
       steps,
     );
   }
-
-  const GH = tfMul(G.tf, H.tf);
-  const type = systemType(GH);
-  const tables: ResultTable[] = [];
-  const summary: SummaryItem[] = [];
-  const errors = { step: 0, ramp: 0, parabola: 0 };
-  let kp: number | null = null;
-  let kv: number | null = null;
-  let ka: number | null = null;
-
+  const KH = lowFrequencyGain(H);
+  const M = closed;
+  // 1 − K_H M = (D_M − K_H N_M)/D_M.
+  const P = addPoly(M.den, scalePoly(M.num, -KH));
   steps.push({
-    title: 'Tipo del sistema',
-    explanation: `${unityH ? 'G(s)' : 'G(s)H(s)'} tiene ${type === 1 ? 'un polo' : `${Math.max(type, 0)} polos`} en el origen: es un sistema de tipo ${Math.max(type, 0)} (Ogata, sec. 5-10).`,
-    formula: `${unityH ? 'G(s)' : 'G(s)H(s)'} = ${tfTex(unityH ? G.tf : GH)}`,
+    title: 'Error con realimentación no unitaria',
+    explanation: `H(0) = K_H = ${formatNumber(KH, DIGITS)}. La señal que se compara con la entrada en estado estable es K_H veces la salida, así que el error se define como e(t) = r(t)/K_H − y(t) (Kuo, ec. 7-36).`,
+    formula: String.raw`E(s) = \frac{1}{K_H}\left[1 - K_HM(s)\right]R(s),\quad M(s) = \frac{G(s)}{1 + G(s)H(s)}`,
+    result: String.raw`M(s) = ${tfTex(M)},\quad 1 - K_HM(s) = \frac{${polyTex(P)}}{${polyTex(M.den)}}`,
   });
-
-  if (unityH) {
-    const K = lowFrequencyGain(G.tf);
-    const constant = (power: number) => (type > power ? Infinity : type === power ? K : 0);
-    kp = constant(0);
-    kv = constant(1);
-    ka = constant(2);
-    const sNTex = (k: number) => (k === 0 ? '' : k === 1 ? 's' : `s^{${k}}`);
-    const constSteps: Step[] = [
-      { name: 'K_p', k: 0, value: kp },
-      { name: 'K_v', k: 1, value: kv },
-      { name: 'K_a', k: 2, value: ka },
-    ].map(({ name, k, value }) => ({
-      title: `Constante ${name}`,
-      formula: String.raw`${name} = \lim_{s \to 0} ${sNTex(k)}G(s)`,
-      result: `${name} = ${valueTex(value)}`,
-    }));
-    steps.push({ title: 'Constantes de error estático', children: constSteps });
-    errors.step = R / (1 + kp);
-    errors.ramp = kv === 0 ? Infinity : R / kv;
-    errors.parabola = ka === 0 ? Infinity : R / ka;
-    if (kp === Infinity) errors.step = 0;
-    if (kv === Infinity) errors.ramp = 0;
-    if (ka === Infinity) errors.parabola = 0;
-    steps.push({
-      title: 'Errores en estado estacionario',
-      children: [
-        {
-          title: 'Escalón R·u(t)',
-          formula: String.raw`e_{ss} = \frac{R}{1 + K_p}`,
-          substitution: String.raw`e_{ss} = \frac{${n(R)}}{1 + ${valueTex(kp)}}`,
-          result: `e_{ss} = ${valueTex(errors.step)}`,
-        },
-        {
-          title: 'Rampa R·t',
-          formula: String.raw`e_{ss} = \frac{R}{K_v}`,
-          substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(kv)}}`,
-          result: `e_{ss} = ${valueTex(errors.ramp)}`,
-        },
-        {
-          title: 'Parábola R·t²/2',
-          formula: String.raw`e_{ss} = \frac{R}{K_a}`,
-          substitution: String.raw`e_{ss} = \frac{${n(R)}}{${valueTex(ka)}}`,
-          result: `e_{ss} = ${valueTex(errors.parabola)}`,
-        },
-      ],
-    });
-    summary.push(
-      { label: 'Tipo', value: `${Math.max(type, 0)}` },
-      {
-        label: 'Constantes',
-        value: String.raw`K_p = ${valueTex(kp)},\ K_v = ${valueTex(kv)},\ K_a = ${valueTex(ka)}`,
-      },
-    );
-  } else {
-    // Kuo, sec. 7-3: H(0) = K_H constante.
-    const Hnum = stripZeroRoots(H.tf.num);
-    const Hden = stripZeroRoots(H.tf.den);
-    if (Hnum.k !== Hden.k || isZeroPoly(H.tf.num)) {
-      return fail(
-        'realimentacion-singular',
-        'H(s) tiene un polo o un cero en s = 0: H(0) debe ser una constante distinta de 0 para definir el error (Kuo, ec. 7-35).',
-        steps,
-      );
-    }
-    const KH = lowFrequencyGain(H.tf);
-    const M = closed;
-    // 1 − K_H M = (D_M − K_H N_M)/D_M.
-    const P = addPoly(M.den, scalePoly(M.num, -KH));
-    steps.push({
-      title: 'Error con realimentación no unitaria',
-      explanation: `H(0) = K_H = ${formatNumber(KH, DIGITS)}. La señal que se compara con la entrada en estado estable es K_H veces la salida, así que el error se define como e(t) = r(t)/K_H − y(t) (Kuo, ec. 7-36).`,
-      formula: String.raw`E(s) = \frac{1}{K_H}\left[1 - K_HM(s)\right]R(s),\quad M(s) = \frac{G(s)}{1 + G(s)H(s)}`,
-      result: String.raw`M(s) = ${tfTex(M)},\quad 1 - K_HM(s) = \frac{${polyTex(P)}}{${polyTex(M.den)}}`,
-    });
-    const z0 = zeroMultiplicity(P);
-    const d0 = coefficientOf(M.den, 0);
-    for (const item of INPUTS) {
-      const k = item.power - 1;
-      const value = z0 > k ? 0 : z0 === k ? (R * coefficientOf(P, k)) / (KH * d0) : Infinity;
-      errors[item.key] = value === Infinity ? Infinity : value;
-    }
-    steps.push({
-      title: 'Teorema del valor final',
-      formula: String.raw`e_{ss} = \lim_{s \to 0} sE(s)`,
-      children: INPUTS.map((item) => ({
-        title: `Entrada ${item.name}`,
-        formula: String.raw`e_{ss} = \lim_{s \to 0} s\,\frac{1 - K_HM(s)}{K_H}\,${item.R}`,
-        result: `e_{ss} = ${valueTex(errors[item.key])}`,
-      })),
-    });
-    summary.push({ label: 'Tipo de G(s)H(s)', value: `${Math.max(type, 0)}` });
-  }
-
+  const z0 = zeroMultiplicity(P);
+  const d0 = coefficientOf(M.den, 0);
+  const errors: Errors = { step: 0, ramp: 0, parabola: 0 };
   for (const item of INPUTS) {
-    summary.push({
-      label: `Error ante ${item.name}`,
-      value: `e_{ss} = ${valueTex(errors[item.key])}`,
-      emphasis: item.key === 'step',
-    });
+    errors[item.key] = finalValue(P, z0, item.power - 1, R, KH * d0);
   }
-  tables.push({
+  steps.push({
+    title: 'Teorema del valor final',
+    formula: String.raw`e_{ss} = \lim_{s \to 0} sE(s)`,
+    children: INPUTS.map((item) => ({
+      title: `Entrada ${item.name}`,
+      formula: String.raw`e_{ss} = \lim_{s \to 0} s\,\frac{1 - K_HM(s)}{K_H}\,${item.R}`,
+      result: `e_{ss} = ${valueTex(errors[item.key])}`,
+    })),
+  });
+  return errors;
+}
+
+function errorTable(
+  R: number,
+  errors: Errors,
+  constants: { kp: number; kv: number; ka: number } | null,
+): ResultTable {
+  const constantColumn = constants
+    ? [{ key: 'constante', header: String.raw`\text{Constante}`, format: 'latex' as const }]
+    : [];
+  const constantTexts = constants
+    ? [
+        `K_p = ${valueTex(constants.kp)}`,
+        `K_v = ${valueTex(constants.kv)}`,
+        `K_a = ${valueTex(constants.ka)}`,
+      ]
+    : [];
+  return {
     id: 'errores',
     title: 'Errores en estado estacionario',
     columns: [
       { key: 'entrada', header: String.raw`\text{Entrada}`, format: 'latex' },
       { key: 'transformada', header: 'R(s)', format: 'latex' },
-      ...(unityH
-        ? [{ key: 'constante', header: String.raw`\text{Constante}`, format: 'latex' as const }]
-        : []),
+      ...constantColumn,
       { key: 'error', header: 'e_{ss}', format: 'latex' },
     ],
     rows: INPUTS.map((item, i) => ({
       entrada: item.r.replace('R', formatNumber(R, DIGITS)),
       transformada: item.R.replace('R', formatNumber(R, DIGITS)),
-      ...(unityH
-        ? {
-            constante: [
-              `K_p = ${valueTex(kp!)}`,
-              `K_v = ${valueTex(kv!)}`,
-              `K_a = ${valueTex(ka!)}`,
-            ][i]!,
-          }
-        : {}),
+      ...(constants ? { constante: constantTexts[i]! } : {}),
       error: valueTex(errors[item.key]),
     })),
-  });
+  };
+}
 
-  // Respuestas al escalón y a la rampa para ver el error.
+/** Respuestas al escalón y a la rampa para ver el error. */
+function responseSeries(closed: TransferFunction, roots: PolyRoot[], R: number): Series[] {
   const series: Series[] = [];
   const slowest = Math.min(...roots.map((r) => Math.abs(r.value.re)).filter((v) => v > 1e-9), 1e9);
   const horizon = Math.min(Math.max(6 / Math.max(slowest, 1e-6), 1), 200);
@@ -313,6 +307,70 @@ export function solveSteadyState(
       },
     });
   }
+  return series;
+}
+
+export function solveSteadyState(
+  input: SteadyStateInput,
+): CalculatorResult<SteadyStateValue, SteadyStateErrorCode> {
+  const G = parseTf(input.forward, 'G(s)');
+  if (!G.ok) return fail('funcion-invalida', G.message);
+  const H = parseTf(input.feedback, 'H(s)');
+  if (!H.ok) return fail('funcion-invalida', H.message);
+  const R = input.amplitude;
+  const steps: Step[] = [];
+  const notices: Notice[] = [];
+
+  const unityH = isUnity(H.tf);
+  const closed = tfReduce(tfFeedback(G.tf, H.tf, -1)).tf;
+  const characteristic = addPoly(mulPoly(G.tf.den, H.tf.den), mulPoly(G.tf.num, H.tf.num));
+  const roots = polyRoots(characteristic);
+  steps.push({
+    title: 'Estabilidad en lazo cerrado',
+    explanation: `El teorema del valor final solo vale si el lazo cerrado es estable. Raíces de la ecuación característica: ${rootsText(roots)}.`,
+    formula: '1 + G(s)H(s) = 0',
+    result: `${polyTex(characteristic)} = 0`,
+  });
+  const unstable = roots.filter((r) => r.value.re >= -1e-9);
+  if (unstable.length > 0) {
+    return fail(
+      'lazo-cerrado-inestable',
+      `El lazo cerrado no es estable (hay raíces en ${rootsText(unstable)}): el error crece sin límite y el análisis del error en estado estable no tiene sentido (Kuo, ejemplo 7-2(b)).`,
+      steps,
+    );
+  }
+
+  const GH = tfMul(G.tf, H.tf);
+  const type = systemType(GH);
+  const summary: SummaryItem[] = [];
+  const loopName = unityH ? 'G(s)' : 'G(s)H(s)';
+  const originPoles = type === 1 ? 'un polo' : `${Math.max(type, 0)} polos`;
+  steps.push({
+    title: 'Tipo del sistema',
+    explanation: `${loopName} tiene ${originPoles} en el origen: es un sistema de tipo ${Math.max(type, 0)} (Ogata, sec. 5-10).`,
+    formula: `${loopName} = ${tfTex(unityH ? G.tf : GH)}`,
+  });
+
+  let constants: { kp: number; kv: number; ka: number } | null = null;
+  let errors: Errors;
+  if (unityH) {
+    const unity = unityAnalysis(G.tf, type, R, steps, summary);
+    constants = unity;
+    errors = unity.errors;
+  } else {
+    const outcome = nonUnityAnalysis(H.tf, closed, R, steps);
+    if ('error' in outcome) return outcome;
+    errors = outcome;
+    summary.push({ label: 'Tipo de G(s)H(s)', value: `${Math.max(type, 0)}` });
+  }
+
+  for (const item of INPUTS) {
+    summary.push({
+      label: `Error ante ${item.name}`,
+      value: `e_{ss} = ${valueTex(errors[item.key])}`,
+      emphasis: item.key === 'step',
+    });
+  }
   if (!unityH) {
     notices.push({
       level: 'info',
@@ -322,11 +380,18 @@ export function solveSteadyState(
   }
   return {
     ok: true,
-    value: { type: Math.max(type, 0), unity: unityH, kp, kv, ka, errors },
+    value: {
+      type: Math.max(type, 0),
+      unity: unityH,
+      kp: constants?.kp ?? null,
+      kv: constants?.kv ?? null,
+      ka: constants?.ka ?? null,
+      errors,
+    },
     summary,
     steps,
-    tables,
-    series,
+    tables: [errorTable(R, errors, constants)],
+    series: responseSeries(closed, roots, R),
     notices,
   };
 }

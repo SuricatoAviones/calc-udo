@@ -32,6 +32,8 @@ import {
   unityClosedLoop,
   type BodeFactor,
   type BodeForm,
+  type ClosedLoopFrequency,
+  type Margins,
 } from './frequency';
 import { parseTf, tfTex, type TransferFunction } from './transfer-function';
 
@@ -86,7 +88,8 @@ function factorTex(f: BodeFactor): string {
   }
   const c2 = 1 / (f.corner * f.corner);
   const c1 = (2 * f.zeta) / f.corner;
-  const term1 = c1 === 0 ? '' : String.raw` ${c1 < 0 ? '-' : '+'} ${n(Math.abs(c1))}j\omega`;
+  const sign1 = c1 < 0 ? '-' : '+';
+  const term1 = c1 === 0 ? '' : String.raw` ${sign1} ${n(Math.abs(c1))}j\omega`;
   return String.raw`\left[${n(c2)}(j\omega)^{2}${term1} + 1\right]`;
 }
 
@@ -114,71 +117,39 @@ export function bodeFormTex(form: BodeForm): string {
   return String.raw`\frac{${k}${top}}{${bottom}}`;
 }
 
-function describe(f: BodeFactor): string {
-  const what = f.zero ? 'cero' : 'polo';
-  if (f.kind === 'origen') {
-    return `${f.multiplicity === 1 ? (f.zero ? 'Derivador' : 'Integrador') : `${f.multiplicity} ${f.zero ? 'derivadores' : 'integradores'}`} (${what} en el origen): pendiente ${f.zero ? '+' : '−'}${20 * f.multiplicity} dB/década en todas las frecuencias y fase constante de ${f.zero ? '+' : '−'}${90 * f.multiplicity}°.`;
-  }
-  if (f.kind === 'primer-orden') {
-    return `Factor de primer orden (${what} en s = ${formatNumber(f.root.re, DIGITS)}${f.rightHalf ? ', semiplano derecho: fase no mínima' : ''}): esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s; la pendiente cambia ${f.zero ? '+' : '−'}${20 * f.multiplicity} dB/década y la fase va de 0° a ${f.zero !== f.rightHalf ? '+' : '−'}${90 * f.multiplicity}°.`;
-  }
-  return `Factor cuadrático (${what}s complejos ${C.toTextRect(f.root, DIGITS)} y su conjugado${f.rightHalf ? ', semiplano derecho' : ''}): ω_n = ${formatNumber(f.corner, DIGITS)} rad/s y ζ = ${formatNumber(f.zeta, 4)}; la pendiente cambia ${f.zero ? '+' : '−'}${40 * f.multiplicity} dB/década y la fase va de 0° a ${f.zero ? '+' : '−'}${180 * f.multiplicity}°. Cerca de ω_n la curva exacta se aparta de la asintótica según ζ.`;
+function originName(f: BodeFactor): string {
+  if (f.multiplicity === 1) return f.zero ? 'Derivador' : 'Integrador';
+  return `${f.multiplicity} ${f.zero ? 'derivadores' : 'integradores'}`;
 }
 
-export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErrorCode> {
-  const parsed = parseTf(input.openLoop, 'G(s)H(s)');
-  if (!parsed.ok) return fail('funcion-invalida', parsed.message);
-  const tf: TransferFunction = parsed.tf;
-  const onAxis = [...polyRoots(tf.num), ...polyRoots(tf.den)].find(
-    (r) => Math.abs(r.value.re) <= 1e-12 && Math.abs(r.value.im) > 1e-12,
-  );
-  if (onAxis) {
-    return fail(
-      'raices-en-eje-imaginario',
-      `G(s)H(s) tiene polos o ceros sobre el eje imaginario (s = ±j${formatNumber(Math.abs(onAxis.value.im), DIGITS)}): la magnitud se hace infinita o cero en esa frecuencia y la fase salta 180°.`,
-    );
+function describe(f: BodeFactor): string {
+  const what = f.zero ? 'cero' : 'polo';
+  const sign = f.zero ? '+' : '−';
+  const m = f.multiplicity;
+  if (f.kind === 'origen') {
+    return `${originName(f)} (${what} en el origen): pendiente ${sign}${20 * m} dB/década en todas las frecuencias y fase constante de ${sign}${90 * m}°.`;
   }
-  const form = bodeForm(tf);
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-  const tables: ResultTable[] = [];
+  if (f.kind === 'primer-orden') {
+    const rightHalf = f.rightHalf ? ', semiplano derecho: fase no mínima' : '';
+    const phaseSign = f.zero !== f.rightHalf ? '+' : '−';
+    return `Factor de primer orden (${what} en s = ${formatNumber(f.root.re, DIGITS)}${rightHalf}): esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s; la pendiente cambia ${sign}${20 * m} dB/década y la fase va de 0° a ${phaseSign}${90 * m}°.`;
+  }
+  const rightHalf = f.rightHalf ? ', semiplano derecho' : '';
+  return `Factor cuadrático (${what}s complejos ${C.toTextRect(f.root, DIGITS)} y su conjugado${rightHalf}): ω_n = ${formatNumber(f.corner, DIGITS)} rad/s y ζ = ${formatNumber(f.zeta, 4)}; la pendiente cambia ${sign}${40 * m} dB/década y la fase va de 0° a ${sign}${180 * m}°. Cerca de ω_n la curva exacta se aparta de la asintótica según ζ.`;
+}
 
-  steps.push(
-    {
-      title: 'Forma de Bode',
-      explanation:
-        'Se escribe G(jω) con factores cuyas asíntotas de baja frecuencia son la recta de 0 dB: (1 + jω/ω_c) para cada raíz real y [(jω/ω_n)² + 2ζ(jω/ω_n) + 1] para cada par complejo. La ganancia K es el valor de sᴺG(s) en s → 0.',
-      formula: `G(s)H(s) = ${tfTex(tf)}`,
-      result: String.raw`G(j\omega)H(j\omega) = ${bodeFormTex(form)}`,
-    },
-    {
-      title: 'Factores y frecuencias de esquina',
-      children: [
-        {
-          title: `Ganancia K = ${formatNumber(form.gain, DIGITS)}`,
-          explanation: `Aporta 20 log|K| = ${formatNumber(20 * Math.log10(Math.abs(form.gain)), DIGITS)} dB a todas las frecuencias y una fase de ${form.gain < 0 ? '−180°' : '0°'}.`,
-        },
-        ...form.factors.map((f) => ({
-          title:
-            f.kind === 'origen'
-              ? 'Factor en el origen'
-              : `Esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s`,
-          explanation: describe(f),
-          result: signedFactorTex(f),
-        })),
-      ],
-    },
-  );
+/** Cambio de pendiente (dB/década) que aporta un factor en su esquina. */
+function slopeOf(f: BodeFactor): number {
+  return (f.zero ? 1 : -1) * f.multiplicity * (f.kind === 'cuadratico' ? 40 : 20);
+}
 
-  // Pendientes de la asintótica por tramos.
+/** Pendientes de la asintótica por tramos: la inicial y el cambio en cada esquina. */
+function slopeSteps(form: BodeForm, corners: number[]): Step[] {
   const nOrigin = form.factors
     .filter((f) => f.kind === 'origen')
     .reduce((s, f) => s + (f.zero ? 1 : -1) * f.multiplicity, 0);
   let slope = 20 * nOrigin;
-  const corners = [
-    ...new Set(form.factors.filter((f) => f.kind !== 'origen').map((f) => f.corner)),
-  ].sort((a, b) => a - b);
-  const slopeChildren: Step[] = [
+  const children: Step[] = [
     {
       title: 'Baja frecuencia',
       explanation: `Pendiente inicial de ${slope} dB/década (de los factores en el origen).`,
@@ -187,108 +158,102 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
   for (const w of corners) {
     const change = form.factors
       .filter((f) => f.kind !== 'origen' && Math.abs(f.corner - w) < 1e-12)
-      .reduce(
-        (s, f) => s + (f.zero ? 1 : -1) * f.multiplicity * (f.kind === 'cuadratico' ? 40 : 20),
-        0,
-      );
+      .reduce((s, f) => s + slopeOf(f), 0);
     slope += change;
-    slopeChildren.push({
+    children.push({
       title: `En ω = ${formatNumber(w, DIGITS)} rad/s`,
       explanation: `La pendiente cambia ${change > 0 ? '+' : ''}${change} dB/década y queda en ${slope} dB/década.`,
     });
   }
-  steps.push(
-    {
-      title: 'Curva asintótica de magnitud',
-      explanation:
-        'Las pendientes solo cambian en las frecuencias de esquina; la curva exacta se obtiene sumando las correcciones de cada factor.',
-      children: slopeChildren,
-    },
-    {
-      title: 'Magnitud y fase exactas',
-      formula: String.raw`|G(j\omega)|_{\text{dB}} = 20\log_{10}|G(j\omega)|,\qquad \angle G(j\omega) = \sum \angle(\text{ceros}) - \sum \angle(\text{polos})`,
-    },
-  );
+  return children;
+}
 
-  // Márgenes.
-  const m = margins(tf, form);
-  const marginChildren: Step[] = [];
-  if (m.gainCrossover !== null) {
-    const gc = m.gainCrossovers.at(-1)!;
-    marginChildren.push({
-      title: 'Margen de fase',
-      explanation: `La magnitud vale 0 dB en ω_c = ${formatNumber(gc.w, DIGITS)} rad/s${m.gainCrossovers.length > 1 ? ' (la más alta de las frecuencias de cruce de ganancia, como indica Ogata)' : ''}.`,
-      formula: String.raw`\gamma = 180^{\circ} + \angle G(j\omega_c)`,
-      substitution: String.raw`\gamma = 180^{\circ} + (${n(gc.phase)}^{\circ})`,
-      result: String.raw`\gamma = ${n(gc.margin)}^{\circ}`,
-    });
-  } else {
-    marginChildren.push({
+function phaseMarginStep(m: Margins): Step {
+  if (m.gainCrossover === null) {
+    return {
       title: 'Margen de fase',
       explanation: 'La magnitud no cruza 0 dB: el margen de fase no está definido (es infinito).',
-    });
+    };
   }
-  if (m.phaseCrossover !== null) {
-    const pc = m.phaseCrossovers.find((p) => p.w === m.phaseCrossover)!;
-    marginChildren.push({
-      title: 'Margen de ganancia',
-      explanation: `La fase vale −180° en ω₁ = ${formatNumber(pc.w, DIGITS)} rad/s.`,
-      formula: String.raw`K_g = \frac{1}{|G(j\omega_1)|},\qquad K_g\ \text{dB} = -20\log_{10}|G(j\omega_1)|`,
-      substitution: String.raw`K_g\ \text{dB} = -(${n(pc.magnitudeDb)})`,
-      result: String.raw`K_g = ${n(10 ** (pc.margin / 20))} = ${n(pc.margin)}\ \text{dB}`,
-    });
-  } else {
-    marginChildren.push({
+  const gc = m.gainCrossovers.at(-1)!;
+  const highest =
+    m.gainCrossovers.length > 1
+      ? ' (la más alta de las frecuencias de cruce de ganancia, como indica Ogata)'
+      : '';
+  return {
+    title: 'Margen de fase',
+    explanation: `La magnitud vale 0 dB en ω_c = ${formatNumber(gc.w, DIGITS)} rad/s${highest}.`,
+    formula: String.raw`\gamma = 180^{\circ} + \angle G(j\omega_c)`,
+    substitution: String.raw`\gamma = 180^{\circ} + (${n(gc.phase)}^{\circ})`,
+    result: String.raw`\gamma = ${n(gc.margin)}^{\circ}`,
+  };
+}
+
+function gainMarginStep(m: Margins): Step {
+  if (m.phaseCrossover === null) {
+    return {
       title: 'Margen de ganancia',
       explanation: 'La fase nunca llega a −180°: el margen de ganancia es infinito.',
-    });
+    };
   }
+  const pc = m.phaseCrossovers.find((p) => p.w === m.phaseCrossover)!;
+  return {
+    title: 'Margen de ganancia',
+    explanation: `La fase vale −180° en ω₁ = ${formatNumber(pc.w, DIGITS)} rad/s.`,
+    formula: String.raw`K_g = \frac{1}{|G(j\omega_1)|},\qquad K_g\ \text{dB} = -20\log_{10}|G(j\omega_1)|`,
+    substitution: String.raw`K_g\ \text{dB} = -(${n(pc.magnitudeDb)})`,
+    result: String.raw`K_g = ${n(10 ** (pc.margin / 20))} = ${n(pc.margin)}\ \text{dB}`,
+  };
+}
+
+function marginsStep(m: Margins, form: BodeForm): Step {
   const stableMargins = (m.phaseMargin ?? 1) > 0 && (m.gainMarginDb ?? 1) > 0;
   const minimumPhase = !form.factors.some((f) => f.rightHalf) && form.gain > 0;
-  steps.push({
+  const verdict = stableMargins ? 'Aquí lo son.' : 'Aquí no: el lazo cerrado es inestable.';
+  return {
     title: 'Márgenes de estabilidad',
     explanation: minimumPhase
-      ? `Para un sistema de fase mínima, los dos márgenes positivos indican que el lazo cerrado es estable. ${stableMargins ? 'Aquí lo son.' : 'Aquí no: el lazo cerrado es inestable.'} Ogata recomienda un margen de fase entre 30° y 60° y un margen de ganancia mayor que 6 dB.`
+      ? `Para un sistema de fase mínima, los dos márgenes positivos indican que el lazo cerrado es estable. ${verdict} Ogata recomienda un margen de fase entre 30° y 60° y un margen de ganancia mayor que 6 dB.`
       : 'El sistema tiene factores de fase no mínima: los márgenes por sí solos no deciden la estabilidad (se requiere el criterio de Nyquist).',
-    children: marginChildren,
-  });
+    children: [phaseMarginStep(m), gainMarginStep(m)],
+  };
+}
 
-  // Lazo cerrado con realimentación unitaria.
-  const M = unityClosedLoop(tf);
-  const closedStable = polyRoots(M.den).every((r) => r.value.re < -1e-9);
-  let closed: BodeValue['closed'] = null;
-  const range = frequencyRange(form, [m.gainCrossover ?? 0, m.phaseCrossover ?? 0]);
-  if (closedStable) {
-    const cl = closedLoopFrequency(M, range);
-    closed = {
-      peak: cl.peak?.magnitude ?? null,
-      peakFrequency: cl.peak?.w ?? null,
-      bandwidth: cl.bandwidth,
-    };
-    steps.push({
-      title: 'Respuesta en frecuencia en lazo cerrado',
-      explanation: `Con realimentación unitaria, M(jω) = G/(1 + G). ${
-        cl.peak
-          ? `Tiene un pico de resonancia M_r = ${formatNumber(cl.peak.magnitude, DIGITS)} (${formatNumber(20 * Math.log10(cl.peak.magnitude), DIGITS)} dB) en ω_r = ${formatNumber(cl.peak.w, DIGITS)} rad/s.`
-          : 'La magnitud no tiene pico de resonancia (decrece desde ω = 0).'
-      } ${cl.bandwidth ? `El ancho de banda (|M| cae 3 dB por debajo de |M(j0)|) es ω_b = ${formatNumber(cl.bandwidth, DIGITS)} rad/s.` : ''}`.trim(),
-      formula: String.raw`M(s) = \frac{G(s)}{1 + G(s)}`,
-      result: `M(s) = ${tfTex(M)}`,
-    });
-  } else {
-    notices.push({
-      level: 'info',
-      message:
-        'Con realimentación unitaria el lazo cerrado no es estable: no se calculan M_r ni el ancho de banda.',
-    });
-  }
+function closedLoopExplanation(cl: ClosedLoopFrequency): string {
+  const peak = cl.peak
+    ? `Tiene un pico de resonancia M_r = ${formatNumber(cl.peak.magnitude, DIGITS)} (${formatNumber(20 * Math.log10(cl.peak.magnitude), DIGITS)} dB) en ω_r = ${formatNumber(cl.peak.w, DIGITS)} rad/s.`
+    : 'La magnitud no tiene pico de resonancia (decrece desde ω = 0).';
+  const bandwidth = cl.bandwidth
+    ? `El ancho de banda (|M| cae 3 dB por debajo de |M(j0)|) es ω_b = ${formatNumber(cl.bandwidth, DIGITS)} rad/s.`
+    : '';
+  return `Con realimentación unitaria, M(jω) = G/(1 + G). ${peak} ${bandwidth}`.trim();
+}
 
-  // Gráficas.
+/** Magnitud (exacta y asintótica) y fase, con los cruces marcados. */
+function bodeSeries(
+  tf: TransferFunction,
+  form: BodeForm,
+  m: Margins,
+  range: [number, number],
+): Series[] {
   const grid = logGrid(range[0], range[1], 500);
   const magPoints = grid.map((w) => ({ x: w, y: magnitudeDb(tf, w) }));
   const asymPoints = grid.map((w) => ({ x: w, y: asymptoticDb(form, w) }));
   const phasePoints = grid.map((w) => ({ x: w, y: phaseDeg(form, w) }));
-  const series: Series[] = [
+  const gainMark =
+    m.gainCrossover === null
+      ? {}
+      : { scatter: { label: 'Cruce de ganancia', points: [{ x: m.gainCrossover, y: 0 }] } };
+  const phaseMark =
+    m.phaseCrossover === null
+      ? {}
+      : {
+          scatter: {
+            label: 'Cruce de fase',
+            points: [{ x: m.phaseCrossover, y: phaseDeg(form, m.phaseCrossover) }],
+          },
+        };
+  return [
     {
       id: 'magnitud',
       title: 'Diagrama de Bode: magnitud',
@@ -298,9 +263,7 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       xScale: 'log',
       points: magPoints,
       reference: { label: 'Asintótica', points: asymPoints },
-      ...(m.gainCrossover !== null
-        ? { scatter: { label: 'Cruce de ganancia', points: [{ x: m.gainCrossover, y: 0 }] } }
-        : {}),
+      ...gainMark,
     },
     {
       id: 'fase',
@@ -310,18 +273,23 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       label: 'Fase',
       xScale: 'log',
       points: phasePoints,
-      ...(m.phaseCrossover !== null
-        ? {
-            scatter: {
-              label: 'Cruce de fase',
-              points: [{ x: m.phaseCrossover, y: phaseDeg(form, m.phaseCrossover) }],
-            },
-          }
-        : {}),
+      ...phaseMark,
     },
   ];
+}
 
-  tables.push(
+function bodeTables(
+  tf: TransferFunction,
+  form: BodeForm,
+  m: Margins,
+  corners: number[],
+): ResultTable[] {
+  const frequencies = [
+    ...corners,
+    ...(m.gainCrossover ? [m.gainCrossover] : []),
+    ...(m.phaseCrossover ? [m.phaseCrossover] : []),
+  ].sort((a, b) => a - b);
+  return [
     {
       id: 'factores',
       title: 'Factores de la forma de Bode',
@@ -335,7 +303,7 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
         ...form.factors.map((f) => ({
           factor: signedFactorTex(f),
           esquina: f.kind === 'origen' ? '—' : f.corner,
-          pendiente: (f.zero ? 1 : -1) * f.multiplicity * (f.kind === 'cuadratico' ? 40 : 20),
+          pendiente: slopeOf(f),
         })),
       ],
     },
@@ -348,21 +316,17 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
         { key: 'asin', header: String.raw`\text{Asintótica (dB)}` },
         { key: 'fase', header: String.raw`\angle G\ (^{\circ})` },
       ],
-      rows: [
-        ...corners,
-        ...(m.gainCrossover ? [m.gainCrossover] : []),
-        ...(m.phaseCrossover ? [m.phaseCrossover] : []),
-      ]
-        .sort((a, b) => a - b)
-        .map((w) => ({
-          w,
-          mag: magnitudeDb(tf, w),
-          asin: asymptoticDb(form, w),
-          fase: phaseDeg(form, w),
-        })),
+      rows: frequencies.map((w) => ({
+        w,
+        mag: magnitudeDb(tf, w),
+        asin: asymptoticDb(form, w),
+        fase: phaseDeg(form, w),
+      })),
     },
-  );
+  ];
+}
 
+function bodeSummary(form: BodeForm, m: Margins, closed: BodeValue['closed']): SummaryItem[] {
   const summary: SummaryItem[] = [
     {
       label: 'Margen de fase',
@@ -391,6 +355,97 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       label: 'Ancho de banda',
       value: String.raw`\omega_b = ${n(closed.bandwidth)}\ \text{rad/s}`,
     });
+  return summary;
+}
+
+export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErrorCode> {
+  const parsed = parseTf(input.openLoop, 'G(s)H(s)');
+  if (!parsed.ok) return fail('funcion-invalida', parsed.message);
+  const tf: TransferFunction = parsed.tf;
+  const onAxis = [...polyRoots(tf.num), ...polyRoots(tf.den)].find(
+    (r) => Math.abs(r.value.re) <= 1e-12 && Math.abs(r.value.im) > 1e-12,
+  );
+  if (onAxis) {
+    return fail(
+      'raices-en-eje-imaginario',
+      `G(s)H(s) tiene polos o ceros sobre el eje imaginario (s = ±j${formatNumber(Math.abs(onAxis.value.im), DIGITS)}): la magnitud se hace infinita o cero en esa frecuencia y la fase salta 180°.`,
+    );
+  }
+  const form = bodeForm(tf);
+  const steps: Step[] = [];
+  const notices: Notice[] = [];
+
+  steps.push(
+    {
+      title: 'Forma de Bode',
+      explanation:
+        'Se escribe G(jω) con factores cuyas asíntotas de baja frecuencia son la recta de 0 dB: (1 + jω/ω_c) para cada raíz real y [(jω/ω_n)² + 2ζ(jω/ω_n) + 1] para cada par complejo. La ganancia K es el valor de sᴺG(s) en s → 0.',
+      formula: `G(s)H(s) = ${tfTex(tf)}`,
+      result: String.raw`G(j\omega)H(j\omega) = ${bodeFormTex(form)}`,
+    },
+    {
+      title: 'Factores y frecuencias de esquina',
+      children: [
+        {
+          title: `Ganancia K = ${formatNumber(form.gain, DIGITS)}`,
+          explanation: `Aporta 20 log|K| = ${formatNumber(20 * Math.log10(Math.abs(form.gain)), DIGITS)} dB a todas las frecuencias y una fase de ${form.gain < 0 ? '−180°' : '0°'}.`,
+        },
+        ...form.factors.map((f) => ({
+          title:
+            f.kind === 'origen'
+              ? 'Factor en el origen'
+              : `Esquina en ω = ${formatNumber(f.corner, DIGITS)} rad/s`,
+          explanation: describe(f),
+          result: signedFactorTex(f),
+        })),
+      ],
+    },
+  );
+
+  const corners = [
+    ...new Set(form.factors.filter((f) => f.kind !== 'origen').map((f) => f.corner)),
+  ].sort((a, b) => a - b);
+  steps.push(
+    {
+      title: 'Curva asintótica de magnitud',
+      explanation:
+        'Las pendientes solo cambian en las frecuencias de esquina; la curva exacta se obtiene sumando las correcciones de cada factor.',
+      children: slopeSteps(form, corners),
+    },
+    {
+      title: 'Magnitud y fase exactas',
+      formula: String.raw`|G(j\omega)|_{\text{dB}} = 20\log_{10}|G(j\omega)|,\qquad \angle G(j\omega) = \sum \angle(\text{ceros}) - \sum \angle(\text{polos})`,
+    },
+  );
+
+  const m = margins(tf, form);
+  steps.push(marginsStep(m, form));
+
+  // Lazo cerrado con realimentación unitaria.
+  const M = unityClosedLoop(tf);
+  const closedStable = polyRoots(M.den).every((r) => r.value.re < -1e-9);
+  let closed: BodeValue['closed'] = null;
+  const range = frequencyRange(form, [m.gainCrossover ?? 0, m.phaseCrossover ?? 0]);
+  if (closedStable) {
+    const cl = closedLoopFrequency(M, range);
+    closed = {
+      peak: cl.peak?.magnitude ?? null,
+      peakFrequency: cl.peak?.w ?? null,
+      bandwidth: cl.bandwidth,
+    };
+    steps.push({
+      title: 'Respuesta en frecuencia en lazo cerrado',
+      explanation: closedLoopExplanation(cl),
+      formula: String.raw`M(s) = \frac{G(s)}{1 + G(s)}`,
+      result: `M(s) = ${tfTex(M)}`,
+    });
+  } else {
+    notices.push({
+      level: 'info',
+      message:
+        'Con realimentación unitaria el lazo cerrado no es estable: no se calculan M_r ni el ancho de banda.',
+    });
+  }
 
   return {
     ok: true,
@@ -409,10 +464,10 @@ export function solveBode(input: BodeInput): CalculatorResult<BodeValue, BodeErr
       phaseCrossover: m.phaseCrossover,
       closed,
     },
-    summary,
+    summary: bodeSummary(form, m, closed),
     steps,
-    tables,
-    series,
+    tables: bodeTables(tf, form, m, corners),
+    series: bodeSeries(tf, form, m, range),
     notices,
   };
 }

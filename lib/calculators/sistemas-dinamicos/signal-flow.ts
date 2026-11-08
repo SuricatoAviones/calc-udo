@@ -241,6 +241,97 @@ export type MasonOutcome =
   | { ok: true; result: MasonResult }
   | { ok: false; code: MasonErrorCode; message: string; steps: Step[]; tables: ResultTable[] };
 
+/** Por qué el flujograma no se puede analizar entre `input` y `output`, o `null`. */
+function graphProblem(graph: Sfg, input: string, output: string): [MasonErrorCode, string] | null {
+  if (graph.branches.length === 0) return ['flujograma-vacio', 'El flujograma no tiene ramas.'];
+  if (!graph.nodes.includes(input)) {
+    return ['nodo-inexistente', `El nodo de entrada «${input}» no está en el flujograma.`];
+  }
+  if (!graph.nodes.includes(output)) {
+    return ['nodo-inexistente', `El nodo de salida «${output}» no está en el flujograma.`];
+  }
+  if (input === output) {
+    return ['entrada-igual-a-salida', 'El nodo de entrada y el de salida deben ser distintos.'];
+  }
+  if (graph.nodes.length > MAX_NODES) {
+    return ['flujograma-muy-grande', `El flujograma admite como máximo ${MAX_NODES} nodos.`];
+  }
+  return null;
+}
+
+function loopsStep(loops: Chain[]): Step {
+  return {
+    title: 'Lazos individuales',
+    explanation:
+      loops.length === 0
+        ? 'El flujograma no tiene lazos: Δ = 1.'
+        : 'Caminos cerrados que empiezan y terminan en el mismo nodo sin repetir otro; su ganancia es el producto de sus ramas.',
+    children: loops.map((l, i) => ({
+      title: `Lazo ${i + 1}`,
+      formula: chainTex(l.nodes),
+      result: `${subL(i)} = ${frTex(l.gain)}`,
+    })),
+  };
+}
+
+/** Combinaciones de lazos que no se tocan y el determinante Δ. */
+function determinantSteps(loops: Chain[], D: ReturnType<typeof determinant>): Step[] {
+  const steps: Step[] = [];
+  if (loops.length > 1) {
+    steps.push({
+      title: 'Lazos que no se tocan',
+      explanation:
+        D.combos.length === 0
+          ? 'Todos los lazos comparten algún nodo: no hay productos de lazos que no se tocan.'
+          : 'Combinaciones de lazos que no comparten ningún nodo; sus productos entran en Δ con signos alternados.',
+      children: D.combos.map((combo) => ({
+        title: combo.map((i) => `L${i + 1}`).join(' · '),
+        result: `${combo.map(subL).join('')} = ${frTex(combo.reduce<FRat>((acc, i) => frMul(acc, loops[i]!.gain), FR_ONE))}`,
+      })),
+    });
+  }
+  steps.push({
+    title: 'Determinante del flujograma',
+    formula: String.raw`\Delta = ${D.symbolic}`,
+    substitution: loops.length ? String.raw`\Delta = ${D.substitution}` : undefined,
+    result: String.raw`\Delta = ${frTex(D.value)}`,
+  });
+  return steps;
+}
+
+function masonTables(pathRows: ResultTable['rows'], loops: Chain[]): ResultTable[] {
+  const tables: ResultTable[] = [
+    {
+      id: 'trayectorias',
+      title: 'Trayectorias directas',
+      columns: [
+        { key: 'k', header: 'k' },
+        { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
+        { key: 'ganancia', header: 'P_k', format: 'latex' },
+        { key: 'cofactor', header: String.raw`\Delta_k`, format: 'latex' },
+      ],
+      rows: pathRows,
+    },
+  ];
+  if (loops.length) {
+    tables.push({
+      id: 'lazos',
+      title: 'Lazos individuales',
+      columns: [
+        { key: 'i', header: 'i' },
+        { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
+        { key: 'ganancia', header: 'L_i', format: 'latex' },
+      ],
+      rows: loops.map((l, i) => ({
+        i: i + 1,
+        nodos: chainTex(l.nodes),
+        ganancia: frTex(l.gain),
+      })),
+    });
+  }
+  return tables;
+}
+
 /**
  * Fórmula de ganancia de Mason entre `input` y `output`. Si el nodo de entrada recibe ramas, se
  * agrega un nodo fuente con una rama de ganancia 1 (la fórmula solo vale desde un nodo de entrada).
@@ -255,19 +346,8 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
     steps,
     tables,
   });
-  if (graph.branches.length === 0) return fail('flujograma-vacio', 'El flujograma no tiene ramas.');
-  if (!graph.nodes.includes(input)) {
-    return fail('nodo-inexistente', `El nodo de entrada «${input}» no está en el flujograma.`);
-  }
-  if (!graph.nodes.includes(output)) {
-    return fail('nodo-inexistente', `El nodo de salida «${output}» no está en el flujograma.`);
-  }
-  if (input === output) {
-    return fail('entrada-igual-a-salida', 'El nodo de entrada y el de salida deben ser distintos.');
-  }
-  if (graph.nodes.length > MAX_NODES) {
-    return fail('flujograma-muy-grande', `El flujograma admite como máximo ${MAX_NODES} nodos.`);
-  }
+  const problem = graphProblem(graph, input, output);
+  if (problem) return fail(...problem);
 
   try {
     const { graph: g0, merged } = mergeParallel(graph);
@@ -322,40 +402,10 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
       );
     }
 
-    steps.push({
-      title: 'Lazos individuales',
-      explanation:
-        loops.length === 0
-          ? 'El flujograma no tiene lazos: Δ = 1.'
-          : 'Caminos cerrados que empiezan y terminan en el mismo nodo sin repetir otro; su ganancia es el producto de sus ramas.',
-      children: loops.map((l, i) => ({
-        title: `Lazo ${i + 1}`,
-        formula: chainTex(l.nodes),
-        result: `${subL(i)} = ${frTex(l.gain)}`,
-      })),
-    });
-
+    steps.push(loopsStep(loops));
     const all = loops.map((_, i) => i);
     const D = determinant(loops, all);
-    if (loops.length > 1) {
-      steps.push({
-        title: 'Lazos que no se tocan',
-        explanation:
-          D.combos.length === 0
-            ? 'Todos los lazos comparten algún nodo: no hay productos de lazos que no se tocan.'
-            : 'Combinaciones de lazos que no comparten ningún nodo; sus productos entran en Δ con signos alternados.',
-        children: D.combos.map((combo) => ({
-          title: combo.map((i) => `L${i + 1}`).join(' · '),
-          result: `${combo.map(subL).join('')} = ${frTex(combo.reduce<FRat>((acc, i) => frMul(acc, loops[i]!.gain), FR_ONE))}`,
-        })),
-      });
-    }
-    steps.push({
-      title: 'Determinante del flujograma',
-      formula: String.raw`\Delta = ${D.symbolic}`,
-      substitution: loops.length ? String.raw`\Delta = ${D.substitution}` : undefined,
-      result: String.raw`\Delta = ${frTex(D.value)}`,
-    });
+    steps.push(...determinantSteps(loops, D));
 
     const cofactorSteps: Step[] = [];
     const cofactors: FRat[] = [];
@@ -364,12 +414,13 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
       const free = all.filter((i) => !touches(p.nodes, loops[i]!.nodes));
       const Dk = determinant(loops, free);
       cofactors.push(Dk.value);
+      const freeList = free.map((i) => `L${i + 1}`).join(', ');
       cofactorSteps.push({
         title: `Δ${k + 1}`,
         explanation:
           free.length === 0
             ? `Todos los lazos tocan la trayectoria ${k + 1}.`
-            : `Lazos que no tocan la trayectoria ${k + 1}: ${free.map((i) => `L${i + 1}`).join(', ')}.`,
+            : `Lazos que no tocan la trayectoria ${k + 1}: ${freeList}.`,
         formula: free.length ? String.raw`\Delta_{${k + 1}} = ${Dk.symbolic}` : undefined,
         result: String.raw`\Delta_{${k + 1}} = ${frTex(Dk.value)}`,
       });
@@ -391,47 +442,25 @@ export function mason(graph: Sfg, input: string, output: string, ratioTex?: stri
       FR_ZERO,
     );
     const transfer = frDiv(numerator, D.value);
+    const symbolicTerms = paths
+      .map((_, k) => String.raw`P_{${k + 1}}\Delta_{${k + 1}}`)
+      .join(' + ');
+    const terms = paths
+      .map((p, k) => {
+        const c = cofactors[k]!;
+        const isOne = c.coef === 1 && c.mono.length === 0 && c.factors.length === 0;
+        return isOne ? frTex(p.gain) : frOperandTex(p.gain) + frOperandTex(c);
+      })
+      .join(' + ')
+      .replaceAll('+ -', '- ');
     steps.push({
       title: 'Fórmula de ganancia de Mason',
-      formula: String.raw`${tex} = \frac{\sum_k P_k\Delta_k}{\Delta} = \frac{${paths.map((_, k) => String.raw`P_{${k + 1}}\Delta_{${k + 1}}`).join(' + ')}}{\Delta}`,
-      substitution: String.raw`${tex} = \frac{${paths
-        .map((p, k) => {
-          const c = cofactors[k]!;
-          const isOne = c.coef === 1 && c.mono.length === 0 && c.factors.length === 0;
-          return isOne ? frTex(p.gain) : `${frOperandTex(p.gain)}${frOperandTex(c)}`;
-        })
-        .join(' + ')
-        .replaceAll('+ -', '- ')}}{${frTex(D.value)}}`,
+      formula: String.raw`${tex} = \frac{\sum_k P_k\Delta_k}{\Delta} = \frac{${symbolicTerms}}{\Delta}`,
+      substitution: String.raw`${tex} = \frac{${terms}}{${frTex(D.value)}}`,
       result: `${tex} = ${frTex(transfer)}`,
     });
 
-    tables.push({
-      id: 'trayectorias',
-      title: 'Trayectorias directas',
-      columns: [
-        { key: 'k', header: 'k' },
-        { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
-        { key: 'ganancia', header: 'P_k', format: 'latex' },
-        { key: 'cofactor', header: String.raw`\Delta_k`, format: 'latex' },
-      ],
-      rows: pathRows,
-    });
-    if (loops.length) {
-      tables.push({
-        id: 'lazos',
-        title: 'Lazos individuales',
-        columns: [
-          { key: 'i', header: 'i' },
-          { key: 'nodos', header: String.raw`\text{Nodos}`, format: 'latex' },
-          { key: 'ganancia', header: 'L_i', format: 'latex' },
-        ],
-        rows: loops.map((l, i) => ({
-          i: i + 1,
-          nodos: chainTex(l.nodes),
-          ganancia: frTex(l.gain),
-        })),
-      });
-    }
+    tables.push(...masonTables(pathRows, loops));
 
     return {
       ok: true,

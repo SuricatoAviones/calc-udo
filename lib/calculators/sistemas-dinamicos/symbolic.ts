@@ -178,13 +178,21 @@ function displayOrder(p: MPoly): Term[] {
 /** `G1` → `G_{1}`, `H_2` → `H_{2}`, `a12` → `a_{12}`, `Kp` → `\mathrm{Kp}`. */
 export function symbolTex(name: string): string {
   const m = /^([A-Za-z]+)_?(\d+)$/.exec(name);
-  if (m) return `${m[1]!.length === 1 ? m[1] : String.raw`\mathrm{${m[1]}}`}_{${m[2]}}`;
+  if (m) {
+    const head = m[1]!.length === 1 ? m[1]! : String.raw`\mathrm{${m[1]}}`;
+    return `${head}_{${m[2]}}`;
+  }
   if (/^[A-Za-z]$/.test(name)) return name;
   return String.raw`\mathrm{${name.replaceAll('_', '')}}`;
 }
 
+/** `^{e}`, o nada si el exponente es 1. */
+function exponentTex(e: number): string {
+  return e === 1 ? '' : `^{${e}}`;
+}
+
 function monoTex(vars: [string, number][]): string {
-  return vars.map(([v, e]) => `${symbolTex(v)}${e === 1 ? '' : `^{${e}}`}`).join('');
+  return vars.map(([v, e]) => symbolTex(v) + exponentTex(e)).join('');
 }
 
 export function mpTex(p: MPoly): string {
@@ -193,7 +201,7 @@ export function mpTex(p: MPoly): string {
     .map((t, i) => {
       const abs = Math.abs(t.coef);
       const body = monoTex(t.vars);
-      const magnitude = body === '' ? num(abs) : abs === 1 ? '' : num(abs);
+      const magnitude = body !== '' && abs === 1 ? '' : num(abs);
       const text = `${magnitude}${body}`;
       if (i === 0) return t.coef < 0 ? `-${text}` : text;
       return t.coef < 0 ? ` - ${text}` : ` + ${text}`;
@@ -264,8 +272,10 @@ export function mpDivExact(a: MPoly, b: MPoly): MPoly | null {
   const scale = Math.max(1e-300, ...a.map((t) => Math.abs(t.coef)));
   let r = a;
   const q: Term[] = [];
-  for (let guard = 0; r.length > 0; guard++) {
+  let guard = 0;
+  while (r.length > 0) {
     if (guard > 2000) return null;
+    guard++;
     const lr = leading(r, order);
     const vars = mergeVars(lr.vars, lb.vars, -1);
     if (vars.some(([, e]) => e < 0)) return null;
@@ -349,38 +359,48 @@ function mergeFactors(a: Factor[], b: Factor[], sign = 1): Factor[] {
   return [...map.values()].filter((f) => f.power !== 0);
 }
 
+/** Cancela `top` contra `bottom` si uno divide exactamente al otro; `null` si ninguno lo hace. */
+function cancelPair(current: FRat, top: Factor, bottom: Factor): FRat | null {
+  for (const [dividend, divisor, topIsDividend] of [
+    [top, bottom, true],
+    [bottom, top, false],
+  ] as const) {
+    const q = mpDivExact(dividend.poly, divisor.poly);
+    if (!q) continue;
+    // dividend = q·divisor: se cancela un factor de cada lado y queda q.
+    const quotient = frFromPoly(q);
+    const removeTop: Factor = { ...top, power: 1 };
+    const removeBottom: Factor = { ...bottom, power: -1 };
+    const rest: FRat = {
+      coef: current.coef,
+      mono: current.mono,
+      factors: mergeFactors(current.factors, [removeTop, removeBottom], -1),
+    };
+    return frMulRaw(rest, topIsDividend ? quotient : frInv(quotient));
+  }
+  return null;
+}
+
+/** La primera cancelación exacta entre un factor del numerador y uno del denominador. */
+function cancelOnce(current: FRat): FRat | null {
+  const tops = current.factors.filter((x) => x.power > 0);
+  const bottoms = current.factors.filter((x) => x.power < 0);
+  for (const top of tops) {
+    for (const bottom of bottoms) {
+      const next = cancelPair(current, top, bottom);
+      if (next) return next;
+    }
+  }
+  return null;
+}
+
 /** Intenta dividir exactamente cada factor del numerador entre cada factor del denominador. */
 function cancel(f: FRat): FRat {
   let current = f;
   for (let pass = 0; pass < 8; pass++) {
-    const tops = current.factors.filter((x) => x.power > 0);
-    const bottoms = current.factors.filter((x) => x.power < 0);
-    let changed = false;
-    outer: for (const top of tops) {
-      for (const bottom of bottoms) {
-        for (const [dividend, divisor, topIsDividend] of [
-          [top, bottom, true],
-          [bottom, top, false],
-        ] as const) {
-          const q = mpDivExact(dividend.poly, divisor.poly);
-          if (!q) continue;
-          // dividend = q·divisor: se cancela un factor de cada lado y queda q.
-          const quotient = frFromPoly(q);
-          const removeTop: Factor = { ...top, power: 1 };
-          const removeBottom: Factor = { ...bottom, power: -1 };
-          let rest: FRat = {
-            coef: current.coef,
-            mono: current.mono,
-            factors: mergeFactors(current.factors, [removeTop, removeBottom], -1),
-          };
-          rest = frMulRaw(rest, topIsDividend ? quotient : frInv(quotient));
-          current = rest;
-          changed = true;
-          break outer;
-        }
-      }
-    }
-    if (!changed) break;
+    const next = cancelOnce(current);
+    if (!next) break;
+    current = next;
   }
   return current;
 }
@@ -542,7 +562,12 @@ function sideTex(f: FRat, side: 1 | -1, withCoef: boolean): { tex: string; items
     const inner = mpTex(factor.poly);
     const wrap = isSum(factor.poly) && (items > 1 || p > 1 || withCoef);
     const base = wrap ? String.raw`\left(${inner}\right)` : inner;
-    parts.push(p === 1 ? base : `${wrap ? base : String.raw`\left(${base}\right)`}^{${p}}`);
+    if (p === 1) {
+      parts.push(base);
+      continue;
+    }
+    const grouped = wrap ? base : String.raw`\left(${base}\right)`;
+    parts.push(`${grouped}^{${p}}`);
   }
   return { tex: parts.join(''), items };
 }
@@ -622,64 +647,68 @@ function toFRat(node: MathNode): FRat {
     }
     case 'ParenthesisNode':
       return toFRat((node as unknown as { content: MathNode }).content);
-    case 'FunctionNode': {
-      // mathjs lee «s(s + 1)» y «K(s + 2)» como llamadas a función: son productos. «G1(s)» es la
-      // notación de una función de transferencia y se lee como G1.
-      const fn = node as unknown as { fn: { name: string }; args: MathNode[] };
-      const name = fn.fn.name;
-      const [arg] = fn.args;
-      if (MATH_FUNCTIONS.has(name.toLowerCase()) || fn.args.length !== 1 || !arg) {
-        throw new SymbolicError(`La función «${name}» no está soportada.`);
-      }
-      const isVariable =
-        arg.type === 'SymbolNode' && (arg as unknown as { name: string }).name === 's';
-      if (isVariable && /^[A-Z][A-Za-z]*_?\d*$/.test(name)) return frSymbol(name);
-      const factor = splitProduct(name).reduce<FRat>(
-        (acc, s) => frMulRaw(acc, frSymbol(s)),
-        FR_ONE,
-      );
-      return frMul(factor, toFRat(arg));
-    }
-    case 'OperatorNode': {
-      const op = node as unknown as { fn: string; args: MathNode[] };
-      const [a, b] = op.args;
-      switch (op.fn) {
-        case 'unaryMinus':
-          return frNeg(toFRat(a!));
-        case 'unaryPlus':
-          return toFRat(a!);
-        case 'add':
-          return frAdd(toFRat(a!), toFRat(b!));
-        case 'subtract':
-          return frSub(toFRat(a!), toFRat(b!));
-        case 'multiply':
-          return frMul(toFRat(a!), toFRat(b!));
-        case 'divide': {
-          const d = toFRat(b!);
-          if (d.coef === 0) throw new SymbolicError('División entre 0.');
-          return frDiv(toFRat(a!), d);
-        }
-        case 'pow': {
-          const exp = toFRat(b!);
-          if (exp.mono.length || exp.factors.length || !Number.isInteger(exp.coef)) {
-            throw new SymbolicError('Los exponentes deben ser enteros.');
-          }
-          if (Math.abs(exp.coef) > MAX_POWER) {
-            throw new SymbolicError(
-              `Los exponentes deben estar entre −${MAX_POWER} y ${MAX_POWER}.`,
-            );
-          }
-          const base = toFRat(a!);
-          if (base.coef === 0 && exp.coef < 0) throw new SymbolicError('División entre 0.');
-          return cancel(frPow(base, exp.coef));
-        }
-        default:
-          throw new SymbolicError(`El operador «${op.fn}» no está soportado.`);
-      }
-    }
+    case 'FunctionNode':
+      return functionToFRat(node as unknown as { fn: { name: string }; args: MathNode[] });
+    case 'OperatorNode':
+      return operatorToFRat(node as unknown as { fn: string; args: MathNode[] });
     default:
       throw new SymbolicError('La expresión no es válida.');
   }
+}
+
+/**
+ * mathjs lee «s(s + 1)» y «K(s + 2)» como llamadas a función: son productos. «G1(s)» es la
+ * notación de una función de transferencia y se lee como G1.
+ */
+function functionToFRat(fn: { fn: { name: string }; args: MathNode[] }): FRat {
+  const name = fn.fn.name;
+  const [arg] = fn.args;
+  if (MATH_FUNCTIONS.has(name.toLowerCase()) || fn.args.length !== 1 || !arg) {
+    throw new SymbolicError(`La función «${name}» no está soportada.`);
+  }
+  const isVariable = arg.type === 'SymbolNode' && (arg as unknown as { name: string }).name === 's';
+  if (isVariable && /^[A-Z][A-Za-z]*_?\d*$/.test(name)) return frSymbol(name);
+  const factor = splitProduct(name).reduce<FRat>((acc, s) => frMulRaw(acc, frSymbol(s)), FR_ONE);
+  return frMul(factor, toFRat(arg));
+}
+
+function operatorToFRat(op: { fn: string; args: MathNode[] }): FRat {
+  const [a, b] = op.args;
+  switch (op.fn) {
+    case 'unaryMinus':
+      return frNeg(toFRat(a!));
+    case 'unaryPlus':
+      return toFRat(a!);
+    case 'add':
+      return frAdd(toFRat(a!), toFRat(b!));
+    case 'subtract':
+      return frSub(toFRat(a!), toFRat(b!));
+    case 'multiply':
+      return frMul(toFRat(a!), toFRat(b!));
+    case 'divide': {
+      const d = toFRat(b!);
+      if (d.coef === 0) throw new SymbolicError('División entre 0.');
+      return frDiv(toFRat(a!), d);
+    }
+    case 'pow':
+      return powerToFRat(a!, b!);
+    default:
+      throw new SymbolicError(`El operador «${op.fn}» no está soportado.`);
+  }
+}
+
+/** Potencia con exponente entero acotado; la base se lee después del exponente. */
+function powerToFRat(a: MathNode, b: MathNode): FRat {
+  const exp = toFRat(b);
+  if (exp.mono.length || exp.factors.length || !Number.isInteger(exp.coef)) {
+    throw new SymbolicError('Los exponentes deben ser enteros.');
+  }
+  if (Math.abs(exp.coef) > MAX_POWER) {
+    throw new SymbolicError(`Los exponentes deben estar entre −${MAX_POWER} y ${MAX_POWER}.`);
+  }
+  const base = toFRat(a);
+  if (base.coef === 0 && exp.coef < 0) throw new SymbolicError('División entre 0.');
+  return cancel(frPow(base, exp.coef));
 }
 
 export type GainResult = { ok: true; value: FRat } | { ok: false; message: string };

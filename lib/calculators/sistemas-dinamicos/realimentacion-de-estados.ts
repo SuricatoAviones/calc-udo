@@ -86,6 +86,52 @@ function wMatrix(charPoly: Poly): Matrix {
   );
 }
 
+/** x(0) escrito como lista; `null` si no son `size` números. */
+function parseInitial(text: string, size: number): number[] | null {
+  const values = text
+    .split(/[;,\s]+/)
+    .filter(Boolean)
+    .map((v) => Number(v.replace(',', '.')));
+  if (values.length !== size || values.some((v) => !Number.isFinite(v))) return null;
+  return values;
+}
+
+/** Con u = −Kx, X(s) = adj(sI − A + BK)x(0)/|sI − A + BK| y cada xᵢ(t) por la inversa. */
+function initialResponse(
+  closedLoop: number[][],
+  values: number[],
+): { step: Step; series: Series[] } {
+  const { charPoly: cp, M: adj } = faddeevLeverrier(closedLoop);
+  const horizon = horizonFor({ num: [1], den: cp });
+  const children: Step[] = [];
+  const series: Series[] = [];
+  for (let i = 0; i < values.length; i++) {
+    // X_i(s) = [adj(sI − A_c) x0]_i / det.
+    const num = adj.map((mk) => mk[i]!.reduce((s, v, j) => s + v * values[j]!, 0));
+    const inv = inverseLaplace([{ delay: 0, num, den: cp }], `X_{${i + 1}}`, `x_{${i + 1}}`);
+    if (!inv.ok) continue;
+    children.push({ title: `x${i + 1}(t)`, result: `x_{${i + 1}}(t) = ${inv.result.tex}` });
+    series.push({
+      id: `x${i + 1}`,
+      title: `Respuesta x${i + 1}(t) a la condición inicial`,
+      xLabel: 't (s)',
+      yLabel: `x${i + 1}(t)`,
+      points: sample(inv.result.evaluate, horizon),
+    });
+  }
+  return {
+    step: {
+      title: 'Respuesta a la condición inicial',
+      explanation:
+        'Con u = −Kx el sistema queda ẋ = (A − BK)x; su respuesta es X(s) = (sI − A + BK)⁻¹x(0).',
+      formula: String.raw`\mathbf{X}(s) = \frac{\operatorname{adj}(sI - A + BK)}{|sI - A + BK|}\,\mathbf{x}(0)`,
+      substitution: String.raw`\operatorname{adj}(sI - A + BK) = ${adjugateTex(adj)}`,
+      children,
+    },
+    series,
+  };
+}
+
 export function solveStateFeedback(
   input: StateFeedbackInput,
 ): CalculatorResult<StateFeedbackValue, StateFeedbackErrorCode> {
@@ -171,7 +217,7 @@ export function solveStateFeedback(
     substitution: String.raw`\phi(A) = ${tex(phi)},\quad M^{-1} = ${tex(Minv)}`,
     result: `K = ${tex([K])}`,
   });
-  if (K1 && K1.some((v, i) => Math.abs(v - K[i]!) > 1e-6 * Math.max(1, Math.abs(v)))) {
+  if (K1?.some((v, i) => Math.abs(v - K[i]!) > 1e-6 * Math.max(1, Math.abs(v)))) {
     notices.push({
       level: 'warning',
       message: 'Los dos métodos dan valores distintos de K (posible problema numérico).',
@@ -190,45 +236,20 @@ export function solveStateFeedback(
   });
 
   // Respuesta a condición inicial.
-  const series: Series[] = [];
+  let series: Series[] = [];
   const text = input.initial.trim();
   if (text) {
-    const values = text
-      .split(/[;,\s]+/)
-      .filter(Boolean)
-      .map((v) => Number(v.replace(',', '.')));
-    if (values.length !== size || values.some((v) => !Number.isFinite(v))) {
+    const values = parseInitial(text, size);
+    if (!values) {
       return fail(
         'estado-inicial-invalido',
         `Escribe ${size} valores para x(0), separados por comas.`,
         steps,
       );
     }
-    const { charPoly: cp, M: adj } = faddeevLeverrier(closedLoop);
-    const horizon = horizonFor({ num: [1], den: cp });
-    const children: Step[] = [];
-    for (let i = 0; i < size; i++) {
-      // X_i(s) = [adj(sI − A_c) x0]_i / det.
-      const num = adj.map((mk) => mk[i]!.reduce((s, v, j) => s + v * values[j]!, 0));
-      const inv = inverseLaplace([{ delay: 0, num, den: cp }], `X_{${i + 1}}`, `x_{${i + 1}}`);
-      if (!inv.ok) continue;
-      children.push({ title: `x${i + 1}(t)`, result: `x_{${i + 1}}(t) = ${inv.result.tex}` });
-      series.push({
-        id: `x${i + 1}`,
-        title: `Respuesta x${i + 1}(t) a la condición inicial`,
-        xLabel: 't (s)',
-        yLabel: `x${i + 1}(t)`,
-        points: sample(inv.result.evaluate, horizon),
-      });
-    }
-    steps.push({
-      title: 'Respuesta a la condición inicial',
-      explanation:
-        'Con u = −Kx el sistema queda ẋ = (A − BK)x; su respuesta es X(s) = (sI − A + BK)⁻¹x(0).',
-      formula: String.raw`\mathbf{X}(s) = \frac{\operatorname{adj}(sI - A + BK)}{|sI - A + BK|}\,\mathbf{x}(0)`,
-      substitution: String.raw`\operatorname{adj}(sI - A + BK) = ${adjugateTex(adj)}`,
-      children,
-    });
+    const response = initialResponse(closedLoop, values);
+    steps.push(response.step);
+    series = response.series;
   }
 
   const summary: SummaryItem[] = [
@@ -238,10 +259,10 @@ export function solveStateFeedback(
       label: 'Polos en lazo cerrado',
       value: eig
         .filter((e) => e.value.im >= 0)
-        .map(
-          (e) =>
-            `s = ${C.toLatexRect(e.value, DIGITS)}${e.value.im > 0 ? String.raw`\ (\pm)` : ''}`,
-        )
+        .map((e) => {
+          const pair = e.value.im > 0 ? String.raw`\ (\pm)` : '';
+          return `s = ${C.toLatexRect(e.value, DIGITS)}${pair}`;
+        })
         .join(String.raw`,\ `),
     },
   ];

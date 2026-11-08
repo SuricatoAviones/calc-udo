@@ -4,7 +4,7 @@
  * primera columna se reemplaza por ε. La aritmética es exacta (`Rational` con `bigint`), así que
  * los elementos salen como en el libro (7/3, 2 − 9K/7) y los factores comunes se cancelan.
  */
-import { toLatexNumber } from '@/lib/math/format';
+import { powerTex, toLatexNumber } from '@/lib/math/format';
 import { polyRoots, type Poly } from '@/lib/math/polynomials';
 import { Rational } from '@/lib/math/rational';
 
@@ -195,7 +195,7 @@ function polyTexR(p: RPoly, variable: string): string {
     if (c.isZero()) return;
     const power = degree - i;
     const abs = c.abs();
-    const base = power === 0 ? '' : power === 1 ? variable : `${variable}^{${power}}`;
+    const base = powerTex(variable, power);
     const coef = power > 0 && abs.eq(R1) ? '' : rationalTex(abs);
     const body = `${coef}${base}`;
     if (terms.length === 0) terms.push(c.sign() < 0 ? `-${body}` : body);

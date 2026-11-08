@@ -9,9 +9,9 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { toLatexNumber } from '@/lib/math/format';
+import { joinSignedTerms, toLatexNumber } from '@/lib/math/format';
 import { trimPoly } from '@/lib/math/polynomials';
-import type { Calculator, CalculatorResult, Notice, Step } from '../types';
+import type { Calculator, CalculatorFailure, CalculatorResult, Notice, Step } from '../types';
 import { matrixSchema } from '../metodos-numericos/matrix';
 import {
   circuitDocumentSchema,
@@ -68,7 +68,7 @@ function fail(
   code: TransferErrorCode,
   message: string,
   steps: Step[] = [],
-): CalculatorResult<TransferValue, TransferErrorCode> {
+): CalculatorFailure<TransferErrorCode> {
   return {
     ok: false,
     error: { code, message },
@@ -96,19 +96,126 @@ function derivativeTex(name: string, order: number): string {
   return `${name}^{(${order})}`;
 }
 
+/** `c` y su variable sin el signo: el coeficiente se omite si vale 1. */
+function termText(c: number, variable: string): { negative: boolean; text: string } {
+  const abs = Math.abs(c);
+  return { negative: c < 0, text: `${abs === 1 ? '' : n(abs)}${variable}` };
+}
+
 function odeSideTex(coefs: number[], name: string): string {
   const degree = coefs.length - 1;
-  const terms: string[] = [];
-  coefs.forEach((c, i) => {
-    if (c === 0) return;
-    const body = derivativeTex(name, degree - i);
-    const abs = Math.abs(c);
-    const text = `${abs === 1 ? '' : n(abs)}${body}`;
-    terms.push(
-      terms.length === 0 ? (c < 0 ? `-${text}` : text) : c < 0 ? ` - ${text}` : ` + ${text}`,
+  const terms = coefs.flatMap((c, i) =>
+    c === 0 ? [] : [termText(c, derivativeTex(name, degree - i))],
+  );
+  return joinSignedTerms(terms);
+}
+
+type Failure = CalculatorFailure<TransferErrorCode>;
+
+/** Desde la ecuación diferencial: Laplace con condiciones iniciales cero (Ogata, sec. 3-2). */
+function fromEquation(input: TransferInput, steps: Step[]): TransferFunction | Failure {
+  const a = coefficients(input.outputCoefficients, 'de la salida');
+  if (typeof a === 'string') return fail('coeficientes-invalidos', a);
+  const b = coefficients(input.inputCoefficients, 'de la entrada');
+  if (typeof b === 'string') return fail('coeficientes-invalidos', b);
+  if (a.length < 2)
+    return fail(
+      'coeficientes-invalidos',
+      'La salida debe tener al menos una derivada: el orden del sistema debe ser 1 o más.',
     );
+  steps.push(
+    {
+      title: 'Ecuación diferencial',
+      explanation: `y(t) es la salida y x(t) la entrada. Sistema de orden ${a.length - 1}.`,
+      formula: String.raw`a_0y^{(n)} + a_1y^{(n-1)} + \cdots + a_ny = b_0x^{(m)} + \cdots + b_mx`,
+      result: `${odeSideTex(a, 'y')} = ${odeSideTex(b, 'x')}`,
+    },
+    {
+      title: 'Transformada de Laplace con condiciones iniciales cero',
+      explanation:
+        'Cada derivada de orden k se convierte en sᵏ por la transformada; la función de transferencia supone condiciones iniciales cero (Ogata, sec. 3-2).',
+      result: String.raw`\left(${polyTex(a)}\right)Y(s) = \left(${polyTex(b)}\right)X(s)`,
+    },
+  );
+  const tf = { num: b, den: a };
+  steps.push({
+    title: 'Función de transferencia',
+    formula: String.raw`G(s) = \frac{Y(s)}{X(s)} = \frac{b_0s^m + b_1s^{m-1} + \cdots + b_m}{a_0s^n + a_1s^{n-1} + \cdots + a_n}`,
+    result: `G(s) = ${tfTex(tf)}`,
   });
-  return terms.join('');
+  return tf;
+}
+
+function fromStateSpace(
+  input: TransferInput,
+  steps: Step[],
+  notices: Notice[],
+): TransferFunction | Failure {
+  const size = input.A.length;
+  if (input.B.length !== size || input.C[0]!.length !== size) {
+    return fail('dimensiones', `B debe tener ${size} filas y C ${size} columnas, como A.`);
+  }
+  const result = stateSpaceToTf(input.A, input.B, input.C, [[input.D]]);
+  steps.push(...result.steps);
+  if (result.reduced) {
+    notices.push({
+      level: 'info',
+      message:
+        'Hubo cancelación de polos y ceros: el sistema no es completamente controlable u observable.',
+    });
+  }
+  return result.raw;
+}
+
+/** Desde un circuito dibujado: ecuaciones de estado y la ecuación de salida pedida. */
+function fromCircuit(input: TransferInput, steps: Step[]): TransferFunction | Failure {
+  const doc: CircuitDocument = input.circuit;
+  const formulation = formulateStateEquations(doc);
+  if (!formulation.ok) return fail('circuito-invalido', formulation.message, formulation.steps);
+  const { model } = formulation;
+  steps.push(...formulation.steps);
+  const sourceIndex = model.inputs.findIndex((u) => u.id === input.source);
+  const inputIndex = Math.max(sourceIndex, 0);
+  if (model.inputs.length === 0)
+    return fail('sin-fuente', 'El circuito no tiene fuentes: no hay entrada.', steps);
+  const target = doc.components.find((c) => c.id === input.output);
+  if (!target)
+    return fail('sin-salida', 'Elige el componente cuyo voltaje o corriente es la salida.', steps);
+  const out = outputEquation(doc, model, target.id, input.quantity);
+  if (!out.ok) return fail('circuito-invalido', out.message, steps);
+  const source = model.inputs[inputIndex]!;
+  const voltage = input.quantity === 'v';
+  const outName = `${voltage ? 'v' : 'i'}_{${componentLabel(target)}}`;
+  const others = model.inputs.length > 1 ? '; las demás fuentes se anulan' : '';
+  const terms = [
+    ...out.C.map((c, i) => ({ c, v: model.states[i]!.tex })),
+    ...out.D.map((c, i) => ({ c, v: model.inputs[i]!.tex })),
+  ]
+    .filter(({ c }) => c !== 0)
+    .map(({ c, v }) => termText(c, v));
+  steps.push({
+    title: 'Ecuación de salida',
+    explanation: `La salida es ${voltage ? 'el voltaje' : 'la corriente'} de ${componentLabel(target)} y la entrada es la fuente ${source.label}${others}. Se obtiene con la misma sustitución de capacitores e inductores por fuentes.`,
+    formula: String.raw`y = C\mathbf{x} + D\mathbf{u}`,
+    result: `${outName} = ${joinSignedTerms(terms) || '0'}`,
+  });
+  const result = stateSpaceToTf(model.A, model.B, [out.C], [out.D], 0, inputIndex);
+  steps.push(...result.steps);
+  return result.raw;
+}
+
+function transferOf(
+  input: TransferInput,
+  steps: Step[],
+  notices: Notice[],
+): TransferFunction | Failure {
+  if (input.mode === 'ecuacion') return fromEquation(input, steps);
+  if (input.mode === 'funcion') {
+    const parsed = parseTf(input.transfer);
+    return parsed.ok ? parsed.tf : fail('funcion-invalida', parsed.message);
+  }
+  if (input.mode === 'espacio-de-estados') return fromStateSpace(input, steps, notices);
+  return fromCircuit(input, steps);
 }
 
 export function solveTransfer(
@@ -116,99 +223,8 @@ export function solveTransfer(
 ): CalculatorResult<TransferValue, TransferErrorCode> {
   const steps: Step[] = [];
   const notices: Notice[] = [];
-  let tf: TransferFunction;
-
-  if (input.mode === 'ecuacion') {
-    const a = coefficients(input.outputCoefficients, 'de la salida');
-    if (typeof a === 'string') return fail('coeficientes-invalidos', a);
-    const b = coefficients(input.inputCoefficients, 'de la entrada');
-    if (typeof b === 'string') return fail('coeficientes-invalidos', b);
-    if (a.length < 2)
-      return fail(
-        'coeficientes-invalidos',
-        'La salida debe tener al menos una derivada: el orden del sistema debe ser 1 o más.',
-      );
-    steps.push(
-      {
-        title: 'Ecuación diferencial',
-        explanation: `y(t) es la salida y x(t) la entrada. Sistema de orden ${a.length - 1}.`,
-        formula: String.raw`a_0y^{(n)} + a_1y^{(n-1)} + \cdots + a_ny = b_0x^{(m)} + \cdots + b_mx`,
-        result: `${odeSideTex(a, 'y')} = ${odeSideTex(b, 'x')}`,
-      },
-      {
-        title: 'Transformada de Laplace con condiciones iniciales cero',
-        explanation:
-          'Cada derivada de orden k se convierte en sᵏ por la transformada; la función de transferencia supone condiciones iniciales cero (Ogata, sec. 3-2).',
-        result: String.raw`\left(${polyTex(a)}\right)Y(s) = \left(${polyTex(b)}\right)X(s)`,
-      },
-    );
-    tf = { num: b, den: a };
-    steps.push({
-      title: 'Función de transferencia',
-      formula: String.raw`G(s) = \frac{Y(s)}{X(s)} = \frac{b_0s^m + b_1s^{m-1} + \cdots + b_m}{a_0s^n + a_1s^{n-1} + \cdots + a_n}`,
-      result: `G(s) = ${tfTex(tf)}`,
-    });
-  } else if (input.mode === 'funcion') {
-    const parsed = parseTf(input.transfer);
-    if (!parsed.ok) return fail('funcion-invalida', parsed.message);
-    tf = parsed.tf;
-  } else if (input.mode === 'espacio-de-estados') {
-    const size = input.A.length;
-    if (input.B.length !== size || input.C[0]!.length !== size) {
-      return fail('dimensiones', `B debe tener ${size} filas y C ${size} columnas, como A.`);
-    }
-    const result = stateSpaceToTf(input.A, input.B, input.C, [[input.D]]);
-    steps.push(...result.steps);
-    tf = result.raw;
-    if (result.reduced) {
-      notices.push({
-        level: 'info',
-        message:
-          'Hubo cancelación de polos y ceros: el sistema no es completamente controlable u observable.',
-      });
-    }
-  } else {
-    const doc: CircuitDocument = input.circuit;
-    const formulation = formulateStateEquations(doc);
-    if (!formulation.ok) return fail('circuito-invalido', formulation.message, formulation.steps);
-    const { model } = formulation;
-    steps.push(...formulation.steps);
-    const sourceIndex = model.inputs.findIndex((u) => u.id === input.source);
-    const inputIndex = sourceIndex >= 0 ? sourceIndex : 0;
-    if (model.inputs.length === 0)
-      return fail('sin-fuente', 'El circuito no tiene fuentes: no hay entrada.', steps);
-    const target = doc.components.find((c) => c.id === input.output);
-    if (!target)
-      return fail(
-        'sin-salida',
-        'Elige el componente cuyo voltaje o corriente es la salida.',
-        steps,
-      );
-    const out = outputEquation(doc, model, target.id, input.quantity);
-    if (!out.ok) return fail('circuito-invalido', out.message, steps);
-    const source = model.inputs[inputIndex]!;
-    const outName = `${input.quantity === 'v' ? 'v' : 'i'}_{${componentLabel(target)}}`;
-    steps.push({
-      title: 'Ecuación de salida',
-      explanation: `La salida es ${input.quantity === 'v' ? 'el voltaje' : 'la corriente'} de ${componentLabel(target)} y la entrada es la fuente ${source.label}${model.inputs.length > 1 ? '; las demás fuentes se anulan' : ''}. Se obtiene con la misma sustitución de capacitores e inductores por fuentes.`,
-      formula: String.raw`y = C\mathbf{x} + D\mathbf{u}`,
-      result: `${outName} = ${
-        [
-          ...out.C.map((c, i) => ({ c, v: model.states[i]!.tex })),
-          ...out.D.map((c, i) => ({ c, v: model.inputs[i]!.tex })),
-        ]
-          .filter(({ c }) => c !== 0)
-          .map(
-            ({ c, v }, i) =>
-              `${i === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '}${Math.abs(c) === 1 ? '' : n(Math.abs(c))}${v}`,
-          )
-          .join('') || '0'
-      }`,
-    });
-    const result = stateSpaceToTf(model.A, model.B, [out.C], [out.D], 0, inputIndex);
-    steps.push(...result.steps);
-    tf = result.raw;
-  }
+  const tf = transferOf(input, steps, notices);
+  if ('error' in tf) return tf;
 
   const { tf: reducedTf, reduced } = tfReduce(tf);
   if (reduced) {

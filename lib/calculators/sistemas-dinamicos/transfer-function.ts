@@ -149,7 +149,7 @@ export function systemType(tf: TransferFunction): number {
 export function lowFrequencyGain(tf: TransferFunction): number {
   const num = stripZeroRoots(tf.num).rest;
   const den = stripZeroRoots(tf.den).rest;
-  return num[num.length - 1]! / den[den.length - 1]!;
+  return num.at(-1)! / den.at(-1)!;
 }
 
 export interface Zpk {
@@ -191,10 +191,9 @@ export function rootsText(roots: PolyRoot[]): string {
     .filter((r) => r.value.im >= 0)
     .map((r) => {
       const re = C.toTextRect(C.complex(r.value.re), DIGITS);
+      const prefix = r.value.re === 0 ? '' : `${re} `;
       const text =
-        r.value.im === 0
-          ? re
-          : `${r.value.re === 0 ? '' : `${re} `}± j${C.toTextRect(C.complex(r.value.im), DIGITS)}`;
+        r.value.im === 0 ? re : `${prefix}± j${C.toTextRect(C.complex(r.value.im), DIGITS)}`;
       return r.multiplicity > 1 ? `${text} (multiplicidad ${r.multiplicity})` : text;
     })
     .join(', ');
@@ -206,10 +205,9 @@ export function rootsTex(roots: PolyRoot[], variable = 's'): string {
   return roots
     .filter((r) => r.value.im >= 0)
     .map((r) => {
+      const realPart = r.value.re === 0 ? '' : n(r.value.re);
       const value =
-        r.value.im === 0
-          ? n(r.value.re)
-          : String.raw`${r.value.re === 0 ? '' : n(r.value.re)} \pm j${n(r.value.im)}`;
+        r.value.im === 0 ? n(r.value.re) : String.raw`${realPart} \pm j${n(r.value.im)}`;
       const mult = r.multiplicity > 1 ? String.raw`\ (\times ${r.multiplicity})` : '';
       return `${variable} = ${value}${mult}`;
     })

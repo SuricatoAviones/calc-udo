@@ -16,6 +16,7 @@ import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import { addPoly, mulPoly, polyRoots, trimPoly } from '@/lib/math/polynomials';
 import type {
   Calculator,
+  CalculatorFailure,
   CalculatorResult,
   Notice,
   ResultTable,
@@ -55,9 +56,12 @@ export interface PidSettings {
   td: number;
 }
 
+/** Kp, Ti y Td de cada controlador según la tabla de Ziegler-Nichols. */
+export type PidTable = Record<PidInput['controller'], PidSettings>;
+
 export interface PidValue {
   settings: PidSettings;
-  table: Record<'P' | 'PI' | 'PID', PidSettings>;
+  table: PidTable;
   controller: TransferFunction;
   criticalGain: number | null;
   criticalPeriod: number | null;
@@ -67,11 +71,7 @@ export interface PidValue {
 
 export type PidErrorCode = 'funcion-invalida' | 'sin-ganancia-critica' | 'planta-con-retardo';
 
-function fail(
-  code: PidErrorCode,
-  message: string,
-  steps: Step[] = [],
-): CalculatorResult<PidValue, PidErrorCode> {
+function fail(code: PidErrorCode, message: string, steps: Step[] = []): Failure {
   return {
     ok: false,
     error: { code, message },
@@ -82,7 +82,7 @@ function fail(
   };
 }
 
-export function firstMethod(L: number, T: number): Record<'P' | 'PI' | 'PID', PidSettings> {
+export function firstMethod(L: number, T: number): PidTable {
   return {
     P: { kp: T / L, ti: Infinity, td: 0 },
     PI: { kp: (0.9 * T) / L, ti: L / 0.3, td: 0 },
@@ -90,7 +90,7 @@ export function firstMethod(L: number, T: number): Record<'P' | 'PI' | 'PID', Pi
   };
 }
 
-export function secondMethod(kcr: number, pcr: number): Record<'P' | 'PI' | 'PID', PidSettings> {
+export function secondMethod(kcr: number, pcr: number): PidTable {
   return {
     P: { kp: 0.5 * kcr, ti: Infinity, td: 0 },
     PI: { kp: 0.45 * kcr, ti: pcr / 1.2, td: 0 },
@@ -107,103 +107,151 @@ export function controllerTf({ kp, ti, td }: PidSettings): TransferFunction {
 
 const tiTex = (ti: number) => (Number.isFinite(ti) ? n(ti) : String.raw`\infty`);
 
-export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCode> {
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-  const tables: ResultTable[] = [];
-  let table: Record<'P' | 'PI' | 'PID', PidSettings>;
-  let kcr: number | null = null;
-  let pcr: number | null = null;
-  let plant: TransferFunction | null = null;
+type Failure = CalculatorFailure<PidErrorCode>;
 
-  if (input.method === 'curva') {
-    const { delay: L, timeConstant: T } = input;
+/** Primer método: L y T de la curva de reacción y la tabla 10-1. */
+function curveMethod(input: PidInput, steps: Step[]): PidTable {
+  const { delay: L, timeConstant: T } = input;
+  steps.push({
+    title: 'Primer método: curva de reacción',
+    explanation:
+      'La respuesta de la planta al escalón tiene forma de S. Con la tangente en el punto de inflexión se miden el tiempo de retardo L y la constante de tiempo T, y la planta se aproxima por Ke^{−Ls}/(Ts + 1) (Ogata, fig. 10-4).',
+    result: String.raw`L = ${n(L)}\ \text{s},\quad T = ${n(T)}\ \text{s}`,
+  });
+  const table = firstMethod(L, T);
+  steps.push({
+    title: 'Tabla 10-1 de Ziegler-Nichols',
+    formula: String.raw`P:\ K_p = \frac{T}{L};\quad PI:\ K_p = 0.9\frac{T}{L},\ T_i = \frac{L}{0.3};\quad PID:\ K_p = 1.2\frac{T}{L},\ T_i = 2L,\ T_d = 0.5L`,
+    substitution: String.raw`K_p = 1.2\frac{${n(T)}}{${n(L)}},\ T_i = 2(${n(L)}),\ T_d = 0.5(${n(L)})`,
+    result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
+  });
+  return table;
+}
+
+/** K_p·N en LaTeX: `K_p` si N = 1 y `K_p(N)` en otro caso. */
+function kpTimesTex(N: number[]): string {
+  if (N.length === 1 && N[0] === 1) return 'K_p';
+  return String.raw`K_p\left(${polyTex(N)}\right)`;
+}
+
+/** Kcr y Pcr de la planta: Routh con control proporcional y el polinomio auxiliar. */
+function criticalFromPlant(
+  plant: TransferFunction,
+  steps: Step[],
+  tables: ResultTable[],
+): { kcr: number; pcr: number } | Failure {
+  // Ecuación característica con control proporcional: D(s) + Kp N(s) = 0.
+  const D = trimPoly(plant.den);
+  const N = trimPoly(plant.num);
+  const size = Math.max(D.length, N.length);
+  const pad = (p: number[]) => [...new Array<number>(size - p.length).fill(0), ...p];
+  const coefs = pad(D).map((d, i) => uFromPoly([pad(N)[i]!, d]));
+  steps.push({
+    title: 'Segundo método con la planta',
+    explanation:
+      'Con control proporcional (Ti = ∞, Td = 0) la ecuación característica en lazo cerrado es D(s) + Kp N(s) = 0. La ganancia crítica es el valor de Kp que hace al sistema marginalmente estable; se obtiene con el criterio de Routh (Ogata, ejemplo 10-1).',
+    formula: '1 + K_pG(s) = 0',
+    result: String.raw`G(s) = ${tfTex(plant)},\quad ${polyTex(D)} + ${kpTimesTex(N)} = 0`,
+  });
+  const routh = routhArray(coefs, 'Kp');
+  if (!routh.ok) return fail('sin-ganancia-critica', routh.message, [...steps, ...routh.steps]);
+  steps.push(...routh.array.steps);
+  tables.push(routhTable(routh.array));
+  const stability = parameterStability(coefs, routh.array, 'Kp');
+  steps.push(...stability.steps);
+  // La ganancia crítica es el borde superior del intervalo estable que contiene Kp → 0⁺.
+  const near = stability.intervals.find(
+    ([lo, hi]) => (lo ?? -Infinity) <= 1e-9 && (hi ?? Infinity) > 1e-9,
+  );
+  const upper = near?.[1] ?? null;
+  const info =
+    upper === null
+      ? undefined
+      : stability.criticalInfo.find((c) => Math.abs(c.value - upper) < 1e-9);
+  if (upper === null || !info || info.omega.length === 0) {
+    return fail(
+      'sin-ganancia-critica',
+      'El lazo cerrado con control proporcional no llega a una oscilación sostenida para ningún Kp positivo: no existe la ganancia crítica y el segundo método no se aplica (Ogata, sec. 10-2).',
+      steps,
+    );
+  }
+  const kcr = upper;
+  const omega = info.omega[0]!;
+  const pcr = (2 * Math.PI) / omega;
+  steps.push({
+    title: 'Ganancia y periodo críticos',
+    formula: String.raw`P_{cr} = \frac{2\pi}{\omega_{cr}}`,
+    substitution: String.raw`P_{cr} = \frac{2\pi}{${n(omega)}}`,
+    result: String.raw`K_{cr} = ${n(kcr)},\quad \omega_{cr} = ${n(omega)}\ \text{rad/s},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
+  });
+  return { kcr, pcr };
+}
+
+/** Segundo método: Kcr y Pcr (escritos o de la planta) y la tabla 10-2. */
+function oscillationMethod(
+  input: PidInput,
+  steps: Step[],
+  tables: ResultTable[],
+): { table: PidTable; kcr: number; pcr: number; plant: TransferFunction | null } | Failure {
+  let kcr: number;
+  let pcr: number;
+  let plant: TransferFunction | null = null;
+  if (input.method === 'oscilacion') {
+    kcr = input.criticalGain;
+    pcr = input.criticalPeriod;
     steps.push({
-      title: 'Primer método: curva de reacción',
+      title: 'Segundo método: oscilación sostenida',
       explanation:
-        'La respuesta de la planta al escalón tiene forma de S. Con la tangente en el punto de inflexión se miden el tiempo de retardo L y la constante de tiempo T, y la planta se aproxima por Ke^{−Ls}/(Ts + 1) (Ogata, fig. 10-4).',
-      result: String.raw`L = ${n(L)}\ \text{s},\quad T = ${n(T)}\ \text{s}`,
-    });
-    table = firstMethod(L, T);
-    steps.push({
-      title: 'Tabla 10-1 de Ziegler-Nichols',
-      formula: String.raw`P:\ K_p = \frac{T}{L};\quad PI:\ K_p = 0.9\frac{T}{L},\ T_i = \frac{L}{0.3};\quad PID:\ K_p = 1.2\frac{T}{L},\ T_i = 2L,\ T_d = 0.5L`,
-      substitution: String.raw`K_p = 1.2\frac{${n(T)}}{${n(L)}},\ T_i = 2(${n(L)}),\ T_d = 0.5(${n(L)})`,
-      result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
+        'Con Ti = ∞ y Td = 0 se aumenta Kp desde 0 hasta que la salida oscila con amplitud constante: esa es la ganancia crítica Kcr y el periodo de la oscilación es Pcr (Ogata, fig. 10-5 y 10-6).',
+      result: String.raw`K_{cr} = ${n(kcr)},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
     });
   } else {
-    if (input.method === 'oscilacion') {
-      kcr = input.criticalGain;
-      pcr = input.criticalPeriod;
-      steps.push({
-        title: 'Segundo método: oscilación sostenida',
-        explanation:
-          'Con Ti = ∞ y Td = 0 se aumenta Kp desde 0 hasta que la salida oscila con amplitud constante: esa es la ganancia crítica Kcr y el periodo de la oscilación es Pcr (Ogata, fig. 10-5 y 10-6).',
-        result: String.raw`K_{cr} = ${n(kcr)},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
-      });
-    } else {
-      const parsed = parseTf(input.plant, 'G(s)');
-      if (!parsed.ok) return fail('funcion-invalida', parsed.message);
-      plant = parsed.tf;
-      // Ecuación característica con control proporcional: D(s) + Kp N(s) = 0.
-      const D = trimPoly(plant.den);
-      const N = trimPoly(plant.num);
-      const size = Math.max(D.length, N.length);
-      const pad = (p: number[]) => [...new Array<number>(size - p.length).fill(0), ...p];
-      const coefs = pad(D).map((d, i) => uFromPoly([pad(N)[i]!, d]));
-      steps.push({
-        title: 'Segundo método con la planta',
-        explanation:
-          'Con control proporcional (Ti = ∞, Td = 0) la ecuación característica en lazo cerrado es D(s) + Kp N(s) = 0. La ganancia crítica es el valor de Kp que hace al sistema marginalmente estable; se obtiene con el criterio de Routh (Ogata, ejemplo 10-1).',
-        formula: '1 + K_pG(s) = 0',
-        result: String.raw`G(s) = ${tfTex(plant)},\quad ${polyTex(D)} + ${
-          N.length === 1 && N[0] === 1 ? 'K_p' : String.raw`K_p\left(${polyTex(N)}\right)`
-        } = 0`,
-      });
-      const routh = routhArray(coefs, 'Kp');
-      if (!routh.ok) return fail('sin-ganancia-critica', routh.message, [...steps, ...routh.steps]);
-      steps.push(...routh.array.steps);
-      tables.push(routhTable(routh.array));
-      const stability = parameterStability(coefs, routh.array, 'Kp');
-      steps.push(...stability.steps);
-      // La ganancia crítica es el borde superior del intervalo estable que contiene Kp → 0⁺.
-      const near = stability.intervals.find(
-        ([lo, hi]) => (lo ?? -Infinity) <= 1e-9 && (hi ?? Infinity) > 1e-9,
-      );
-      const upper = near?.[1] ?? null;
-      const info =
-        upper === null
-          ? undefined
-          : stability.criticalInfo.find((c) => Math.abs(c.value - upper) < 1e-9);
-      if (upper === null || !info || info.omega.length === 0) {
-        return fail(
-          'sin-ganancia-critica',
-          'El lazo cerrado con control proporcional no llega a una oscilación sostenida para ningún Kp positivo: no existe la ganancia crítica y el segundo método no se aplica (Ogata, sec. 10-2).',
-          steps,
-        );
-      }
-      kcr = upper;
-      const omega = info.omega[0]!;
-      pcr = (2 * Math.PI) / omega;
-      steps.push({
-        title: 'Ganancia y periodo críticos',
-        formula: String.raw`P_{cr} = \frac{2\pi}{\omega_{cr}}`,
-        substitution: String.raw`P_{cr} = \frac{2\pi}{${n(omega)}}`,
-        result: String.raw`K_{cr} = ${n(kcr)},\quad \omega_{cr} = ${n(omega)}\ \text{rad/s},\quad P_{cr} = ${n(pcr)}\ \text{s}`,
-      });
-    }
-    table = secondMethod(kcr, pcr);
-    steps.push({
-      title: 'Tabla 10-2 de Ziegler-Nichols',
-      formula: String.raw`P:\ K_p = 0.5K_{cr};\quad PI:\ K_p = 0.45K_{cr},\ T_i = \frac{P_{cr}}{1.2};\quad PID:\ K_p = 0.6K_{cr},\ T_i = 0.5P_{cr},\ T_d = 0.125P_{cr}`,
-      substitution: String.raw`K_p = 0.6(${n(kcr)}),\ T_i = 0.5(${n(pcr)}),\ T_d = 0.125(${n(pcr)})`,
-      result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
-    });
+    const parsed = parseTf(input.plant, 'G(s)');
+    if (!parsed.ok) return fail('funcion-invalida', parsed.message);
+    plant = parsed.tf;
+    const critical = criticalFromPlant(plant, steps, tables);
+    if ('error' in critical) return critical;
+    ({ kcr, pcr } = critical);
   }
+  const table = secondMethod(kcr, pcr);
+  steps.push({
+    title: 'Tabla 10-2 de Ziegler-Nichols',
+    formula: String.raw`P:\ K_p = 0.5K_{cr};\quad PI:\ K_p = 0.45K_{cr},\ T_i = \frac{P_{cr}}{1.2};\quad PID:\ K_p = 0.6K_{cr},\ T_i = 0.5P_{cr},\ T_d = 0.125P_{cr}`,
+    substitution: String.raw`K_p = 0.6(${n(kcr)}),\ T_i = 0.5(${n(pcr)}),\ T_d = 0.125(${n(pcr)})`,
+    result: String.raw`\text{PID: } K_p = ${n(table.PID.kp)},\ T_i = ${n(table.PID.ti)},\ T_d = ${n(table.PID.td)}`,
+  });
+  return { table, kcr, pcr, plant };
+}
 
-  const settings = table[input.controller];
-  const controller = controllerTf(settings);
-  tables.push({
+/** Ceros del PID de cada método: un cero doble en −1/L o en −4/Pcr. */
+function pidZeroNote(input: PidInput, pcr: number | null): string | undefined {
+  if (input.controller !== 'PID') return undefined;
+  if (input.method === 'curva') {
+    return `El PID del primer método es 0.6T(s + 1/L)²/s: un polo en el origen y un cero doble en s = −1/L = ${formatNumber(-1 / input.delay, DIGITS)}.`;
+  }
+  return `El PID del segundo método es 0.075KcrPcr(s + 4/Pcr)²/s: un polo en el origen y un cero doble en s = −4/Pcr = ${formatNumber(-4 / pcr!, DIGITS)}.`;
+}
+
+function controllerStep(
+  input: PidInput,
+  settings: PidSettings,
+  controller: TransferFunction,
+  pcr: number | null,
+): Step {
+  const integral = Number.isFinite(settings.ti) ? String.raw` + \frac{1}{${n(settings.ti)}s}` : '';
+  const derivative = settings.td ? ` + ${n(settings.td)}s` : '';
+  const factored = input.controller === 'PID' ? ` = ${zpkTex(controller)}` : '';
+  return {
+    title: `Controlador ${input.controller}`,
+    explanation: pidZeroNote(input, pcr),
+    formula: String.raw`G_c(s) = K_p\left(1 + \frac{1}{T_is} + T_ds\right)`,
+    substitution: String.raw`G_c(s) = ${n(settings.kp)}\left(1${integral}${derivative}\right)`,
+    result: `G_c(s) = ${tfTex(controller)}${factored}`,
+  };
+}
+
+function tuningTable(input: PidInput, table: PidTable): ResultTable {
+  return {
     id: 'ziegler-nichols',
     title:
       input.method === 'curva'
@@ -221,67 +269,100 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
       ti: tiTex(table[k].ti),
       td: table[k].td,
     })),
-  });
-  const zeroNote =
-    input.controller === 'PID'
-      ? input.method === 'curva'
-        ? `El PID del primer método es 0.6T(s + 1/L)²/s: un polo en el origen y un cero doble en s = −1/L = ${formatNumber(-1 / input.delay, DIGITS)}.`
-        : `El PID del segundo método es 0.075KcrPcr(s + 4/Pcr)²/s: un polo en el origen y un cero doble en s = −4/Pcr = ${formatNumber(-4 / pcr!, DIGITS)}.`
-      : undefined;
-  steps.push({
-    title: `Controlador ${input.controller}`,
-    explanation: zeroNote,
-    formula: String.raw`G_c(s) = K_p\left(1 + \frac{1}{T_is} + T_ds\right)`,
-    substitution: String.raw`G_c(s) = ${n(settings.kp)}\left(1${Number.isFinite(settings.ti) ? String.raw` + \frac{1}{${n(settings.ti)}s}` : ''}${settings.td ? ` + ${n(settings.td)}s` : ''}\right)`,
-    result: `G_c(s) = ${tfTex(controller)}${input.controller === 'PID' ? ` = ${zpkTex(controller)}` : ''}`,
-  });
+  };
+}
 
-  const series: Series[] = [];
-  let closedLoop: TransferFunction | null = null;
-  let overshoot: number | null = null;
-  if (plant) {
-    const open: TransferFunction = {
-      num: mulPoly(controller.num, plant.num),
-      den: mulPoly(controller.den, plant.den),
-    };
-    closedLoop = { num: trimPoly(open.num), den: trimPoly(addPoly(open.den, open.num)) };
-    const stable = polyRoots(closedLoop.den).every((r) => r.value.re < -1e-9);
-    steps.push({
-      title: 'Lazo cerrado con el controlador',
-      explanation: stable ? undefined : 'El lazo cerrado con este controlador no es estable.',
-      formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_c(s)G(s)}{1 + G_c(s)G(s)}`,
-      result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+/** Respuesta al escalón del lazo cerrado estable: sobrepaso, pico y asentamiento. */
+function stepResponse(
+  closedLoop: TransferFunction,
+  steps: Step[],
+  notices: Notice[],
+): { overshoot: number; series: Series } | null {
+  const response = timeResponse(closedLoop, 'escalon');
+  if (!response) return null;
+  const horizon = horizonFor(closedLoop, 2);
+  const final = closedLoop.num.at(-1)! / closedLoop.den.at(-1)!;
+  const specs = stepSpecs(response.evaluate, final, horizon * 1.5);
+  const peak = specs.peak ? String.raw`,\quad t_p = ${n(specs.peak)}\ \text{s}` : '';
+  const settling = specs.settling2
+    ? String.raw`,\quad t_s = ${n(specs.settling2)}\ \text{s}\ (2\,\%)`
+    : '';
+  steps.push({
+    title: 'Respuesta al escalón unitario',
+    explanation: `Sobrepaso máximo ≈ ${formatNumber(100 * specs.overshoot, 4)} %. Las reglas de Ziegler-Nichols suelen dar entre 10 y 60 % (25 % en promedio); si es excesivo se hace una sintonización fina (Ogata, sec. 10-2).`,
+    result: String.raw`M_p = ${n(100 * specs.overshoot)}\,\%${peak}${settling}`,
+  });
+  if (specs.overshoot > 0.4)
+    notices.push({
+      level: 'info',
+      message: 'El sobrepaso supera el 40 %: conviene una sintonización fina del controlador.',
     });
-    if (stable) {
-      const response = timeResponse(closedLoop, 'escalon');
-      if (response) {
-        const horizon = horizonFor(closedLoop, 2);
-        const final = closedLoop.num.at(-1)! / closedLoop.den.at(-1)!;
-        const specs = stepSpecs(response.evaluate, final, horizon * 1.5);
-        overshoot = specs.overshoot;
-        steps.push({
-          title: 'Respuesta al escalón unitario',
-          explanation: `Sobrepaso máximo ≈ ${formatNumber(100 * specs.overshoot, 4)} %. Las reglas de Ziegler-Nichols suelen dar entre 10 y 60 % (25 % en promedio); si es excesivo se hace una sintonización fina (Ogata, sec. 10-2).`,
-          result: String.raw`M_p = ${n(100 * specs.overshoot)}\,\%${specs.peak ? String.raw`,\quad t_p = ${n(specs.peak)}\ \text{s}` : ''}${specs.settling2 ? String.raw`,\quad t_s = ${n(specs.settling2)}\ \text{s}\ (2\,\%)` : ''}`,
-        });
-        if (specs.overshoot > 0.4)
-          notices.push({
-            level: 'info',
-            message:
-              'El sobrepaso supera el 40 %: conviene una sintonización fina del controlador.',
-          });
-        series.push({
-          id: 'respuesta',
-          title: 'Respuesta al escalón en lazo cerrado',
-          xLabel: 't (s)',
-          yLabel: 'c(t)',
-          label: 'c(t)',
-          points: sample(response.evaluate, horizon),
-          reference: { label: 'r(t)', points: sample(() => 1, horizon) },
-        });
-      }
-    }
+  return {
+    overshoot: specs.overshoot,
+    series: {
+      id: 'respuesta',
+      title: 'Respuesta al escalón en lazo cerrado',
+      xLabel: 't (s)',
+      yLabel: 'c(t)',
+      label: 'c(t)',
+      points: sample(response.evaluate, horizon),
+      reference: { label: 'r(t)', points: sample(() => 1, horizon) },
+    },
+  };
+}
+
+/** Lazo cerrado con el controlador y la planta, y su respuesta al escalón si es estable. */
+function closedLoopAnalysis(
+  controller: TransferFunction,
+  plant: TransferFunction,
+  steps: Step[],
+  notices: Notice[],
+): { closedLoop: TransferFunction; overshoot: number | null; series: Series[] } {
+  const open: TransferFunction = {
+    num: mulPoly(controller.num, plant.num),
+    den: mulPoly(controller.den, plant.den),
+  };
+  const closedLoop = { num: trimPoly(open.num), den: trimPoly(addPoly(open.den, open.num)) };
+  const stable = polyRoots(closedLoop.den).every((r) => r.value.re < -1e-9);
+  steps.push({
+    title: 'Lazo cerrado con el controlador',
+    explanation: stable ? undefined : 'El lazo cerrado con este controlador no es estable.',
+    formula: String.raw`\frac{C(s)}{R(s)} = \frac{G_c(s)G(s)}{1 + G_c(s)G(s)}`,
+    result: String.raw`\frac{C(s)}{R(s)} = ${tfTex(closedLoop)}`,
+  });
+  const response = stable ? stepResponse(closedLoop, steps, notices) : null;
+  return {
+    closedLoop,
+    overshoot: response?.overshoot ?? null,
+    series: response ? [response.series] : [],
+  };
+}
+
+export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCode> {
+  const steps: Step[] = [];
+  const notices: Notice[] = [];
+  const tables: ResultTable[] = [];
+  let table: PidTable;
+  let kcr: number | null = null;
+  let pcr: number | null = null;
+  let plant: TransferFunction | null = null;
+
+  if (input.method === 'curva') {
+    table = curveMethod(input, steps);
+  } else {
+    const second = oscillationMethod(input, steps, tables);
+    if ('error' in second) return second;
+    ({ table, kcr, pcr, plant } = second);
   }
+
+  const settings = table[input.controller];
+  const controller = controllerTf(settings);
+  tables.push(tuningTable(input, table));
+  steps.push(controllerStep(input, settings, controller, pcr));
+
+  const loop = plant ? closedLoopAnalysis(controller, plant, steps, notices) : null;
+  const closedLoop = loop?.closedLoop ?? null;
+  const overshoot = loop?.overshoot ?? null;
 
   const summary: SummaryItem[] = [
     {
@@ -319,7 +400,7 @@ export function solvePid(input: PidInput): CalculatorResult<PidValue, PidErrorCo
     summary,
     steps,
     tables,
-    series,
+    series: loop?.series ?? [],
     notices,
   };
 }

@@ -61,17 +61,42 @@ export function poleZeroSeries(tf: TransferFunction, title = 'Diagrama de polos 
   };
 }
 
+/** Ganancia de cd: el valor en s = 0 para tipo 0, 0 si hay ceros en el origen, nula si diverge. */
+function dcGainOf(tf: TransferFunction, type: number): number | null {
+  if (type === 0 && trimPoly(tf.num).at(-1) !== 0) return lowFrequencyGain(tf);
+  return type < 0 ? 0 : null;
+}
+
+function stabilityOf(unstable: boolean, onAxis: boolean): Stability {
+  if (unstable) return 'inestable';
+  return onAxis ? 'marginal' : 'estable';
+}
+
+const STABILITY_EXPLANATION: Record<Stability, string> = {
+  estable:
+    'Todos los polos tienen parte real negativa: la respuesta natural se extingue y el sistema es estable.',
+  marginal:
+    'Hay polos simples sobre el eje imaginario y ninguno a la derecha: el sistema es críticamente (marginalmente) estable.',
+  inestable:
+    'Hay polos con parte real positiva o polos repetidos sobre el eje imaginario: el sistema es inestable.',
+};
+
+const STABILITY_NAMES: Record<Stability, string> = {
+  estable: 'estable',
+  marginal: 'marginalmente estable',
+  inestable: 'inestable',
+};
+
 export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
   const { gain, poles, zeros } = zpk(tf);
   const order = trimPoly(tf.den).length - 1;
   const type = systemType(tf);
-  const dcGain =
-    type === 0 && trimPoly(tf.num).at(-1) !== 0 ? lowFrequencyGain(tf) : type < 0 ? 0 : null;
+  const dcGain = dcGainOf(tf, type);
   const unstable = poles.some(
     (p) => p.value.re > 1e-9 || (Math.abs(p.value.re) <= 1e-9 && p.multiplicity > 1),
   );
   const onAxis = poles.some((p) => Math.abs(p.value.re) <= 1e-9);
-  const stability: Stability = unstable ? 'inestable' : onAxis ? 'marginal' : 'estable';
+  const stability = stabilityOf(unstable, onAxis);
   const steps: Step[] = [
     {
       title: 'Forma canónica polinomial',
@@ -100,12 +125,7 @@ export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
     },
     {
       title: 'Estabilidad',
-      explanation:
-        stability === 'estable'
-          ? 'Todos los polos tienen parte real negativa: la respuesta natural se extingue y el sistema es estable.'
-          : stability === 'marginal'
-            ? 'Hay polos simples sobre el eje imaginario y ninguno a la derecha: el sistema es críticamente (marginalmente) estable.'
-            : 'Hay polos con parte real positiva o polos repetidos sobre el eje imaginario: el sistema es inestable.',
+      explanation: STABILITY_EXPLANATION[stability],
     },
   ];
   const summary: SummaryItem[] = [
@@ -117,7 +137,7 @@ export function analyzeTf(tf: TransferFunction, name = 'G(s)'): TfAnalysis {
     },
     {
       label: 'Estabilidad',
-      value: String.raw`\text{${{ estable: 'estable', marginal: 'marginalmente estable', inestable: 'inestable' }[stability]}}`,
+      value: String.raw`\text{${STABILITY_NAMES[stability]}}`,
     },
   ];
   if (dcGain !== null)

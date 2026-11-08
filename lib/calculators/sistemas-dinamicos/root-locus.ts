@@ -70,15 +70,21 @@ export function realAxisSegments(data: LocusData): [number, number][] {
   for (let i = 0; i < bounds.length - 1; i++) {
     const a = bounds[i]!;
     const b = bounds[i + 1]!;
-    const x = !Number.isFinite(a) ? b - 1 : !Number.isFinite(b) ? a + 1 : (a + b) / 2;
+    const x = probeBetween(a, b);
     const value = F(data, C.complex(Number.isFinite(x) ? x : 0));
     if (value.re < 0) {
       const last = out.at(-1);
-      if (last && last[1] === a) last[1] = b;
+      if (last?.[1] === a) last[1] = b;
       else out.push([a, b]);
     }
   }
   return out;
+}
+
+/** Un punto dentro del tramo (a, b), que puede no estar acotado por un lado. */
+function probeBetween(a: number, b: number): number {
+  if (!Number.isFinite(a)) return b - 1;
+  return Number.isFinite(b) ? (a + b) / 2 : a + 1;
 }
 
 export interface Asymptotes {
@@ -123,6 +129,33 @@ function angleDeg(z: Complex): number {
   return C.degrees(Math.atan2(z.im, z.re));
 }
 
+type RootKind = 'polo' | 'cero';
+
+/**
+ * Ángulos (en grados) desde cada raíz de `list` hasta `root` y su suma. Si `root` está en la lista
+ * (`skipSelf`), su primera aparición no cuenta.
+ */
+function anglesTo(
+  root: Complex,
+  list: Complex[],
+  kind: RootKind,
+  skipSelf: boolean,
+): { sum: number; others: { from: Complex; angle: number; kind: RootKind }[] } {
+  const others: { from: Complex; angle: number; kind: RootKind }[] = [];
+  let sum = 0;
+  let skipped = !skipSelf;
+  for (const p of list) {
+    if (!skipped && C.abs(C.sub(p, root)) < 1e-9) {
+      skipped = true;
+      continue;
+    }
+    const a = angleDeg(C.sub(root, p));
+    others.push({ from: p, angle: a, kind });
+    sum += a;
+  }
+  return { sum, others };
+}
+
 /** Ángulos de salida de los polos complejos (y de llegada a los ceros complejos), en grados. */
 export function departureAngles(data: LocusData): {
   root: Complex;
@@ -145,34 +178,15 @@ export function departureAngles(data: LocusData): {
     for (const root of list) {
       if (root.im <= 1e-9 || seen.some((x) => C.abs(C.sub(x, root)) < 1e-9)) continue;
       seen.push(root);
-      const others: { from: Complex; angle: number; kind: 'polo' | 'cero' }[] = [];
-      let sumPoles = 0;
-      let sumZeros = 0;
-      let skipped = false;
-      for (const p of data.poles) {
-        if (kind === 'polo' && !skipped && C.abs(C.sub(p, root)) < 1e-9) {
-          skipped = true;
-          continue;
-        }
-        const a = angleDeg(C.sub(root, p));
-        others.push({ from: p, angle: a, kind: 'polo' });
-        sumPoles += a;
-      }
-      skipped = false;
-      for (const z of data.zeros) {
-        if (kind === 'cero' && !skipped && C.abs(C.sub(z, root)) < 1e-9) {
-          skipped = true;
-          continue;
-        }
-        const a = angleDeg(C.sub(root, z));
-        others.push({ from: z, angle: a, kind: 'cero' });
-        sumZeros += a;
-      }
+      const fromPoles = anglesTo(root, data.poles, 'polo', kind === 'polo');
+      const fromZeros = anglesTo(root, data.zeros, 'cero', kind === 'cero');
+      const sumPoles = fromPoles.sum;
+      const sumZeros = fromZeros.sum;
       const angle =
         kind === 'polo'
           ? normalize(base - sumPoles + sumZeros)
           : normalize(base + sumPoles - sumZeros);
-      out.push({ root, kind, angle, others });
+      out.push({ root, kind, angle, others: [...fromPoles.others, ...fromZeros.others] });
     }
   }
   return out;
@@ -210,12 +224,15 @@ export function axisCrossings(data: LocusData): { equation: Poly; crossings: Cro
     if (Math.abs(r.value.im) > 1e-7 || r.value.re < -1e-9) continue;
     const omega = Math.max(0, r.value.re);
     const K = gainAt(data, C.complex(0, omega));
-    if (Math.abs(K.im) > 1e-6 * Math.max(1, C.abs(K)) || !(K.re > 1e-9) || !Number.isFinite(K.re))
-      continue;
+    const complexGain = Math.abs(K.im) > 1e-6 * Math.max(1, C.abs(K));
+    // Escrito en positivo para que un NaN también se descarte.
+    const positive = K.re > 1e-9 && Number.isFinite(K.re);
+    if (complexGain || !positive) continue;
     if (!crossings.some((c) => Math.abs(c.omega - omega) < 1e-9))
       crossings.push({ omega, K: K.re });
   }
-  return { equation, crossings: crossings.sort((a, b) => a.omega - b.omega) };
+  crossings.sort((a, b) => a.omega - b.omega);
+  return { equation, crossings };
 }
 
 /** Puntos del lugar sobre la recta de ζ constante (semiplano superior), con su K. */
@@ -235,14 +252,7 @@ export function dampingPoints(data: LocusData, zeta: number): { s: Complex; K: n
     const r = (radius * i) / count;
     const cur = f(r);
     if (Math.sign(cur.im) !== Math.sign(prev.im) && cur.im !== 0) {
-      let lo = prevR;
-      let hi = r;
-      for (let k = 0; k < 100; k++) {
-        const mid = (lo + hi) / 2;
-        if (Math.sign(f(mid).im) === Math.sign(f(lo).im)) lo = mid;
-        else hi = mid;
-      }
-      const root = (lo + hi) / 2;
+      const root = bisectImaginary(f, prevR, r);
       const value = f(root);
       if (value.re < 0) {
         const s = C.scale(dir, root);
@@ -254,6 +264,18 @@ export function dampingPoints(data: LocusData, zeta: number): { s: Complex; K: n
     prevR = r;
   }
   return out;
+}
+
+/** Cero de Im f(r) entre `lo` y `hi` (con signos distintos) por 100 pasos de bisección. */
+function bisectImaginary(f: (r: number) => Complex, from: number, to: number): number {
+  let lo = from;
+  let hi = to;
+  for (let k = 0; k < 100; k++) {
+    const mid = (lo + hi) / 2;
+    if (Math.sign(f(mid).im) === Math.sign(f(lo).im)) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
 }
 
 /** Raíces de D(s) + K N(s) = 0. */

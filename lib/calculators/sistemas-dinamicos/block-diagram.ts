@@ -184,7 +184,7 @@ export function junctionPoints(doc: BlockDiagramDocument): BdPoint[] {
 // ─── Señales ────────────────────────────────────────────────────────────────
 
 class UnionFind {
-  private parent = new Map<string, string>();
+  private readonly parent = new Map<string, string>();
   add(k: string) {
     if (!this.parent.has(k)) this.parent.set(k, k);
   }
@@ -217,16 +217,8 @@ export interface Signal {
 
 const terminalKey = (t: Terminal) => `t:${t.elementId}:${t.port}`;
 
-/**
- * Agrupa terminales y cables en señales. Los puertos de un punto suma que no tocan nada no
- * cuentan (el punto suma puede usar dos de sus tres entradas).
- */
-export function buildSignals(doc: BlockDiagramDocument): Signal[] {
-  const uf = new UnionFind();
-  const terminals = doc.elements.flatMap(elementTerminals);
-  for (const w of doc.wires) uf.add(`w:${w.id}`);
-  for (const t of terminals) uf.add(terminalKey(t));
-
+/** Dos cables se unen si un vértice de uno cae sobre el otro. */
+function joinWires(doc: BlockDiagramDocument, uf: UnionFind): void {
   for (const a of doc.wires) {
     for (const p of a.points) {
       for (const b of doc.wires) {
@@ -234,6 +226,10 @@ export function buildSignals(doc: BlockDiagramDocument): Signal[] {
       }
     }
   }
+}
+
+/** Un terminal se une al cable que lo toca y a los terminales de otros elementos en su punto. */
+function joinTerminals(doc: BlockDiagramDocument, terminals: Terminal[], uf: UnionFind): void {
   for (const t of terminals) {
     for (const w of doc.wires) if (onWire(t.point, w)) uf.union(terminalKey(t), `w:${w.id}`);
   }
@@ -246,6 +242,29 @@ export function buildSignals(doc: BlockDiagramDocument): Signal[] {
       }
     }
   }
+}
+
+/** Entrada de un punto suma que no toca ningún cable ni otro terminal. */
+function isLooseSumInput(doc: BlockDiagramDocument, terminals: Terminal[], t: Terminal): boolean {
+  if (t.role !== 'in') return false;
+  if (doc.elements.find((e) => e.id === t.elementId)?.kind !== 'sum') return false;
+  const connected =
+    doc.wires.some((w) => onWire(t.point, w)) ||
+    terminals.some((o) => o.elementId !== t.elementId && samePoint(o.point, t.point));
+  return !connected;
+}
+
+/**
+ * Agrupa terminales y cables en señales. Los puertos de un punto suma que no tocan nada no
+ * cuentan (el punto suma puede usar dos de sus tres entradas).
+ */
+export function buildSignals(doc: BlockDiagramDocument): Signal[] {
+  const uf = new UnionFind();
+  const terminals = doc.elements.flatMap(elementTerminals);
+  for (const w of doc.wires) uf.add(`w:${w.id}`);
+  for (const t of terminals) uf.add(terminalKey(t));
+  joinWires(doc, uf);
+  joinTerminals(doc, terminals, uf);
 
   const groups = new Map<string, { terminals: Terminal[]; wires: string[] }>();
   const groupOf = (root: string) => {
@@ -253,17 +272,8 @@ export function buildSignals(doc: BlockDiagramDocument): Signal[] {
     return groups.get(root)!;
   };
   for (const t of terminals) {
-    const connected =
-      doc.wires.some((w) => onWire(t.point, w)) ||
-      terminals.some((o) => o.elementId !== t.elementId && samePoint(o.point, t.point));
     // Un puerto de punto suma sin conectar no forma parte de ninguna señal.
-    if (
-      !connected &&
-      doc.elements.find((e) => e.id === t.elementId)?.kind === 'sum' &&
-      t.role === 'in'
-    ) {
-      continue;
-    }
+    if (isLooseSumInput(doc, terminals, t)) continue;
     groupOf(uf.find(terminalKey(t))).terminals.push(t);
   }
   for (const w of doc.wires) groupOf(uf.find(`w:${w.id}`)).wires.push(w.id);
@@ -312,33 +322,32 @@ function of(text: string): string {
 }
 
 function describe(e: BdElement, index: Map<string, number>): string {
-  if (e.kind === 'block') return `el bloque ${e.gain?.trim() || `#${index.get(e.id)}`}`;
+  if (e.kind === 'block') {
+    const name = e.gain?.trim() || `#${index.get(e.id)}`;
+    return `el bloque ${name}`;
+  }
   if (e.kind === 'sum') return `el punto suma ${index.get(e.id)}`;
   if (e.kind === 'input') return `la entrada ${e.label || 'R'}`;
   return `la salida ${e.label || 'C'}`;
 }
 
-/** Convierte el diagrama en su flujograma equivalente, con un nodo por señal. */
-export function diagramToGraph(doc: BlockDiagramDocument): DiagramOutcome {
-  const fail = (code: DiagramErrorCode, message: string): DiagramOutcome => ({
-    ok: false,
-    code,
-    message,
-  });
-  if (doc.elements.length === 0) return fail('diagrama-vacio', 'El diagrama está vacío.');
-  const inputs = doc.elements.filter((e) => e.kind === 'input');
-  const outputs = doc.elements.filter((e) => e.kind === 'output');
-  if (inputs.length === 0) return fail('sin-entrada', 'Agrega una entrada (R) al diagrama.');
-  if (outputs.length === 0) return fail('sin-salida', 'Agrega una salida (C) al diagrama.');
+/** Nombre de una entrada (R si no tiene) o de una salida (C si no tiene). */
+function endName(e: BdElement): string {
+  return e.label?.trim() || (e.kind === 'input' ? 'R' : 'C');
+}
 
-  const names = [...inputs, ...outputs].map(
-    (e) => e.label?.trim() || (e.kind === 'input' ? 'R' : 'C'),
-  );
-  const repeated = names.find((name, i) => names.indexOf(name) !== i);
-  if (repeated)
-    return fail('nombre-repetido', `Hay dos entradas o salidas llamadas «${repeated}».`);
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
-  // Numeración de bloques y puntos suma en el orden en que se dibujaron.
+type DiagramFailure = Extract<DiagramOutcome, { ok: false }>;
+
+function fail(code: DiagramErrorCode, message: string): DiagramFailure {
+  return { ok: false, code, message };
+}
+
+/** Numeración de bloques y puntos suma en el orden en que se dibujaron. */
+function numberElements(doc: BlockDiagramDocument): Map<string, number> {
   const index = new Map<string, number>();
   let blocks = 0;
   let sums = 0;
@@ -346,24 +355,35 @@ export function diagramToGraph(doc: BlockDiagramDocument): DiagramOutcome {
     if (e.kind === 'block') index.set(e.id, ++blocks);
     if (e.kind === 'sum') index.set(e.id, ++sums);
   }
+  return index;
+}
 
+/** La ganancia de cada bloque; la primera que no se puede leer o que vale 0 es un error. */
+function blockGains(
+  doc: BlockDiagramDocument,
+  index: Map<string, number>,
+): Map<string, FRat> | DiagramFailure {
   const gains = new Map<string, FRat>();
   for (const e of doc.elements.filter((x) => x.kind === 'block')) {
     const parsed = parseGain(e.gain ?? '');
     if (!parsed.ok) {
-      return fail(
-        'ganancia-invalida',
-        `Bloque ${index.get(e.id)}${e.gain ? ` («${e.gain}»)` : ''}: ${parsed.message}`,
-      );
+      const quoted = e.gain ? ` («${e.gain}»)` : '';
+      return fail('ganancia-invalida', `Bloque ${index.get(e.id)}${quoted}: ${parsed.message}`);
     }
     if (parsed.value.coef === 0) {
       return fail('ganancia-invalida', `El bloque ${index.get(e.id)} tiene ganancia 0.`);
     }
     gains.set(e.id, parsed.value);
   }
+  return gains;
+}
 
-  const signals = buildSignals(doc);
-  const byElement = new Map(doc.elements.map((e) => [e.id, e]));
+/** Cada señal sale de un solo lugar y, si llega a algún lado, viene de alguna salida. */
+function checkSources(
+  signals: Signal[],
+  byElement: Map<string, BdElement>,
+  index: Map<string, number>,
+): DiagramFailure | null {
   for (const s of signals) {
     if (s.drivers.length > 1) {
       const what = s.drivers
@@ -387,60 +407,72 @@ export function diagramToGraph(doc: BlockDiagramDocument): DiagramOutcome {
       );
     }
   }
+  return null;
+}
 
-  // Cada terminal obligatorio debe estar en una señal con algo más.
-  const signalOf = new Map<string, Signal>();
-  for (const s of signals)
-    for (const t of [...s.drivers, ...s.consumers]) signalOf.set(`${t.elementId}:${t.port}`, s);
-  for (const e of doc.elements) {
-    const required = elementTerminals(e).filter((t) => e.kind !== 'sum' || t.role === 'out');
-    for (const t of required) {
-      const s = signalOf.get(`${t.elementId}:${t.port}`);
-      const alone = !s || s.drivers.length + s.consumers.length < 2;
-      if (alone) {
-        const side = t.role === 'in' ? 'la entrada' : 'la salida';
-        const what = describe(e, index);
-        return fail(
-          'terminal-sin-conectar',
-          e.kind === 'input' || e.kind === 'output'
-            ? `${what[0]!.toUpperCase()}${what.slice(1)} no está conectada.`
-            : `${side[0]!.toUpperCase()}${side.slice(1)} ${of(what)} no está conectada.`,
-        );
-      }
-    }
-    if (e.kind === 'sum') {
-      const used = elementTerminals(e).filter(
-        (t) => t.role === 'in' && signalOf.has(`${t.elementId}:${t.port}`),
-      );
-      if (used.length === 0) {
-        return fail(
-          'sumador-sin-entradas',
-          `El punto suma ${index.get(e.id)} no tiene ninguna entrada conectada.`,
-        );
-      }
-    }
+/** «La salida del bloque G1 no está conectada», «La entrada R no está conectada». */
+function unconnectedMessage(e: BdElement, t: Terminal, index: Map<string, number>): string {
+  const what = describe(e, index);
+  if (e.kind === 'input' || e.kind === 'output') return `${capitalize(what)} no está conectada.`;
+  const side = t.role === 'in' ? 'la entrada' : 'la salida';
+  return `${capitalize(side)} ${of(what)} no está conectada.`;
+}
+
+/** Cada terminal obligatorio del elemento está en una señal con algo más. */
+function elementFailure(
+  e: BdElement,
+  signalOf: Map<string, Signal>,
+  index: Map<string, number>,
+): DiagramFailure | null {
+  const required = elementTerminals(e).filter((t) => e.kind !== 'sum' || t.role === 'out');
+  for (const t of required) {
+    const s = signalOf.get(`${t.elementId}:${t.port}`);
+    const alone = !s || s.drivers.length + s.consumers.length < 2;
+    if (alone) return fail('terminal-sin-conectar', unconnectedMessage(e, t, index));
   }
+  if (e.kind !== 'sum') return null;
+  const used = elementTerminals(e).filter(
+    (t) => t.role === 'in' && signalOf.has(`${t.elementId}:${t.port}`),
+  );
+  if (used.length > 0) return null;
+  return fail(
+    'sumador-sin-entradas',
+    `El punto suma ${index.get(e.id)} no tiene ninguna entrada conectada.`,
+  );
+}
 
-  // Nombres de las señales.
-  const sumCount = doc.elements.filter((e) => e.kind === 'sum').length;
-  const descriptions = new Map<string, string>();
-  let x = 0;
+/** Cada salida C es una señal distinta y ninguna entrada R llega directo a una salida. */
+function checkOutputs(signals: Signal[], byElement: Map<string, BdElement>): DiagramFailure | null {
+  const labelOf = (t: Terminal) => endName(byElement.get(t.elementId)!);
   for (const s of signals) {
     const markers = s.consumers.filter((t) => byElement.get(t.elementId)!.kind === 'output');
-    const labelOf = (t: Terminal) => byElement.get(t.elementId)!.label?.trim() || 'C';
     if (markers.length > 1) {
       return fail(
         'nombre-repetido',
         `Las salidas ${markers.map(labelOf).join(' y ')} son la misma señal.`,
       );
     }
-    if (markers.length === 1 && s.driver && byElement.get(s.driver.elementId)!.kind === 'input') {
+    const driver = s.driver ? byElement.get(s.driver.elementId)! : null;
+    if (markers.length === 1 && driver?.kind === 'input') {
       return fail(
         'entrada-unida-a-salida',
-        `La entrada ${byElement.get(s.driver.elementId)!.label?.trim() || 'R'} está unida directamente a la salida ${labelOf(markers[0]!)}.`,
+        `La entrada ${endName(driver)} está unida directamente a la salida ${labelOf(markers[0]!)}.`,
       );
     }
   }
+  return null;
+}
+
+/** Nombra cada señal (R, C, E, E1, X1…) y describe de dónde sale. */
+function nameSignals(
+  doc: BlockDiagramDocument,
+  signals: Signal[],
+  byElement: Map<string, BdElement>,
+  index: Map<string, number>,
+): Map<string, string> {
+  const sumCount = doc.elements.filter((e) => e.kind === 'sum').length;
+  const descriptions = new Map<string, string>();
+  let x = 0;
   for (const s of signals) {
     const outMarker = s.consumers.find((t) => byElement.get(t.elementId)!.kind === 'output');
     const driver = s.driver ? byElement.get(s.driver.elementId)! : null;
@@ -459,27 +491,72 @@ export function diagramToGraph(doc: BlockDiagramDocument): DiagramOutcome {
       if (driver) descriptions.set(s.name, `la salida ${of(describe(driver, index))}`);
     }
   }
+  return descriptions;
+}
 
+/** Ramas de ganancia ±1 desde cada entrada usada de un punto suma hacia su salida. */
+function sumBranches(e: BdElement, out: Signal, signalOf: Map<string, Signal>): SfgBranch[] {
+  const branches: SfgBranch[] = [];
+  for (const t of elementTerminals(e).filter((x) => x.role === 'in')) {
+    const s = signalOf.get(`${e.id}:${t.port}`);
+    if (!s) continue;
+    const sign = e.signs?.[t.port as SumPort] === '-' ? -1 : 1;
+    branches.push({ from: s.name, to: out.name, gain: frConst(sign) });
+  }
+  return branches;
+}
+
+/** Una rama por bloque, con su ganancia, y las ramas de los puntos suma. */
+function diagramBranches(
+  doc: BlockDiagramDocument,
+  signalOf: Map<string, Signal>,
+  gains: Map<string, FRat>,
+): SfgBranch[] {
   const branches: SfgBranch[] = [];
   for (const e of doc.elements) {
-    const terms = elementTerminals(e);
     const out = signalOf.get(`${e.id}:out`);
     if (e.kind === 'block') {
       const inp = signalOf.get(`${e.id}:in`)!;
       branches.push({ from: inp.name, to: out!.name, gain: gains.get(e.id)! });
     }
-    if (e.kind === 'sum') {
-      for (const t of terms.filter((x) => x.role === 'in')) {
-        const s = signalOf.get(`${e.id}:${t.port}`);
-        if (!s) continue;
-        const sign = e.signs?.[t.port as SumPort] === '-' ? -1 : 1;
-        branches.push({ from: s.name, to: out!.name, gain: frConst(sign) });
-      }
-    }
+    if (e.kind === 'sum') branches.push(...sumBranches(e, out!, signalOf));
   }
+  return branches;
+}
+
+/** Convierte el diagrama en su flujograma equivalente, con un nodo por señal. */
+export function diagramToGraph(doc: BlockDiagramDocument): DiagramOutcome {
+  if (doc.elements.length === 0) return fail('diagrama-vacio', 'El diagrama está vacío.');
+  const inputs = doc.elements.filter((e) => e.kind === 'input');
+  const outputs = doc.elements.filter((e) => e.kind === 'output');
+  if (inputs.length === 0) return fail('sin-entrada', 'Agrega una entrada (R) al diagrama.');
+  if (outputs.length === 0) return fail('sin-salida', 'Agrega una salida (C) al diagrama.');
+
+  const names = [...inputs, ...outputs].map((e) => endName(e));
+  const repeated = names.find((name, i) => names.indexOf(name) !== i);
+  if (repeated)
+    return fail('nombre-repetido', `Hay dos entradas o salidas llamadas «${repeated}».`);
+
+  const index = numberElements(doc);
+  const gains = blockGains(doc, index);
+  if (!(gains instanceof Map)) return gains;
+
+  const signals = buildSignals(doc);
+  const byElement = new Map(doc.elements.map((e) => [e.id, e]));
+  const signalOf = new Map<string, Signal>();
+  for (const s of signals)
+    for (const t of [...s.drivers, ...s.consumers]) signalOf.set(`${t.elementId}:${t.port}`, s);
+  const failure =
+    checkSources(signals, byElement, index) ??
+    doc.elements.map((e) => elementFailure(e, signalOf, index)).find((f) => f !== null) ??
+    checkOutputs(signals, byElement);
+  if (failure) return failure;
+
+  const descriptions = nameSignals(doc, signals, byElement, index);
+  const branches = diagramBranches(doc, signalOf, gains);
   const nodes = signals.filter((s) => s.drivers.length + s.consumers.length > 0).map((s) => s.name);
-  const inputNames = inputs.map((e) => e.label?.trim() || 'R');
-  const outputNames = outputs.map((e) => e.label?.trim() || 'C');
+  const inputNames = inputs.map((e) => endName(e));
+  const outputNames = outputs.map((e) => endName(e));
 
   const steps: Step[] = [
     {

@@ -16,6 +16,7 @@ import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import { addPoly, polyRoots, scalePoly, trimPoly } from '@/lib/math/polynomials';
 import type {
   Calculator,
+  CalculatorFailure,
   CalculatorResult,
   Notice,
   ResultTable,
@@ -90,7 +91,7 @@ function fail(
   code: TransientErrorCode,
   message: string,
   steps: Step[] = [],
-): CalculatorResult<TransientValue, TransientErrorCode> {
+): CalculatorFailure<TransientErrorCode> {
   return {
     ok: false,
     error: { code, message },
@@ -104,19 +105,43 @@ function fail(
 const optional = (v: number | null, unit = 's') =>
   v === null ? String.raw`\text{—}` : String.raw`${n(v)}\ \text{${unit}}`;
 
-export function solveTransient(
-  input: TransientInput,
-): CalculatorResult<TransientValue, TransientErrorCode> {
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-  const info = INPUT_INFO[input.input];
-  let tf: TransferFunction;
-  let formulas: TransientValue['formulas'] = null;
-  const K = input.gain;
+type Formulas = NonNullable<TransientValue['formulas']>;
+type Failure = CalculatorFailure<TransientErrorCode>;
+type InputInfo = (typeof INPUT_INFO)[TransientInput['input']];
 
+function dampingKind(zeta: number): string {
+  if (zeta === 0) return 'sin amortiguamiento (ζ = 0): oscila sin decaer';
+  if (zeta < 1) return 'subamortiguado (0 < ζ < 1): polos complejos conjugados';
+  if (zeta === 1) return 'críticamente amortiguado (ζ = 1): polo doble real';
+  return 'sobreamortiguado (ζ > 1): dos polos reales distintos';
+}
+
+/** Fórmulas de Ogata (sec. 4-3) para el segundo orden subamortiguado. */
+function underdampedFormulas(zeta: number, wn: number): Formulas {
+  const omegaD = wn * Math.sqrt(1 - zeta * zeta);
+  const sigma = zeta * wn;
+  const beta = Math.atan2(omegaD, sigma);
+  return {
+    omegaD,
+    sigma,
+    beta,
+    rise: (Math.PI - beta) / omegaD,
+    peak: Math.PI / omegaD,
+    overshoot: Math.exp(-(sigma / omegaD) * Math.PI),
+    settling2: 4 / sigma,
+    settling5: 3 / sigma,
+  };
+}
+
+/** G(s) del modo elegido: primer orden, segundo orden o escrita. */
+function systemOf(
+  input: TransientInput,
+  steps: Step[],
+): { tf: TransferFunction; formulas: Formulas | null } | Failure {
+  const K = input.gain;
   if (input.order === 'primer-orden') {
     const T = input.timeConstant;
-    tf = { num: [K / T], den: [1, 1 / T] };
+    const tf = { num: [K / T], den: [1, 1 / T] };
     steps.push({
       title: 'Sistema de primer orden',
       explanation: `T = ${formatNumber(T, DIGITS)} s es la constante de tiempo: el polo está en s = −1/T = ${formatNumber(-1 / T, DIGITS)}.`,
@@ -124,51 +149,209 @@ export function solveTransient(
       substitution: String.raw`G(s) = \frac{${n(K)}}{${n(T)}s + 1}`,
       result: `G(s) = ${tfTex(tf)}`,
     });
-  } else if (input.order === 'segundo-orden') {
+    return { tf, formulas: null };
+  }
+  if (input.order === 'segundo-orden') {
     const { zeta, omegaN: wn } = input;
-    tf = { num: [K * wn * wn], den: [1, 2 * zeta * wn, wn * wn] };
-    const kind =
-      zeta === 0
-        ? 'sin amortiguamiento (ζ = 0): oscila sin decaer'
-        : zeta < 1
-          ? 'subamortiguado (0 < ζ < 1): polos complejos conjugados'
-          : zeta === 1
-            ? 'críticamente amortiguado (ζ = 1): polo doble real'
-            : 'sobreamortiguado (ζ > 1): dos polos reales distintos';
+    const tf = { num: [K * wn * wn], den: [1, 2 * zeta * wn, wn * wn] };
     const poles = polyRoots(tf.den);
     steps.push({
       title: 'Sistema de segundo orden',
-      explanation: `ζ = ${formatNumber(zeta, DIGITS)} es el factor de amortiguamiento relativo y ω_n = ${formatNumber(wn, DIGITS)} rad/s la frecuencia natural no amortiguada. El sistema es ${kind}. Polos: ${rootsText(poles)}.`,
+      explanation: `ζ = ${formatNumber(zeta, DIGITS)} es el factor de amortiguamiento relativo y ω_n = ${formatNumber(wn, DIGITS)} rad/s la frecuencia natural no amortiguada. El sistema es ${dampingKind(zeta)}. Polos: ${rootsText(poles)}.`,
       formula: String.raw`G(s) = \frac{K\omega_n^2}{s^2 + 2\zeta\omega_ns + \omega_n^2}`,
       substitution: String.raw`G(s) = \frac{${n(K)}(${n(wn)})^{2}}{s^{2} + 2(${n(zeta)})(${n(wn)})s + (${n(wn)})^{2}}`,
       result: `G(s) = ${tfTex(tf)}`,
     });
-    if (zeta > 0 && zeta < 1) {
-      const omegaD = wn * Math.sqrt(1 - zeta * zeta);
-      const sigma = zeta * wn;
-      const beta = Math.atan2(omegaD, sigma);
-      formulas = {
-        omegaD,
-        sigma,
-        beta,
-        rise: (Math.PI - beta) / omegaD,
-        peak: Math.PI / omegaD,
-        overshoot: Math.exp(-(sigma / omegaD) * Math.PI),
-        settling2: 4 / sigma,
-        settling5: 3 / sigma,
-      };
-    }
-  } else {
-    const parsed = parseTf(input.transfer);
-    if (!parsed.ok) return fail('funcion-invalida', parsed.message);
-    tf = parsed.tf;
-    const poles = polyRoots(tf.den);
-    steps.push({
-      title: 'Sistema',
-      explanation: `Polos: ${rootsText(poles)}.`,
-      result: `G(s) = ${tfTex(tf)}`,
+    const formulas = zeta > 0 && zeta < 1 ? underdampedFormulas(zeta, wn) : null;
+    return { tf, formulas };
+  }
+  const parsed = parseTf(input.transfer);
+  if (!parsed.ok) return fail('funcion-invalida', parsed.message);
+  const tf = parsed.tf;
+  steps.push({
+    title: 'Sistema',
+    explanation: `Polos: ${rootsText(polyRoots(tf.den))}.`,
+    result: `G(s) = ${tfTex(tf)}`,
+  });
+  return { tf, formulas: null };
+}
+
+/** Especificaciones medidas sobre la respuesta al escalón (si el sistema es estable). */
+function measuredSpecs(tf: TransferFunction, horizon: number): StepSpecs | null {
+  const stepResponse = timeResponse(tf, 'escalon');
+  // Valor final ante el escalón: G(0) (el sistema es estable, así que D(0) ≠ 0).
+  const final = tf.num.at(-1)! / tf.den.at(-1)!;
+  if (stepResponse && Math.abs(final) > 1e-12) {
+    return stepSpecs(stepResponse.evaluate, final, horizon * 1.5);
+  }
+  return null;
+}
+
+function firstOrderSpecsStep(K: number, T: number): Step {
+  return {
+    title: 'Especificaciones del primer orden',
+    explanation: `En t = T la respuesta alcanza el 63.2 % de su valor final; en 4T, el 98.2 % (Ogata, sec. 4-2).`,
+    formula: String.raw`c(T) = K(1 - e^{-1}) = 0.632K,\quad t_s = 4T\ (2\,\%),\quad t_s = 3T\ (5\,\%)`,
+    result: String.raw`c(T) = ${n(K * (1 - Math.exp(-1)))},\quad t_s = ${n(4 * T)}\ \text{s}\ (2\,\%),\quad ${n(3 * T)}\ \text{s}\ (5\,\%)`,
+  };
+}
+
+function secondOrderSpecsStep(zeta: number, wn: number, formulas: Formulas): Step {
+  return {
+    title: 'Especificaciones del segundo orden subamortiguado',
+    explanation:
+      'Fórmulas de Ogata (sec. 4-3) para la respuesta al escalón; t_s es una estimación con la envolvente e^{−σt}.',
+    children: [
+      {
+        title: 'Frecuencia amortiguada y atenuación',
+        formula: String.raw`\omega_d = \omega_n\sqrt{1 - \zeta^2},\quad \sigma = \zeta\omega_n,\quad \beta = \tan^{-1}\frac{\omega_d}{\sigma}`,
+        substitution: String.raw`\omega_d = ${n(wn)}\sqrt{1 - ${n(zeta)}^{2}},\quad \sigma = (${n(zeta)})(${n(wn)})`,
+        result: String.raw`\omega_d = ${n(formulas.omegaD)}\ \text{rad/s},\quad \sigma = ${n(formulas.sigma)},\quad \beta = ${n(formulas.beta)}\ \text{rad}`,
+      },
+      {
+        title: 'Tiempo de levantamiento',
+        formula: String.raw`t_r = \frac{\pi - \beta}{\omega_d}`,
+        substitution: String.raw`t_r = \frac{\pi - ${n(formulas.beta)}}{${n(formulas.omegaD)}}`,
+        result: String.raw`t_r = ${n(formulas.rise)}\ \text{s}`,
+      },
+      {
+        title: 'Tiempo pico',
+        formula: String.raw`t_p = \frac{\pi}{\omega_d}`,
+        substitution: String.raw`t_p = \frac{\pi}{${n(formulas.omegaD)}}`,
+        result: String.raw`t_p = ${n(formulas.peak)}\ \text{s}`,
+      },
+      {
+        title: 'Sobrepaso máximo',
+        formula: String.raw`M_p = e^{-(\sigma/\omega_d)\pi}`,
+        substitution: String.raw`M_p = e^{-(${n(formulas.sigma)}/${n(formulas.omegaD)})\pi}`,
+        result: String.raw`M_p = ${n(formulas.overshoot)} = ${n(100 * formulas.overshoot)}\,\%`,
+      },
+      {
+        title: 'Tiempo de asentamiento',
+        formula: String.raw`t_s = \frac{4}{\sigma}\ (2\,\%),\quad t_s = \frac{3}{\sigma}\ (5\,\%)`,
+        result: String.raw`t_s = ${n(formulas.settling2)}\ \text{s}\ (2\,\%),\quad ${n(formulas.settling5)}\ \text{s}\ (5\,\%)`,
+      },
+    ],
+  };
+}
+
+/** Especificaciones ante el escalón: por fórmula (primer o segundo orden) y medidas en la curva. */
+function stepSpecSteps(
+  input: TransientInput,
+  formulas: Formulas | null,
+  specs: StepSpecs | null,
+): Step[] {
+  const out: Step[] = [];
+  if (input.order === 'primer-orden') {
+    out.push(firstOrderSpecsStep(input.gain, input.timeConstant));
+  }
+  if (formulas) out.push(secondOrderSpecsStep(input.zeta, input.omegaN, formulas));
+  if (specs) {
+    out.push({
+      title: 'Medición sobre la curva',
+      explanation:
+        'Las especificaciones también se miden directamente sobre c(t): el levantamiento de 0 a 100 % si hay sobrepaso (de 10 a 90 % si no), el primer pico y el último instante en que la respuesta sale de la banda del 2 % o del 5 % del valor final. El tiempo de asentamiento medido puede diferir de la estimación 4/σ.',
     });
   }
+  return out;
+}
+
+function specsTable(specs: StepSpecs): ResultTable {
+  const riseBand =
+    specs.riseCriterion === '0-100' ? String.raw`0\text{ a }100` : String.raw`10\text{ a }90`;
+  return {
+    id: 'especificaciones',
+    title: 'Especificaciones medidas sobre la respuesta al escalón',
+    columns: [
+      { key: 'especificacion', header: String.raw`\text{Especificación}`, format: 'latex' },
+      { key: 'valor', header: String.raw`\text{Valor}`, format: 'latex' },
+    ],
+    rows: [
+      { especificacion: String.raw`c(\infty)`, valor: n(specs.final) },
+      { especificacion: String.raw`t_d\ (50\,\%)`, valor: optional(specs.delay) },
+      { especificacion: String.raw`t_r\ (${riseBand}\,\%)`, valor: optional(specs.rise) },
+      { especificacion: 't_p', valor: optional(specs.peak) },
+      { especificacion: 'M_p', valor: String.raw`${n(100 * specs.overshoot)}\,\%` },
+      { especificacion: String.raw`t_s\ (2\,\%)`, valor: optional(specs.settling2) },
+      { especificacion: String.raw`t_s\ (5\,\%)`, valor: optional(specs.settling5) },
+    ],
+  };
+}
+
+/**
+ * Teorema del valor final ante la rampa o la parábola: e_ss = lím s·R(s)[1 − G(s)] =
+ * lím (D − N)/(s^{k} D), con k = 1 o 2.
+ */
+function steadyErrorOf(tf: TransferFunction, power: number): number {
+  const P = trimPoly(addPoly(tf.den, scalePoly(tf.num, -1)));
+  const k = power - 1;
+  const z0 = zeroMultiplicity(P);
+  const d0 = tf.den.at(-1)!;
+  if (z0 > k) return 0;
+  return z0 === k ? (P[P.length - 1 - k] ?? 0) / d0 : Infinity;
+}
+
+const errorTex = (e: number) => (e === Infinity ? TEX.infty : n(e));
+
+function steadyErrorStep(input: TransientInput, steadyError: number): Step {
+  const firstOrderNote =
+    input.order === 'primer-orden' && input.gain === 1
+      ? ' (para el primer orden con K = 1 es T, Ogata ec. 4-5)'
+      : '';
+  return {
+    title: 'Error en estado estacionario',
+    explanation:
+      steadyError === Infinity
+        ? 'La salida no sigue a la entrada: el error crece sin límite.'
+        : `Cuando t → ∞, la diferencia entre la entrada y la salida tiende a una constante${firstOrderNote}.`,
+    formula: String.raw`e_{ss} = \lim_{t \to \infty}\left[r(t) - c(t)\right]`,
+    result: `e_{ss} = ${errorTex(steadyError)}`,
+  };
+}
+
+function responseSeries(
+  input: TransientInput,
+  info: InputInfo,
+  evaluate: (t: number) => number,
+  horizon: number,
+  specs: StepSpecs | null,
+): Series {
+  const points = sample(evaluate, horizon);
+  const reference =
+    input.input === 'impulso'
+      ? {}
+      : { reference: { label: 'r(t)', points: points.map(({ x }) => ({ x, y: info.at(x) })) } };
+  const peak =
+    specs?.peak && input.input === 'escalon'
+      ? {
+          scatter: {
+            label: 'Pico',
+            points: [{ x: specs.peak, y: specs.final * (1 + specs.overshoot) }],
+          },
+        }
+      : {};
+  return {
+    id: 'respuesta',
+    title: `Respuesta al ${info.name}`,
+    xLabel: 't (s)',
+    yLabel: 'c(t)',
+    label: 'c(t)',
+    points,
+    ...reference,
+    ...peak,
+  };
+}
+
+export function solveTransient(
+  input: TransientInput,
+): CalculatorResult<TransientValue, TransientErrorCode> {
+  const steps: Step[] = [];
+  const notices: Notice[] = [];
+  const info = INPUT_INFO[input.input];
+  const system = systemOf(input, steps);
+  if ('error' in system) return system;
+  const { tf, formulas } = system;
+  const isStep = input.input === 'escalon';
 
   const poles = polyRoots(tf.den);
   const stable = poles.every((p) => p.value.re < -1e-9);
@@ -184,150 +367,30 @@ export function solveTransient(
   });
 
   // Especificaciones de la respuesta al escalón.
-  let specs: StepSpecs | null = null;
-  const tables: ResultTable[] = [];
   const horizon = horizonFor(tf);
-  if (stable) {
-    const stepResponse = timeResponse(tf, 'escalon');
-    // Valor final ante el escalón: G(0) (el sistema es estable, así que D(0) ≠ 0).
-    const final = tf.num.at(-1)! / tf.den.at(-1)!;
-    if (stepResponse && Math.abs(final) > 1e-12) {
-      specs = stepSpecs(stepResponse.evaluate, final, horizon * 1.5);
-    }
-  } else {
+  const specs = stable ? measuredSpecs(tf, horizon) : null;
+  if (!stable) {
     notices.push({
       level: 'warning',
       message:
         'El sistema no es estable: la respuesta no se asienta y no hay especificaciones de respuesta transitoria.',
     });
   }
-
-  if (input.order === 'primer-orden' && input.input === 'escalon') {
-    const T = input.timeConstant;
-    steps.push({
-      title: 'Especificaciones del primer orden',
-      explanation: `En t = T la respuesta alcanza el 63.2 % de su valor final; en 4T, el 98.2 % (Ogata, sec. 4-2).`,
-      formula: String.raw`c(T) = K(1 - e^{-1}) = 0.632K,\quad t_s = 4T\ (2\,\%),\quad t_s = 3T\ (5\,\%)`,
-      result: String.raw`c(T) = ${n(K * (1 - Math.exp(-1)))},\quad t_s = ${n(4 * T)}\ \text{s}\ (2\,\%),\quad ${n(3 * T)}\ \text{s}\ (5\,\%)`,
-    });
-  }
-  if (formulas && input.input === 'escalon') {
-    const { zeta, omegaN: wn } = input;
-    steps.push({
-      title: 'Especificaciones del segundo orden subamortiguado',
-      explanation:
-        'Fórmulas de Ogata (sec. 4-3) para la respuesta al escalón; t_s es una estimación con la envolvente e^{−σt}.',
-      children: [
-        {
-          title: 'Frecuencia amortiguada y atenuación',
-          formula: String.raw`\omega_d = \omega_n\sqrt{1 - \zeta^2},\quad \sigma = \zeta\omega_n,\quad \beta = \tan^{-1}\frac{\omega_d}{\sigma}`,
-          substitution: String.raw`\omega_d = ${n(wn)}\sqrt{1 - ${n(zeta)}^{2}},\quad \sigma = (${n(zeta)})(${n(wn)})`,
-          result: String.raw`\omega_d = ${n(formulas.omegaD)}\ \text{rad/s},\quad \sigma = ${n(formulas.sigma)},\quad \beta = ${n(formulas.beta)}\ \text{rad}`,
-        },
-        {
-          title: 'Tiempo de levantamiento',
-          formula: String.raw`t_r = \frac{\pi - \beta}{\omega_d}`,
-          substitution: String.raw`t_r = \frac{\pi - ${n(formulas.beta)}}{${n(formulas.omegaD)}}`,
-          result: String.raw`t_r = ${n(formulas.rise)}\ \text{s}`,
-        },
-        {
-          title: 'Tiempo pico',
-          formula: String.raw`t_p = \frac{\pi}{\omega_d}`,
-          substitution: String.raw`t_p = \frac{\pi}{${n(formulas.omegaD)}}`,
-          result: String.raw`t_p = ${n(formulas.peak)}\ \text{s}`,
-        },
-        {
-          title: 'Sobrepaso máximo',
-          formula: String.raw`M_p = e^{-(\sigma/\omega_d)\pi}`,
-          substitution: String.raw`M_p = e^{-(${n(formulas.sigma)}/${n(formulas.omegaD)})\pi}`,
-          result: String.raw`M_p = ${n(formulas.overshoot)} = ${n(100 * formulas.overshoot)}\,\%`,
-        },
-        {
-          title: 'Tiempo de asentamiento',
-          formula: String.raw`t_s = \frac{4}{\sigma}\ (2\,\%),\quad t_s = \frac{3}{\sigma}\ (5\,\%)`,
-          result: String.raw`t_s = ${n(formulas.settling2)}\ \text{s}\ (2\,\%),\quad ${n(formulas.settling5)}\ \text{s}\ (5\,\%)`,
-        },
-      ],
-    });
-  }
-  if (specs) {
-    tables.push({
-      id: 'especificaciones',
-      title: 'Especificaciones medidas sobre la respuesta al escalón',
-      columns: [
-        { key: 'especificacion', header: String.raw`\text{Especificación}`, format: 'latex' },
-        { key: 'valor', header: String.raw`\text{Valor}`, format: 'latex' },
-      ],
-      rows: [
-        { especificacion: String.raw`c(\infty)`, valor: n(specs.final) },
-        { especificacion: String.raw`t_d\ (50\,\%)`, valor: optional(specs.delay) },
-        {
-          especificacion: String.raw`t_r\ (${specs.riseCriterion === '0-100' ? String.raw`0\text{ a }100` : String.raw`10\text{ a }90`}\,\%)`,
-          valor: optional(specs.rise),
-        },
-        { especificacion: 't_p', valor: optional(specs.peak) },
-        { especificacion: 'M_p', valor: String.raw`${n(100 * specs.overshoot)}\,\%` },
-        { especificacion: String.raw`t_s\ (2\,\%)`, valor: optional(specs.settling2) },
-        { especificacion: String.raw`t_s\ (5\,\%)`, valor: optional(specs.settling5) },
-      ],
-    });
-    if (input.input === 'escalon') {
-      steps.push({
-        title: 'Medición sobre la curva',
-        explanation:
-          'Las especificaciones también se miden directamente sobre c(t): el levantamiento de 0 a 100 % si hay sobrepaso (de 10 a 90 % si no), el primer pico y el último instante en que la respuesta sale de la banda del 2 % o del 5 % del valor final. El tiempo de asentamiento medido puede diferir de la estimación 4/σ.',
-      });
-    }
-  }
+  if (isStep) steps.push(...stepSpecSteps(input, formulas, specs));
+  const tables: ResultTable[] = specs ? [specsTable(specs)] : [];
 
   // Error en estado estacionario ante la rampa y la parábola: lím [r(t) − c(t)].
   let steadyError: number | null = null;
   if (stable && (input.input === 'rampa' || input.input === 'aceleracion')) {
-    // Teorema del valor final: e_ss = lím s·R(s)[1 − G(s)] = lím (D − N)/(s^{k} D), k = 1 o 2.
-    const P = trimPoly(addPoly(tf.den, scalePoly(tf.num, -1)));
-    const k = info.power - 1;
-    const z0 = zeroMultiplicity(P);
-    const d0 = tf.den.at(-1)!;
-    steadyError = z0 > k ? 0 : z0 === k ? (P[P.length - 1 - k] ?? 0) / d0 : Infinity;
-    steps.push({
-      title: 'Error en estado estacionario',
-      explanation:
-        steadyError === Infinity
-          ? 'La salida no sigue a la entrada: el error crece sin límite.'
-          : `Cuando t → ∞, la diferencia entre la entrada y la salida tiende a una constante${input.order === 'primer-orden' && K === 1 ? ' (para el primer orden con K = 1 es T, Ogata ec. 4-5)' : ''}.`,
-      formula: String.raw`e_{ss} = \lim_{t \to \infty}\left[r(t) - c(t)\right]`,
-      result: `e_{ss} = ${steadyError === Infinity ? TEX.infty : n(steadyError)}`,
-    });
+    steadyError = steadyErrorOf(tf, info.power);
+    steps.push(steadyErrorStep(input, steadyError));
   }
-
-  const points = sample(response.evaluate, horizon);
-  const series: Series[] = [
-    {
-      id: 'respuesta',
-      title: `Respuesta al ${info.name}`,
-      xLabel: 't (s)',
-      yLabel: 'c(t)',
-      label: 'c(t)',
-      points,
-      ...(input.input !== 'impulso'
-        ? { reference: { label: 'r(t)', points: points.map(({ x }) => ({ x, y: info.at(x) })) } }
-        : {}),
-      ...(specs?.peak && input.input === 'escalon'
-        ? {
-            scatter: {
-              label: 'Pico',
-              points: [{ x: specs.peak, y: specs.final * (1 + specs.overshoot) }],
-            },
-          }
-        : {}),
-    },
-  ];
 
   const summary: SummaryItem[] = [
     { label: 'Respuesta', value: `c(t) = ${response.tex}`, emphasis: true },
     { label: 'Función de transferencia', value: `G(s) = ${tfTex(tf)}` },
   ];
-  if (specs && input.input === 'escalon') {
+  if (specs && isStep) {
     summary.push(
       { label: 'Sobrepaso máximo', value: String.raw`M_p = ${n(100 * specs.overshoot)}\,\%` },
       {
@@ -339,7 +402,7 @@ export function solveTransient(
   if (steadyError !== null)
     summary.push({
       label: 'Error en estado estacionario',
-      value: `e_{ss} = ${steadyError === Infinity ? TEX.infty : n(steadyError)}`,
+      value: `e_{ss} = ${errorTex(steadyError)}`,
     });
 
   return {
@@ -348,7 +411,7 @@ export function solveTransient(
     summary,
     steps,
     tables,
-    series,
+    series: [responseSeries(input, info, response.evaluate, horizon, specs)],
     notices,
   };
 }

@@ -13,7 +13,7 @@ const nodeName = z
   .trim()
   .min(1, 'Escribe el nombre del nodo.')
   .max(12, 'Nombre de nodo demasiado largo.')
-  .regex(/^[A-Za-z][A-Za-z0-9_]*$/, 'Usa letras y números, empezando por una letra (x1, R, E).');
+  .regex(/^[A-Za-z]\w*$/, 'Usa letras y números, empezando por una letra (x1, R, E).');
 
 export const branchRowSchema = z.object({
   from: nodeName,
@@ -43,41 +43,47 @@ export type GraphOutcome =
 
 /** Nodos que no reciben ramas (posibles entradas) y que no salen (posibles salidas). */
 export function defaultEnds(graph: Sfg): { input: string; output: string } {
-  const sources = graph.nodes.filter((n) => !graph.branches.some((b) => b.to === n));
-  const sinks = graph.nodes.filter((n) => !graph.branches.some((b) => b.from === n));
+  const source = graph.nodes.find((n) => !graph.branches.some((b) => b.to === n));
+  const sink = graph.nodes.findLast((n) => !graph.branches.some((b) => b.from === n));
   return {
-    input: sources[0] ?? graph.nodes[0] ?? '',
-    output: sinks.at(-1) ?? graph.nodes.at(-1) ?? '',
+    input: source ?? graph.nodes[0] ?? '',
+    output: sink ?? graph.nodes.at(-1) ?? '',
   };
 }
 
 export function resolveGraph(input: GraphInput): GraphOutcome {
-  if (input.mode === 'diagrama') {
-    const converted = diagramToGraph(input.diagram);
-    if (!converted.ok)
-      return { ok: false, code: converted.code, message: converted.message, steps: [] };
-    const { graph, inputs, outputs, steps } = converted.value;
-    const from = input.input || inputs[0]!;
-    const to = input.output || outputs[0]!;
-    if (!inputs.includes(from)) {
-      return {
-        ok: false,
-        code: 'nodo-inexistente',
-        message: `El diagrama no tiene una entrada llamada «${from}».`,
-        steps,
-      };
-    }
-    if (!outputs.includes(to)) {
-      return {
-        ok: false,
-        code: 'nodo-inexistente',
-        message: `El diagrama no tiene una salida llamada «${to}».`,
-        steps,
-      };
-    }
-    return { ok: true, graph, input: from, output: to, steps, tables: [branchTable(graph)] };
-  }
+  return input.mode === 'diagrama' ? resolveDiagram(input) : resolveFlowGraph(input);
+}
 
+/** Diagrama de bloques: se convierte en flujograma y se eligen la entrada y la salida. */
+function resolveDiagram(input: GraphInput): GraphOutcome {
+  const converted = diagramToGraph(input.diagram);
+  if (!converted.ok)
+    return { ok: false, code: converted.code, message: converted.message, steps: [] };
+  const { graph, inputs, outputs, steps } = converted.value;
+  const from = input.input || inputs[0]!;
+  const to = input.output || outputs[0]!;
+  if (!inputs.includes(from)) {
+    return {
+      ok: false,
+      code: 'nodo-inexistente',
+      message: `El diagrama no tiene una entrada llamada «${from}».`,
+      steps,
+    };
+  }
+  if (!outputs.includes(to)) {
+    return {
+      ok: false,
+      code: 'nodo-inexistente',
+      message: `El diagrama no tiene una salida llamada «${to}».`,
+      steps,
+    };
+  }
+  return { ok: true, graph, input: from, output: to, steps, tables: [branchTable(graph)] };
+}
+
+/** Flujograma escrito como tabla de ramas. */
+function resolveFlowGraph(input: GraphInput): GraphOutcome {
   if (input.branches.length === 0) {
     return {
       ok: false,

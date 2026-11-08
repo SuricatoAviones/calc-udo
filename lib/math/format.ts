@@ -147,6 +147,25 @@ export function toLatexVector(vector: number[], significantDigits = 6): string {
   return String.raw`\left(${vector.map((v) => toLatexNumber(v, significantDigits)).join(TEX.listSep)}\right)`;
 }
 
+/** `x^{k}` en LaTeX: vacío para k = 0 y la variable sola para k = 1 (`s`, `s^{2}`). */
+export function powerTex(variable: string, k: number): string {
+  if (k === 0) return '';
+  return k === 1 ? variable : `${variable}^{${k}}`;
+}
+
+/**
+ * Une términos con su signo: el primero lleva el `-` pegado y los demás ` + ` o ` - `
+ * (`-2s + 3 - x`). Cada término trae su texto sin signo.
+ */
+export function joinSignedTerms(terms: { negative: boolean; text: string }[]): string {
+  return terms
+    .map(({ negative, text }, i) => {
+      if (i === 0) return negative ? `-${text}` : text;
+      return negative ? ` - ${text}` : ` + ${text}`;
+    })
+    .join('');
+}
+
 /** Varias líneas de LaTeX, una debajo de otra (sirve en modo en línea y en bloque). */
 export function latexLines(lines: string[]): string {
   if (lines.length <= 1) return lines[0] ?? '';

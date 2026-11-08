@@ -61,6 +61,22 @@ export interface RankResult {
   determinant: number | null;
 }
 
+/** Primera fila desde `from` con un elemento distinto de 0 en la columna `c` (−1 si no hay). */
+function firstNonZero(a: Rational[][], from: number, c: number): number {
+  for (let i = from; i < a.length; i++) if (!a[i]![c]!.isZero()) return i;
+  return -1;
+}
+
+/** Hace ceros debajo del pivote a[r][c]. */
+function eliminateBelow(a: Rational[][], r: number, c: number): void {
+  const p = a[r]![c]!;
+  for (let i = r + 1; i < a.length; i++) {
+    const f = a[i]![c]!.div(p);
+    if (f.isZero()) continue;
+    a[i] = a[i]!.map((v, j) => v.sub(f.mul(a[r]![j]!)));
+  }
+}
+
 /** Rango por eliminación de Gauss con fracciones exactas. */
 export function rank(m: Matrix): RankResult {
   const rows = m.length;
@@ -70,33 +86,32 @@ export function rank(m: Matrix): RankResult {
   let det = Rational.ONE;
   let swaps = 0;
   for (let c = 0; c < cols && r < rows; c++) {
-    let pivot = -1;
-    for (let i = r; i < rows; i++) {
-      if (!a[i]![c]!.isZero()) {
-        pivot = i;
-        break;
-      }
-    }
+    const pivot = firstNonZero(a, r, c);
     if (pivot < 0) continue;
     if (pivot !== r) {
       [a[pivot], a[r]] = [a[r]!, a[pivot]!];
       swaps++;
     }
-    const p = a[r]![c]!;
-    det = det.mul(p);
-    for (let i = r + 1; i < rows; i++) {
-      const f = a[i]![c]!.div(p);
-      if (f.isZero()) continue;
-      a[i] = a[i]!.map((v, j) => v.sub(f.mul(a[r]![j]!)));
-    }
+    det = det.mul(a[r]![c]!);
+    eliminateBelow(a, r, c);
     r++;
   }
-  const square = rows === cols;
+  const sign = swaps % 2 ? -1 : 1;
+  let determinant: number | null = null;
+  if (rows === cols) determinant = r < rows ? 0 : sign * det.toNumber();
   return {
     rank: r,
     echelon: a.map((row) => row.map((v) => v.toNumber())),
-    determinant: square ? (r < rows ? 0 : (swaps % 2 ? -1 : 1) * det.toNumber()) : null,
+    determinant,
   };
+}
+
+/** Fila con el pivote de mayor valor absoluto en la columna `c`, desde la fila `c`. */
+function largestPivot(a: Matrix, c: number): number {
+  let pivot = c;
+  for (let i = c + 1; i < a.length; i++)
+    if (Math.abs(a[i]![c]!) > Math.abs(a[pivot]![c]!)) pivot = i;
+  return pivot;
 }
 
 /** Inversa por Gauss-Jordan (null si es singular). */
@@ -104,16 +119,14 @@ export function inverse(m: Matrix): Matrix | null {
   const n = m.length;
   const a = m.map((row, i) => [...row, ...identity(n)[i]!]);
   for (let c = 0; c < n; c++) {
-    let pivot = c;
-    for (let i = c + 1; i < n; i++) if (Math.abs(a[i]![c]!) > Math.abs(a[pivot]![c]!)) pivot = i;
+    const pivot = largestPivot(a, c);
     if (Math.abs(a[pivot]![c]!) < 1e-12 * Math.max(1, ...m.flat().map(Math.abs))) return null;
     [a[pivot], a[c]] = [a[c]!, a[pivot]!];
     const p = a[c]![c]!;
     a[c] = a[c]!.map((v) => v / p);
     for (let i = 0; i < n; i++) {
-      if (i === c) continue;
       const f = a[i]![c]!;
-      if (f !== 0) a[i] = a[i]!.map((v, j) => v - f * a[c]![j]!);
+      if (i !== c && f !== 0) a[i] = a[i]!.map((v, j) => v - f * a[c]![j]!);
     }
   }
   return tidyMatrix(a.map((row) => row.slice(n)));
