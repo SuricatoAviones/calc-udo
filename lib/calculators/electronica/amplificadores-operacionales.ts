@@ -195,12 +195,15 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
         : []),
     ];
     ideal = -terms.reduce((s, t) => s + (rf / t.r) * t.v, 0);
+    const weightTex = (t: { k: number }) => String.raw`\frac{R_f}{R_${t.k}}V_${t.k}`;
+    const weightValue = (t: { v: number; r: number }) =>
+      String.raw`\frac{${n(rf)}}{${n(t.r)}}(${n(t.v)})`;
     steps.push({
       title: 'Suma ponderada',
       explanation:
         'Cada entrada aporta una corriente V_k/R_k hacia la tierra virtual; todas pasan por R_f.',
-      formula: String.raw`V_o = -\left(${terms.map((t) => String.raw`\frac{R_f}{R_${t.k}}V_${t.k}`).join(' + ')}\right)`,
-      substitution: String.raw`V_o = -\left(${terms.map((t) => String.raw`\frac{${n(rf)}}{${n(t.r)}}(${n(t.v)})`).join(' + ')}\right)`,
+      formula: String.raw`V_o = -\left(${terms.map(weightTex).join(' + ')}\right)`,
+      substitution: String.raw`V_o = -\left(${terms.map(weightValue).join(' + ')}\right)`,
       result: `V_o = ${volts(ideal)}`,
     });
   } else {
@@ -249,6 +252,47 @@ function solveLinear(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpError
   };
 }
 
+/** `<`, `>` o `=` entre la entrada y la referencia. */
+function relationSymbol(vin: number, vref: number): string {
+  if (vin > vref) return '>';
+  return vin < vref ? '<' : '=';
+}
+
+/**
+ * Ciclo de trabajo con una senoidal de pico vp: si nunca cruza V_ref, la salida queda fija (alta o
+ * baja según el lado de V_ref y el modo); si no, el pulso alto dura (180° − 2θ)/360°.
+ */
+function sineDuty(
+  vref: number,
+  vp: number,
+  inverting: boolean,
+): { duty: number; step?: Step; notice?: Notice } {
+  if (Math.abs(vref) >= vp) {
+    const highAlways = vref >= vp === inverting;
+    return {
+      duty: highAlways ? 1 : 0,
+      notice: { level: 'info', message: 'La senoidal nunca cruza V_ref: la salida no conmuta.' },
+    };
+  }
+  const theta = (Math.asin(vref / vp) * 180) / Math.PI;
+  const above = (180 - 2 * theta) / 360;
+  const duty = inverting ? 1 - above : above;
+  return {
+    duty,
+    step: {
+      title: 'Ciclo de trabajo con una entrada senoidal',
+      explanation: `Con v_in = ${engText(vp, 'V')}·sen θ, la salida cambia cuando la senoidal cruza V_ref, en θ y 180° − θ. Ciclo de trabajo = ancho del pulso alto / periodo (Malvino, ejemplo 22-5).`,
+      formula: inverting
+        ? String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = 1 - \frac{180^\circ - 2\theta}{360^\circ}`
+        : String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = \frac{180^\circ - 2\theta}{360^\circ}`,
+      substitution: String.raw`\theta = \operatorname{arcsen}\frac{${n(vref)}}{${n(vp)}} = ${n(theta, 5)}^\circ`,
+      result: String.raw`D = ${n(duty, 5)} = ${n(100 * duty, 4)}\,\%`,
+    },
+  };
+}
+
+const SATURATED_TEX = String.raw`\ (\text{saturado})`;
+
 function solveComparator(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErrorCode> {
   const vsat = input.vsat!;
   const { vref, v1: vin, mode } = input;
@@ -266,34 +310,17 @@ function solveComparator(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpE
       formula: inverting
         ? String.raw`v_{in} < V_{ref} \Rightarrow V_o = +V_{sat},\qquad v_{in} > V_{ref} \Rightarrow V_o = -V_{sat}`
         : String.raw`v_{in} > V_{ref} \Rightarrow V_o = +V_{sat},\qquad v_{in} < V_{ref} \Rightarrow V_o = -V_{sat}`,
-      substitution: String.raw`v_{in} = ${n(vin)}\ ${vin > vref ? '>' : vin < vref ? '<' : '='}\ V_{ref} = ${n(vref)}`,
+      substitution: String.raw`v_{in} = ${n(vin)}\ ${relationSymbol(vin, vref)}\ V_{ref} = ${n(vref)}`,
       result: `V_o = ${volts(vo)}`,
     },
   ];
   let duty: number | undefined;
   const notices: Notice[] = [];
   if (input.vp !== undefined) {
-    const vp = input.vp;
-    if (Math.abs(vref) >= vp) {
-      duty = vref >= vp ? (inverting ? 1 : 0) : inverting ? 0 : 1;
-      notices.push({
-        level: 'info',
-        message: 'La senoidal nunca cruza V_ref: la salida no conmuta.',
-      });
-    } else {
-      const theta = (Math.asin(vref / vp) * 180) / Math.PI;
-      const above = (180 - 2 * theta) / 360;
-      duty = inverting ? 1 - above : above;
-      steps.push({
-        title: 'Ciclo de trabajo con una entrada senoidal',
-        explanation: `Con v_in = ${engText(vp, 'V')}·sen θ, la salida cambia cuando la senoidal cruza V_ref, en θ y 180° − θ. Ciclo de trabajo = ancho del pulso alto / periodo (Malvino, ejemplo 22-5).`,
-        formula: inverting
-          ? String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = 1 - \frac{180^\circ - 2\theta}{360^\circ}`
-          : String.raw`\theta = \operatorname{arcsen}\frac{V_{ref}}{V_p},\qquad D = \frac{180^\circ - 2\theta}{360^\circ}`,
-        substitution: String.raw`\theta = \operatorname{arcsen}\frac{${n(vref)}}{${n(vp)}} = ${n(theta, 5)}^\circ`,
-        result: String.raw`D = ${n(duty, 5)} = ${n(100 * duty, 4)}\,\%`,
-      });
-    }
+    const sine = sineDuty(vref, input.vp, inverting);
+    duty = sine.duty;
+    if (sine.step) steps.push(sine.step);
+    if (sine.notice) notices.push(sine.notice);
   }
   const span = Math.max(Math.abs(vref) * 2, Math.abs(vin) * 1.5, input.vp ?? 0, 1);
   const eps = span * 1e-6;
@@ -448,7 +475,7 @@ function solveNetwork(input: OpAmpInput): CalculatorResult<OpAmpValue, OpAmpErro
   const summary: SummaryItem[] = outcome.value.opamps.flatMap((op) => [
     {
       label: `${op.label}: salida`,
-      value: `v_o = ${volts(op.vout)}${op.saturated ? String.raw`\ (\text{saturado})` : ''}`,
+      value: `v_o = ${volts(op.vout)}${op.saturated ? SATURATED_TEX : ''}`,
       emphasis: true,
     },
     ...(op.gain !== undefined

@@ -39,6 +39,7 @@ import {
   solveDiodeNetwork,
   type DiodeNetworkErrorCode,
   type DiodeNetworkValue,
+  type NetworkDiodeResult,
 } from './diode-network';
 import { engTex, engText } from './units';
 
@@ -142,6 +143,15 @@ export function solveDiode(input: DiodeInput): CalculatorResult<DiodeValue, Diod
   return input.mode === 'circuito' ? solveNetwork(input) : solveSeries(input);
 }
 
+/** Estado de un diodo de la red para el resumen: su corriente si conduce, su voltaje si no. */
+function diodeSummary(d: NetworkDiodeResult): string {
+  if (d.on) return String.raw`\text{encendido},\ I_D = ${engTex(d.current, 'A', 5)}`;
+  const vd = Number.isFinite(d.vd) ? String.raw`${n(d.vd, 5)}\ \text{V}` : TEX_UNDETERMINED;
+  return String.raw`\text{apagado},\ V_D = ${vd}`;
+}
+
+const TEX_UNDETERMINED = String.raw`\text{indeterminado}`;
+
 function solveNetwork(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErrorCode> {
   const notices: Notice[] = [];
   const fail = (
@@ -181,9 +191,7 @@ function solveNetwork(input: DiodeInput): CalculatorResult<DiodeValue, DiodeErro
   const { diodes } = outcome.value;
   const summary: SummaryItem[] = diodes.slice(0, 8).map((d) => ({
     label: d.label,
-    value: d.on
-      ? String.raw`\text{encendido},\ I_D = ${engTex(d.current, 'A', 5)}`
-      : String.raw`\text{apagado},\ V_D = ${Number.isFinite(d.vd) ? String.raw`${n(d.vd, 5)}\ \text{V}` : String.raw`\text{indeterminado}`}`,
+    value: diodeSummary(d),
     emphasis: d.on,
   }));
   summary.push({ label: 'Suposiciones', value: String(outcome.value.assumptions) });
@@ -228,14 +236,10 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     },
   );
 
-  let conducting: boolean;
-  let id: number;
-  let vd: number;
-  let iterations: number | undefined;
-
+  let point: OperatingPoint;
   if (model === 'real') {
-    const solved = solveShockley(input, e);
-    if (!solved.ok) {
+    const solved = shockleyPoint(input, e, steps, tables);
+    if (!solved) {
       const message = 'El método de Newton no convergió; revisa I_S, n y V_T.';
       return {
         ok: false,
@@ -246,102 +250,11 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
         notices: [{ level: 'error', message }],
       };
     }
-    vd = solved.v;
-    id = (e - vd) / R;
-    conducting = id > 0 && vd > 0;
-    iterations = solved.rows.length - 1;
-    const nvt = input.n * input.vt;
-    steps.push(
-      {
-        title: 'Característica del diodo',
-        explanation: `Ecuación de Shockley con I_S = ${engText(input.is, 'A')}, n = ${formatNumber(input.n, 4)} y V_T = ${engText(input.vt, 'V')}.`,
-        formula: String.raw`I_D = I_S\left(e^{V_D/(nV_T)} - 1\right)`,
-        substitution: String.raw`I_D = ${n(input.is)}\left(e^{V_D/${n(nvt)}} - 1\right)`,
-      },
-      {
-        title: 'Punto de operación (Newton)',
-        explanation: `El punto Q cumple a la vez la ecuación del diodo y la recta de carga. Se resuelve f(V_D) = 0 con el método de Newton; convergió en ${iterations} iteraciones (tabla de abajo).`,
-        formula: String.raw`f(V_D) = I_S\left(e^{V_D/(nV_T)} - 1\right) - \frac{E - V_D}{R},\qquad V_{k+1} = V_k - \frac{f(V_k)}{f'(V_k)}`,
-        result: String.raw`V_{DQ} = ${n(vd, 6)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
-      },
-    );
-    tables.push({
-      id: 'newton',
-      title: 'Iteraciones de Newton',
-      columns: [
-        { key: 'k', header: 'k' },
-        { key: 'v', header: String.raw`V_D\ (\text{V})` },
-        { key: 'idiode', header: String.raw`I_{\text{diodo}}\ (\text{A})` },
-        { key: 'inet', header: String.raw`I_{\text{red}}\ (\text{A})` },
-        { key: 'f', header: 'f(V_D)' },
-      ],
-      rows: solved.rows.map((r) => ({ ...r })),
-    });
+    point = solved;
   } else {
-    conducting = e > vk;
-    steps.push({
-      title: 'Estado del diodo',
-      explanation: conducting
-        ? `La fuente empuja la corriente en el sentido de la flecha y supera el umbral (${engText(e, 'V')} > ${engText(vk, 'V')}): el diodo está encendido.`
-        : e > 0
-          ? `El voltaje aplicado (${engText(e, 'V')}) no alcanza el umbral V_K = ${engText(vk, 'V')}: el diodo está apagado (circuito abierto).`
-          : 'La corriente que impone la fuente va contra la flecha del diodo: está polarizado en inversa y se comporta como circuito abierto.',
-      formula:
-        model === 'ideal'
-          ? String.raw`E > 0\ \Rightarrow\ \text{encendido}`
-          : String.raw`E > V_K\ \Rightarrow\ \text{encendido}`,
-      result: conducting ? String.raw`\text{Diodo encendido}` : String.raw`\text{Diodo apagado}`,
-    });
-    if (conducting) {
-      id = (e - vk) / (R + rb);
-      vd = vk + id * rb;
-      steps.push(
-        {
-          title: 'Corriente del diodo',
-          explanation:
-            model === 'ideal'
-              ? 'El diodo ideal encendido es un cortocircuito: toda la fuente queda en R.'
-              : model === 'segunda'
-                ? 'Se reemplaza el diodo por una fuente de V_K: la caída es fija para cualquier corriente.'
-                : 'Se reemplaza el diodo por V_K en serie con su resistencia interna r_B.',
-          formula:
-            model === 'tercera'
-              ? String.raw`I_D = \frac{E - V_K}{R + r_B}`
-              : model === 'segunda'
-                ? String.raw`I_D = \frac{E - V_K}{R}`
-                : String.raw`I_D = \frac{E}{R}`,
-          substitution:
-            model === 'tercera'
-              ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`
-              : model === 'segunda'
-                ? String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)}}`
-                : String.raw`I_D = \frac{${n(e)}}{${n(R)}}`,
-          result: `I_D = ${engTex(id, 'A', 6)}`,
-        },
-        {
-          title: 'Voltaje del diodo',
-          formula:
-            model === 'tercera'
-              ? 'V_D = V_K + I_D r_B'
-              : model === 'segunda'
-                ? 'V_D = V_K'
-                : 'V_D = 0',
-          substitution: model === 'tercera' ? `V_D = ${n(vk)} + (${n(id)})(${n(rb)})` : undefined,
-          result: String.raw`V_D = ${n(vd)}\ \text{V}`,
-        },
-      );
-    } else {
-      id = 0;
-      vd = e;
-      steps.push({
-        title: 'Voltajes con el diodo apagado',
-        explanation:
-          'Un circuito abierto puede tener cualquier voltaje entre sus terminales, pero su corriente es 0: toda la fuente queda en el diodo.',
-        formula: String.raw`I_D = 0,\qquad V_R = I_D R = 0,\qquad V_D = E`,
-        result: String.raw`V_D = ${n(vd)}\ \text{V}`,
-      });
-    }
+    point = approximatePoint(model, { e, vk, rb, R }, steps);
   }
+  const { conducting, id, vd, iterations } = point;
 
   const vr = id * R;
   const pd = vd * id;
@@ -356,22 +269,7 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
   const vMin = Math.min(0, e) - 0.1 * Math.max(1, Math.abs(e));
   const vMax = Math.max(e, vk + 0.2, 0.9) * 1.05;
   const iMax = Math.max(Math.abs(e) / R, Math.abs(id)) * 1.2 || 1e-3;
-  const characteristic: { x: number; y: number }[] = [];
-  if (model === 'real') {
-    const nvt = input.n * input.vt;
-    const vTop = Math.min(vMax, nvt * Math.log(iMax / input.is + 1));
-    for (let k = 0; k <= 200; k++) {
-      const v = vMin + ((vTop - vMin) * k) / 200;
-      characteristic.push({ x: v, y: input.is * Math.expm1(v / nvt) });
-    }
-  } else {
-    const vTop = rb > 0 ? Math.min(vMax, vk + iMax * rb) : vk;
-    characteristic.push(
-      { x: vMin, y: 0 },
-      { x: vk, y: 0 },
-      { x: vTop, y: rb > 0 ? (vTop - vk) / rb : iMax },
-    );
-  }
+  const characteristic = characteristicCurve(input, { vMin, vMax, iMax, vk, rb });
   const series: Series[] = [
     {
       id: 'recta-de-carga',
@@ -414,6 +312,168 @@ function solveSeries(input: DiodeInput): CalculatorResult<DiodeValue, DiodeError
     series,
     notices,
   };
+}
+
+interface OperatingPoint {
+  conducting: boolean;
+  id: number;
+  vd: number;
+  iterations?: number;
+}
+
+/** Punto Q con la ecuación de Shockley, por Newton; `null` si no converge. */
+function shockleyPoint(
+  input: DiodeInput,
+  e: number,
+  steps: Step[],
+  tables: ResultTable[],
+): OperatingPoint | null {
+  const R = input.resistance;
+  const solved = solveShockley(input, e);
+  if (!solved.ok) return null;
+  const vd = solved.v;
+  const id = (e - vd) / R;
+  const iterations = solved.rows.length - 1;
+  const nvt = input.n * input.vt;
+  steps.push(
+    {
+      title: 'Característica del diodo',
+      explanation: `Ecuación de Shockley con I_S = ${engText(input.is, 'A')}, n = ${formatNumber(input.n, 4)} y V_T = ${engText(input.vt, 'V')}.`,
+      formula: String.raw`I_D = I_S\left(e^{V_D/(nV_T)} - 1\right)`,
+      substitution: String.raw`I_D = ${n(input.is)}\left(e^{V_D/${n(nvt)}} - 1\right)`,
+    },
+    {
+      title: 'Punto de operación (Newton)',
+      explanation: `El punto Q cumple a la vez la ecuación del diodo y la recta de carga. Se resuelve f(V_D) = 0 con el método de Newton; convergió en ${iterations} iteraciones (tabla de abajo).`,
+      formula: String.raw`f(V_D) = I_S\left(e^{V_D/(nV_T)} - 1\right) - \frac{E - V_D}{R},\qquad V_{k+1} = V_k - \frac{f(V_k)}{f'(V_k)}`,
+      result: String.raw`V_{DQ} = ${n(vd, 6)}\ \text{V},\quad I_{DQ} = ${engTex(id, 'A', 6)}`,
+    },
+  );
+  tables.push({
+    id: 'newton',
+    title: 'Iteraciones de Newton',
+    columns: [
+      { key: 'k', header: 'k' },
+      { key: 'v', header: String.raw`V_D\ (\text{V})` },
+      { key: 'idiode', header: String.raw`I_{\text{diodo}}\ (\text{A})` },
+      { key: 'inet', header: String.raw`I_{\text{red}}\ (\text{A})` },
+      { key: 'f', header: 'f(V_D)' },
+    ],
+    rows: solved.rows.map((r) => ({ ...r })),
+  });
+  return { conducting: id > 0 && vd > 0, id, vd, iterations };
+}
+
+type ApproxModel = Exclude<DiodeInput['model'], 'real'>;
+
+/** Fórmulas del diodo encendido en cada aproximación (Malvino, sec. 3-2 a 3-4). */
+const CONDUCTION: Record<
+  ApproxModel,
+  {
+    explanation: string;
+    current: string;
+    currentSubstitution: (v: { e: number; vk: number; rb: number; R: number }) => string;
+    voltage: string;
+  }
+> = {
+  ideal: {
+    explanation: 'El diodo ideal encendido es un cortocircuito: toda la fuente queda en R.',
+    current: String.raw`I_D = \frac{E}{R}`,
+    currentSubstitution: ({ e, R }) => String.raw`I_D = \frac{${n(e)}}{${n(R)}}`,
+    voltage: 'V_D = 0',
+  },
+  segunda: {
+    explanation:
+      'Se reemplaza el diodo por una fuente de V_K: la caída es fija para cualquier corriente.',
+    current: String.raw`I_D = \frac{E - V_K}{R}`,
+    currentSubstitution: ({ e, vk, R }) => String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)}}`,
+    voltage: 'V_D = V_K',
+  },
+  tercera: {
+    explanation: 'Se reemplaza el diodo por V_K en serie con su resistencia interna r_B.',
+    current: String.raw`I_D = \frac{E - V_K}{R + r_B}`,
+    currentSubstitution: ({ e, vk, R, rb }) =>
+      String.raw`I_D = \frac{${n(e)} - ${n(vk)}}{${n(R)} + ${n(rb)}}`,
+    voltage: 'V_D = V_K + I_D r_B',
+  },
+};
+
+function stateExplanation(conducting: boolean, e: number, vk: number): string {
+  if (conducting)
+    return `La fuente empuja la corriente en el sentido de la flecha y supera el umbral (${engText(e, 'V')} > ${engText(vk, 'V')}): el diodo está encendido.`;
+  return e > 0
+    ? `El voltaje aplicado (${engText(e, 'V')}) no alcanza el umbral V_K = ${engText(vk, 'V')}: el diodo está apagado (circuito abierto).`
+    : 'La corriente que impone la fuente va contra la flecha del diodo: está polarizado en inversa y se comporta como circuito abierto.';
+}
+
+/** Punto Q con el modelo ideal o las aproximaciones: el diodo conduce si E supera V_K. */
+function approximatePoint(
+  model: ApproxModel,
+  values: { e: number; vk: number; rb: number; R: number },
+  steps: Step[],
+): OperatingPoint {
+  const { e, vk, rb, R } = values;
+  const conducting = e > vk;
+  steps.push({
+    title: 'Estado del diodo',
+    explanation: stateExplanation(conducting, e, vk),
+    formula:
+      model === 'ideal'
+        ? String.raw`E > 0\ \Rightarrow\ \text{encendido}`
+        : String.raw`E > V_K\ \Rightarrow\ \text{encendido}`,
+    result: conducting ? String.raw`\text{Diodo encendido}` : String.raw`\text{Diodo apagado}`,
+  });
+  if (!conducting) {
+    steps.push({
+      title: 'Voltajes con el diodo apagado',
+      explanation:
+        'Un circuito abierto puede tener cualquier voltaje entre sus terminales, pero su corriente es 0: toda la fuente queda en el diodo.',
+      formula: String.raw`I_D = 0,\qquad V_R = I_D R = 0,\qquad V_D = E`,
+      result: String.raw`V_D = ${n(e)}\ \text{V}`,
+    });
+    return { conducting, id: 0, vd: e };
+  }
+  const id = (e - vk) / (R + rb);
+  const vd = vk + id * rb;
+  const text = CONDUCTION[model];
+  steps.push(
+    {
+      title: 'Corriente del diodo',
+      explanation: text.explanation,
+      formula: text.current,
+      substitution: text.currentSubstitution(values),
+      result: `I_D = ${engTex(id, 'A', 6)}`,
+    },
+    {
+      title: 'Voltaje del diodo',
+      formula: text.voltage,
+      substitution: model === 'tercera' ? `V_D = ${n(vk)} + (${n(id)})(${n(rb)})` : undefined,
+      result: String.raw`V_D = ${n(vd)}\ \text{V}`,
+    },
+  );
+  return { conducting, id, vd };
+}
+
+/** Característica del diodo para la gráfica: Shockley o la de la aproximación por tramos. */
+function characteristicCurve(
+  input: DiodeInput,
+  range: { vMin: number; vMax: number; iMax: number; vk: number; rb: number },
+): { x: number; y: number }[] {
+  const { vMin, vMax, iMax, vk, rb } = range;
+  if (input.model === 'real') {
+    const nvt = input.n * input.vt;
+    const vTop = Math.min(vMax, nvt * Math.log(iMax / input.is + 1));
+    return Array.from({ length: 201 }, (_, k) => {
+      const v = vMin + ((vTop - vMin) * k) / 200;
+      return { x: v, y: input.is * Math.expm1(v / nvt) };
+    });
+  }
+  const vTop = rb > 0 ? Math.min(vMax, vk + iMax * rb) : vk;
+  return [
+    { x: vMin, y: 0 },
+    { x: vk, y: 0 },
+    { x: vTop, y: rb > 0 ? (vTop - vk) / rb : iMax },
+  ];
 }
 
 export const circuitosConDiodos: Calculator<DiodeInput, DiodeValue, DiodeErrorCode> = {

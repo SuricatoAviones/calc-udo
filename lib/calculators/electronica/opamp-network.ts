@@ -82,69 +82,78 @@ function outputSource(
   };
 }
 
-export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpAmpNetworkOutcome {
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-  const opamps = topology.components.filter((c) => c.component.kind === 'opamp');
-  const label = (op: MappedComponent) => componentLabel(op.component);
+const label = (op: MappedComponent) => componentLabel(op.component);
 
-  steps.push({
-    title: 'Amplificador operacional ideal',
-    explanation:
-      'Ganancia en lazo abierto infinita, impedancia de entrada infinita y de salida nula: no entra corriente por las entradas y, con realimentación negativa, la salida toma el valor que deja v₊ = v₋ (cortocircuito virtual). En el análisis de nodos, la salida es una fuente a tierra cuya corriente es una incógnita más.',
-    formula: String.raw`i_{+} = i_{-} = 0,\qquad v_{+} = v_{-}`,
+/**
+ * v₊ − v₋ con las fuentes independientes anuladas y 1 V de prueba en la salida del amplificador
+ * (NaN si el circuito de prueba no se puede resolver).
+ */
+function feedbackLoop(topology: CircuitTopology, op: MappedComponent): number {
+  const test = topology.components.map((c) => {
+    if (c === op) return outputSource(topology, op, 1, `${label(op)} (prueba)`);
+    if (c.component.kind === 'voltage-source' || c.component.kind === 'current-source') {
+      return { ...c, component: { ...c.component, value: 0 } };
+    }
+    return c;
   });
+  const solved = solveMna(withComponents(topology, test));
+  if (!solved.ok) return Number.NaN;
+  return solved.result.nodeVoltages[op.nodeB]! - solved.result.nodeVoltages[op.nodeA]!;
+}
 
-  const grounded = opamps.find((op) => op.nodeC === topology.referenceNode);
-  if (grounded) {
-    const message = `La salida de ${label(grounded)} está conectada a la referencia: así no puede fijar ningún voltaje. Revisa el cableado.`;
-    return { ok: false, code: 'salida-a-tierra', message, steps, tables: [] };
-  }
+type LoopKind = 'error' | 'negativa' | 'abierta' | 'positiva';
 
-  // Realimentación: fuentes anuladas y 1 V de prueba en la salida de cada amplificador.
-  const loops: number[] = [];
-  for (const op of opamps) {
-    const test = topology.components.map((c) => {
-      if (c === op) return outputSource(topology, op, 1, `${label(op)} (prueba)`);
-      if (c.component.kind === 'voltage-source' || c.component.kind === 'current-source') {
-        return { ...c, component: { ...c.component, value: 0 } };
-      }
-      return c;
-    });
-    const solved = solveMna(withComponents(topology, test));
-    const loop = solved.ok
-      ? solved.result.nodeVoltages[op.nodeB]! - solved.result.nodeVoltages[op.nodeA]!
-      : Number.NaN;
-    loops.push(loop);
-    const negative = loop < -1e-9;
-    steps.push({
-      title: `Realimentación de ${label(op)}`,
-      explanation: Number.isNaN(loop)
-        ? `No se pudo medir el lazo de ${label(op)}: revisa que su salida no esté unida a otra fuente.`
-        : negative
-          ? `Con las fuentes independientes anuladas se aplica 1 V a la salida de ${label(op)}: la diferencia v₊ − v₋ sale negativa, así que el lazo se opone al cambio (realimentación negativa) y el cortocircuito virtual vale.`
-          : Math.abs(loop) <= 1e-9
-            ? `Con las fuentes anuladas, 1 V en la salida de ${label(op)} no llega a sus entradas: no hay realimentación. Trabaja en lazo abierto, como comparador, y su salida se satura.`
-            : `Con las fuentes anuladas, 1 V en la salida de ${label(op)} aumenta v₊ − v₋: la realimentación es positiva (disparador de Schmitt) y la salida se satura.`,
-      formula: String.raw`\left.(v_{+} - v_{-})\right|_{v_o = 1\ \text{V}}`,
-      result: Number.isNaN(loop)
-        ? undefined
-        : String.raw`v_{+} - v_{-} = ${n(Math.abs(loop) < 1e-12 ? 0 : loop)}\ \text{V}\ ${negative ? String.raw`< 0\ \checkmark` : String.raw`\ge 0\ \times`}`,
-    });
-  }
-  const bad = opamps.findIndex((_, i) => !(loops[i]! < -1e-9));
-  if (bad >= 0) {
-    const op = opamps[bad]!;
-    const loop = loops[bad]!;
-    const message = Number.isNaN(loop)
-      ? `No se pudo resolver el lazo de ${label(op)}. Revisa que su salida no quede en paralelo con una fuente de voltaje o con otra salida.`
-      : Math.abs(loop) <= 1e-9
-        ? `${label(op)} no tiene realimentación (lazo abierto): funciona como comparador y su salida se satura. Usa el modo «configuración» para comparadores.`
-        : `${label(op)} tiene realimentación positiva: no trabaja en la zona lineal (es un disparador de Schmitt). Conecta la realimentación a la entrada inversora (−) o usa el modo «configuración».`;
-    return { ok: false, code: 'sin-realimentacion-negativa', message, steps, tables: [] };
-  }
+/** Tipo de realimentación según v₊ − v₋ ante 1 V en la salida (NaN: no se pudo medir). */
+function loopKind(loop: number): LoopKind {
+  if (Number.isNaN(loop)) return 'error';
+  if (loop < -1e-9) return 'negativa';
+  return Math.abs(loop) <= 1e-9 ? 'abierta' : 'positiva';
+}
 
-  // Resolución lineal y, si hace falta, saturación de las salidas.
+const LOOP_EXPLANATION: Record<LoopKind, (name: string) => string> = {
+  error: (name) =>
+    `No se pudo medir el lazo de ${name}: revisa que su salida no esté unida a otra fuente.`,
+  negativa: (name) =>
+    `Con las fuentes independientes anuladas se aplica 1 V a la salida de ${name}: la diferencia v₊ − v₋ sale negativa, así que el lazo se opone al cambio (realimentación negativa) y el cortocircuito virtual vale.`,
+  abierta: (name) =>
+    `Con las fuentes anuladas, 1 V en la salida de ${name} no llega a sus entradas: no hay realimentación. Trabaja en lazo abierto, como comparador, y su salida se satura.`,
+  positiva: (name) =>
+    `Con las fuentes anuladas, 1 V en la salida de ${name} aumenta v₊ − v₋: la realimentación es positiva (disparador de Schmitt) y la salida se satura.`,
+};
+
+const LOOP_FAILURE: Record<Exclude<LoopKind, 'negativa'>, (name: string) => string> = {
+  error: (name) =>
+    `No se pudo resolver el lazo de ${name}. Revisa que su salida no quede en paralelo con una fuente de voltaje o con otra salida.`,
+  abierta: (name) =>
+    `${name} no tiene realimentación (lazo abierto): funciona como comparador y su salida se satura. Usa el modo «configuración» para comparadores.`,
+  positiva: (name) =>
+    `${name} tiene realimentación positiva: no trabaja en la zona lineal (es un disparador de Schmitt). Conecta la realimentación a la entrada inversora (−) o usa el modo «configuración».`,
+};
+
+function feedbackStep(op: MappedComponent, loop: number): Step {
+  const kind = loopKind(loop);
+  const check = kind === 'negativa' ? String.raw`< 0\ \checkmark` : String.raw`\ge 0\ \times`;
+  const shown = Math.abs(loop) < 1e-12 ? 0 : loop;
+  return {
+    title: `Realimentación de ${label(op)}`,
+    explanation: LOOP_EXPLANATION[kind](label(op)),
+    formula: String.raw`\left.(v_{+} - v_{-})\right|_{v_o = 1\ \text{V}}`,
+    result:
+      kind === 'error' ? undefined : String.raw`v_{+} - v_{-} = ${n(shown)}\ \text{V}\ ${check}`,
+  };
+}
+
+/**
+ * Resuelve por MNA y, si alguna salida pasa de ±V_sat, la fija en la saturación como fuente y
+ * vuelve a resolver (a lo sumo una ronda por amplificador).
+ */
+function solveWithSaturation(
+  topology: CircuitTopology,
+  opamps: MappedComponent[],
+  vsat: number | undefined,
+  steps: Step[],
+  notices: Notice[],
+): { mna: MnaSolve; saturated: Map<MappedComponent, 1 | -1> } | { message: string } {
   const saturated = new Map<MappedComponent, 1 | -1>();
   let mna: MnaSolve | null = null;
   for (let round = 0; round <= opamps.length; round++) {
@@ -153,9 +162,7 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
       return sign ? outputSource(topology, c, sign * vsat!, label(c)) : c;
     });
     const solved = solveMna(withComponents(topology, components));
-    if (!solved.ok) {
-      return { ok: false, code: 'singular', message: solved.message, steps, tables: [] };
-    }
+    if (!solved.ok) return { message: solved.message };
     mna = solved;
     if (vsat === undefined) break;
     const over = opamps.filter(
@@ -178,7 +185,53 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
       });
     }
   }
-  const final = mna!;
+  return { mna: mna!, saturated };
+}
+
+/** La única fuente independiente del circuito, si es de voltaje y no nula (para la ganancia). */
+function singleVoltageSource(topology: CircuitTopology): MappedComponent | undefined {
+  const sources = topology.components.filter(
+    (c) => c.component.kind === 'voltage-source' || c.component.kind === 'current-source',
+  );
+  const [only] = sources;
+  if (sources.length !== 1 || only!.component.kind !== 'voltage-source') return undefined;
+  return only!.component.value === 0 ? undefined : only;
+}
+
+export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpAmpNetworkOutcome {
+  const steps: Step[] = [];
+  const notices: Notice[] = [];
+  const opamps = topology.components.filter((c) => c.component.kind === 'opamp');
+
+  steps.push({
+    title: 'Amplificador operacional ideal',
+    explanation:
+      'Ganancia en lazo abierto infinita, impedancia de entrada infinita y de salida nula: no entra corriente por las entradas y, con realimentación negativa, la salida toma el valor que deja v₊ = v₋ (cortocircuito virtual). En el análisis de nodos, la salida es una fuente a tierra cuya corriente es una incógnita más.',
+    formula: String.raw`i_{+} = i_{-} = 0,\qquad v_{+} = v_{-}`,
+  });
+
+  const grounded = opamps.find((op) => op.nodeC === topology.referenceNode);
+  if (grounded) {
+    const message = `La salida de ${label(grounded)} está conectada a la referencia: así no puede fijar ningún voltaje. Revisa el cableado.`;
+    return { ok: false, code: 'salida-a-tierra', message, steps, tables: [] };
+  }
+
+  // Realimentación: fuentes anuladas y 1 V de prueba en la salida de cada amplificador.
+  const loops = opamps.map((op) => feedbackLoop(topology, op));
+  opamps.forEach((op, i) => steps.push(feedbackStep(op, loops[i]!)));
+  const bad = loops.findIndex((loop) => loopKind(loop) !== 'negativa');
+  if (bad >= 0) {
+    const kind = loopKind(loops[bad]!) as Exclude<LoopKind, 'negativa'>;
+    const message = LOOP_FAILURE[kind](label(opamps[bad]!));
+    return { ok: false, code: 'sin-realimentacion-negativa', message, steps, tables: [] };
+  }
+
+  // Resolución lineal y, si hace falta, saturación de las salidas.
+  const solved = solveWithSaturation(topology, opamps, vsat, steps, notices);
+  if ('message' in solved) {
+    return { ok: false, code: 'singular', message: solved.message, steps, tables: [] };
+  }
+  const { mna: final, saturated } = solved;
 
   steps.push({
     title: 'Análisis de nodos',
@@ -199,15 +252,7 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
   }
 
   // Ganancia respecto de la única fuente de voltaje, si la hay.
-  const sources = topology.components.filter(
-    (c) => c.component.kind === 'voltage-source' || c.component.kind === 'current-source',
-  );
-  const single =
-    sources.length === 1 &&
-    sources[0]!.component.kind === 'voltage-source' &&
-    sources[0]!.component.value !== 0
-      ? sources[0]!
-      : undefined;
+  const single = singleVoltageSource(topology);
 
   const nodeVoltages = final.result.nodeVoltages;
   const results: NetworkOpAmpResult[] = opamps.map((op, i) => {
@@ -226,17 +271,18 @@ export function solveOpAmpNetwork(topology: CircuitTopology, vsat?: number): OpA
     };
   });
 
+  const sourceName = single ? componentLabel(single.component) : '';
+  const gainNote = single
+    ? `Con una sola fuente (${sourceName}), la ganancia es A_v = v_o/${sourceName}. `
+    : '';
+  const gainTex = (r: NetworkOpAmpResult) =>
+    r.gain === undefined ? '' : String.raw`,\ A_v = ${n(r.gain)}`;
+  const resultTex = (r: NetworkOpAmpResult) =>
+    String.raw`${toLatexText(r.label)}:\ v_o = ${n(r.vout)}\ \text{V},\ v_{+} = ${n(r.vplus)}\ \text{V},\ v_{-} = ${n(r.vminus)}\ \text{V},\ i_o = ${engTex(r.iout, 'A')}${gainTex(r)}`;
   steps.push({
     title: 'Resultados de los amplificadores',
-    explanation: `${single ? `Con una sola fuente (${componentLabel(single.component)}), la ganancia es A_v = v_o/${componentLabel(single.component)}. ` : ''}i_o es la corriente que entrega cada salida al circuito.`,
-    result: latexLines(
-      results.map(
-        (r) =>
-          String.raw`${toLatexText(r.label)}:\ v_o = ${n(r.vout)}\ \text{V},\ v_{+} = ${n(r.vplus)}\ \text{V},\ v_{-} = ${n(r.vminus)}\ \text{V},\ i_o = ${engTex(r.iout, 'A')}${
-            r.gain !== undefined ? String.raw`,\ A_v = ${n(r.gain)}` : ''
-          }`,
-      ),
-    ),
+    explanation: `${gainNote}i_o es la corriente que entrega cada salida al circuito.`,
+    result: latexLines(results.map(resultTex)),
   });
 
   const tables: ResultTable[] = [

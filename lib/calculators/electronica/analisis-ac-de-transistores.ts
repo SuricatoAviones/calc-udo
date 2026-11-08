@@ -78,12 +78,49 @@ const CONFIG_NAME: Record<AcConfig, string> = {
   'base-comun': 'base común',
 };
 
+/** Lo que ve la entrada para la señal: R_E en base común, R₁ ∥ R₂ con divisor o R_B. */
+function inputNetwork(input: AcInput) {
+  if (input.config === 'base-comun') {
+    return {
+      rin: input.re,
+      rinTex: 'R_E',
+      bias: '',
+      ground: 'R_E queda entre el emisor y tierra',
+      divider: false,
+    };
+  }
+  if (input.bias === 'divisor') {
+    return {
+      rin: parallel(input.r1, input.r2),
+      rinTex: "R'",
+      bias: ', polarizada por divisor de voltaje',
+      ground: 'R₁ y R₂ quedan en paralelo',
+      divider: true,
+    };
+  }
+  return {
+    rin: input.rb,
+    rinTex: 'R_B',
+    bias: ', con polarización fija',
+    ground: 'R_B queda entre la base y tierra',
+    divider: false,
+  };
+}
+
+/** Elementos del resumen que solo aparecen si se calcularon. */
+function optionalSummary(r: ReturnType<typeof approxAmplifier>, withLoad: boolean) {
+  return [
+    ...(withLoad ? [{ label: 'A_vNL', value: n(r.avNL, 5) }] : []),
+    ...(r.avs === undefined ? [] : [{ label: 'A_vs', value: n(r.avs, 5) }]),
+    { label: 'A_i', value: n(r.ai, 5) },
+    ...(r.zb === undefined ? [] : [{ label: 'Z_b', value: ohm(r.zb) }]),
+    ...(r.zoT === undefined ? [] : [{ label: "Z_o'", value: ohm(r.zoT) }]),
+  ];
+}
+
 export function solveAc(input: AcInput): CalculatorResult<AcValue, never> {
   const { config } = input;
-  const commonBase = config === 'base-comun';
-  const divider = !commonBase && input.bias === 'divisor';
-  const rin = commonBase ? input.re : divider ? parallel(input.r1, input.r2) : input.rb;
-  const rinTex = commonBase ? 'R_E' : divider ? "R'" : 'R_B';
+  const { rin, rinTex, bias, ground, divider } = inputNetwork(input);
   const net = {
     config,
     h: {
@@ -117,19 +154,7 @@ export function solveAc(input: AcInput): CalculatorResult<AcValue, never> {
   const steps = [
     {
       title: 'Circuito equivalente de ca',
-      explanation: `Configuración en ${CONFIG_NAME[config]}${
-        commonBase
-          ? ''
-          : divider
-            ? ', polarizada por divisor de voltaje'
-            : ', con polarización fija'
-      }; modelo híbrido ${input.model === 'completo' ? 'completo' : 'aproximado'}. Para la señal, los capacitores y la fuente de cd son cortocircuitos, así que ${
-        commonBase
-          ? 'R_E queda entre el emisor y tierra'
-          : divider
-            ? 'R₁ y R₂ quedan en paralelo'
-            : 'R_B queda entre la base y tierra'
-      }.`,
+      explanation: `Configuración en ${CONFIG_NAME[config]}${bias}; modelo híbrido ${input.model === 'completo' ? 'completo' : 'aproximado'}. Para la señal, los capacitores y la fuente de cd son cortocircuitos, así que ${ground}.`,
       ...(divider
         ? {
             formula: String.raw`R' = R_1 \parallel R_2`,
@@ -144,12 +169,8 @@ export function solveAc(input: AcInput): CalculatorResult<AcValue, never> {
   const summary = [
     { label: 'Z_i', value: ohm(r.zi), emphasis: true },
     { label: 'Z_o', value: ohm(r.zo), emphasis: true },
-    { label: input.rl !== undefined ? 'A_vL' : 'A_v', value: n(r.av, 5), emphasis: true },
-    ...(input.rl !== undefined ? [{ label: 'A_vNL', value: n(r.avNL, 5) }] : []),
-    ...(r.avs !== undefined ? [{ label: 'A_vs', value: n(r.avs, 5) }] : []),
-    { label: 'A_i', value: n(r.ai, 5) },
-    ...(r.zb !== undefined ? [{ label: 'Z_b', value: ohm(r.zb) }] : []),
-    ...(r.zoT !== undefined ? [{ label: "Z_o'", value: ohm(r.zoT) }] : []),
+    { label: input.rl === undefined ? 'A_v' : 'A_vL', value: n(r.av, 5), emphasis: true },
+    ...optionalSummary(r, input.rl !== undefined),
   ];
 
   return {

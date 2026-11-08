@@ -153,31 +153,49 @@ function solveFilter(input: FilterRegulationInput): CalculatorResult<FilterRegul
   };
 }
 
-function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegulationValue, never> {
-  const notices: Notice[] = [];
-  const steps: Step[] = [];
-  let summary: SummaryItem[];
-  let value: FilterRegulationValue;
+/** Resultado de un caso del regulador Zener antes de armar la respuesta. */
+interface ZenerCase {
+  value: FilterRegulationValue;
+  summary: SummaryItem[];
+  steps: Step[];
+  notices: Notice[];
+}
 
-  if (input.zenerCase === 'fijo') {
-    const z0 = zenerFixed(input.vi, input.rs, input.rl, input.vz, input.rz ?? 0);
-    steps.push(...z0.steps);
-    let rippleOut: number | undefined;
-    if (input.pzm !== undefined && z0.on) {
-      const ok = z0.pz <= input.pzm;
-      notices.push({
-        level: ok ? 'info' : 'warning',
-        message: ok
-          ? `P_Z = ${engText(z0.pz, 'W')} es menor que la nominal P_ZM = ${engText(input.pzm, 'W')}.`
-          : `P_Z = ${engText(z0.pz, 'W')} supera la nominal P_ZM = ${engText(input.pzm, 'W')}: el Zener se dañaría.`,
-      });
-    }
-    if (input.vrin !== undefined && input.rz !== undefined && z0.on) {
-      const r = zenerRipple(input.vrin, input.rs, input.rz, input.rl);
-      steps.push(r.step);
-      rippleOut = r.approx;
-    }
-    value = {
+const ZENER_INTRO: Record<FilterRegulationInput['zenerCase'], string> = {
+  fijo: 'V_i, R_S y R_L fijos: se determina el estado del Zener y luego las corrientes (Boylestad, sec. 2.10).',
+  'rl-variable':
+    'V_i fija y R_L variable: se busca el intervalo de cargas que mantiene al Zener en regulación.',
+  'vi-variable':
+    'R_L fija y V_i variable: se busca el intervalo de tensiones de entrada que mantiene al Zener en regulación.',
+};
+
+/** Compara la potencia del Zener con la nominal P_ZM. */
+function zenerPowerNotice(pz: number, pzm: number): Notice {
+  const ok = pz <= pzm;
+  return {
+    level: ok ? 'info' : 'warning',
+    message: ok
+      ? `P_Z = ${engText(pz, 'W')} es menor que la nominal P_ZM = ${engText(pzm, 'W')}.`
+      : `P_Z = ${engText(pz, 'W')} supera la nominal P_ZM = ${engText(pzm, 'W')}: el Zener se dañaría.`,
+  };
+}
+
+/** V_i, R_S y R_L fijos. */
+function fixedZener(input: FilterRegulationInput): ZenerCase {
+  const z0 = zenerFixed(input.vi, input.rs, input.rl, input.vz, input.rz ?? 0);
+  const steps = [...z0.steps];
+  const notices: Notice[] = [];
+  let rippleOut: number | undefined;
+  if (input.pzm !== undefined && z0.on) notices.push(zenerPowerNotice(z0.pz, input.pzm));
+  if (input.vrin !== undefined && input.rz !== undefined && z0.on) {
+    const r = zenerRipple(input.vrin, input.rs, input.rz, input.rl);
+    steps.push(r.step);
+    rippleOut = r.approx;
+  }
+  const ripple =
+    rippleOut === undefined ? [] : [{ label: 'V_r(out)', value: engTex(rippleOut, 'V') }];
+  return {
+    value: {
       part: 'zener',
       case: 'fijo',
       on: z0.on,
@@ -187,25 +205,35 @@ function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegula
       il: z0.il,
       ir: z0.ir,
       rippleOut,
-    };
-    summary = [
+    },
+    summary: [
       { label: 'Zener', value: z0.on ? String.raw`\text{encendido}` : String.raw`\text{apagado}` },
       { label: 'V_L', value: String.raw`${n(z0.vl, 5)}\ \text{V}`, emphasis: true },
       { label: 'I_Z', value: engTex(z0.iz, 'A') },
       { label: 'I_L', value: engTex(z0.il, 'A') },
       { label: 'P_Z', value: engTex(z0.pz, 'W') },
-      ...(rippleOut !== undefined ? [{ label: 'V_r(out)', value: engTex(rippleOut, 'V') }] : []),
-    ];
-  } else if (input.zenerCase === 'rl-variable') {
-    const r = zenerLoadRange(input.vi, input.rs, input.vz, input.izm);
-    steps.push(...r.steps);
-    if (r.ilMin === 0) {
-      notices.push({
-        level: 'info',
-        message: 'I_R no supera I_ZM: el Zener soporta incluso la carga abierta.',
-      });
-    }
-    value = {
+      ...ripple,
+    ],
+    steps,
+    notices,
+  };
+}
+
+/** V_i fija y R_L variable. */
+function loadRangeZener(input: FilterRegulationInput): ZenerCase {
+  const r = zenerLoadRange(input.vi, input.rs, input.vz, input.izm);
+  const notices: Notice[] =
+    r.ilMin === 0
+      ? [
+          {
+            level: 'info',
+            message: 'I_R no supera I_ZM: el Zener soporta incluso la carga abierta.',
+          },
+        ]
+      : [];
+  const rlMax = Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : TEX.infty;
+  return {
+    value: {
       part: 'zener',
       case: 'rl-variable',
       rlMin: r.rlMin,
@@ -214,11 +242,11 @@ function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegula
       ilMax: r.ilMax,
       ir: r.ir,
       pMax: r.pMax,
-    };
-    summary = [
+    },
+    summary: [
       {
         label: 'R_L',
-        value: String.raw`${engTex(r.rlMin, 'Ω')} \le R_L \le ${Number.isFinite(r.rlMax) ? engTex(r.rlMax, 'Ω') : TEX.infty}`,
+        value: String.raw`${engTex(r.rlMin, 'Ω')} \le R_L \le ${rlMax}`,
         emphasis: true,
       },
       {
@@ -226,47 +254,53 @@ function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegula
         value: String.raw`${engTex(r.ilMin, 'A')} \le I_L \le ${engTex(r.ilMax, 'A')}`,
       },
       { label: 'P_max', value: engTex(r.pMax, 'W') },
-    ];
-  } else {
-    const r = zenerInputRange(input.rl, input.rs, input.vz, input.izm);
-    steps.push(...r.steps);
-    value = {
+    ],
+    steps: r.steps,
+    notices,
+  };
+}
+
+/** R_L fija y V_i variable. */
+function inputRangeZener(input: FilterRegulationInput): ZenerCase {
+  const r = zenerInputRange(input.rl, input.rs, input.vz, input.izm);
+  return {
+    value: {
       part: 'zener',
       case: 'vi-variable',
       viMin: r.viMin,
       viMax: r.viMax,
       il: r.il,
       irMax: r.irMax,
-    };
-    summary = [
+    },
+    summary: [
       {
         label: 'V_i',
         value: String.raw`${n(r.viMin, 5)}\ \text{V} \le V_i \le ${n(r.viMax, 5)}\ \text{V}`,
         emphasis: true,
       },
       { label: 'I_L', value: engTex(r.il, 'A') },
-    ];
-  }
+    ],
+    steps: r.steps,
+    notices: [],
+  };
+}
 
+function solveZener(input: FilterRegulationInput): CalculatorResult<FilterRegulationValue, never> {
+  let result: ZenerCase;
+  if (input.zenerCase === 'fijo') result = fixedZener(input);
+  else if (input.zenerCase === 'rl-variable') result = loadRangeZener(input);
+  else result = inputRangeZener(input);
   return {
     ok: true,
-    value,
-    summary,
+    value: result.value,
+    summary: result.summary,
     steps: [
-      {
-        title: 'Regulador Zener',
-        explanation:
-          input.zenerCase === 'fijo'
-            ? 'V_i, R_S y R_L fijos: se determina el estado del Zener y luego las corrientes (Boylestad, sec. 2.10).'
-            : input.zenerCase === 'rl-variable'
-              ? 'V_i fija y R_L variable: se busca el intervalo de cargas que mantiene al Zener en regulación.'
-              : 'R_L fija y V_i variable: se busca el intervalo de tensiones de entrada que mantiene al Zener en regulación.',
-      },
-      ...steps,
+      { title: 'Regulador Zener', explanation: ZENER_INTRO[input.zenerCase] },
+      ...result.steps,
     ],
     tables: [],
     series: [],
-    notices,
+    notices: result.notices,
   };
 }
 

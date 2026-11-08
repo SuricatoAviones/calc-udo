@@ -53,6 +53,38 @@ export interface RectifierValue {
 
 export type RectifierErrorCode = 'sin-conduccion';
 
+/** Lo que cambia entre media onda y onda completa en la traza. */
+const WAVES = {
+  half: {
+    dcExplanation: 'Solo pasa un semiciclo: el promedio es el 31.8 % del pico.',
+    dcFormula: String.raw`V_{cd} = \frac{V_{p(out)}}{\pi} = 0.318\,V_{p(out)}`,
+    dcSubstitution: (vp: number) => String.raw`V_{cd} = \frac{${n(vp)}}{\pi}`,
+    rmsFormula: String.raw`\frac{V_p}{2}`,
+    pulses: 'La salida tiene un pulso por ciclo de la red',
+    fOut: 'f_{in}',
+    diodeExplanation: 'El único diodo lleva toda la corriente de la carga.',
+    diodeCurrent: 'I_{cd}',
+  },
+  full: {
+    dcExplanation:
+      'La onda completa aprovecha ambos semiciclos: el promedio es el doble que en media onda (63.6 % del pico).',
+    dcFormula: String.raw`V_{cd} = \frac{2V_{p(out)}}{\pi} = 0.636\,V_{p(out)}`,
+    dcSubstitution: (vp: number) => String.raw`V_{cd} = \frac{2(${n(vp)})}{\pi}`,
+    rmsFormula: String.raw`\frac{V_p}{\sqrt{2}}`,
+    pulses: 'La salida tiene dos pulsos por ciclo de la red',
+    fOut: '2f_{in}',
+    diodeExplanation:
+      'Cada diodo conduce medio ciclo: lleva la mitad de la corriente continua de la carga.',
+    diodeCurrent: String.raw`\frac{I_{cd}}{2}`,
+  },
+} as const;
+
+const DIODE_COUNT: Record<RectifierType, string> = {
+  'media-onda': '1',
+  'derivacion-central': '2',
+  puente: '4',
+};
+
 export function solveRectifier(
   input: RectifierInput,
 ): CalculatorResult<RectifierValue, RectifierErrorCode> {
@@ -85,6 +117,7 @@ export function solveRectifier(
   }
 
   const vp = r.vpOut;
+  const wave = r.fullWave ? WAVES.full : WAVES.half;
   const vdc = r.fullWave ? (2 * vp) / Math.PI : vp / Math.PI;
   const vrms = r.fullWave ? vp / Math.SQRT2 : vp / 2;
   const vripple = Math.sqrt(vrms * vrms - vdc * vdc);
@@ -93,31 +126,25 @@ export function solveRectifier(
   steps.push(
     {
       title: 'Valor de cd (promedio)',
-      explanation: r.fullWave
-        ? 'La onda completa aprovecha ambos semiciclos: el promedio es el doble que en media onda (63.6 % del pico).'
-        : 'Solo pasa un semiciclo: el promedio es el 31.8 % del pico.',
-      formula: r.fullWave
-        ? String.raw`V_{cd} = \frac{2V_{p(out)}}{\pi} = 0.636\,V_{p(out)}`
-        : String.raw`V_{cd} = \frac{V_{p(out)}}{\pi} = 0.318\,V_{p(out)}`,
-      substitution: r.fullWave
-        ? String.raw`V_{cd} = \frac{2(${n(vp)})}{\pi}`
-        : String.raw`V_{cd} = \frac{${n(vp)}}{\pi}`,
+      explanation: wave.dcExplanation,
+      formula: wave.dcFormula,
+      substitution: wave.dcSubstitution(vp),
       result: String.raw`V_{cd} = ${n(vdc)}\ \text{V}`,
     },
     {
       title: 'Valor eficaz y rizo',
       explanation:
         'El factor de rizo compara el valor eficaz de la componente de ca con el de cd (Boylestad, sec. 15.2): sin filtro es grande, por eso se agrega un capacitor.',
-      formula: String.raw`V_{rms} = ${r.fullWave ? String.raw`\frac{V_p}{\sqrt{2}}` : String.raw`\frac{V_p}{2}`},\qquad V_{r(rms)} = \sqrt{V_{rms}^{2} - V_{cd}^{2}},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
+      formula: String.raw`V_{rms} = ${wave.rmsFormula},\qquad V_{r(rms)} = \sqrt{V_{rms}^{2} - V_{cd}^{2}},\qquad r = \frac{V_{r(rms)}}{V_{cd}}`,
       substitution: String.raw`V_{rms} = ${n(vrms)}\ \text{V},\quad V_{r(rms)} = \sqrt{(${n(vrms)})^{2} - (${n(vdc)})^{2}}`,
       result: String.raw`V_{r(rms)} = ${n(vripple)}\ \text{V} = ${n(vripple / vp, 4)}\,V_p,\quad r = ${n(100 * rippleFactor, 4)}\,\%`,
     },
     {
       title: 'Frecuencia de salida y PIV',
-      explanation: `${r.fullWave ? 'La salida tiene dos pulsos por ciclo de la red' : 'La salida tiene un pulso por ciclo de la red'}. Cada diodo debe soportar en inversa el pico ${
+      explanation: `${wave.pulses}. Cada diodo debe soportar en inversa el pico ${
         type === 'derivacion-central' ? 'del secundario completo (2V_m)' : 'del secundario'
       } (valor ideal).`,
-      formula: String.raw`f_{out} = ${r.fullWave ? '2f_{in}' : 'f_{in}'},\qquad PIV = V_{p2}`,
+      formula: String.raw`f_{out} = ${wave.fOut},\qquad PIV = V_{p2}`,
       result: String.raw`f_{out} = ${n(r.fOut)}\ \text{Hz},\quad PIV = ${n(r.piv)}\ \text{V}`,
     },
   );
@@ -128,10 +155,8 @@ export function solveRectifier(
     const idiode = r.fullWave ? idc / 2 : idc;
     steps.push({
       title: 'Corrientes en la carga y en los diodos',
-      explanation: r.fullWave
-        ? 'Cada diodo conduce medio ciclo: lleva la mitad de la corriente continua de la carga.'
-        : 'El único diodo lleva toda la corriente de la carga.',
-      formula: String.raw`I_{cd} = \frac{V_{cd}}{R_L},\qquad I_{diodo} = ${r.fullWave ? String.raw`\frac{I_{cd}}{2}` : 'I_{cd}'},\qquad I_p = \frac{V_{p(out)}}{R_L}`,
+      explanation: wave.diodeExplanation,
+      formula: String.raw`I_{cd} = \frac{V_{cd}}{R_L},\qquad I_{diodo} = ${wave.diodeCurrent},\qquad I_p = \frac{V_{p(out)}}{R_L}`,
       result: String.raw`I_{cd} = ${engTex(idc, 'A')},\quad I_{diodo} = ${engTex(idiode, 'A')},\quad I_p = ${engTex(vp / input.rl, 'A')}`,
     });
   }
@@ -184,7 +209,7 @@ export function solveRectifier(
     rows: [
       {
         magnitud: String.raw`\text{Diodos}`,
-        valor: type === 'media-onda' ? '1' : type === 'puente' ? '4' : '2',
+        valor: DIODE_COUNT[type],
       },
       { magnitud: 'V_{p2}', valor: String.raw`${n(vp2, 5)}\ \text{V}` },
       { magnitud: 'V_{p(in)}', valor: String.raw`${n(r.vpIn, 5)}\ \text{V}` },

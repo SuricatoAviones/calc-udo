@@ -32,14 +32,19 @@ function split(value: number, unit: string): { scaled: number; prefix: string } 
 
 const LATEX_UNIT: Record<string, string> = { Ω: String.raw`\Omega`, µ: String.raw`\mu ` };
 
+/** Prefijo de ingeniería en LaTeX: µ como letra griega, los demás como texto. */
+function prefixLatex(prefix: string): string {
+  if (prefix === 'µ') return String.raw`\mu`;
+  return prefix ? String.raw`\text{${prefix}}` : '';
+}
+
 /** `18.6\ \text{mA}`, `2.2\ \text{k}\Omega`. */
 export function engTex(value: number, unit: string, digits = 4): string {
   const { scaled, prefix } = split(value, unit);
   const number = toLatexNumber(scaled, digits);
   if (unit === '') return number;
-  const prefixTex = prefix === 'µ' ? String.raw`\mu` : prefix ? String.raw`\text{${prefix}}` : '';
   const unitTex = LATEX_UNIT[unit] ?? String.raw`\text{${unit}}`;
-  return String.raw`${number}\ ${prefixTex}${unitTex}`;
+  return String.raw`${number}\ ${prefixLatex(prefix)}${unitTex}`;
 }
 
 /** Texto plano para explicaciones: `18.6 mA`. */
@@ -72,7 +77,8 @@ export function parseQuantity(text: string): number {
     .replace(',', '.')
     .replace(/^[−–]/, '-')
     .replace(/(Ω|ohms?|Hz|[VAFHSW])$/, '');
-  const m = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([pnuµμmkKMG]?)$/i.exec(s);
+  // Con /i la clase acepta también P, N, U, μ, M, K y G; el valor sale de la letra escrita.
+  const m = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([pnuµmkg]?)$/i.exec(s);
   if (!m) return Number.NaN;
   // Con exponente no se admite prefijo ("1e3k" es ambiguo); "1E" no es un exponente.
   const [, number, prefix] = m;
@@ -88,7 +94,7 @@ export function parseQuantity(text: string): number {
 /** Paralelo de resistencias (∞ se ignora; 0 da 0). */
 export function parallel(...values: number[]): number {
   const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.some((v) => v === 0)) return 0;
+  if (finite.includes(0)) return 0;
   const sum = finite.reduce((s, v) => s + 1 / v, 0);
   return sum === 0 ? Infinity : 1 / sum;
 }

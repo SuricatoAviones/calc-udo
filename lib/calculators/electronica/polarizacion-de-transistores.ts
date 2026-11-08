@@ -232,141 +232,183 @@ function solveBjt(input: BiasInput): CalculatorResult<BiasValue, never> {
   };
 }
 
-function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-  const enhancement = input.device === 'mosfet-enriquecimiento';
-  const name = input.device === 'jfet' ? 'JFET' : 'MOSFET';
-  const config = input.fetConfig;
-  const vdd = input.vdd;
-  const rd = input.rd;
-  const rs = config === 'divisor' || config === 'autopolarizacion' ? input.rs : 0;
+type FetRegion = 'saturacion' | 'ohmica' | 'corte';
 
-  // Curva de transferencia: I_D = K(V_GS − V_x)² para V_GS > V_x.
-  let k: number;
-  let vx: number;
-  let curveTop: number;
-  if (enhancement) {
-    vx = input.vt;
-    k = input.idOn / (input.vgsOn - input.vt) ** 2;
-    curveTop = input.idOn;
-    steps.push({
+const REGION_NAMES: Record<FetRegion, string> = {
+  saturacion: 'saturación',
+  ohmica: 'óhmica',
+  corte: 'corte',
+};
+
+const FET_CONFIG_NAMES: Record<BiasInput['fetConfig'], string> = {
+  fija: 'polarización fija',
+  autopolarizacion: 'autopolarización',
+  divisor: 'divisor de voltaje',
+  realimentacion: 'realimentación del drenaje',
+};
+
+function deviceName(input: BiasInput): string {
+  if (input.device === 'jfet') return 'JFET';
+  return input.device === 'mosfet-enriquecimiento'
+    ? 'MOSFET de enriquecimiento'
+    : 'MOSFET de empobrecimiento';
+}
+
+/** Curva de transferencia I_D = k(V_GS − V_x)² para V_GS > V_x. */
+function transferCurve(input: BiasInput, name: string) {
+  if (input.device === 'mosfet-enriquecimiento') {
+    const k = input.idOn / (input.vgsOn - input.vt) ** 2;
+    const step: Step = {
       title: 'Constante del MOSFET de enriquecimiento',
       explanation: `Con el punto de la hoja de datos I_D(enc) = ${engText(input.idOn, 'A')} a V_GS(enc) = ${engText(input.vgsOn, 'V')} se despeja k.`,
       formula: String.raw`k = \frac{I_{D(\text{enc})}}{\left(V_{GS(\text{enc})} - V_{GS(\text{Th})}\right)^{2}},\qquad I_D = k\left(V_{GS} - V_{GS(\text{Th})}\right)^{2}`,
       substitution: String.raw`k = \frac{${n(input.idOn)}}{(${n(input.vgsOn)} - ${n(input.vt)})^{2}}`,
       result: String.raw`k = ${n(k)}\ \text{A/V}^{2}`,
-    });
-  } else {
-    vx = input.vp;
-    k = input.idss / (input.vp * input.vp);
-    curveTop = input.idss;
-    steps.push({
-      title: `Curva de transferencia del ${name}`,
-      explanation:
-        'La ecuación de Shockley vale en la región de saturación (corriente constante) y para V_GS ≥ V_P. Equivale a I_D = (I_DSS/V_P²)(V_GS − V_P)², la forma que se usa abajo.',
-      formula: String.raw`I_D = I_{DSS}\left(1 - \frac{V_{GS}}{V_P}\right)^{2} = \frac{I_{DSS}}{V_P^{2}}\left(V_{GS} - V_P\right)^{2}`,
-      substitution: String.raw`I_D = ${n(input.idss)}\left(1 - \frac{V_{GS}}{${n(input.vp)}}\right)^{2}`,
-      result: String.raw`\frac{I_{DSS}}{V_P^{2}} = ${n(k)}\ \text{A/V}^{2}`,
-    });
+    };
+    return { k, vx: input.vt, curveTop: input.idOn, step };
   }
+  const k = input.idss / (input.vp * input.vp);
+  const step: Step = {
+    title: `Curva de transferencia del ${name}`,
+    explanation:
+      'La ecuación de Shockley vale en la región de saturación (corriente constante) y para V_GS ≥ V_P. Equivale a I_D = (I_DSS/V_P²)(V_GS − V_P)², la forma que se usa abajo.',
+    formula: String.raw`I_D = I_{DSS}\left(1 - \frac{V_{GS}}{V_P}\right)^{2} = \frac{I_{DSS}}{V_P^{2}}\left(V_{GS} - V_P\right)^{2}`,
+    substitution: String.raw`I_D = ${n(input.idss)}\left(1 - \frac{V_{GS}}{${n(input.vp)}}\right)^{2}`,
+    result: String.raw`\frac{I_{DSS}}{V_P^{2}} = ${n(k)}\ \text{A/V}^{2}`,
+  };
+  return { k, vx: input.vp, curveTop: input.idss, step };
+}
 
-  // Recta de polarización: V_GS = V₀ − R·I_D.
-  let v0: number;
-  let r: number;
-  let vg: number;
+/** Recta de polarización V_GS = V₀ − R·I_D y el voltaje de compuerta de cada configuración. */
+function biasLine(
+  input: BiasInput,
+  rs: number,
+): { v0: number; r: number; vg: number; steps: Step[] } {
+  const { vdd, rd } = input;
+  const config = input.fetConfig;
   if (config === 'fija') {
-    v0 = -input.vgg;
-    r = 0;
-    vg = v0;
-    steps.push({
-      title: 'Recta de polarización (fija)',
-      explanation:
-        'I_G = 0, así que R_G no tiene caída: la fuente V_GG queda entre compuerta y fuente. Es una recta vertical.',
-      formula: 'V_{GS} = -V_{GG}',
-      result: String.raw`V_{GSQ} = ${n(v0)}\ \text{V}`,
-    });
-  } else if (config === 'autopolarizacion') {
-    v0 = 0;
-    r = rs;
-    vg = 0;
-    steps.push({
-      title: 'Recta de autopolarización',
-      explanation:
-        'La compuerta está a 0 V (I_G = 0) y la fuente a I_D R_S: la recta pasa por el origen.',
-      formula: 'V_{GS} = -I_D R_S',
-      substitution: `V_{GS} = -I_D(${n(rs)})`,
-    });
-  } else if (config === 'divisor') {
-    vg = (input.rg2 * vdd) / (input.rg1 + input.rg2);
-    v0 = vg;
-    r = rs;
-    steps.push(
-      {
-        title: 'Voltaje de compuerta',
-        explanation: 'I_G = 0, así que R₁ y R₂ forman un divisor de voltaje sin carga.',
-        formula: String.raw`V_G = \frac{R_2 V_{DD}}{R_1 + R_2}`,
-        substitution: String.raw`V_G = \frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
-        result: String.raw`V_G = ${n(vg)}\ \text{V}`,
-      },
-      {
-        title: 'Recta de polarización',
-        explanation: `Corta al eje V_GS en V_G (I_D = 0) y al eje I_D en V_G/R_S = ${engText(vg / rs, 'A')} (V_GS = 0).`,
-        formula: 'V_{GS} = V_G - I_D R_S',
-        substitution: `V_{GS} = ${n(vg)} - I_D(${n(rs)})`,
-      },
-    );
-  } else {
-    v0 = vdd;
-    r = rd;
-    vg = Number.NaN;
-    steps.push({
-      title: 'Recta de polarización (realimentación del drenaje)',
-      explanation: 'I_G = 0, así que R_G no tiene caída: V_G = V_D y V_GS = V_DS.',
-      formula: 'V_{GS} = V_{DS} = V_{DD} - I_D R_D',
-      substitution: `V_{GS} = ${n(vdd)} - I_D(${n(rd)})`,
-    });
+    const v0 = -input.vgg;
+    return {
+      v0,
+      r: 0,
+      vg: v0,
+      steps: [
+        {
+          title: 'Recta de polarización (fija)',
+          explanation:
+            'I_G = 0, así que R_G no tiene caída: la fuente V_GG queda entre compuerta y fuente. Es una recta vertical.',
+          formula: 'V_{GS} = -V_{GG}',
+          result: String.raw`V_{GSQ} = ${n(v0)}\ \text{V}`,
+        },
+      ],
+    };
   }
+  if (config === 'autopolarizacion') {
+    return {
+      v0: 0,
+      r: rs,
+      vg: 0,
+      steps: [
+        {
+          title: 'Recta de autopolarización',
+          explanation:
+            'La compuerta está a 0 V (I_G = 0) y la fuente a I_D R_S: la recta pasa por el origen.',
+          formula: 'V_{GS} = -I_D R_S',
+          substitution: `V_{GS} = -I_D(${n(rs)})`,
+        },
+      ],
+    };
+  }
+  if (config === 'divisor') {
+    const vg = (input.rg2 * vdd) / (input.rg1 + input.rg2);
+    return {
+      v0: vg,
+      r: rs,
+      vg,
+      steps: [
+        {
+          title: 'Voltaje de compuerta',
+          explanation: 'I_G = 0, así que R₁ y R₂ forman un divisor de voltaje sin carga.',
+          formula: String.raw`V_G = \frac{R_2 V_{DD}}{R_1 + R_2}`,
+          substitution: String.raw`V_G = \frac{(${n(input.rg2)})(${n(vdd)})}{${n(input.rg1)} + ${n(input.rg2)}}`,
+          result: String.raw`V_G = ${n(vg)}\ \text{V}`,
+        },
+        {
+          title: 'Recta de polarización',
+          explanation: `Corta al eje V_GS en V_G (I_D = 0) y al eje I_D en V_G/R_S = ${engText(vg / rs, 'A')} (V_GS = 0).`,
+          formula: 'V_{GS} = V_G - I_D R_S',
+          substitution: `V_{GS} = ${n(vg)} - I_D(${n(rs)})`,
+        },
+      ],
+    };
+  }
+  return {
+    v0: vdd,
+    r: rd,
+    vg: Number.NaN,
+    steps: [
+      {
+        title: 'Recta de polarización (realimentación del drenaje)',
+        explanation: 'I_G = 0, así que R_G no tiene caída: V_G = V_D y V_GS = V_DS.',
+        formula: 'V_{GS} = V_{DS} = V_{DD} - I_D R_D',
+        substitution: `V_{GS} = ${n(vdd)} - I_D(${n(rd)})`,
+      },
+    ],
+  };
+}
 
-  let vgs: number;
-  let id: number;
-  let region: 'saturacion' | 'ohmica' | 'corte';
+/** Punto de operación: corte, V_GS fijo por la red o la intersección de la recta con la curva. */
+function fetOperatingPoint(
+  input: BiasInput,
+  curve: { k: number; vx: number },
+  line: { v0: number; r: number },
+  name: string,
+): { vgs: number; id: number; region: FetRegion; step: Step } {
+  const { k, vx } = curve;
+  const { v0, r } = line;
   if (v0 <= vx) {
-    vgs = v0;
-    id = 0;
-    region = 'corte';
-    steps.push({
-      title: 'Punto de operación',
-      explanation: `Con I_D = 0 el voltaje compuerta-fuente es ${engText(v0, 'V')}, que no supera ${
-        enhancement ? 'V_GS(Th)' : 'V_P'
-      } = ${engText(vx, 'V')}: el ${name} está en corte.`,
-      result: String.raw`V_{GSQ} = ${n(vgs)}\ \text{V},\quad I_{DQ} = 0`,
-    });
-  } else if (r === 0) {
-    vgs = v0;
-    id = k * (vgs - vx) ** 2;
-    region = 'saturacion';
-    steps.push({
-      title: 'Punto de operación',
-      explanation: 'V_GS queda fijo por la red: basta sustituirlo en la ecuación del dispositivo.',
-      formula: String.raw`I_{DQ} = I_{DSS}\left(1 - \frac{V_{GSQ}}{V_P}\right)^{2}`,
-      substitution: String.raw`I_{DQ} = ${n(input.idss)}\left(1 - \frac{${n(vgs)}}{${n(input.vp)}}\right)^{2}`,
-      result: `I_{DQ} = ${engTex(id, 'A')}`,
-    });
-  } else {
-    // v0 > vx garantiza una raíz con V_GS > V_x (ver solveFetBias).
-    const q = solveFetBias(v0, r, k, vx, name)!;
-    vgs = q.vgs;
-    id = q.id;
-    region = 'saturacion';
-    steps.push(q.step);
+    const threshold = input.device === 'mosfet-enriquecimiento' ? 'V_GS(Th)' : 'V_P';
+    return {
+      vgs: v0,
+      id: 0,
+      region: 'corte',
+      step: {
+        title: 'Punto de operación',
+        explanation: `Con I_D = 0 el voltaje compuerta-fuente es ${engText(v0, 'V')}, que no supera ${threshold} = ${engText(vx, 'V')}: el ${name} está en corte.`,
+        result: String.raw`V_{GSQ} = ${n(v0)}\ \text{V},\quad I_{DQ} = 0`,
+      },
+    };
   }
+  if (r === 0) {
+    const id = k * (v0 - vx) ** 2;
+    return {
+      vgs: v0,
+      id,
+      region: 'saturacion',
+      step: {
+        title: 'Punto de operación',
+        explanation:
+          'V_GS queda fijo por la red: basta sustituirlo en la ecuación del dispositivo.',
+        formula: String.raw`I_{DQ} = I_{DSS}\left(1 - \frac{V_{GSQ}}{V_P}\right)^{2}`,
+        substitution: String.raw`I_{DQ} = ${n(input.idss)}\left(1 - \frac{${n(v0)}}{${n(input.vp)}}\right)^{2}`,
+        result: `I_{DQ} = ${engTex(id, 'A')}`,
+      },
+    };
+  }
+  // v0 > vx garantiza una raíz con V_GS > V_x (ver solveFetBias).
+  const q = solveFetBias(v0, r, k, vx, name)!;
+  return { vgs: q.vgs, id: q.id, region: 'saturacion', step: q.step };
+}
 
-  const vs = id * rs;
-  const vd = vdd - id * rd;
-  const vds = vd - vs;
-  if (config === 'realimentacion') vg = vd;
-  steps.push(
+/** V_DS y voltajes de los terminales. */
+function drainSteps(
+  input: BiasInput,
+  rs: number,
+  values: { id: number; vds: number; vs: number; vd: number; vg: number },
+): Step[] {
+  const { vdd, rd } = input;
+  const { id, vds, vs, vd, vg } = values;
+  return [
     {
       title: 'Voltaje drenaje-fuente',
       formula: rs > 0 ? 'V_{DS} = V_{DD} - I_D(R_D + R_S)' : 'V_{DS} = V_{DD} - I_D R_D',
@@ -381,29 +423,43 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
       formula: String.raw`V_S = I_D R_S,\qquad V_D = V_{DD} - I_D R_D`,
       result: String.raw`V_S = ${n(vs)}\ \text{V},\ V_D = ${n(vd)}\ \text{V},\ V_G = ${n(vg)}\ \text{V}`,
     },
-  );
+  ];
+}
 
-  if (region === 'saturacion') {
-    const limit = vgs - vx;
-    if (vds < limit) region = 'ohmica';
-    steps.push({
+/** ¿V_DS ≥ V_GS − V_x? Si no, el punto queda en la región óhmica. */
+function saturationCheck(
+  enhancement: boolean,
+  values: { vds: number; vgs: number; vx: number },
+): { region: FetRegion; step: Step } {
+  const { vds, vgs, vx } = values;
+  const limit = vgs - vx;
+  const region: FetRegion = vds < limit ? 'ohmica' : 'saturacion';
+  const threshold = enhancement ? 'V_GS(Th)' : 'V_P';
+  const relation = region === 'saturacion' ? TEX.ge : '<';
+  return {
+    region,
+    step: {
       title: 'Comprobación de la región de saturación',
       explanation:
         region === 'saturacion'
-          ? `V_DS supera V_GS − ${enhancement ? 'V_GS(Th)' : 'V_P'}: el canal está estrangulado y la ecuación usada es válida.`
-          : `V_DS no alcanza V_GS − ${enhancement ? 'V_GS(Th)' : 'V_P'}: el punto queda a la izquierda del lugar geométrico del estrangulamiento, en la región óhmica, donde la ecuación de saturación solo es una aproximación.`,
+          ? `V_DS supera V_GS − ${threshold}: el canal está estrangulado y la ecuación usada es válida.`
+          : `V_DS no alcanza V_GS − ${threshold}: el punto queda a la izquierda del lugar geométrico del estrangulamiento, en la región óhmica, donde la ecuación de saturación solo es una aproximación.`,
       formula: enhancement
         ? String.raw`V_{DS} \ge V_{GS} - V_{GS(\text{Th})}`
         : String.raw`V_{DS} \ge V_{GS} - V_P`,
-      substitution: `${n(vds)} ${region === 'saturacion' ? TEX.ge : '<'} ${n(vgs)} - (${n(vx)})`,
-      result: String.raw`${n(vds)}\ \text{V}\ ${region === 'saturacion' ? TEX.ge : '<'}\ ${n(limit)}\ \text{V}`,
-    });
-  }
+      substitution: `${n(vds)} ${relation} ${n(vgs)} - (${n(vx)})`,
+      result: String.raw`${n(vds)}\ \text{V}\ ${relation}\ ${n(limit)}\ \text{V}`,
+    },
+  };
+}
 
+function fetNotices(input: BiasInput, region: FetRegion, vgs: number, name: string): Notice[] {
+  const notices: Notice[] = [];
+  const threshold = input.device === 'mosfet-enriquecimiento' ? 'V_GS(Th)' : 'V_P';
   if (region === 'ohmica') {
     notices.push({
       level: 'warning',
-      message: `V_DS es menor que V_GS − ${enhancement ? 'V_GS(Th)' : 'V_P'}: el ${name} estaría en la región óhmica y el punto Q es solo aproximado. Muchos ejercicios omiten esta comprobación; para un amplificador conviene reducir R_D.`,
+      message: `V_DS es menor que V_GS − ${threshold}: el ${name} estaría en la región óhmica y el punto Q es solo aproximado. Muchos ejercicios omiten esta comprobación; para un amplificador conviene reducir R_D.`,
     });
   } else if (region === 'corte') {
     notices.push({ level: 'warning', message: `El ${name} está en corte (I_D = 0).` });
@@ -415,9 +471,95 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
         'V_GS > 0 polariza en directa la unión compuerta-canal del JFET: el análisis deja de ser válido.',
     });
   }
+  return notices;
+}
+
+/** Extremo derecho de la curva en la gráfica. */
+function curveRight(input: BiasInput, vgs: number, vx: number, span: number): number {
+  if (input.device === 'mosfet-enriquecimiento') return Math.max(vgs, input.vgsOn) + span / 2;
+  if (input.device === 'jfet') return Math.max(0, vgs);
+  return Math.max(0, vgs) + span / 3;
+}
+
+const TO_MA = 1000;
+
+/** Curva de transferencia, recta de polarización y punto Q, en mA. */
+function transferSeries(
+  input: BiasInput,
+  name: string,
+  curve: { k: number; vx: number; curveTop: number },
+  line: { v0: number; r: number },
+  q: { vgs: number; id: number },
+): Series {
+  const { k, vx, curveTop } = curve;
+  const { v0, r } = line;
+  const { vgs, id } = q;
+  const enhancement = input.device === 'mosfet-enriquecimiento';
+  const yMax = 1.25 * Math.max(id, curveTop);
+  const span = Math.abs(enhancement ? input.vgsOn - vx : vx);
+  const xRight = curveRight(input, vgs, vx, span);
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i <= 80; i++) {
+    const u = vx + ((xRight - vx) * i) / 80;
+    const y = k * (u - vx) ** 2;
+    if (y > yMax) break;
+    points.push({ x: u, y: y * TO_MA });
+  }
+  const others: Series['others'] = [];
+  if (r > 0) {
+    const left = Math.max(v0 - yMax * r, Math.min(vx, vgs));
+    others.push({
+      label: 'Recta de polarización',
+      points: [
+        { x: left, y: ((v0 - left) / r) * TO_MA },
+        { x: v0, y: 0 },
+      ],
+    });
+  }
+  return {
+    id: 'transferencia',
+    title: 'Curva de transferencia, recta de polarización y punto Q',
+    xLabel: 'V_GS (V)',
+    yLabel: 'I_D (mA)',
+    label: name,
+    points,
+    others,
+    scatter: { label: 'Punto Q', points: [{ x: vgs, y: id * TO_MA }] },
+  };
+}
+
+function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
+  const steps: Step[] = [];
+  const enhancement = input.device === 'mosfet-enriquecimiento';
+  const name = input.device === 'jfet' ? 'JFET' : 'MOSFET';
+  const config = input.fetConfig;
+  const { vdd, rd } = input;
+  const rs = config === 'divisor' || config === 'autopolarizacion' ? input.rs : 0;
+
+  const curve = transferCurve(input, name);
+  steps.push(curve.step);
+  const { k, vx } = curve;
+  const line = biasLine(input, rs);
+  steps.push(...line.steps);
+  const point = fetOperatingPoint(input, curve, line, name);
+  steps.push(point.step);
+  const { vgs, id } = point;
+  let region = point.region;
+
+  const vs = id * rs;
+  const vd = vdd - id * rd;
+  const vds = vd - vs;
+  const vg = config === 'realimentacion' ? vd : line.vg;
+  steps.push(...drainSteps(input, rs, { id, vds, vs, vd, vg }));
+
+  if (region === 'saturacion') {
+    const check = saturationCheck(enhancement, { vds, vgs, vx });
+    region = check.region;
+    steps.push(check.step);
+  }
+  const notices = fetNotices(input, region, vgs, name);
 
   // Tabla de puntos para trazar la curva, como en el libro.
-  const toMa = 1000;
   const sample = enhancement
     ? [vx, (vx + input.vgsOn) / 2, input.vgsOn, input.vgsOn + (input.vgsOn - vx) / 2]
     : [vx, 0.5 * vx, 0.3 * vx, 0];
@@ -429,45 +571,10 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
         { key: 'vgs', header: String.raw`V_{GS}\ (\text{V})` },
         { key: 'id', header: String.raw`I_D\ (\text{mA})` },
       ],
-      rows: sample.map((u) => ({ vgs: u, id: k * (u - vx) ** 2 * toMa })),
+      rows: sample.map((u) => ({ vgs: u, id: k * (u - vx) ** 2 * TO_MA })),
     },
   ];
-
-  const yMax = 1.25 * Math.max(id, curveTop);
-  const span = Math.abs(enhancement ? input.vgsOn - vx : vx);
-  const xRight = enhancement
-    ? Math.max(vgs, input.vgsOn) + span / 2
-    : input.device === 'jfet'
-      ? Math.max(0, vgs)
-      : Math.max(0, vgs) + span / 3;
-  const curve: { x: number; y: number }[] = [];
-  for (let i = 0; i <= 80; i++) {
-    const u = vx + ((xRight - vx) * i) / 80;
-    const y = k * (u - vx) ** 2;
-    if (y > yMax) break;
-    curve.push({ x: u, y: y * toMa });
-  }
-  const others: Series['others'] = [];
-  if (r > 0) {
-    const left = Math.max(v0 - yMax * r, Math.min(vx, vgs));
-    others.push({
-      label: 'Recta de polarización',
-      points: [
-        { x: left, y: ((v0 - left) / r) * toMa },
-        { x: v0, y: 0 },
-      ],
-    });
-  }
-  const series: Series = {
-    id: 'transferencia',
-    title: 'Curva de transferencia, recta de polarización y punto Q',
-    xLabel: 'V_GS (V)',
-    yLabel: 'I_D (mA)',
-    label: name,
-    points: curve,
-    others,
-    scatter: { label: 'Punto Q', points: [{ x: vgs, y: id * toMa }] },
-  };
+  const series = transferSeries(input, name, curve, line, { vgs, id });
 
   return {
     ok: true,
@@ -478,29 +585,12 @@ function solveFet(input: BiasInput): CalculatorResult<BiasValue, never> {
       { label: 'V_DS', value: String.raw`${n(vds, 5)}\ \text{V}` },
       { label: 'V_D', value: String.raw`${n(vd, 5)}\ \text{V}` },
       { label: 'V_S', value: String.raw`${n(vs, 5)}\ \text{V}` },
-      {
-        label: 'Región',
-        value: String.raw`\text{${region === 'saturacion' ? 'saturación' : region === 'ohmica' ? 'óhmica' : 'corte'}}`,
-      },
+      { label: 'Región', value: String.raw`\text{${REGION_NAMES[region]}}` },
     ],
     steps: [
       {
         title: 'Configuración',
-        explanation: `${
-          input.device === 'jfet'
-            ? 'JFET'
-            : enhancement
-              ? 'MOSFET de enriquecimiento'
-              : 'MOSFET de empobrecimiento'
-        } de canal n con ${
-          config === 'fija'
-            ? 'polarización fija'
-            : config === 'autopolarizacion'
-              ? 'autopolarización'
-              : config === 'divisor'
-                ? 'divisor de voltaje'
-                : 'realimentación del drenaje'
-        }. La corriente de compuerta es nula (I_G = 0), así que I_S = I_D.`,
+        explanation: `${deviceName(input)} de canal n con ${FET_CONFIG_NAMES[config]}. La corriente de compuerta es nula (I_G = 0), así que I_S = I_D.`,
       },
       ...steps,
     ],

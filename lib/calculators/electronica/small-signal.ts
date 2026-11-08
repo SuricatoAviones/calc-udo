@@ -109,172 +109,212 @@ function loadSteps(
   return avs;
 }
 
+/** Resultado de una configuración antes del efecto de la carga y de la ganancia de corriente. */
+interface ConfigResult {
+  zi: number;
+  zo: number;
+  avNL: number;
+  av: number;
+  /** Resistencia por la que circula I_o. */
+  rOut: number;
+  zb?: number;
+  params: HybridParams;
+}
+
+function commonEmitter(net: AcNetwork, steps: Step[]): ConfigResult {
+  const { h, rin, rinTex, rc, rl } = net;
+  const ro = h.ho > 0 ? 1 / h.ho : Infinity;
+  const zi = parallel(rin, h.hi);
+  const zo = parallel(rc, ro);
+  const rac = rl !== undefined ? parallel(rc, ro, rl) : zo;
+  const avNL = (-h.hf * zo) / h.hi;
+  const av = (-h.hf * rac) / h.hi;
+  steps.push(
+    {
+      title: 'Impedancia de entrada',
+      explanation:
+        'Con R_E puenteada por C_E, la base ve h_ie en paralelo con la red de polarización.',
+      formula: String.raw`Z_i = ${rinTex} \parallel h_{ie}`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(h.hi)}`,
+      result: `Z_i = ${ohm(zi)}`,
+    },
+    {
+      title: 'Impedancia de salida',
+      explanation: Number.isFinite(ro)
+        ? 'Se apaga V_i: la fuente h_fe·I_b se abre y quedan 1/h_oe y R_C en paralelo.'
+        : 'Sin h_oe (r_o infinita) la salida es solo R_C.',
+      formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{oe}}`,
+      substitution: String.raw`Z_o = ${n(rc)} \parallel ${Number.isFinite(ro) ? n(ro) : TEX.infty}`,
+      result: `Z_o = ${ohm(zo)}`,
+    },
+    {
+      title: 'Ganancia de voltaje',
+      explanation:
+        rl !== undefined
+          ? 'V_o = −h_fe·I_b·(R_C ∥ 1/h_oe ∥ R_L) e I_b = V_i/h_ie.'
+          : 'V_o = −h_fe·I_b·(R_C ∥ 1/h_oe) e I_b = V_i/h_ie. El signo negativo indica un desfase de 180°.',
+      formula:
+        rl !== undefined
+          ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe} \parallel R_L)}{h_{ie}}`
+          : String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe})}{h_{ie}}`,
+      substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(h.hi)}}`,
+      result: `A_v = ${n(av)}`,
+    },
+  );
+  return { zi, zo, avNL, av, rOut: rl ?? rc, params: h };
+}
+
+/** Emisor sin puentear y seguidor: R_E (∥ R_L en el seguidor) se refleja en la base. */
+function emitterResistance(net: AcNetwork, steps: Step[]): ConfigResult {
+  const { config, h, rin, rinTex, re, rl } = net;
+  const reac = config === 'seguidor' && rl !== undefined ? parallel(re, rl) : re;
+  const zb = h.hi + (1 + h.hf) * reac;
+  const zi = parallel(rin, zb);
+  steps.push(
+    {
+      title: 'Impedancia vista desde la base',
+      explanation: `R_E${config === 'seguidor' && rl !== undefined ? ' ∥ R_L' : ''} queda en el emisor sin puentear: se refleja en la base multiplicada por (1 + h_fe). El libro suele aproximarla a h_fe·R_E.`,
+      formula:
+        config === 'seguidor' && rl !== undefined
+          ? String.raw`Z_b = h_{ie} + (1 + h_{fe})(R_E \parallel R_L)`
+          : 'Z_b = h_{ie} + (1 + h_{fe})R_E',
+      substitution: `Z_b = ${n(h.hi)} + (${n(1 + h.hf)})(${n(reac)})`,
+      result: `Z_b = ${ohm(zb)}`,
+    },
+    {
+      title: 'Impedancia de entrada',
+      formula: String.raw`Z_i = ${rinTex} \parallel Z_b`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(zb)}`,
+      result: `Z_i = ${ohm(zi)}`,
+    },
+  );
+  const tail =
+    config === 'emisor-sin-puentear'
+      ? unbypassedOutput(net, zb, steps)
+      : followerOutput(net, reac, steps);
+  return { zi, zb, params: h, ...tail };
+}
+
+/** Salida y ganancia del emisor sin puentear: Z_o ≈ R_C y A_v ≈ −R_C/R_E. */
+function unbypassedOutput(net: AcNetwork, zb: number, steps: Step[]) {
+  const { h, rc, rl } = net;
+  const zo = rc;
+  const rac = rl !== undefined ? parallel(rc, rl) : rc;
+  const avNL = (-h.hf * rc) / zb;
+  const av = (-h.hf * rac) / zb;
+  steps.push(
+    {
+      title: 'Impedancia de salida',
+      explanation:
+        'Se ignora r_o (Boylestad lo justifica cuando r_o ≥ 10(R_C + R_E)): la salida es R_C.',
+      formula: String.raw`Z_o \approx R_C`,
+      result: `Z_o = ${ohm(zo)}`,
+    },
+    {
+      title: 'Ganancia de voltaje',
+      explanation:
+        'I_b = V_i/Z_b y V_o = −h_fe·I_b·R_C. Si h_fe·R_E domina Z_b, A_v ≈ −R_C/R_E: casi no depende del transistor.',
+      formula:
+        rl !== undefined
+          ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel R_L)}{Z_b}`
+          : String.raw`A_v = -\frac{h_{fe}R_C}{Z_b} \approx -\frac{R_C}{R_E}`,
+      substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(zb)}}`,
+      result: `A_v = ${n(av)}`,
+    },
+  );
+  return { zo, avNL, av, rOut: rl ?? rc };
+}
+
+/** Salida y ganancia del seguidor: divisor entre h_ie/(1 + h_fe) y R_E (∥ R_L). */
+function followerOutput(net: AcNetwork, reac: number, steps: Step[]) {
+  const { h, re, rl } = net;
+  const rIntr = h.hi / (1 + h.hf);
+  const zo = parallel(re, rIntr);
+  const avNL = re / (re + rIntr);
+  const av = reac / (reac + rIntr);
+  steps.push(
+    {
+      title: 'Impedancia de salida',
+      explanation:
+        'Vista desde el emisor, la resistencia de la base se divide entre (1 + h_fe): queda h_ie/(1 + h_fe) ≈ r_e en paralelo con R_E.',
+      formula: String.raw`Z_o = R_E \parallel \frac{h_{ie}}{1 + h_{fe}}`,
+      substitution: String.raw`Z_o = ${n(re)} \parallel ${n(rIntr)}`,
+      result: `Z_o = ${ohm(zo)}`,
+    },
+    {
+      title: 'Ganancia de voltaje',
+      explanation:
+        'Divisor de voltaje entre la resistencia de la salida y la del emisor: A_v es positiva y un poco menor que 1.',
+      formula:
+        rl !== undefined
+          ? String.raw`A_v = \frac{R_E \parallel R_L}{R_E \parallel R_L + h_{ie}/(1 + h_{fe})}`
+          : String.raw`A_v = \frac{R_E}{R_E + h_{ie}/(1 + h_{fe})}`,
+      substitution: String.raw`A_v = \frac{${n(reac)}}{${n(reac)} + ${n(rIntr)}}`,
+      result: `A_v = ${n(av)}`,
+    },
+  );
+  return { zo, avNL, av, rOut: rl ?? re };
+}
+
+/** Base común: se convierten los parámetros de emisor común a base común. */
+function commonBase(net: AcNetwork, steps: Step[]): ConfigResult {
+  const { h, rin, rc, rl } = net;
+  const cb = commonBaseFromCE(h);
+  const params = cb.params;
+  steps.push(cb.step);
+  const rob = params.ho > 0 ? 1 / params.ho : Infinity;
+  const zi = parallel(rin, params.hi);
+  const zo = parallel(rc, rob);
+  const rac = rl !== undefined ? parallel(rc, rob, rl) : zo;
+  const avNL = (-params.hf * zo) / params.hi;
+  const av = (-params.hf * rac) / params.hi;
+  steps.push(
+    {
+      title: 'Impedancia de entrada',
+      explanation:
+        'La señal entra por el emisor: R_E queda en paralelo con h_ib (≈ r_e), que es muy pequeña.',
+      formula: String.raw`Z_i = R_E \parallel h_{ib}`,
+      substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(params.hi)}`,
+      result: `Z_i = ${ohm(zi)}`,
+    },
+    {
+      title: 'Impedancia de salida',
+      formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{ob}} \approx R_C`,
+      result: `Z_o = ${ohm(zo)}`,
+    },
+    {
+      title: 'Ganancia de voltaje',
+      explanation:
+        'I_e = V_i/h_ib y V_o = −h_fb·I_e·R_C. Como h_fb ≈ −1, la ganancia es positiva (sin desfase).',
+      formula:
+        rl !== undefined
+          ? String.raw`A_v = -\frac{h_{fb}\,(R_C \parallel R_L)}{h_{ib}}`
+          : String.raw`A_v = -\frac{h_{fb}R_C}{h_{ib}}`,
+      substitution: String.raw`A_v = -\frac{(${n(params.hf)})(${n(rac)})}{${n(params.hi)}}`,
+      result: `A_v = ${n(av)}`,
+    },
+  );
+  return { zi, zo, avNL, av, rOut: rl ?? rc, params };
+}
+
+function configResult(net: AcNetwork, steps: Step[]): ConfigResult {
+  if (net.config === 'emisor-comun') return commonEmitter(net, steps);
+  if (net.config === 'emisor-sin-puentear' || net.config === 'seguidor')
+    return emitterResistance(net, steps);
+  return commonBase(net, steps);
+}
+
+/** Resistencia por la que circula I_o en la fórmula de A_i. */
+function outputResistorTex(net: AcNetwork): string {
+  if (net.rl !== undefined) return 'R_L';
+  return net.config === 'seguidor' ? 'R_E' : 'R_C';
+}
+
 /** Modelo híbrido aproximado (sec. 5.20) con el efecto de R_L y R_s (sec. 5.13). */
 export function approxAmplifier(net: AcNetwork): AcResult {
-  const { config, h, rin, rinTex, rc, re, rl } = net;
+  const { config, rl } = net;
   const steps: Step[] = [];
-  const ro = h.ho > 0 ? 1 / h.ho : Infinity;
-  let zi: number;
-  let zo: number;
-  let avNL: number;
-  let av: number;
-  let zb: number | undefined;
-  let params = h;
-  let rOut: number;
-
-  if (config === 'emisor-comun') {
-    zi = parallel(rin, h.hi);
-    zo = parallel(rc, ro);
-    const rac = rl !== undefined ? parallel(rc, ro, rl) : zo;
-    avNL = (-h.hf * zo) / h.hi;
-    av = (-h.hf * rac) / h.hi;
-    rOut = rl ?? rc;
-    steps.push(
-      {
-        title: 'Impedancia de entrada',
-        explanation:
-          'Con R_E puenteada por C_E, la base ve h_ie en paralelo con la red de polarización.',
-        formula: String.raw`Z_i = ${rinTex} \parallel h_{ie}`,
-        substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(h.hi)}`,
-        result: `Z_i = ${ohm(zi)}`,
-      },
-      {
-        title: 'Impedancia de salida',
-        explanation: Number.isFinite(ro)
-          ? 'Se apaga V_i: la fuente h_fe·I_b se abre y quedan 1/h_oe y R_C en paralelo.'
-          : 'Sin h_oe (r_o infinita) la salida es solo R_C.',
-        formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{oe}}`,
-        substitution: String.raw`Z_o = ${n(rc)} \parallel ${Number.isFinite(ro) ? n(ro) : TEX.infty}`,
-        result: `Z_o = ${ohm(zo)}`,
-      },
-      {
-        title: 'Ganancia de voltaje',
-        explanation:
-          rl !== undefined
-            ? 'V_o = −h_fe·I_b·(R_C ∥ 1/h_oe ∥ R_L) e I_b = V_i/h_ie.'
-            : 'V_o = −h_fe·I_b·(R_C ∥ 1/h_oe) e I_b = V_i/h_ie. El signo negativo indica un desfase de 180°.',
-        formula:
-          rl !== undefined
-            ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe} \parallel R_L)}{h_{ie}}`
-            : String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel 1/h_{oe})}{h_{ie}}`,
-        substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(h.hi)}}`,
-        result: `A_v = ${n(av)}`,
-      },
-    );
-  } else if (config === 'emisor-sin-puentear' || config === 'seguidor') {
-    const reac = config === 'seguidor' && rl !== undefined ? parallel(re, rl) : re;
-    zb = h.hi + (1 + h.hf) * reac;
-    zi = parallel(rin, zb);
-    steps.push(
-      {
-        title: 'Impedancia vista desde la base',
-        explanation: `R_E${config === 'seguidor' && rl !== undefined ? ' ∥ R_L' : ''} queda en el emisor sin puentear: se refleja en la base multiplicada por (1 + h_fe). El libro suele aproximarla a h_fe·R_E.`,
-        formula:
-          config === 'seguidor' && rl !== undefined
-            ? String.raw`Z_b = h_{ie} + (1 + h_{fe})(R_E \parallel R_L)`
-            : 'Z_b = h_{ie} + (1 + h_{fe})R_E',
-        substitution: `Z_b = ${n(h.hi)} + (${n(1 + h.hf)})(${n(reac)})`,
-        result: `Z_b = ${ohm(zb)}`,
-      },
-      {
-        title: 'Impedancia de entrada',
-        formula: String.raw`Z_i = ${rinTex} \parallel Z_b`,
-        substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(zb)}`,
-        result: `Z_i = ${ohm(zi)}`,
-      },
-    );
-    if (config === 'emisor-sin-puentear') {
-      zo = rc;
-      const rac = rl !== undefined ? parallel(rc, rl) : rc;
-      avNL = (-h.hf * rc) / zb;
-      av = (-h.hf * rac) / zb;
-      rOut = rl ?? rc;
-      steps.push(
-        {
-          title: 'Impedancia de salida',
-          explanation:
-            'Se ignora r_o (Boylestad lo justifica cuando r_o ≥ 10(R_C + R_E)): la salida es R_C.',
-          formula: String.raw`Z_o \approx R_C`,
-          result: `Z_o = ${ohm(zo)}`,
-        },
-        {
-          title: 'Ganancia de voltaje',
-          explanation:
-            'I_b = V_i/Z_b y V_o = −h_fe·I_b·R_C. Si h_fe·R_E domina Z_b, A_v ≈ −R_C/R_E: casi no depende del transistor.',
-          formula:
-            rl !== undefined
-              ? String.raw`A_v = -\frac{h_{fe}\,(R_C \parallel R_L)}{Z_b}`
-              : String.raw`A_v = -\frac{h_{fe}R_C}{Z_b} \approx -\frac{R_C}{R_E}`,
-          substitution: String.raw`A_v = -\frac{(${n(h.hf)})(${n(rac)})}{${n(zb)}}`,
-          result: `A_v = ${n(av)}`,
-        },
-      );
-    } else {
-      const rIntr = h.hi / (1 + h.hf);
-      zo = parallel(re, rIntr);
-      avNL = re / (re + rIntr);
-      av = reac / (reac + rIntr);
-      rOut = rl ?? re;
-      steps.push(
-        {
-          title: 'Impedancia de salida',
-          explanation:
-            'Vista desde el emisor, la resistencia de la base se divide entre (1 + h_fe): queda h_ie/(1 + h_fe) ≈ r_e en paralelo con R_E.',
-          formula: String.raw`Z_o = R_E \parallel \frac{h_{ie}}{1 + h_{fe}}`,
-          substitution: String.raw`Z_o = ${n(re)} \parallel ${n(rIntr)}`,
-          result: `Z_o = ${ohm(zo)}`,
-        },
-        {
-          title: 'Ganancia de voltaje',
-          explanation:
-            'Divisor de voltaje entre la resistencia de la salida y la del emisor: A_v es positiva y un poco menor que 1.',
-          formula:
-            rl !== undefined
-              ? String.raw`A_v = \frac{R_E \parallel R_L}{R_E \parallel R_L + h_{ie}/(1 + h_{fe})}`
-              : String.raw`A_v = \frac{R_E}{R_E + h_{ie}/(1 + h_{fe})}`,
-          substitution: String.raw`A_v = \frac{${n(reac)}}{${n(reac)} + ${n(rIntr)}}`,
-          result: `A_v = ${n(av)}`,
-        },
-      );
-    }
-  } else {
-    const cb = commonBaseFromCE(h);
-    params = cb.params;
-    steps.push(cb.step);
-    const rob = params.ho > 0 ? 1 / params.ho : Infinity;
-    zi = parallel(rin, params.hi);
-    zo = parallel(rc, rob);
-    const rac = rl !== undefined ? parallel(rc, rob, rl) : zo;
-    avNL = (-params.hf * zo) / params.hi;
-    av = (-params.hf * rac) / params.hi;
-    rOut = rl ?? rc;
-    steps.push(
-      {
-        title: 'Impedancia de entrada',
-        explanation:
-          'La señal entra por el emisor: R_E queda en paralelo con h_ib (≈ r_e), que es muy pequeña.',
-        formula: String.raw`Z_i = R_E \parallel h_{ib}`,
-        substitution: String.raw`Z_i = ${n(rin)} \parallel ${n(params.hi)}`,
-        result: `Z_i = ${ohm(zi)}`,
-      },
-      {
-        title: 'Impedancia de salida',
-        formula: String.raw`Z_o = R_C \parallel \frac{1}{h_{ob}} \approx R_C`,
-        result: `Z_o = ${ohm(zo)}`,
-      },
-      {
-        title: 'Ganancia de voltaje',
-        explanation:
-          'I_e = V_i/h_ib y V_o = −h_fb·I_e·R_C. Como h_fb ≈ −1, la ganancia es positiva (sin desfase).',
-        formula:
-          rl !== undefined
-            ? String.raw`A_v = -\frac{h_{fb}\,(R_C \parallel R_L)}{h_{ib}}`
-            : String.raw`A_v = -\frac{h_{fb}R_C}{h_{ib}}`,
-        substitution: String.raw`A_v = -\frac{(${n(params.hf)})(${n(rac)})}{${n(params.hi)}}`,
-        result: `A_v = ${n(av)}`,
-      },
-    );
-  }
+  const { zi, zo, avNL, av, rOut, zb, params } = configResult(net, steps);
 
   if (rl !== undefined && config !== 'seguidor') {
     steps.push({
@@ -287,10 +327,11 @@ export function approxAmplifier(net: AcNetwork): AcResult {
     });
   }
   const ai = (-av * zi) / rOut;
+  const outTex = outputResistorTex(net);
   steps.push({
     title: 'Ganancia de corriente',
-    explanation: `Con I_o la corriente en ${rl !== undefined ? 'R_L' : config === 'seguidor' ? 'R_E' : 'R_C'}, A_i se obtiene de A_v (ecs. 5.147 y 5.153).`,
-    formula: String.raw`A_i = \frac{I_o}{I_i} = -A_v\frac{Z_i}{${rl !== undefined ? 'R_L' : config === 'seguidor' ? 'R_E' : 'R_C'}}`,
+    explanation: `Con I_o la corriente en ${outTex}, A_i se obtiene de A_v (ecs. 5.147 y 5.153).`,
+    formula: String.raw`A_i = \frac{I_o}{I_i} = -A_v\frac{Z_i}{${outTex}}`,
     substitution: String.raw`A_i = -(${n(av)})\frac{${n(zi)}}{${n(rOut)}}`,
     result: `A_i = ${n(ai)}`,
   });

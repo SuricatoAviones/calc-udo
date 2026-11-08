@@ -71,6 +71,35 @@ export interface RectifierResult {
   step: Step;
 }
 
+/** Tensión de pico en la carga según el rectificador: fórmula, sustitución y explicación. */
+const PEAK_TEXT: Record<
+  RectifierType,
+  {
+    formula: string;
+    substitution: (vp2: number, vk: number) => string;
+    explanation: (withDrop: boolean) => string;
+  }
+> = {
+  'media-onda': {
+    formula: 'V_{p(out)} = V_{p2} - V_K',
+    substitution: (vp2, vk) => `V_{p(out)} = ${n(vp2)} - ${n(vk)}`,
+    explanation: (withDrop) =>
+      `Conduce un solo diodo, en el semiciclo positivo${withDrop ? ', con su caída V_K' : ''}.`,
+  },
+  'derivacion-central': {
+    formula: String.raw`V_{p(out)} = 0.5\,V_{p2} - V_K`,
+    substitution: (vp2, vk) => `V_{p(out)} = 0.5(${n(vp2)}) - ${n(vk)}`,
+    explanation: (withDrop) =>
+      `Con la derivación central cada diodo ve la mitad del secundario. Conduce un diodo por semiciclo${withDrop ? ', con su caída V_K' : ''}.`,
+  },
+  puente: {
+    formula: 'V_{p(out)} = V_{p2} - 2V_K',
+    substitution: (vp2, vk) => `V_{p(out)} = ${n(vp2)} - 2(${n(vk)})`,
+    explanation: (withDrop) =>
+      `En el puente conducen dos diodos en serie en cada semiciclo${withDrop ? ': se restan dos caídas V_K' : ''}.`,
+  },
+};
+
 export function rectify(vp2: number, type: RectifierType, vk: number, f: number): RectifierResult {
   const fullWave = type !== 'media-onda';
   const vpIn = type === 'derivacion-central' ? vp2 / 2 : vp2;
@@ -80,18 +109,7 @@ export function rectify(vp2: number, type: RectifierType, vk: number, f: number)
   // PIV ideal sin filtro: el pico del secundario completo en los tres casos (Boylestad, ecs. 2.9,
   // 2.12 y 2.13; en la derivación central es 2V_m con V_m el pico de cada mitad).
   const piv = vp2;
-  const formula =
-    type === 'media-onda'
-      ? 'V_{p(out)} = V_{p2} - V_K'
-      : type === 'derivacion-central'
-        ? String.raw`V_{p(out)} = 0.5\,V_{p2} - V_K`
-        : 'V_{p(out)} = V_{p2} - 2V_K';
-  const substitution =
-    type === 'media-onda'
-      ? `V_{p(out)} = ${n(vp2)} - ${n(vk)}`
-      : type === 'derivacion-central'
-        ? `V_{p(out)} = 0.5(${n(vp2)}) - ${n(vk)}`
-        : `V_{p(out)} = ${n(vp2)} - 2(${n(vk)})`;
+  const text = PEAK_TEXT[type];
   return {
     vpIn,
     vpOut,
@@ -101,14 +119,9 @@ export function rectify(vp2: number, type: RectifierType, vk: number, f: number)
     piv,
     step: {
       title: 'Tensión de pico en la carga',
-      explanation:
-        type === 'derivacion-central'
-          ? `Con la derivación central cada diodo ve la mitad del secundario. Conduce un diodo por semiciclo${vk > 0 ? ', con su caída V_K' : ''}.`
-          : type === 'puente'
-            ? `En el puente conducen dos diodos en serie en cada semiciclo${vk > 0 ? ': se restan dos caídas V_K' : ''}.`
-            : `Conduce un solo diodo, en el semiciclo positivo${vk > 0 ? ', con su caída V_K' : ''}.`,
-      formula,
-      substitution: vk > 0 ? substitution : undefined,
+      explanation: text.explanation(vk > 0),
+      formula: text.formula,
+      substitution: vk > 0 ? text.substitution(vp2, vk) : undefined,
       result: String.raw`V_{p(out)} = ${n(vpOut)}\ \text{V}`,
     },
   };

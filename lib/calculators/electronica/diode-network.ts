@@ -98,28 +98,40 @@ const volts = (v: number) => `${formatNumber(v, 4).replace('-', '−')} V`;
 
 // ─── Álgebra: MNA numérica con equilibrado de filas ─────────────────────────
 
-function gaussSolve(a: number[][], b: number[]): number[] | null {
-  const size = b.length;
-  const m = a.map((row, i) => [...row, b[i]!]);
-  // Equilibrado: cada fila se divide entre su mayor coeficiente. Así un nodo unido solo por
-  // conductancias pequeñas no se confunde con una fila nula.
+/**
+ * Equilibrado: cada fila se divide entre su mayor coeficiente. Así un nodo unido solo por
+ * conductancias pequeñas no se confunde con una fila nula. `false` si alguna fila es nula.
+ */
+function equilibrate(m: number[][], size: number): boolean {
   for (const row of m) {
     let max = 0;
     for (let j = 0; j < size; j++) max = Math.max(max, Math.abs(row[j]!));
-    if (max === 0) return null;
+    if (max === 0) return false;
     for (let j = 0; j <= size; j++) row[j] = row[j]! / max;
   }
+  return true;
+}
+
+/** Resta a la fila i la fila k multiplicada por el factor que anula la columna k. */
+function eliminateRow(m: number[][], i: number, k: number, size: number): void {
+  const f = m[i]![k]! / m[k]![k]!;
+  if (f === 0) return;
+  for (let j = k; j <= size; j++) m[i]![j] = m[i]![j]! - f * m[k]![j]!;
+}
+
+/** Eliminación con pivoteo parcial; `false` si el sistema es singular. */
+function eliminate(m: number[][], size: number): boolean {
   for (let k = 0; k < size; k++) {
     let pivot = k;
     for (let i = k + 1; i < size; i++) if (Math.abs(m[i]![k]!) > Math.abs(m[pivot]![k]!)) pivot = i;
-    if (Math.abs(m[pivot]![k]!) < 1e-11) return null;
+    if (Math.abs(m[pivot]![k]!) < 1e-11) return false;
     [m[k], m[pivot]] = [m[pivot]!, m[k]!];
-    for (let i = k + 1; i < size; i++) {
-      const f = m[i]![k]! / m[k]![k]!;
-      if (f === 0) continue;
-      for (let j = k; j <= size; j++) m[i]![j] = m[i]![j]! - f * m[k]![j]!;
-    }
+    for (let i = k + 1; i < size; i++) eliminateRow(m, i, k, size);
   }
+  return true;
+}
+
+function backSubstitute(m: number[][], size: number): number[] {
   const x = new Array<number>(size).fill(0);
   for (let i = size - 1; i >= 0; i--) {
     let s = m[i]![size]!;
@@ -129,11 +141,90 @@ function gaussSolve(a: number[][], b: number[]): number[] | null {
   return x;
 }
 
+function gaussSolve(a: number[][], b: number[]): number[] | null {
+  const size = b.length;
+  const m = a.map((row, i) => [...row, b[i]!]);
+  if (!equilibrate(m, size) || !eliminate(m, size)) return null;
+  return backSubstitute(m, size);
+}
+
+/** Conductancia g entre las filas p y q (−1 es la referencia). */
+function addConductance(a: number[][], g: number, p: number, q: number): void {
+  if (p >= 0) a[p]![p]! += g;
+  if (q >= 0) a[q]![q]! += g;
+  if (p >= 0 && q >= 0) {
+    a[p]![q]! -= g;
+    a[q]![p]! -= g;
+  }
+}
+
+interface StateSource {
+  pos: number;
+  neg: number;
+  value: number;
+  unit?: number;
+}
+
 interface SolveOptions {
   /** Conductancia de un diodo apagado; `null` = circuito abierto. */
   offConductance: number;
   /** Unidades encendidas que se toman como fuentes de 0 V (sin corriente). */
   zeroVk?: ReadonlySet<number>;
+}
+
+/** Fuentes de voltaje del circuito y una por diodo encendido (V_K, o 0 si va sin corriente). */
+function stateSources(
+  topology: CircuitTopology,
+  units: DiodeUnit[],
+  states: readonly boolean[],
+  options: SolveOptions,
+  rows: { at: (node: number) => number; internal: Map<number, number> },
+): StateSource[] {
+  const { at, internal } = rows;
+  const sources: StateSource[] = [];
+  for (const { component, nodeA, nodeB } of topology.components) {
+    if (component.kind === 'voltage-source') {
+      sources.push({ pos: at(nodeA), neg: at(nodeB), value: component.value });
+    }
+  }
+  units.forEach((unit, u) => {
+    if (!states[u]) return;
+    const vk = options.zeroVk?.has(u) ? 0 : unit.vk;
+    const neg = internal.get(u) ?? at(unit.cathode);
+    sources.push({ pos: at(unit.anode), neg, value: vk, unit: u });
+  });
+  return sources;
+}
+
+/** Fuente de voltaje en la fila k: su corriente entra por pos y su ecuación es v_pos − v_neg. */
+function stampSource(a: number[][], b: number[], s: StateSource, k: number): void {
+  if (s.pos >= 0) {
+    a[s.pos]![k]! += 1;
+    a[k]![s.pos]! += 1;
+  }
+  if (s.neg >= 0) {
+    a[s.neg]![k]! -= 1;
+    a[k]![s.neg]! -= 1;
+  }
+  b[k] = s.value;
+}
+
+/** Resistencias (conductancias) y fuentes de corriente (lado derecho). */
+function stampPassive(
+  a: number[][],
+  b: number[],
+  components: MappedComponent[],
+  at: (node: number) => number,
+): void {
+  for (const { component, nodeA, nodeB } of components) {
+    const p = at(nodeA);
+    const q = at(nodeB);
+    if (component.kind === 'resistor') addConductance(a, 1 / component.value, p, q);
+    else if (component.kind === 'current-source') {
+      if (p >= 0) b[p]! -= component.value;
+      if (q >= 0) b[q]! += component.value;
+    }
+  }
 }
 
 function solveState(
@@ -148,68 +239,27 @@ function solveState(
   const row = new Map<number, number>();
   let size = 0;
   for (let i = 0; i < nodes.length; i++) if (i !== referenceNode) row.set(i, size++);
+  // Con r_B, cada diodo encendido agrega un nodo interno entre V_K y r_B.
   const internal = new Map<number, number>();
   if (model === 'tercera' && rb > 0) {
     units.forEach((_, u) => {
       if (states[u]) internal.set(u, size++);
     });
   }
-  const sources: { pos: number; neg: number; value: number; unit?: number }[] = [];
-  for (const { component, nodeA, nodeB } of components) {
-    if (component.kind === 'voltage-source') {
-      sources.push({
-        pos: row.get(nodeA) ?? -1,
-        neg: row.get(nodeB) ?? -1,
-        value: component.value,
-      });
-    }
-  }
-  units.forEach((unit, u) => {
-    if (!states[u]) return;
-    const vk = options.zeroVk?.has(u) ? 0 : unit.vk;
-    const neg = internal.get(u) ?? row.get(unit.cathode) ?? -1;
-    sources.push({ pos: row.get(unit.anode) ?? -1, neg, value: vk, unit: u });
-  });
+  const at = (node: number) => row.get(node) ?? -1;
+  const sources = stateSources(topology, units, states, options, { at, internal });
   const nV = size;
   const total = nV + sources.length;
   const a = Array.from({ length: total }, () => new Array<number>(total).fill(0));
   const b = new Array<number>(total).fill(0);
-  const conductance = (g: number, p: number, q: number) => {
-    if (p >= 0) a[p]![p]! += g;
-    if (q >= 0) a[q]![q]! += g;
-    if (p >= 0 && q >= 0) {
-      a[p]![q]! -= g;
-      a[q]![p]! -= g;
-    }
-  };
-  for (const { component, nodeA, nodeB } of components) {
-    const p = row.get(nodeA) ?? -1;
-    const q = row.get(nodeB) ?? -1;
-    if (component.kind === 'resistor') conductance(1 / component.value, p, q);
-    else if (component.kind === 'current-source') {
-      if (p >= 0) b[p]! -= component.value;
-      if (q >= 0) b[q]! += component.value;
-    }
-  }
+  stampPassive(a, b, components, at);
   units.forEach((unit, u) => {
     const k = internal.get(u);
     if (states[u] && k !== undefined)
-      conductance(unit.members.length / rb, k, row.get(unit.cathode) ?? -1);
-    if (!states[u])
-      conductance(options.offConductance, row.get(unit.anode) ?? -1, row.get(unit.cathode) ?? -1);
+      addConductance(a, unit.members.length / rb, k, at(unit.cathode));
+    if (!states[u]) addConductance(a, options.offConductance, at(unit.anode), at(unit.cathode));
   });
-  sources.forEach((s, idx) => {
-    const k = nV + idx;
-    if (s.pos >= 0) {
-      a[s.pos]![k]! += 1;
-      a[k]![s.pos]! += 1;
-    }
-    if (s.neg >= 0) {
-      a[s.neg]![k]! -= 1;
-      a[k]![s.neg]! -= 1;
-    }
-    b[k] = s.value;
-  });
+  sources.forEach((s, idx) => stampSource(a, b, s, nV + idx));
   const x = gaussSolve(a, b);
   if (!x) return null;
   const v = nodes.map((_, i) => (i === referenceNode ? 0 : x[row.get(i)!]!));
@@ -251,21 +301,13 @@ function describeState(units: DiodeUnit[], state: readonly boolean[]): string {
   return units.map((u, i) => `${u.label} ${state[i] ? 'encendido' : 'apagado'}`).join(', ');
 }
 
-export function solveDiodeNetwork(
-  topology: CircuitTopology,
-  model: NetworkModel,
-  rb: number,
-): DiodeNetworkOutcome {
-  const { components } = topology;
-  const steps: Step[] = [];
-  const notices: Notice[] = [];
-
-  // Escalas para las tolerancias.
+/** Escalas del circuito para las tolerancias de las verificaciones. */
+function toleranceScales(components: MappedComponent[]) {
   const resistors = components
     .filter((c) => c.component.kind === 'resistor')
     .map((c) => c.component.value);
-  const gMin = resistors.length ? 1 / Math.max(...resistors) : 1e-3;
-  const offConductance = gMin * 1e-9;
+  const rMax = resistors.length ? Math.max(...resistors) : 0;
+  const gMin = resistors.length ? 1 / rMax : 1e-3;
   const vScale = Math.max(
     1,
     ...components
@@ -273,12 +315,18 @@ export function solveDiodeNetwork(
       .map((c) => Math.abs(c.component.value)),
     ...components
       .filter((c) => c.component.kind === 'current-source')
-      .map((c) => Math.abs(c.component.value) * (resistors.length ? Math.max(...resistors) : 1)),
+      .map((c) => Math.abs(c.component.value) * (resistors.length ? rMax : 1)),
   );
-  const tolV = 1e-7 * vScale;
-  const tolI = 1e-6 * vScale * gMin;
+  return {
+    offConductance: gMin * 1e-9,
+    vScale,
+    tolV: 1e-7 * vScale,
+    tolI: 1e-6 * vScale * gMin,
+  };
+}
 
-  // Unidades: diodos iguales en paralelo van juntos.
+/** Unidades: los diodos iguales en paralelo van juntos; los que tienen ambos terminales en el mismo nodo, aparte. */
+function groupDiodes(components: MappedComponent[], model: NetworkModel) {
   const units: DiodeUnit[] = [];
   const shorted: CircuitComponent[] = [];
   for (const { component, nodeA, nodeB } of components) {
@@ -302,10 +350,11 @@ export function solveDiodeNetwork(
       });
     }
   }
-  if (units.length > MAX_UNITS) {
-    const message = `El circuito tiene ${units.length} diodos (o grupos en paralelo); el análisis admite hasta ${MAX_UNITS}.`;
-    return { ok: false, code: 'demasiados-diodos', message, steps, tables: [] };
-  }
+  return { units, shorted };
+}
+
+function groupingNotices(units: DiodeUnit[], shorted: CircuitComponent[]): Notice[] {
+  const notices: Notice[] = [];
   if (shorted.length) {
     notices.push({
       level: 'info',
@@ -319,51 +368,87 @@ export function solveDiodeNetwork(
       message: `${grouped.map((u) => u.label).join('; ')}: diodos iguales en paralelo. Se analizan como uno y se reparten la corriente por partes iguales (Boylestad, ejemplo 2.10).`,
     });
   }
+  return notices;
+}
 
-  const modelText =
-    model === 'ideal'
-      ? 'Modelo ideal: encendido = cortocircuito (V_D = 0); apagado = circuito abierto.'
-      : model === 'segunda'
-        ? 'Segunda aproximación: encendido = fuente de V_K (el valor de cada diodo); apagado = circuito abierto.'
-        : `Tercera aproximación: encendido = fuente de V_K en serie con r_B = ${engText(rb, 'Ω')}; apagado = circuito abierto.`;
-  steps.push({
-    title: 'Método de los estados supuestos',
-    explanation: `${modelText} Se supone el estado de cada diodo, se resuelve el circuito lineal y se verifica: un diodo encendido debe conducir en el sentido de su flecha (I_D ≥ 0) y uno apagado no debe alcanzar su umbral (V_AK ≤ V_K). Se empieza con todos apagados.`,
-    formula:
-      model === 'ideal'
-        ? String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le 0`
-        : String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le V_K`,
+function modelText(model: NetworkModel, rb: number): string {
+  if (model === 'ideal')
+    return 'Modelo ideal: encendido = cortocircuito (V_D = 0); apagado = circuito abierto.';
+  if (model === 'segunda')
+    return 'Segunda aproximación: encendido = fuente de V_K (el valor de cada diodo); apagado = circuito abierto.';
+  return `Tercera aproximación: encendido = fuente de V_K en serie con r_B = ${engText(rb, 'Ω')}; apagado = circuito abierto.`;
+}
+
+interface Tolerances {
+  vScale: number;
+  tolV: number;
+  tolI: number;
+}
+
+/** Verificaciones de una solución: I_D ≥ 0 en los encendidos y V_AK ≤ V_K en los apagados. */
+function checkState(
+  units: DiodeUnit[],
+  state: readonly boolean[],
+  solution: LinearSolution,
+  { vScale, tolV, tolI }: Tolerances,
+): Check[] {
+  return units.map((unit, u) => {
+    if (state[u]) {
+      const i = solution.current[u]!;
+      return { unit: u, on: true, value: i, ok: i >= -tolI, severity: -i / Math.max(tolI, 1e-300) };
+    }
+    const vak = solution.v[unit.anode]! - solution.v[unit.cathode]!;
+    return {
+      unit: u,
+      on: false,
+      value: vak,
+      ok: vak <= unit.vk + tolV,
+      severity: (vak - unit.vk) / vScale,
+    };
   });
+}
 
-  const solveFor = (state: readonly boolean[], zeroVk?: ReadonlySet<number>) =>
-    solveState(topology, units, state, model, rb, { offConductance, zeroVk });
-
-  const evaluate = (state: boolean[]): Evaluation => {
-    const solution = solveFor(state);
-    if (!solution) return { state, solution, checks: [], consistent: false };
-    const checks: Check[] = units.map((unit, u) => {
-      if (state[u]) {
-        const i = solution.current[u]!;
-        return {
-          unit: u,
-          on: true,
-          value: i,
-          ok: i >= -tolI,
-          severity: -i / Math.max(tolI, 1e-300),
-        };
-      }
-      const vak = solution.v[unit.anode]! - solution.v[unit.cathode]!;
-      return {
-        unit: u,
-        on: false,
-        value: vak,
-        ok: vak <= unit.vk + tolV,
-        severity: (vak - unit.vk) / vScale,
-      };
+/**
+ * Siguiente suposición: se cambia el primer diodo que falla y no lleva a un estado ya visto.
+ * Primero los encendidos con corriente al revés, luego los apagados que superan su umbral; en cada
+ * grupo, del que más se aleja de su suposición al que menos.
+ */
+function nextAssumption(origin: Evaluation, base: number, visited: Set<string>) {
+  const failing = origin.checks
+    .filter((c) => !c.ok)
+    .sort((x, y) => {
+      if (x.on === y.on) return y.severity - x.severity;
+      return x.on ? -1 : 1;
     });
-    return { state, solution, checks, consistent: checks.every((c) => c.ok) };
-  };
+  for (const c of failing) {
+    const candidate = origin.state.map((s, i) => (i === c.unit ? !s : s));
+    if (!visited.has(stateKey(candidate))) return { state: candidate, from: base, flip: c.unit };
+  }
+  return null;
+}
 
+/** Respaldo: se prueban todas las combinaciones, de la más parecida a la última a la menos. */
+function exhaustiveSearch(
+  count: number,
+  last: boolean[],
+  visited: Set<string>,
+  evaluate: (state: boolean[]) => Evaluation,
+): Evaluation | null {
+  const all: boolean[][] = [];
+  for (let mask = 0; mask < 1 << count; mask++)
+    all.push(Array.from({ length: count }, (_, i) => Boolean(mask & (1 << i))));
+  const distance = (s: boolean[]) => s.reduce((d, x, i) => d + (x === last[i] ? 0 : 1), 0);
+  all.sort((x, y) => distance(x) - distance(y));
+  for (const candidate of all) {
+    if (visited.has(stateKey(candidate))) continue;
+    const ev = evaluate(candidate);
+    if (ev.consistent) return ev;
+  }
+  return null;
+}
+
+/** Recorre las suposiciones hasta encontrar un estado consistente (o agotar las opciones). */
+function searchStates(units: DiodeUnit[], evaluate: (state: boolean[]) => Evaluation) {
   const trail: Evaluation[] = [];
   const visited = new Set<string>();
   let found: Evaluation | null = null;
@@ -381,100 +466,221 @@ export function solveDiodeNetwork(
     }
     if (ev.solution) base = trail.length - 1;
     if (base === null) break;
-    // Candidatos: primero los encendidos con corriente al revés, luego los apagados que superan
-    // su umbral; en cada grupo, del que más se aleja de su suposición al que menos.
-    const origin = trail[base]!;
-    const failing = origin.checks
-      .filter((c) => !c.ok)
-      .sort((x, y) => (x.on === y.on ? y.severity - x.severity : x.on ? -1 : 1));
-    pending = null;
-    for (const c of failing) {
-      const candidate = origin.state.map((s, i) => (i === c.unit ? !s : s));
-      if (!visited.has(stateKey(candidate))) {
-        pending = { state: candidate, from: base, flip: c.unit };
-        break;
-      }
-    }
+    pending = nextAssumption(trail[base]!, base, visited);
   }
-
   if (!found) {
-    // Respaldo: se prueban todas las combinaciones, de la más parecida a la última a la menos.
-    const last = base !== null ? trail[base]!.state : units.map(() => false);
-    const all: boolean[][] = [];
-    for (let mask = 0; mask < 1 << units.length; mask++)
-      all.push(units.map((_, i) => Boolean(mask & (1 << i))));
-    const distance = (s: boolean[]) => s.reduce((d, x, i) => d + (x !== last[i] ? 1 : 0), 0);
-    all.sort((x, y) => distance(x) - distance(y));
-    for (const candidate of all) {
-      if (visited.has(stateKey(candidate))) continue;
-      const ev = evaluate(candidate);
-      if (ev.consistent) {
-        trail.push({ ...ev, exhaustive: true });
-        found = ev;
-        break;
-      }
+    const last = base === null ? units.map(() => false) : trail[base]!.state;
+    const ev = exhaustiveSearch(units.length, last, visited, evaluate);
+    if (ev) {
+      trail.push({ ...ev, exhaustive: true });
+      found = ev;
     }
   }
+  return { trail, found };
+}
 
-  // Traza de las suposiciones.
-  const assumptionRows: Record<string, string>[] = [];
-  trail.forEach((ev, k) => {
-    const text = describeState(units, ev.state);
-    if (!ev.solution) {
-      steps.push({
+/** Una verificación en LaTeX, con ✓ o ×. */
+function checkLineTex(c: Check, units: DiodeUnit[], { tolV, tolI }: Tolerances): string {
+  const label = texLabel(units[c.unit]!.label);
+  if (c.on) {
+    const i = Math.abs(c.value) < tolI ? 0 : c.value;
+    const verdict = c.ok ? String.raw`\ge 0\ \checkmark` : String.raw`< 0\ \times`;
+    return String.raw`${label}:\ I_D = ${engTex(i, 'A')}\ ${verdict}`;
+  }
+  const vk = units[c.unit]!.vk;
+  // Los residuos de la conductancia de los diodos apagados (10⁻⁸ V) se muestran como 0.
+  const vak = Math.abs(c.value) < tolV ? 0 : c.value;
+  return String.raw`${label}:\ V_{AK} = ${n(vak, 5)}\ \text{V}\ ${c.ok ? TEX.le : '>'}\ ${n(vk, 4)}\ ${c.ok ? TEX.checkmark : TEX.times}`;
+}
+
+/** Por qué falla una suposición, según la verificación elegida. */
+function failureText(first: Check | undefined, units: DiodeUnit[]): string {
+  if (!first) return '';
+  const unit = units[first.unit]!;
+  if (first.on) return `${unit.label} encendido llevaría corriente contra su flecha`;
+  return `${unit.label} apagado tendría V_AK = ${volts(first.value)}, más que su umbral de ${volts(unit.vk)}`;
+}
+
+/** Paso y fila de la tabla de una suposición. */
+function assumptionTrace(
+  ev: Evaluation,
+  k: number,
+  trail: Evaluation[],
+  units: DiodeUnit[],
+  tolerances: Tolerances,
+): { step: Step; row: Record<string, string> } {
+  const text = describeState(units, ev.state);
+  if (!ev.solution) {
+    return {
+      step: {
         title: `Suposición ${k + 1}`,
         explanation: `Se supone ${text}. Con esa suposición quedan fuentes de voltaje (diodos encendidos) en paralelo con valores distintos o en un lazo sin resistencia: es imposible y se descarta.`,
-      });
-      assumptionRows.push({
+      },
+      row: {
         k: String(k + 1),
         estados: text,
         verificacion: 'Lazo de fuentes',
         resultado: 'Se descarta',
-      });
-      return;
-    }
-    // El diodo que se cambia es el que eligió el algoritmo (la suposición siguiente que sale de esta).
-    const child = trail.find((x) => x.from === k);
-    const chosen =
-      child?.flip !== undefined ? ev.checks.find((c) => c.unit === child.flip) : undefined;
-    const first = chosen ?? ev.checks.find((c) => !c.ok);
-    const checkLines = ev.checks.map((c) => {
-      const label = texLabel(units[c.unit]!.label);
-      if (c.on) {
-        const i = Math.abs(c.value) < tolI ? 0 : c.value;
-        return String.raw`${label}:\ I_D = ${engTex(i, 'A')}\ ${c.ok ? String.raw`\ge 0\ \checkmark` : String.raw`< 0\ \times`}`;
-      }
-      const vk = units[c.unit]!.vk;
-      // Los residuos de la conductancia de los diodos apagados (10⁻⁸ V) se muestran como 0.
-      const vak = Math.abs(c.value) < tolV ? 0 : c.value;
-      return String.raw`${label}:\ V_{AK} = ${n(vak, 5)}\ \text{V}\ ${c.ok ? TEX.le : '>'}\ ${n(vk, 4)}\ ${c.ok ? TEX.checkmark : TEX.times}`;
-    });
-    const failText = first
-      ? first.on
-        ? `${units[first.unit]!.label} encendido llevaría corriente contra su flecha`
-        : `${units[first.unit]!.label} apagado tendría V_AK = ${volts(first.value)}, más que su umbral de ${volts(units[first.unit]!.vk)}`
-      : '';
-    const intro = ev.exhaustive
-      ? `Las suposiciones anteriores no llevaron a un estado consistente; probando las combinaciones restantes, se supone ${text}.`
-      : `Se supone ${text}.`;
-    steps.push({
+      },
+    };
+  }
+  // El diodo que se cambia es el que eligió el algoritmo (la suposición siguiente que sale de esta).
+  const child = trail.find((x) => x.from === k);
+  const chosen =
+    child?.flip === undefined ? undefined : ev.checks.find((c) => c.unit === child.flip);
+  const first = chosen ?? ev.checks.find((c) => !c.ok);
+  const checkLines = ev.checks.map((c) => checkLineTex(c, units, tolerances));
+  const failText = failureText(first, units);
+  const intro = ev.exhaustive
+    ? `Las suposiciones anteriores no llevaron a un estado consistente; probando las combinaciones restantes, se supone ${text}.`
+    : `Se supone ${text}.`;
+  const changed = first ? units[first.unit]!.label : undefined;
+  let result: string | undefined;
+  if (ev.consistent) result = String.raw`\text{Suposición correcta}`;
+  else if (changed) result = String.raw`\Rightarrow\ \text{se cambia } ${texLabel(changed)}`;
+  let outcome = '—';
+  if (ev.consistent) outcome = 'Correcta';
+  else if (changed) outcome = `Se cambia ${changed}`;
+  return {
+    step: {
       title: `Suposición ${k + 1}`,
       explanation: ev.consistent
         ? `${intro} Todas las verificaciones se cumplen: es el estado real de los diodos.`
         : `${intro} Falla: ${failText}. Se cambia el estado de ese diodo y se repite.`,
       formula: checkLines.length ? latexLines(checkLines) : undefined,
-      result: ev.consistent
-        ? String.raw`\text{Suposición correcta}`
-        : first
-          ? String.raw`\Rightarrow\ \text{se cambia } ${texLabel(units[first.unit]!.label)}`
-          : undefined,
-    });
-    assumptionRows.push({
+      result,
+    },
+    row: {
       k: String(k + 1),
       estados: text,
       verificacion: ev.consistent ? 'Todas se cumplen' : failText,
-      resultado: ev.consistent ? 'Correcta' : first ? `Se cambia ${units[first.unit]!.label}` : '—',
+      resultado: outcome,
+    },
+  };
+}
+
+/** Qué es cada diodo en el circuito equivalente. */
+function equivalentRole(unit: DiodeUnit, on: boolean, noCurrent: boolean, withRb: boolean): string {
+  if (noCurrent) return `${unit.label} es un cortocircuito sin corriente`;
+  if (!on) return `${unit.label} es un circuito abierto`;
+  return `${unit.label} es una fuente de ${volts(unit.vk)}${withRb ? ' en serie con r_B' : ''}`;
+}
+
+/** Voltaje de un diodo en la tabla (indeterminado si su nodo quedó aislado). */
+function diodeVoltageText(vd: number, tolV: number): string {
+  if (!Number.isFinite(vd)) return 'indeterminado';
+  return volts(Math.abs(vd) < tolV ? 0 : vd);
+}
+
+function diodeResultTex(d: NetworkDiodeResult): string {
+  const state = d.on ? String.raw`\text{encendido}` : String.raw`\text{apagado}`;
+  const vd = Number.isFinite(d.vd)
+    ? String.raw`${n(d.vd, 5)}\ \text{V}`
+    : String.raw`\text{indeterminado}`;
+  return String.raw`${texLabel(d.label)}:\ ${state},\ V_D = ${vd},\ I_D = ${engTex(d.current, 'A')}`;
+}
+
+/**
+ * Encendidos sin corriente: se toman como apagados con V_D = 0 (Boylestad, ejemplo 2.8). Devuelve
+ * los diodos así tratados (vacío si el reintento no lo confirma) y la solución numérica.
+ */
+function zeroCurrentDiodes(
+  state: boolean[],
+  solution: LinearSolution,
+  tolI: number,
+  solveFor: (state: readonly boolean[], zeroVk?: ReadonlySet<number>) => LinearSolution | null,
+): { zero: Set<number>; numeric: LinearSolution } {
+  const zero = new Set<number>();
+  state.forEach((on, u) => {
+    if (on && Math.abs(solution.current[u]!) <= tolI) zero.add(u);
+  });
+  if (zero.size === 0) return { zero, numeric: solution };
+  const retry = solveFor(state, zero);
+  if (retry && [...zero].every((u) => Math.abs(retry.current[u]!) <= tolI)) {
+    return { zero, numeric: retry };
+  }
+  return { zero: new Set<number>(), numeric: solution };
+}
+
+/** Resultado por diodo (cada miembro de un grupo lleva su parte de la corriente). */
+function diodeResults(
+  units: DiodeUnit[],
+  shorted: CircuitComponent[],
+  on: (u: number) => boolean,
+  groupCurrent: (u: number) => number,
+  nodeVoltages: number[],
+): NetworkDiodeResult[] {
+  const diodes: NetworkDiodeResult[] = [];
+  units.forEach((unit, u) => {
+    const current = on(u) ? groupCurrent(u) : 0;
+    const vd = nodeVoltages[unit.anode]! - nodeVoltages[unit.cathode]!;
+    for (const member of unit.members) {
+      const share = current / unit.members.length;
+      diodes.push({
+        id: member.id,
+        label: componentLabel(member),
+        on: on(u),
+        vd,
+        current: share,
+        power: Number.isFinite(vd) ? vd * share : 0,
+      });
+    }
+  });
+  for (const member of shorted) {
+    diodes.push({
+      id: member.id,
+      label: componentLabel(member),
+      on: false,
+      vd: 0,
+      current: 0,
+      power: 0,
     });
+  }
+  return diodes;
+}
+
+export function solveDiodeNetwork(
+  topology: CircuitTopology,
+  model: NetworkModel,
+  rb: number,
+): DiodeNetworkOutcome {
+  const { components } = topology;
+  const steps: Step[] = [];
+  const scales = toleranceScales(components);
+  const { offConductance, tolV, tolI } = scales;
+
+  const { units, shorted } = groupDiodes(components, model);
+  if (units.length > MAX_UNITS) {
+    const message = `El circuito tiene ${units.length} diodos (o grupos en paralelo); el análisis admite hasta ${MAX_UNITS}.`;
+    return { ok: false, code: 'demasiados-diodos', message, steps, tables: [] };
+  }
+  const notices = groupingNotices(units, shorted);
+
+  steps.push({
+    title: 'Método de los estados supuestos',
+    explanation: `${modelText(model, rb)} Se supone el estado de cada diodo, se resuelve el circuito lineal y se verifica: un diodo encendido debe conducir en el sentido de su flecha (I_D ≥ 0) y uno apagado no debe alcanzar su umbral (V_AK ≤ V_K). Se empieza con todos apagados.`,
+    formula:
+      model === 'ideal'
+        ? String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le 0`
+        : String.raw`\text{encendido: } I_D \ge 0,\qquad \text{apagado: } V_{AK} \le V_K`,
+  });
+
+  const solveFor = (state: readonly boolean[], zeroVk?: ReadonlySet<number>) =>
+    solveState(topology, units, state, model, rb, { offConductance, zeroVk });
+  const evaluate = (state: boolean[]): Evaluation => {
+    const solution = solveFor(state);
+    if (!solution) return { state, solution, checks: [], consistent: false };
+    const checks = checkState(units, state, solution, scales);
+    return { state, solution, checks, consistent: checks.every((c) => c.ok) };
+  };
+  const { trail, found } = searchStates(units, evaluate);
+
+  // Traza de las suposiciones.
+  const assumptionRows: Record<string, string>[] = [];
+  trail.forEach((ev, k) => {
+    const { step, row } = assumptionTrace(ev, k, trail, units, scales);
+    steps.push(step);
+    assumptionRows.push(row);
   });
   const tables: ResultTable[] = [
     {
@@ -496,25 +702,13 @@ export function solveDiodeNetwork(
     return { ok: false, code: 'sin-solucion', message, steps, tables };
   }
 
-  // Encendidos sin corriente: se toman como apagados con V_D = 0 (Boylestad, ejemplo 2.8).
   const finalState = [...found.state];
-  const foundCurrents = found.solution.current;
-  const zero = new Set<number>();
-  units.forEach((_, u) => {
-    if (finalState[u] && Math.abs(foundCurrents[u]!) <= tolI) zero.add(u);
-  });
-  let numeric = found.solution;
+  const { zero, numeric } = zeroCurrentDiodes(finalState, found.solution, tolI, solveFor);
   if (zero.size) {
-    const retry = solveFor(finalState, zero);
-    if (retry && [...zero].every((u) => Math.abs(retry.current[u]!) <= tolI)) {
-      numeric = retry;
-      steps.push({
-        title: 'Diodos sin corriente',
-        explanation: `${[...zero].map((u) => units[u]!.label).join(', ')} quedan en serie con un diodo apagado: no circula corriente, así que se toman como apagados con V_D = 0 («cuando I_D = 0, V_D = 0», Boylestad, ejemplo 2.8). El diodo apagado soporta todo el voltaje.`,
-      });
-    } else {
-      zero.clear();
-    }
+    steps.push({
+      title: 'Diodos sin corriente',
+      explanation: `${[...zero].map((u) => units[u]!.label).join(', ')} quedan en serie con un diodo apagado: no circula corriente, así que se toman como apagados con V_D = 0 («cuando I_D = 0, V_D = 0», Boylestad, ejemplo 2.8). El diodo apagado soporta todo el voltaje.`,
+    });
   }
 
   // Circuito equivalente exacto para la traza MNA: apagados abiertos, encendidos como fuentes.
@@ -523,35 +717,32 @@ export function solveDiodeNetwork(
   if (!mna.ok) {
     return { ok: false, code: 'singular', message: mna.message, steps, tables };
   }
+  const withRb = model === 'tercera' && rb > 0;
+  const roles = units
+    .map((u, i) => equivalentRole(u, finalState[i]!, zero.has(i), withRb))
+    .join('; ');
+  const prunedNote = exact.pruned.length
+    ? ' Los nodos que solo unen diodos apagados quedan aislados y no entran en el sistema.'
+    : '';
   steps.push({
     title: 'Circuito equivalente',
-    explanation: `Con los estados ya verificados, ${units
-      .map((u, i) =>
-        finalState[i] && !zero.has(i)
-          ? `${u.label} es una fuente de ${volts(u.vk)}${model === 'tercera' && rb > 0 ? ' en serie con r_B' : ''}`
-          : zero.has(i)
-            ? `${u.label} es un cortocircuito sin corriente`
-            : `${u.label} es un circuito abierto`,
-      )
-      .join(
-        '; ',
-      )}. Se resuelve por análisis de nodos.${exact.pruned.length ? ' Los nodos que solo unen diodos apagados quedan aislados y no entran en el sistema.' : ''}`,
+    explanation: `Con los estados ya verificados, ${roles}. Se resuelve por análisis de nodos.${prunedNote}`,
   });
   const diodeIds = new Set(exact.diodeSources);
   for (const s of mna.steps) {
     const unit = units.findIndex((u) => s.title === `Fuente de voltaje ${u.label}`);
-    steps.push(
-      unit >= 0
-        ? {
-            ...s,
-            title: zero.has(unit)
-              ? `Diodo ${units[unit]!.label} sin corriente`
-              : `Diodo ${units[unit]!.label} encendido`,
-            // El MNA escribe «= E» para cualquier fuente; en un diodo es su V_K (o 0 sin corriente).
-            formula: s.formula?.replace(/= E$/, zero.has(unit) ? '= 0' : '= V_K'),
-          }
-        : s,
-    );
+    if (unit < 0) {
+      steps.push(s);
+      continue;
+    }
+    steps.push({
+      ...s,
+      title: zero.has(unit)
+        ? `Diodo ${units[unit]!.label} sin corriente`
+        : `Diodo ${units[unit]!.label} encendido`,
+      // El MNA escribe «= E» para cualquier fuente; en un diodo es su V_K (o 0 sin corriente).
+      formula: s.formula?.replace(/= E$/, zero.has(unit) ? '= 0' : '= V_K'),
+    });
   }
 
   // Voltajes de nodo: los del sistema exacto; los aislados quedan indeterminados.
@@ -567,49 +758,19 @@ export function solveDiodeNetwork(
     });
   }
 
-  const diodes: NetworkDiodeResult[] = [];
-  units.forEach((unit, u) => {
-    const on = finalState[u]! && !zero.has(u);
-    const sourceBranch = mna.result.branchResults.find((b) => b.id === `diodo-${u}`);
-    const groupCurrent = on ? (sourceBranch?.i ?? numeric.current[u]!) : 0;
-    const vd = nodeVoltages[unit.anode]! - nodeVoltages[unit.cathode]!;
-    for (const member of unit.members) {
-      const share = groupCurrent / unit.members.length;
-      diodes.push({
-        id: member.id,
-        label: componentLabel(member),
-        on,
-        vd,
-        current: share,
-        power: Number.isFinite(vd) ? vd * share : 0,
-      });
-    }
-  });
-  for (const member of shorted) {
-    diodes.push({
-      id: member.id,
-      label: componentLabel(member),
-      on: false,
-      vd: 0,
-      current: 0,
-      power: 0,
-    });
-  }
+  const diodes = diodeResults(
+    units,
+    shorted,
+    (u) => finalState[u]! && !zero.has(u),
+    (u) => mna.result.branchResults.find((b) => b.id === `diodo-${u}`)?.i ?? numeric.current[u]!,
+    nodeVoltages,
+  );
 
   const branches = mna.result.branchResults.filter((b) => !diodeIds.has(b.id));
   steps.push({
     title: 'Resultados de los diodos',
     explanation: 'V_D se mide del ánodo al cátodo e I_D en el sentido de la flecha.',
-    result: latexLines(
-      diodes.map(
-        (d) =>
-          String.raw`${texLabel(d.label)}:\ ${d.on ? String.raw`\text{encendido}` : String.raw`\text{apagado}`},\ V_D = ${
-            Number.isFinite(d.vd)
-              ? String.raw`${n(d.vd, 5)}\ \text{V}`
-              : String.raw`\text{indeterminado}`
-          },\ I_D = ${engTex(d.current, 'A')}`,
-      ),
-    ),
+    result: latexLines(diodes.map(diodeResultTex)),
   });
 
   // La tabla de ramas del MNA trae los diodos como fuentes; van aparte, en la tabla de diodos.
@@ -634,7 +795,7 @@ export function solveDiodeNetwork(
       rows: diodes.map((d) => ({
         diodo: d.label,
         estado: d.on ? 'encendido' : 'apagado',
-        vd: Number.isFinite(d.vd) ? volts(Math.abs(d.vd) < tolV ? 0 : d.vd) : 'indeterminado',
+        vd: diodeVoltageText(d.vd, tolV),
         id: engText(d.current, 'A'),
         pd: engText(d.power, 'W'),
       })),
@@ -671,7 +832,6 @@ function buildEquivalent(
     if (mc.component.kind !== 'diode') derived.push(mc);
   }
   let nodeCount = topology.nodes.length;
-  const extraNodes: number[] = [];
   const diodeSources: string[] = [];
   units.forEach((unit, u) => {
     if (!state[u]) return;
@@ -687,7 +847,6 @@ function buildEquivalent(
     };
     if (model === 'tercera' && rb > 0 && !zero.has(u)) {
       const k = nodeCount++;
-      extraNodes.push(k);
       derived.push({ component: source, nodeA: unit.anode, nodeB: k });
       const rbId = `rb-${u}`;
       diodeSources.push(rbId);
