@@ -103,6 +103,12 @@ type Result = CalculatorResult<AbcValue, never>;
 
 const n = toLatexNumber;
 
+/** A si entra en el grupo A, B si entra en el B y C si no. */
+function groupOf(inA: boolean, inB: boolean): AbcItem['group'] {
+  if (inA) return 'A';
+  return inB ? 'B' : 'C';
+}
+
 export function solveAbc(input: AbcInput): Result {
   const { criterion, cutA, cutB } = input;
   const valued = input.items.map((item, index) => ({
@@ -122,9 +128,9 @@ export function solveAbc(input: AbcInput): Result {
     cumulative += pct;
     let group: AbcItem['group'];
     if (criterion === 'articulos') {
-      group = k < countA ? 'A' : k < countA + countB ? 'B' : 'C';
+      group = groupOf(k < countA, k < countA + countB);
     } else {
-      group = k === 0 || cumulative <= cutA + 1e-9 ? 'A' : cumulative <= cutB + 1e-9 ? 'B' : 'C';
+      group = groupOf(k === 0 || cumulative <= cutA + 1e-9, cumulative <= cutB + 1e-9);
     }
     return {
       rank: k + 1,

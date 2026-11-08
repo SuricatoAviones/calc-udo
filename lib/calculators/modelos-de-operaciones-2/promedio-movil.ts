@@ -70,6 +70,11 @@ export type MovingAverageInput = z.infer<typeof movingAverageInputSchema>;
 
 const n = toLatexNumber;
 
+/** `w_1(Y_{t−1}) + w_2(Y_{t−2}) + …` con los números. */
+function weightedTerms(window: number[], weights: number[]): string {
+  return window.map((y, k) => `${n(weights[k]!)}(${n(y)})`).join(' + ');
+}
+
 export function solveMovingAverage(input: MovingAverageInput): ForecastResult {
   const { values: data } = parseDataList(input.data);
   const size = input.periods;
@@ -100,7 +105,7 @@ export function solveMovingAverage(input: MovingAverageInput): ForecastResult {
     children.push({
       title: t <= data.length ? `Periodo ${t}` : `Periodo ${t} (futuro)`,
       substitution: weighted
-        ? String.raw`F_{${t}} = \frac{${window.map((y, k) => `${n(weights[k]!)}(${n(y)})`).join(' + ')}}{${n(weightSum)}}`
+        ? String.raw`F_{${t}} = \frac{${weightedTerms(window, weights)}}{${n(weightSum)}}`
         : String.raw`F_{${t}} = \frac{${window.map((y) => n(y)).join(' + ')}}{${size}}`,
       result: `F_{${t}} = ${n(forecast, 6)}`,
     });

@@ -174,8 +174,10 @@ function linearTrend(data: number[]): MethodResult & { b0: number; b1: number } 
   };
 }
 
-const measure = (acc: ForecastAccuracy, criterion: SelectionCriterion) =>
-  criterion === 'mse' ? acc.mse : criterion === 'mad' ? acc.mad : acc.mape;
+const measure = (acc: ForecastAccuracy, criterion: SelectionCriterion) => {
+  if (criterion === 'mse') return acc.mse;
+  return criterion === 'mad' ? acc.mad : acc.mape;
+};
 
 export function solveForecastSelection(input: ForecastSelectionInput): Result {
   const { values: data } = parseDataList(input.data);
@@ -191,7 +193,7 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
 
   const methods: MethodResult[] = [naive(data), averageOfAll(data)];
   for (const k of [...new Set(orders)].sort((a, b) => a - b)) methods.push(movingAverage(data, k));
-  for (const alpha of [...new Set(alphas)]) methods.push(exponential(data, alpha));
+  for (const alpha of new Set(alphas)) methods.push(exponential(data, alpha));
   let trend: ReturnType<typeof linearTrend> | null = null;
   if (input.trend === 'si') {
     trend = linearTrend(data);
@@ -208,11 +210,15 @@ export function solveForecastSelection(input: ForecastSelectionInput): Result {
   const methodStep = (m: MethodResult, formula: string): Step => {
     const sumAbs = m.points.reduce((s, p) => s + Math.abs(p.actual! - p.forecast), 0);
     const sumSq = m.points.reduce((s, p) => s + (p.actual! - p.forecast) ** 2, 0);
+    const mape =
+      m.accuracy.mape === null
+        ? String.raw`\text{no definido}`
+        : String.raw`${n(m.accuracy.mape, 4)}\,\%`;
     return {
       title: m.method,
       formula,
       substitution: String.raw`\mathrm{MAD} = \frac{${n(sumAbs, 6)}}{${m.accuracy.count}},\quad \mathrm{MSE} = \frac{${n(sumSq, 6)}}{${m.accuracy.count}}`,
-      result: String.raw`\mathrm{MAD} = ${n(m.accuracy.mad, 6)},\ \mathrm{MSE} = ${n(m.accuracy.mse, 6)},\ \mathrm{MAPE} = ${m.accuracy.mape === null ? String.raw`\text{no definido}` : String.raw`${n(m.accuracy.mape, 4)}\,\%`}`,
+      result: String.raw`\mathrm{MAD} = ${n(m.accuracy.mad, 6)},\ \mathrm{MSE} = ${n(m.accuracy.mse, 6)},\ \mathrm{MAPE} = ${mape}`,
     };
   };
   const formulas = new Map<string, string>([

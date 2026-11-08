@@ -91,6 +91,69 @@ export type SinglePeriodErrorCode = 'invalid-costs' | 'missing-data';
 
 const n = toLatexNumber;
 
+/** y* según la distribución de la demanda, su densidad para la gráfica y el paso; `null` si faltan datos. */
+function optimalStock(
+  input: SinglePeriodInput,
+  ratio: number,
+): {
+  optimal: number;
+  density: (x: number) => number;
+  from: number;
+  to: number;
+  step: Step;
+} | null {
+  const { mean, sd, min, max } = input;
+  if (input.distribution === 'normal') {
+    if (mean === undefined || sd === undefined) return null;
+    const z = standardNormalQuantile(ratio);
+    const optimal = mean + z * sd;
+    return {
+      optimal,
+      density: (x) => normalDensity(x, mean, sd),
+      from: mean - 4 * sd,
+      to: mean + 4 * sd,
+      step: {
+        title: 'Cantidad óptima (demanda normal)',
+        explanation: 'Se busca en la tabla de la normal el valor z con área RC a su izquierda.',
+        formula: String.raw`y^* = \mu + z\,\sigma, \qquad \Phi(z) = F(y^*)`,
+        substitution: String.raw`\Phi(z) = ${n(ratio, 6)} \ \Rightarrow\ z = ${n(z, 4)}, \qquad y^* = ${n(mean)} + ${toLatexOperand(z, 6)}(${n(sd)})`,
+        result: `y^* = ${n(optimal, 6)}`,
+      },
+    };
+  }
+  if (input.distribution === 'uniforme') {
+    if (min === undefined || max === undefined) return null;
+    const optimal = min + ratio * (max - min);
+    const margin = 0.15 * (max - min);
+    return {
+      optimal,
+      density: (x) => (x >= min && x <= max ? 1 / (max - min) : 0),
+      from: min - margin,
+      to: max + margin,
+      step: {
+        title: 'Cantidad óptima (demanda uniforme)',
+        formula: String.raw`F(y) = \frac{y - a}{b - a} \ \Rightarrow\ y^* = a + F(y^*)\,(b - a)`,
+        substitution: `y^* = ${n(min)} + ${n(ratio, 6)}(${n(max)} - ${toLatexOperand(min)})`,
+        result: `y^* = ${n(optimal, 6)}`,
+      },
+    };
+  }
+  if (mean === undefined) return null;
+  const optimal = -mean * Math.log(1 - ratio);
+  return {
+    optimal,
+    density: (x) => (x < 0 ? 0 : Math.exp(-x / mean) / mean),
+    from: 0,
+    to: Math.max(5 * mean, optimal * 1.3),
+    step: {
+      title: 'Cantidad óptima (demanda exponencial)',
+      formula: String.raw`F(y) = 1 - e^{-y/\lambda} \ \Rightarrow\ y^* = -\lambda \ln\left(1 - F(y^*)\right)`,
+      substitution: String.raw`y^* = -${n(mean)} \ln(1 - ${n(ratio, 6)}) = -${n(mean)} \ln(${n(1 - ratio, 6)})`,
+      result: `y^* = ${n(optimal, 6)}`,
+    },
+  };
+}
+
 export function solveSinglePeriod(
   input: SinglePeriodInput,
 ): CalculatorResult<SinglePeriodValue, SinglePeriodErrorCode> {
@@ -132,48 +195,10 @@ export function solveSinglePeriod(
     result: `F(y^*) = ${n(ratio, 6)}`,
   });
 
-  let optimal: number;
-  let density: (x: number) => number;
-  let from: number;
-  let to: number;
-  const { mean, sd, min, max } = input;
-  if (input.distribution === 'normal') {
-    if (mean === undefined || sd === undefined) return missing(steps);
-    const z = standardNormalQuantile(ratio);
-    optimal = mean + z * sd;
-    density = (x) => normalDensity(x, mean, sd);
-    [from, to] = [mean - 4 * sd, mean + 4 * sd];
-    steps.push({
-      title: 'Cantidad óptima (demanda normal)',
-      explanation: 'Se busca en la tabla de la normal el valor z con área RC a su izquierda.',
-      formula: String.raw`y^* = \mu + z\,\sigma, \qquad \Phi(z) = F(y^*)`,
-      substitution: String.raw`\Phi(z) = ${n(ratio, 6)} \ \Rightarrow\ z = ${n(z, 4)}, \qquad y^* = ${n(mean)} + ${toLatexOperand(z, 6)}(${n(sd)})`,
-      result: `y^* = ${n(optimal, 6)}`,
-    });
-  } else if (input.distribution === 'uniforme') {
-    if (min === undefined || max === undefined) return missing(steps);
-    optimal = min + ratio * (max - min);
-    density = (x) => (x >= min && x <= max ? 1 / (max - min) : 0);
-    const margin = 0.15 * (max - min);
-    [from, to] = [min - margin, max + margin];
-    steps.push({
-      title: 'Cantidad óptima (demanda uniforme)',
-      formula: String.raw`F(y) = \frac{y - a}{b - a} \ \Rightarrow\ y^* = a + F(y^*)\,(b - a)`,
-      substitution: `y^* = ${n(min)} + ${n(ratio, 6)}(${n(max)} - ${toLatexOperand(min)})`,
-      result: `y^* = ${n(optimal, 6)}`,
-    });
-  } else {
-    if (mean === undefined) return missing(steps);
-    optimal = -mean * Math.log(1 - ratio);
-    density = (x) => (x < 0 ? 0 : Math.exp(-x / mean) / mean);
-    [from, to] = [0, Math.max(5 * mean, optimal * 1.3)];
-    steps.push({
-      title: 'Cantidad óptima (demanda exponencial)',
-      formula: String.raw`F(y) = 1 - e^{-y/\lambda} \ \Rightarrow\ y^* = -\lambda \ln\left(1 - F(y^*)\right)`,
-      substitution: String.raw`y^* = -${n(mean)} \ln(1 - ${n(ratio, 6)}) = -${n(mean)} \ln(${n(1 - ratio, 6)})`,
-      result: `y^* = ${n(optimal, 6)}`,
-    });
-  }
+  const demand = optimalStock(input, ratio);
+  if (!demand) return missing(steps);
+  const { optimal, density, from, to } = demand;
+  steps.push(demand.step);
 
   const stock = input.initialStock ?? 0;
   const order = Math.max(0, optimal - stock);

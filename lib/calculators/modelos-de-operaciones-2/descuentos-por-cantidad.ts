@@ -101,6 +101,26 @@ export interface DiscountsValue {
 
 const n = toLatexNumber;
 
+/** «100 a 499» o «500 o más». */
+function rangeText(c: DiscountCandidate): string {
+  return Number.isFinite(c.max)
+    ? `${formatNumber(c.min)} a ${formatNumber(c.max)}`
+    : `${formatNumber(c.min)} o más`;
+}
+
+/** Q del nivel: descartado si Q* supera el rango, Q* si cae en él, o el mínimo del rango. */
+function adjustedTex(c: DiscountCandidate): string {
+  const j = c.tier + 1;
+  if (c.quantity === null) return String.raw`\text{Se descarta: } Q^* \text{ supera el rango}`;
+  if (c.quantity === c.eoq) return `Q_{${j}} = Q_{${j}}^* = ${n(c.quantity, 6)}`;
+  return String.raw`Q_{${j}} = ${n(c.quantity, 6)} \ \text{(mínimo del rango)}`;
+}
+
+function candidateStatus(c: DiscountCandidate, best: DiscountCandidate): string {
+  if (c.quantity === null) return 'Descartado';
+  return c.tier === best.tier ? 'Óptimo' : 'Candidato';
+}
+
 export function solveDiscounts(input: DiscountsInput): CalculatorResult<DiscountsValue, never> {
   const { demand: D, orderCost: K, tiers, holdingType, holding, leadTime } = input;
   const percent = holdingType === 'porcentaje';
@@ -139,25 +159,25 @@ export function solveDiscounts(input: DiscountsInput): CalculatorResult<Discount
       formula: percent
         ? String.raw`h_j = I\,c_j, \qquad Q_j^* = \sqrt{\frac{2KD}{h_j}}`
         : String.raw`Q_j^* = \sqrt{\frac{2KD}{h}}`,
-      children: candidates.map((c) => ({
-        title: `Nivel ${c.tier + 1}: c = ${formatNumber(c.price)}`,
-        substitution: String.raw`${percent ? String.raw`h_{${c.tier + 1}} = ${n(holding / 100)}(${n(c.price)}) = ${n(c.holding, 6)}, \quad ` : ''}Q_{${c.tier + 1}}^* = \sqrt{\frac{2(${n(K)})(${n(D)})}{${n(c.holding, 6)}}}`,
-        result: `Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)}`,
-      })),
+      children: candidates.map((c) => {
+        const holdingTex = percent
+          ? String.raw`h_{${c.tier + 1}} = ${n(holding / 100)}(${n(c.price)}) = ${n(c.holding, 6)}, \quad `
+          : '';
+        return {
+          title: `Nivel ${c.tier + 1}: c = ${formatNumber(c.price)}`,
+          substitution: String.raw`${holdingTex}Q_{${c.tier + 1}}^* = \sqrt{\frac{2(${n(K)})(${n(D)})}{${n(c.holding, 6)}}}`,
+          result: `Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)}`,
+        };
+      }),
     },
     {
       title: 'Ajustar cada Q* al rango de su precio',
       explanation:
         'Si Q* está en el rango del nivel, es un candidato. Si queda por debajo, se sube al mínimo del rango para obtener el descuento. Si queda por encima, el nivel se descarta: en el siguiente nivel el precio es menor y el costo también.',
       children: candidates.map((c) => ({
-        title: `Nivel ${c.tier + 1} (${Number.isFinite(c.max) ? `${formatNumber(c.min)} a ${formatNumber(c.max)}` : `${formatNumber(c.min)} o más`})`,
+        title: `Nivel ${c.tier + 1} (${rangeText(c)})`,
         substitution: String.raw`Q_{${c.tier + 1}}^* = ${n(c.eoq, 6)} \quad \text{y} \quad ${range(c)}`,
-        result:
-          c.quantity === null
-            ? String.raw`\text{Se descarta: } Q^* \text{ supera el rango}`
-            : c.quantity === c.eoq
-              ? `Q_{${c.tier + 1}} = Q_{${c.tier + 1}}^* = ${n(c.quantity, 6)}`
-              : String.raw`Q_{${c.tier + 1}} = ${n(c.quantity, 6)} \ \text{(mínimo del rango)}`,
+        result: adjustedTex(c),
       })),
     },
     {
@@ -187,7 +207,7 @@ export function solveDiscounts(input: DiscountsInput): CalculatorResult<Discount
   const lastMin = tiers.at(-1)!.minQuantity;
   const from = Math.max(1e-9, 0.2 * Math.min(...candidates.map((c) => c.eoq)));
   const to = 1.5 * Math.max(best.quantity!, lastMin, ...candidates.map((c) => c.eoq));
-  const priceAt = (q: number) => candidates.filter((c) => q >= c.min).at(-1)!;
+  const priceAt = (q: number) => candidates.findLast((c) => q >= c.min)!;
   const effective = sample(from, to, (q) => {
     const c = priceAt(q);
     return cost(q, c.price, c.holding);
@@ -256,8 +276,7 @@ export function solveDiscounts(input: DiscountsInput): CalculatorResult<Discount
           eoq: c.eoq,
           quantity: c.quantity,
           total: c.totalCost,
-          status:
-            c.quantity === null ? 'Descartado' : c.tier === best.tier ? 'Óptimo' : 'Candidato',
+          status: candidateStatus(c, best),
         })),
       },
     ],

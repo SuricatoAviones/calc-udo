@@ -161,15 +161,17 @@ type Result = CalculatorResult<MrpValue, MrpErrorCode>;
 
 const n = toLatexNumber;
 
-export function solveMrp(input: MrpInput): Result {
-  const T = input.periods;
-  const keyOf = (name: string) => name.trim().toUpperCase();
-  const items = input.items;
-  const byKey = new Map(items.map((i) => [keyOf(i.code), i]));
+type MrpItem = MrpInput['items'][number];
 
-  // Niveles (código de nivel más bajo): un componente va por debajo de todos sus padres.
-  const level = new Map(items.map((i) => [keyOf(i.code), 0]));
-  for (let pass = 0; pass <= items.length; pass++) {
+const keyOf = (name: string) => name.trim().toUpperCase();
+
+/**
+ * Código de nivel más bajo de cada pieza: un componente va por debajo de todos sus padres.
+ * `null` si la lista de materiales tiene un ciclo.
+ */
+function bomLevels(input: MrpInput): Map<string, number> | null {
+  const level = new Map(input.items.map((i) => [keyOf(i.code), 0]));
+  for (let pass = 0; pass <= input.items.length; pass++) {
     let changed = false;
     for (const b of input.bom) {
       const next = level.get(keyOf(b.parent))! + 1;
@@ -178,18 +180,141 @@ export function solveMrp(input: MrpInput): Result {
         changed = true;
       }
     }
-    if (!changed) break;
-    if (pass === items.length) {
-      return {
-        ok: false,
-        error: {
-          code: 'cycle',
-          message:
-            'La lista de materiales tiene un ciclo: una pieza termina conteniéndose a sí misma.',
-        },
-        ...emptyTrace(),
-      };
+    if (!changed) return level;
+    if (pass === input.items.length) return null;
+  }
+  return level;
+}
+
+/** Cálculo de necesidades netas periodo a periodo de una pieza, con el lote y el tiempo de entrega. */
+function netRequirements(
+  item: MrpItem,
+  g: number[],
+  scheduled: number[],
+  T: number,
+): Omit<MrpRecord, 'item' | 'level' | 'gross' | 'scheduled'> & { lines: string[] } {
+  const zeros = () => new Array<number>(T + 1).fill(0);
+  const safety = item.safetyStock ?? 0;
+  const lot = item.lotSize ?? 0;
+  const projected = zeros();
+  const net = zeros();
+  const plannedReceipts = zeros();
+  const plannedReleases = zeros();
+  const pastDue: MrpRecord['pastDue'] = [];
+  let balance = item.onHand - safety;
+  const lines: string[] = [];
+  for (let t = 1; t <= T; t++) {
+    const previous = balance;
+    const available = previous + scheduled[t]! - g[t]!;
+    balance = available;
+    if (available < -1e-9) {
+      net[t] = -available;
+      const quantity = lot > 0 ? Math.ceil(net[t]! / lot - 1e-9) * lot : net[t]!;
+      plannedReceipts[t] = quantity;
+      balance = available + quantity;
+      const release = t - item.leadTime;
+      if (release >= 1) plannedReleases[release]! += quantity;
+      else pastDue.push({ period: release, quantity });
+      lines.push(
+        String.raw`t = ${t}:\ ${n(previous)} + ${n(scheduled[t]!)} - ${n(g[t]!)} = ${n(available)} \Rightarrow \text{neta } ${n(net[t]!)},\ \text{entrada planeada } ${n(quantity)},\ \text{saldo } ${n(balance)},\ \text{expedición en } t = ${release}`,
+      );
     }
+    projected[t] = balance;
+  }
+  return {
+    projected: projected.slice(1),
+    net: net.slice(1),
+    plannedReceipts: plannedReceipts.slice(1),
+    plannedReleases: plannedReleases.slice(1),
+    pastDue,
+    lines,
+  };
+}
+
+/** De dónde salen las necesidades brutas, el saldo inicial y el tamaño del lote. */
+function itemExplanation(item: MrpItem, input: MrpInput, ownDemand: boolean): string {
+  const key = keyOf(item.code);
+  const parents = input.bom.filter((b) => keyOf(b.child) === key);
+  const safety = item.safetyStock ?? 0;
+  const lot = item.lotSize ?? 0;
+  const parentList = parents.map((p) => `${p.parent} × ${formatNumber(p.quantity)}`).join(', ');
+  const independentNote = ownDemand ? ' más la demanda independiente' : '';
+  const source =
+    parents.length > 0
+      ? `Necesidades brutas: expediciones de ${parentList}${independentNote}.`
+      : 'Necesidades brutas: las del programa maestro.';
+  const lotNote =
+    lot > 0
+      ? `Se pide en múltiplos de ${formatNumber(lot)}.`
+      : 'Lote por lote: se pide exactamente la necesidad neta.';
+  return `${source} Saldo inicial = ${formatNumber(item.onHand)} − ${formatNumber(safety)} (inventario de seguridad). ${lotNote} Tiempo de entrega: ${item.leadTime}.`;
+}
+
+/**
+ * Registro de una pieza: entradas programadas, necesidades netas y pedidos planeados. Sus
+ * expediciones se suman a las necesidades brutas de sus componentes (`gross` cambia).
+ */
+function planItem(
+  item: MrpItem,
+  input: MrpInput,
+  maps: {
+    gross: Map<string, number[]>;
+    independent: Map<string, number[]>;
+    level: Map<string, number>;
+  },
+): { record: MrpRecord; step: Step; notices: Result['notices'] } {
+  const T = input.periods;
+  const key = keyOf(item.code);
+  const g = maps.gross.get(key)!;
+  const scheduled = new Array<number>(T + 1).fill(0);
+  for (const r of input.receipts) if (keyOf(r.item) === key) scheduled[r.period]! += r.quantity;
+  const { lines, ...plan } = netRequirements(item, g, scheduled, T);
+  // Las expediciones de la pieza son necesidades brutas de sus componentes.
+  for (const b of input.bom.filter((x) => keyOf(x.parent) === key)) {
+    const child = maps.gross.get(keyOf(b.child))!;
+    for (let t = 1; t <= T; t++) child[t]! += plan.plannedReleases[t - 1]! * b.quantity;
+  }
+  const ownDemand = maps.independent.get(key)!.some((v) => v > 0);
+  return {
+    record: {
+      item: item.code,
+      level: maps.level.get(key)!,
+      gross: g.slice(1),
+      scheduled: scheduled.slice(1),
+      ...plan,
+    },
+    step: {
+      title: `Pieza ${item.code} (nivel ${maps.level.get(key)})`,
+      explanation: itemExplanation(item, input, ownDemand),
+      formula: String.raw`\text{Saldo}_t = \text{saldo}_{t-1} + \text{entradas programadas}_t - \text{necesidades brutas}_t`,
+      substitution:
+        lines.length > 0
+          ? lines.join(String.raw` \\ `)
+          : String.raw`\text{No hay necesidades netas en el horizonte}`,
+    },
+    notices: plan.pastDue.map((p) => ({
+      level: 'warning' as const,
+      message: `El pedido de ${formatNumber(p.quantity)} de ${item.code} tendría que haberse expedido en el periodo ${p.period}: está atrasado.`,
+    })),
+  };
+}
+
+export function solveMrp(input: MrpInput): Result {
+  const T = input.periods;
+  const items = input.items;
+  const byKey = new Map(items.map((i) => [keyOf(i.code), i]));
+
+  const level = bomLevels(input);
+  if (!level) {
+    return {
+      ok: false,
+      error: {
+        code: 'cycle',
+        message:
+          'La lista de materiales tiene un ciclo: una pieza termina conteniéndose a sí misma.',
+      },
+      ...emptyTrace(),
+    };
   }
   const order = [...items].sort((a, b) => level.get(keyOf(a.code))! - level.get(keyOf(b.code))!);
 
@@ -215,80 +340,10 @@ export function solveMrp(input: MrpInput): Result {
   const notices: Result['notices'] = [];
 
   for (const item of order) {
-    const key = keyOf(item.code);
-    const g = gross.get(key)!;
-    const scheduled = zeros();
-    for (const r of input.receipts) if (keyOf(r.item) === key) scheduled[r.period]! += r.quantity;
-    const safety = item.safetyStock ?? 0;
-    const lot = item.lotSize ?? 0;
-    const projected = zeros();
-    const net = zeros();
-    const plannedReceipts = zeros();
-    const plannedReleases = zeros();
-    const pastDue: MrpRecord['pastDue'] = [];
-    let balance = item.onHand - safety;
-    const lines: string[] = [];
-    for (let t = 1; t <= T; t++) {
-      const previous = balance;
-      const available = previous + scheduled[t]! - g[t]!;
-      if (available < -1e-9) {
-        net[t] = -available;
-        const quantity = lot > 0 ? Math.ceil(net[t]! / lot - 1e-9) * lot : net[t]!;
-        plannedReceipts[t] = quantity;
-        balance = available + quantity;
-        const release = t - item.leadTime;
-        if (release >= 1) plannedReleases[release]! += quantity;
-        else pastDue.push({ period: release, quantity });
-        lines.push(
-          String.raw`t = ${t}:\ ${n(previous)} + ${n(scheduled[t]!)} - ${n(g[t]!)} = ${n(available)} \Rightarrow \text{neta } ${n(net[t]!)},\ \text{entrada planeada } ${n(quantity)},\ \text{saldo } ${n(balance)},\ \text{expedición en } t = ${release}`,
-        );
-      } else {
-        balance = available;
-      }
-      projected[t] = balance;
-    }
-    // Las expediciones de la pieza son necesidades brutas de sus componentes.
-    for (const b of input.bom) {
-      if (keyOf(b.parent) !== key) continue;
-      const child = gross.get(keyOf(b.child))!;
-      for (let t = 1; t <= T; t++) child[t]! += plannedReleases[t]! * b.quantity;
-    }
-    const parents = input.bom.filter((b) => keyOf(b.child) === key);
-    const ownDemand = independent.get(key)!.some((v) => v > 0);
-    steps.push({
-      title: `Pieza ${item.code} (nivel ${level.get(key)})`,
-      explanation: `${
-        parents.length > 0
-          ? `Necesidades brutas: expediciones de ${parents.map((p) => `${p.parent} × ${formatNumber(p.quantity)}`).join(', ')}${ownDemand ? ' más la demanda independiente' : ''}.`
-          : 'Necesidades brutas: las del programa maestro.'
-      } Saldo inicial = ${formatNumber(item.onHand)} − ${formatNumber(safety)} (inventario de seguridad). ${
-        lot > 0
-          ? `Se pide en múltiplos de ${formatNumber(lot)}.`
-          : 'Lote por lote: se pide exactamente la necesidad neta.'
-      } Tiempo de entrega: ${item.leadTime}.`,
-      formula: String.raw`\text{Saldo}_t = \text{saldo}_{t-1} + \text{entradas programadas}_t - \text{necesidades brutas}_t`,
-      substitution:
-        lines.length > 0
-          ? lines.join(String.raw` \\ `)
-          : String.raw`\text{No hay necesidades netas en el horizonte}`,
-    });
-    for (const p of pastDue) {
-      notices.push({
-        level: 'warning',
-        message: `El pedido de ${formatNumber(p.quantity)} de ${item.code} tendría que haberse expedido en el periodo ${p.period}: está atrasado.`,
-      });
-    }
-    records.push({
-      item: item.code,
-      level: level.get(key)!,
-      gross: g.slice(1),
-      scheduled: scheduled.slice(1),
-      projected: projected.slice(1),
-      net: net.slice(1),
-      plannedReceipts: plannedReceipts.slice(1),
-      plannedReleases: plannedReleases.slice(1),
-      pastDue,
-    });
+    const planned = planItem(item, input, { gross, independent, level });
+    steps.push(planned.step);
+    notices.push(...planned.notices);
+    records.push(planned.record);
   }
 
   const periodColumns = Array.from({ length: T }, (_, t) => ({
@@ -307,9 +362,10 @@ export function solveMrp(input: MrpInput): Result {
   });
   const tables: ResultTable[] = records.map((r) => {
     const item = byKey.get(keyOf(r.item))!;
+    const lot = item.lotSize ? `lote = ${formatNumber(item.lotSize)}` : 'lote por lote';
     return {
       id: `mrp-${r.item}`,
-      title: `${r.item}: TE = ${item.leadTime}, existencia = ${formatNumber(item.onHand)}, IS = ${formatNumber(item.safetyStock ?? 0)}, ${item.lotSize ? `lote = ${formatNumber(item.lotSize)}` : 'lote por lote'}`,
+      title: `${r.item}: TE = ${item.leadTime}, existencia = ${formatNumber(item.onHand)}, IS = ${formatNumber(item.safetyStock ?? 0)}, ${lot}`,
       columns: [
         { key: 'concept', header: String.raw`\text{Periodo}`, format: 'text' as const },
         ...periodColumns,
