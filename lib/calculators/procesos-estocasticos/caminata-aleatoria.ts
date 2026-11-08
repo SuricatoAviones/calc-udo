@@ -118,25 +118,13 @@ function binomialPmf(trials: number, k: number, p: number): number {
   );
 }
 
-export function solveRandomWalk(input: RandomWalkInput): Result {
-  const p = parseFraction(input.p);
-  const q = parseFraction(input.q);
-  const { start, steps: count, barriers } = input;
-  const r = Math.max(0, 1 - p - q);
-  const absorbing = barriers === 'absorbentes';
-  const N = input.upper ?? 0;
-  const steps: Step[] = [
-    {
-      title: 'Probabilidades de un paso',
-      explanation: absorbing
-        ? `Cada paso sube 1, baja 1 o se queda. Las posiciones 0 y ${N} son absorbentes: al llegar a ellas el proceso se detiene.`
-        : 'Cada paso sube 1, baja 1 o se queda, independientemente de los pasos anteriores.',
-      formula: String.raw`P\{+1\} = p, \qquad P\{-1\} = q, \qquad P\{0\} = r = 1 - p - q`,
-      result: String.raw`p = ${fractionToLatex(input.p)}, \qquad q = ${fractionToLatex(input.q)}, \qquad r = ${n(r)}`,
-    },
-  ];
+type Position = { position: number; probability: number };
 
-  // Distribución tras n pasos por recursión.
+/** P{Xₙ = k} por recursión desde toda la probabilidad en la posición inicial. */
+function walkDistribution(input: RandomWalkInput, p: number, q: number, r: number): Position[] {
+  const { start, steps: count } = input;
+  const absorbing = input.barriers === 'absorbentes';
+  const N = input.upper ?? 0;
   const low = absorbing ? 0 : start - count;
   const high = absorbing ? N : start + count;
   let dist = new Array<number>(high - low + 1).fill(0);
@@ -156,9 +144,125 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
     });
     dist = next;
   }
-  const distribution = dist
+  return dist
     .map((probability, idx) => ({ position: idx + low, probability }))
     .filter((d) => d.probability > 1e-15);
+}
+
+/** Sin barreras: media y varianza de la suma de pasos y, si r = 0, la fórmula binomial. */
+function freeWalkSteps(
+  distribution: Position[],
+  p: number,
+  q: number,
+  start: number,
+  count: number,
+  r: number,
+): Step[] {
+  const steps: Step[] = [
+    {
+      title: 'Media y varianza de la posición',
+      explanation:
+        'La posición es la inicial más la suma de n pasos independientes, cada uno con media p − q y varianza (p + q) − (p − q)².',
+      formula: String.raw`E[X_n] = i + n(p - q), \qquad \operatorname{Var}[X_n] = n\left[(p + q) - (p - q)^2\right]`,
+      substitution: String.raw`E[X_{${count}}] = ${start} + ${count}(${n(p)} - ${n(q)}), \qquad \operatorname{Var}[X_{${count}}] = ${count}\left[${n(p + q)} - (${n(p - q)})^2\right]`,
+      result: String.raw`E[X_{${count}}] = ${n(start + count * (p - q))}, \qquad \operatorname{Var}[X_{${count}}] = ${n(count * (p + q - (p - q) ** 2))}`,
+    },
+  ];
+  if (r !== 0 || count <= 0) return steps;
+  const example = distribution.reduce(
+    (a, b) => (b.probability > a.probability ? b : a),
+    distribution[0]!,
+  );
+  const up = (count + example.position - start) / 2;
+  steps.push({
+    title: 'Fórmula cerrada (sin quedarse en el sitio)',
+    explanation: `Llegar a k exige u = (n + k − i)/2 pasos hacia arriba y n − u hacia abajo, en cualquier orden. Por ejemplo, la posición más probable, k = ${example.position}:`,
+    formula: String.raw`P\{X_n = k\} = \binom{n}{u} p^{u} q^{\,n-u}, \qquad u = \frac{n + k - i}{2}`,
+    substitution: String.raw`P\{X_{${count}} = ${example.position}\} = \binom{${count}}{${up}} (${n(p)})^{${up}} (${n(q)})^{${count - up}}`,
+    result: String.raw`P\{X_{${count}} = ${example.position}\} = ${n(binomialPmf(count, up, p))}`,
+  });
+  return steps;
+}
+
+/** Ruina del jugador: probabilidad de llegar a N antes que a 0 y pasos esperados. */
+function absorptionOf(
+  p: number,
+  q: number,
+  start: number,
+  N: number,
+): { top: number; expectedSteps: number } {
+  const moving = p + q;
+  if (p === 0) return { top: start === N ? 1 : 0, expectedSteps: start === N ? 0 : start / q };
+  if (q === 0) {
+    return { top: start === 0 ? 0 : 1, expectedSteps: start === 0 ? 0 : (N - start) / p };
+  }
+  if (Math.abs(p - q) < 1e-12) {
+    return { top: start / N, expectedSteps: (start * (N - start)) / moving };
+  }
+  const ratio = q / p;
+  const top = (1 - ratio ** start) / (1 - ratio ** N);
+  return { top, expectedSteps: (start / (q - p) - (N / (q - p)) * top) / moving };
+}
+
+function ruinSubstitution(p: number, q: number, start: number, N: number): string | undefined {
+  if (p === 0 || q === 0) return undefined;
+  if (Math.abs(p - q) < 1e-12) return String.raw`f_{${start}} = \frac{${start}}{${N}}`;
+  return String.raw`f_{${start}} = \frac{1 - (${n(q / p)})^{${start}}}{1 - (${n(q / p)})^{${N}}}`;
+}
+
+function absorptionSteps(
+  p: number,
+  q: number,
+  start: number,
+  N: number,
+): { absorption: NonNullable<RandomWalkValue['absorption']>; steps: Step[] } {
+  const { top, expectedSteps } = absorptionOf(p, q, start, N);
+  const equal = Math.abs(p - q) < 1e-12;
+  return {
+    absorption: { top, bottom: 1 - top, expectedSteps },
+    steps: [
+      {
+        title: `Probabilidad de llegar a ${N} antes que a 0 (ruina del jugador)`,
+        explanation:
+          'Se obtiene del sistema f_i = p f_{i+1} + q f_{i−1} + r f_i con f_0 = 0 y f_N = 1 (análisis del primer paso). Quedarse en el sitio no cambia a dónde se llega.',
+        formula: equal
+          ? String.raw`f_i = \frac{i}{N} \quad (p = q)`
+          : String.raw`f_i = \frac{1 - (q/p)^i}{1 - (q/p)^N} \quad (p \ne q)`,
+        substitution: ruinSubstitution(p, q, start, N),
+        result: String.raw`P\{\text{llegar a } ${N}\} = ${n(top)}, \qquad P\{\text{llegar a } 0\} = ${n(1 - top)}`,
+      },
+      {
+        title: 'Pasos esperados hasta la absorción',
+        explanation: 'Resuelve D_i = 1 + p D_{i+1} + q D_{i−1} + r D_i con D_0 = D_N = 0.',
+        formula: equal
+          ? String.raw`D_i = \frac{i\,(N - i)}{p + q}`
+          : String.raw`D_i = \frac{1}{p + q}\left[\frac{i}{q - p} - \frac{N}{q - p}\,f_i\right]`,
+        result: `D_{${start}} = ${n(expectedSteps)}`,
+      },
+    ],
+  };
+}
+
+export function solveRandomWalk(input: RandomWalkInput): Result {
+  const p = parseFraction(input.p);
+  const q = parseFraction(input.q);
+  const { start, steps: count, barriers } = input;
+  const r = Math.max(0, 1 - p - q);
+  const absorbing = barriers === 'absorbentes';
+  const N = input.upper ?? 0;
+  const steps: Step[] = [
+    {
+      title: 'Probabilidades de un paso',
+      explanation: absorbing
+        ? `Cada paso sube 1, baja 1 o se queda. Las posiciones 0 y ${N} son absorbentes: al llegar a ellas el proceso se detiene.`
+        : 'Cada paso sube 1, baja 1 o se queda, independientemente de los pasos anteriores.',
+      formula: String.raw`P\{+1\} = p, \qquad P\{-1\} = q, \qquad P\{0\} = r = 1 - p - q`,
+      result: String.raw`p = ${fractionToLatex(input.p)}, \qquad q = ${fractionToLatex(input.q)}, \qquad r = ${n(r)}`,
+    },
+  ];
+
+  // Distribución tras n pasos por recursión.
+  const distribution = walkDistribution(input, p, q, r);
   const mean = distribution.reduce((acc, d) => acc + d.position * d.probability, 0);
   const variance = distribution.reduce(
     (acc, d) => acc + (d.position - mean) ** 2 * d.probability,
@@ -174,77 +278,13 @@ export function solveRandomWalk(input: RandomWalkInput): Result {
     result: String.raw`P\{X_0 = ${start}\} = 1 \ \Rightarrow\ E[X_{${count}}] = ${n(mean)}`,
   });
 
-  if (!absorbing) {
-    steps.push({
-      title: 'Media y varianza de la posición',
-      explanation:
-        'La posición es la inicial más la suma de n pasos independientes, cada uno con media p − q y varianza (p + q) − (p − q)².',
-      formula: String.raw`E[X_n] = i + n(p - q), \qquad \operatorname{Var}[X_n] = n\left[(p + q) - (p - q)^2\right]`,
-      substitution: String.raw`E[X_{${count}}] = ${start} + ${count}(${n(p)} - ${n(q)}), \qquad \operatorname{Var}[X_{${count}}] = ${count}\left[${n(p + q)} - (${n(p - q)})^2\right]`,
-      result: String.raw`E[X_{${count}}] = ${n(start + count * (p - q))}, \qquad \operatorname{Var}[X_{${count}}] = ${n(count * (p + q - (p - q) ** 2))}`,
-    });
-    if (r === 0 && count > 0) {
-      const example = distribution.reduce(
-        (a, b) => (b.probability > a.probability ? b : a),
-        distribution[0]!,
-      );
-      const up = (count + example.position - start) / 2;
-      steps.push({
-        title: 'Fórmula cerrada (sin quedarse en el sitio)',
-        explanation: `Llegar a k exige u = (n + k − i)/2 pasos hacia arriba y n − u hacia abajo, en cualquier orden. Por ejemplo, la posición más probable, k = ${example.position}:`,
-        formula: String.raw`P\{X_n = k\} = \binom{n}{u} p^{u} q^{\,n-u}, \qquad u = \frac{n + k - i}{2}`,
-        substitution: String.raw`P\{X_{${count}} = ${example.position}\} = \binom{${count}}{${up}} (${n(p)})^{${up}} (${n(q)})^{${count - up}}`,
-        result: String.raw`P\{X_{${count}} = ${example.position}\} = ${n(binomialPmf(count, up, p))}`,
-      });
-    }
-  }
-
   let absorption: RandomWalkValue['absorption'] = null;
   if (absorbing) {
-    const moving = p + q;
-    let top: number;
-    let expectedSteps: number;
-    if (p === 0) {
-      top = start === N ? 1 : 0;
-      expectedSteps = start === N ? 0 : start / q;
-    } else if (q === 0) {
-      top = start === 0 ? 0 : 1;
-      expectedSteps = start === 0 ? 0 : (N - start) / p;
-    } else if (Math.abs(p - q) < 1e-12) {
-      top = start / N;
-      expectedSteps = (start * (N - start)) / moving;
-    } else {
-      const ratio = q / p;
-      top = (1 - ratio ** start) / (1 - ratio ** N);
-      expectedSteps = (start / (q - p) - (N / (q - p)) * top) / moving;
-    }
-    absorption = { top, bottom: 1 - top, expectedSteps };
-    const equal = Math.abs(p - q) < 1e-12;
-    steps.push(
-      {
-        title: `Probabilidad de llegar a ${N} antes que a 0 (ruina del jugador)`,
-        explanation:
-          'Se obtiene del sistema f_i = p f_{i+1} + q f_{i−1} + r f_i con f_0 = 0 y f_N = 1 (análisis del primer paso). Quedarse en el sitio no cambia a dónde se llega.',
-        formula: equal
-          ? String.raw`f_i = \frac{i}{N} \quad (p = q)`
-          : String.raw`f_i = \frac{1 - (q/p)^i}{1 - (q/p)^N} \quad (p \ne q)`,
-        substitution:
-          p === 0 || q === 0
-            ? undefined
-            : equal
-              ? String.raw`f_{${start}} = \frac{${start}}{${N}}`
-              : String.raw`f_{${start}} = \frac{1 - (${n(q / p)})^{${start}}}{1 - (${n(q / p)})^{${N}}}`,
-        result: String.raw`P\{\text{llegar a } ${N}\} = ${n(top)}, \qquad P\{\text{llegar a } 0\} = ${n(1 - top)}`,
-      },
-      {
-        title: 'Pasos esperados hasta la absorción',
-        explanation: 'Resuelve D_i = 1 + p D_{i+1} + q D_{i−1} + r D_i con D_0 = D_N = 0.',
-        formula: equal
-          ? String.raw`D_i = \frac{i\,(N - i)}{p + q}`
-          : String.raw`D_i = \frac{1}{p + q}\left[\frac{i}{q - p} - \frac{N}{q - p}\,f_i\right]`,
-        result: `D_{${start}} = ${n(expectedSteps)}`,
-      },
-    );
+    const result = absorptionSteps(p, q, start, N);
+    absorption = result.absorption;
+    steps.push(...result.steps);
+  } else {
+    steps.push(...freeWalkSteps(distribution, p, q, start, count, r));
   }
 
   const series: Series[] = [

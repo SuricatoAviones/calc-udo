@@ -100,6 +100,92 @@ type Result = CalculatorResult<BirthDeathValue, BirthDeathErrorCode>;
 
 const n = toLatexNumber;
 
+type Segment = BirthDeathInput['segments'][number];
+
+/** Último estado de un tramo: el anterior al tramo siguiente, la capacidad o ∞. */
+function segmentEnd(next: Segment | undefined, capacity: number | undefined): string {
+  if (next) return `${next.from - 1}`;
+  return capacity === undefined ? String.raw`\infty` : `${capacity}`;
+}
+
+/**
+ * Cola geométrica del último tramo en un sistema sin límite: sus sumas si ρ = λ/μ < 1, o el error
+ * si los clientes no salen o la serie no converge.
+ */
+function geometricTail(
+  last: Segment,
+  cn0: number,
+  steps: Step[],
+): { tailRatio: number; tailMass: number; tailMoment: number; tailLambda: number } | Result {
+  if (last.mu === 0) {
+    return {
+      ok: false,
+      error: {
+        code: 'dead-state',
+        message: 'En el último tramo μ = 0: los clientes nunca salen y no hay estado estable.',
+      },
+      ...emptyTrace(),
+      steps,
+    };
+  }
+  const rho = last.lambda / last.mu;
+  if (rho >= 1) {
+    steps.push({
+      title: 'Convergencia de la serie',
+      explanation: `A partir de n = ${last.from} los términos crecen o se mantienen con razón ρ = λ/μ = ${formatNumber(rho, 6)} ≥ 1: la suma no converge.`,
+      formula: String.raw`\rho = \frac{\lambda}{\mu} < 1`,
+      result: String.raw`\rho = ${n(rho)} \ge 1`,
+    });
+    return {
+      ok: false,
+      error: {
+        code: 'no-steady-state',
+        message: `En el último tramo λ/μ = ${formatNumber(rho, 6)} ≥ 1: el sistema crece sin límite y no alcanza el estado estable.`,
+      },
+      ...emptyTrace(),
+      steps,
+    };
+  }
+  const tailMass = (cn0 * rho) / (1 - rho);
+  return {
+    tailRatio: rho,
+    tailMass,
+    tailMoment: cn0 * ((last.from * rho) / (1 - rho) + rho / (1 - rho) ** 2),
+    tailLambda: last.lambda * tailMass,
+  };
+}
+
+/** C₀ = 1 y Cₙ = Cₙ₋₁ λₙ₋₁/μₙ hasta `last`; el primer estado con μ = 0 si lo hay. */
+function coefficientsUpTo(
+  last: number,
+  lambdaAt: (state: number) => number,
+  muAt: (state: number) => number,
+): number[] | number {
+  const C = [1];
+  for (let state = 1; state <= last; state++) {
+    const mu = muAt(state);
+    if (mu === 0) return state;
+    C.push((C[state - 1]! * lambdaAt(state - 1)) / mu);
+  }
+  return C;
+}
+
+/** Los primeros coeficientes Cₙ (hasta C₄) con la regla Cₙ = Cₙ₋₁ λₙ₋₁/μₙ. */
+function coefficientsStep(C: number[], lambda0: number, mu1: number): Step {
+  const ratioTerms = C.slice(1, 5).map((c, i) => `C_{${i + 1}} = ${n(c, 6)}`);
+  const moreTerms =
+    ratioTerms.length > 1 ? String.raw`, \quad ${ratioTerms.slice(1).join(TEX.listSep)}` : '';
+  const dots = C.length > 5 ? String.raw`, \ldots` : '';
+  return {
+    title: 'Coeficientes C_n',
+    explanation:
+      'De las ecuaciones de balance λ_{n−1} p_{n−1} = μ_n p_n se obtiene cada p_n como un múltiplo de p₀. Cada coeficiente es el anterior por λ_{n−1}/μ_n.',
+    formula: String.raw`C_0 = 1, \qquad C_n = C_{n-1}\,\frac{\lambda_{n-1}}{\mu_n}, \qquad p_n = C_n\,p_0`,
+    substitution: String.raw`C_1 = \frac{${n(lambda0)}}{${n(mu1)}}${moreTerms}${dots}`,
+    result: ratioTerms.join(String.raw`,\ `),
+  };
+}
+
 export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result {
   const rateAt = (state: number) => {
     let segment = segments[0]!;
@@ -123,11 +209,7 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
         'λₙ es la tasa de llegadas (nacimientos) con n en el sistema y μₙ la de salidas (muertes). Cada fila vale desde su estado hasta el anterior a la fila siguiente.',
       substitution: segments
         .map((s, i) => {
-          const to = segments[i + 1]
-            ? `${segments[i + 1]!.from - 1}`
-            : infinite
-              ? String.raw`\infty`
-              : `${capacity}`;
+          const to = segmentEnd(segments[i + 1], capacity);
           return String.raw`n = ${s.from}, \ldots, ${to}:\ \lambda_n = ${n(s.lambda)},\ \mu_n = ${n(s.mu)}`;
         })
         .join(String.raw` \\ `),
@@ -136,21 +218,17 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
   ];
 
   // C_n término a término.
-  const C = [1];
-  for (let state = 1; state <= lastExplicit; state++) {
-    const mu = muAt(state);
-    if (mu === 0) {
-      return {
-        ok: false,
-        error: {
-          code: 'dead-state',
-          message: `μ_${state} = 0: del estado ${state} no se puede bajar, así que no hay un estado estable con p₀ > 0. Revisa las tasas de muerte.`,
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    C.push((C[state - 1]! * lambdaAt(state - 1)) / mu);
+  const C = coefficientsUpTo(lastExplicit, lambdaAt, muAt);
+  if (typeof C === 'number') {
+    return {
+      ok: false,
+      error: {
+        code: 'dead-state',
+        message: `μ_${C} = 0: del estado ${C} no se puede bajar, así que no hay un estado estable con p₀ > 0. Revisa las tasas de muerte.`,
+      },
+      ...emptyTrace(),
+      steps,
+    };
   }
 
   let tailRatio: number | null = null;
@@ -158,58 +236,16 @@ export function solveBirthDeath({ segments, capacity }: BirthDeathInput): Result
   let tailMoment = 0;
   let tailLambda = 0;
   if (infinite) {
-    if (last.mu === 0) {
-      return {
-        ok: false,
-        error: {
-          code: 'dead-state',
-          message: 'En el último tramo μ = 0: los clientes nunca salen y no hay estado estable.',
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    tailRatio = last.lambda / last.mu;
-    if (tailRatio >= 1) {
-      steps.push({
-        title: 'Convergencia de la serie',
-        explanation: `A partir de n = ${last.from} los términos crecen o se mantienen con razón ρ = λ/μ = ${formatNumber(tailRatio, 6)} ≥ 1: la suma no converge.`,
-        formula: String.raw`\rho = \frac{\lambda}{\mu} < 1`,
-        result: String.raw`\rho = ${n(tailRatio)} \ge 1`,
-      });
-      return {
-        ok: false,
-        error: {
-          code: 'no-steady-state',
-          message: `En el último tramo λ/μ = ${formatNumber(tailRatio, 6)} ≥ 1: el sistema crece sin límite y no alcanza el estado estable.`,
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    const cn0 = C[last.from]!;
-    const rho = tailRatio;
-    tailMass = (cn0 * rho) / (1 - rho);
-    tailMoment = cn0 * ((last.from * rho) / (1 - rho) + rho / (1 - rho) ** 2);
-    tailLambda = last.lambda * tailMass;
+    const tail = geometricTail(last, C[last.from]!, steps);
+    if ('ok' in tail) return tail;
+    ({ tailRatio, tailMass, tailMoment, tailLambda } = tail);
   }
 
   const explicitSum = C.reduce((a, b) => a + b, 0);
   const total = explicitSum + tailMass;
   const p0 = 1 / total;
 
-  const ratioTerms = C.slice(1, 5).map((c, i) => {
-    const state = i + 1;
-    return `C_{${state}} = ${n(c, 6)}`;
-  });
-  steps.push({
-    title: 'Coeficientes C_n',
-    explanation:
-      'De las ecuaciones de balance λ_{n−1} p_{n−1} = μ_n p_n se obtiene cada p_n como un múltiplo de p₀. Cada coeficiente es el anterior por λ_{n−1}/μ_n.',
-    formula: String.raw`C_0 = 1, \qquad C_n = C_{n-1}\,\frac{\lambda_{n-1}}{\mu_n}, \qquad p_n = C_n\,p_0`,
-    substitution: String.raw`C_1 = \frac{${n(lambdaAt(0))}}{${n(muAt(1))}}${ratioTerms.length > 1 ? String.raw`, \quad ${ratioTerms.slice(1).join(TEX.listSep)}` : ''}${C.length > 5 ? String.raw`, \ldots` : ''}`,
-    result: ratioTerms.join(String.raw`,\ `),
-  });
+  steps.push(coefficientsStep(C, lambdaAt(0), muAt(1)));
 
   if (infinite) {
     steps.push({

@@ -92,6 +92,68 @@ const QUERY_LATEX: Record<CountQuery, string> = {
   'al-menos': String.raw`\ge`,
 };
 
+/** P{N = r}, P{N ≤ r} o P{N ≥ r} con N ~ Poisson(λt), y su paso. */
+function countProbability(
+  query: CountQuery,
+  r: number,
+  mean: number,
+  cdfAt: (k: number) => number,
+): { probability: number; step: Step } {
+  const term = (k: number) => String.raw`\frac{(${n(mean)})^{${k}} e^{-${n(mean)}}}{${k}!}`;
+  if (query === 'igual') {
+    const probability = poissonPmf(r, mean);
+    return {
+      probability,
+      step: {
+        title: 'Probabilidad de exactamente n eventos',
+        formula: String.raw`P\{N(t) = n\} = \frac{(\lambda t)^n e^{-\lambda t}}{n!}`,
+        substitution: r < 0 ? `n - m = ${r} < 0` : String.raw`P\{N = ${r}\} = ${term(r)}`,
+        result: String.raw`P\{N = ${r}\} = ${n(probability)}`,
+      },
+    };
+  }
+  if (query === 'a-lo-sumo') {
+    const probability = cdfAt(r);
+    const terms = Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ');
+    const tail = r > 3 ? TEX.plusCdots : '';
+    return {
+      probability,
+      step: {
+        title: 'Probabilidad de a lo sumo n eventos',
+        explanation: 'Se suman las probabilidades de 0, 1, …, n eventos.',
+        formula: String.raw`P\{N(t) \le n\} = \sum_{k=0}^{n} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
+        substitution: r < 0 ? `n - m = ${r} < 0` : String.raw`P\{N \le ${r}\} = ${terms}${tail}`,
+        result: String.raw`P\{N \le ${r}\} = ${n(probability)}`,
+      },
+    };
+  }
+  const probability = r <= 0 ? 1 : Math.max(0, 1 - cdfAt(r - 1));
+  return {
+    probability,
+    step: {
+      title: 'Probabilidad de al menos n eventos',
+      explanation: 'Es el complemento de tener a lo sumo n − 1 eventos.',
+      formula: String.raw`P\{N(t) \ge n\} = 1 - \sum_{k=0}^{n-1} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
+      substitution:
+        r <= 0
+          ? String.raw`n - m = ${r} \le 0`
+          : String.raw`P\{N \ge ${r}\} = 1 - ${n(cdfAt(r - 1))}`,
+      result: String.raw`P\{N \ge ${r}\} = ${n(probability)}`,
+    },
+  };
+}
+
+/** Barras resaltadas de la gráfica según la consulta. */
+function countHighlight(
+  query: CountQuery,
+  r: number,
+  last: number,
+): { from: number; to: number } | undefined {
+  if (r < 0) return undefined;
+  if (query === 'igual') return { from: r, to: r };
+  return query === 'a-lo-sumo' ? { from: 0, to: r } : { from: r, to: last };
+}
+
 export function solvePoissonProcess(input: PoissonProcessInput): Result {
   const { lambda, t, n: target, query, observedTime, observedCount, waitingTime } = input;
   const conditional = observedTime !== undefined && observedCount !== undefined;
@@ -130,43 +192,11 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
           pmf.slice(0, k + 1).reduce((a, b) => a + b, 0),
         );
 
-  let probability: number;
   const r = remaining;
   const symbol = QUERY_LATEX[query];
-  const term = (k: number) => String.raw`\frac{(${n(mean)})^{${k}} e^{-${n(mean)}}}{${k}!}`;
-  if (query === 'igual') {
-    probability = poissonPmf(r, mean);
-    steps.push({
-      title: 'Probabilidad de exactamente n eventos',
-      formula: String.raw`P\{N(t) = n\} = \frac{(\lambda t)^n e^{-\lambda t}}{n!}`,
-      substitution: r < 0 ? `n - m = ${r} < 0` : String.raw`P\{N = ${r}\} = ${term(r)}`,
-      result: String.raw`P\{N = ${r}\} = ${n(probability)}`,
-    });
-  } else if (query === 'a-lo-sumo') {
-    probability = cdfAt(r);
-    steps.push({
-      title: 'Probabilidad de a lo sumo n eventos',
-      explanation: 'Se suman las probabilidades de 0, 1, …, n eventos.',
-      formula: String.raw`P\{N(t) \le n\} = \sum_{k=0}^{n} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
-      substitution:
-        r < 0
-          ? `n - m = ${r} < 0`
-          : String.raw`P\{N \le ${r}\} = ${Array.from({ length: Math.min(r, 3) + 1 }, (_, k) => term(k)).join(' + ')}${r > 3 ? TEX.plusCdots : ''}`,
-      result: String.raw`P\{N \le ${r}\} = ${n(probability)}`,
-    });
-  } else {
-    probability = r <= 0 ? 1 : Math.max(0, 1 - cdfAt(r - 1));
-    steps.push({
-      title: 'Probabilidad de al menos n eventos',
-      explanation: 'Es el complemento de tener a lo sumo n − 1 eventos.',
-      formula: String.raw`P\{N(t) \ge n\} = 1 - \sum_{k=0}^{n-1} \frac{(\lambda t)^k e^{-\lambda t}}{k!}`,
-      substitution:
-        r <= 0
-          ? String.raw`n - m = ${r} \le 0`
-          : String.raw`P\{N \ge ${r}\} = 1 - ${n(cdfAt(r - 1))}`,
-      result: String.raw`P\{N \ge ${r}\} = ${n(probability)}`,
-    });
-  }
+  const counted = countProbability(query, r, mean, cdfAt);
+  const { probability } = counted;
+  steps.push(counted.step);
 
   let interarrival: PoissonProcessValue['interarrival'] = null;
   if (waitingTime !== undefined) {
@@ -203,14 +233,7 @@ export function solvePoissonProcess(input: PoissonProcessInput): Result {
       yLabel: 'P{N = k}',
       kind: 'bar',
       points: shown.map((p, k) => ({ x: k, y: p })),
-      highlight:
-        r < 0
-          ? undefined
-          : query === 'igual'
-            ? { from: r, to: r }
-            : query === 'a-lo-sumo'
-              ? { from: 0, to: r }
-              : { from: r, to: shown.length - 1 },
+      highlight: countHighlight(query, r, shown.length - 1),
     },
   ];
 

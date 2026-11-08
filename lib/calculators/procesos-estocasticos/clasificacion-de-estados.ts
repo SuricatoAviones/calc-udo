@@ -128,6 +128,42 @@ function inverse(M: number[][]): number[][] | null {
 
 const setLatex = (states: number[]) => String.raw`\{${states.join(', ')}\}`;
 
+function stateKind(closed: boolean, stay: number): StateKind {
+  if (!closed) return 'transitorio';
+  return stay >= 1 - 1e-12 ? 'absorbente' : 'recurrente';
+}
+
+function classExplanation(c: CommunicatingClass, absorbing: boolean): string {
+  if (!c.closed) {
+    return 'Abierta: hay transiciones que salen de la clase y no vuelven. Sus estados son transitorios.';
+  }
+  if (absorbing) {
+    const s = c.states[0];
+    return `Cerrada con un solo estado y p_{${s}${s}} = 1: el estado ${s} es absorbente.`;
+  }
+  return 'Cerrada: ninguna transición sale de la clase. Sus estados son recurrentes.';
+}
+
+function periodTex(period: number | null): string {
+  if (period === null) return String.raw`\text{sin retorno}`;
+  return period === 1 ? String.raw`\text{aperiódica}` : `d = ${period}`;
+}
+
+function periodText(period: number | null): string {
+  if (period === null) return 'sin retorno';
+  return period === 1 ? 'aperiódico' : String(period);
+}
+
+function ergodicityExplanation(ergodic: boolean, classes: CommunicatingClass[]): string {
+  if (ergodic) {
+    return 'Todos los estados se comunican (una sola clase, cerrada), son recurrentes y aperiódicos: la cadena es ergódica y tiene probabilidades de estado estable únicas.';
+  }
+  if (classes.length === 1) {
+    return `Todos los estados se comunican, pero tienen período ${classes[0]!.period}: la cadena es periódica, no ergódica.`;
+  }
+  return `Hay ${classes.length} clases: la cadena no es irreducible, así que no es ergódica.`;
+}
+
 export function solveClassification({ P }: ClassificationInput): Result {
   const size = P.length;
   const reach = reachability(P);
@@ -168,11 +204,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
 
   const states: StateClassification[] = Array.from({ length: size }, (_, i) => {
     const cls = classes[classOf[i]!]!;
-    const kind: StateKind = !cls.closed
-      ? 'transitorio'
-      : P[i]![i]! >= 1 - 1e-12
-        ? 'absorbente'
-        : 'recurrente';
+    const kind = stateKind(cls.closed, P[i]![i]!);
     return { state: i + 1, classIndex: classOf[i]! + 1, kind, period: cls.period };
   });
 
@@ -190,11 +222,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
         const absorbing = c.states.length === 1 && states[c.states[0]! - 1]!.kind === 'absorbente';
         return {
           title: `Clase C${k + 1} = {${c.states.join(', ')}}`,
-          explanation: c.closed
-            ? absorbing
-              ? `Cerrada con un solo estado y p_{${c.states[0]}${c.states[0]}} = 1: el estado ${c.states[0]} es absorbente.`
-              : 'Cerrada: ninguna transición sale de la clase. Sus estados son recurrentes.'
-            : 'Abierta: hay transiciones que salen de la clase y no vuelven. Sus estados son transitorios.',
+          explanation: classExplanation(c, absorbing),
           result: c.closed
             ? String.raw`\text{recurrente}`
             : String.raw`\text{sale por } ${exits.slice(0, 4).join(TEX.listSep)}`,
@@ -206,10 +234,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
       explanation:
         'El período es el máximo común divisor de las longitudes de los caminos que regresan a un estado. Se calcula con un recorrido de la clase: el mcd de (nivel de u + 1 − nivel de v) sobre las transiciones u → v dentro de la clase. Período 1 = aperiódico.',
       result: classes
-        .map(
-          (c, k) =>
-            `C_{${k + 1}}: ${c.period === null ? String.raw`\text{sin retorno}` : c.period === 1 ? String.raw`\text{aperiódica}` : `d = ${c.period}`}`,
-        )
+        .map((c, k) => `C_{${k + 1}}: ${periodTex(c.period)}`)
         .join(String.raw`,\quad `),
     },
   );
@@ -218,11 +243,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
   const ergodic = irreducible && classes[0]!.period === 1;
   steps.push({
     title: '¿La cadena es ergódica?',
-    explanation: ergodic
-      ? 'Todos los estados se comunican (una sola clase, cerrada), son recurrentes y aperiódicos: la cadena es ergódica y tiene probabilidades de estado estable únicas.'
-      : irreducible
-        ? `Todos los estados se comunican, pero tienen período ${classes[0]!.period}: la cadena es periódica, no ergódica.`
-        : `Hay ${classes.length} clases: la cadena no es irreducible, así que no es ergódica.`,
+    explanation: ergodicityExplanation(ergodic, classes),
     result: ergodic ? String.raw`\text{ergódica}` : String.raw`\text{no ergódica}`,
   });
 
@@ -244,8 +265,7 @@ export function solveClassification({ P }: ClassificationInput): Result {
         state: s.state,
         classIndex: s.classIndex,
         kind: s.kind,
-        period:
-          s.period === null ? 'sin retorno' : s.period === 1 ? 'aperiódico' : String(s.period),
+        period: periodText(s.period),
       })),
     },
   ];

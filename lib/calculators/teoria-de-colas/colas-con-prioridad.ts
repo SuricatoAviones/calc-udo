@@ -36,7 +36,8 @@ function parseRates(text: string): number[] | string {
   if (invalid.length > 0) return `No son números: ${invalid.slice(0, 3).join(', ')}.`;
   if (values.length < 1) return 'Ingresa la tasa de llegadas de al menos una clase.';
   if (values.length > MAX_CLASSES) return `El máximo es ${MAX_CLASSES} clases.`;
-  if (values.some((v) => !(v > 0) || !Number.isFinite(v))) {
+  // Escrito en positivo para que un NaN también se rechace.
+  if (!values.every((v) => Number.isFinite(v) && v > 0)) {
     return 'Las tasas de llegadas deben ser mayores que 0.';
   }
   return values;
@@ -82,6 +83,156 @@ export type PriorityQueueErrorCode = 'invalid-data' | 'unstable';
 type Result = CalculatorResult<PriorityQueueValue, PriorityQueueErrorCode>;
 
 const n = toLatexNumber;
+
+/** Tiempos por clase de cada disciplina; A solo existe sin interrupciones. */
+interface ClassTimes {
+  A: number | null;
+  W: (number | null)[];
+  steps: Step[];
+}
+
+/** Sin interrupciones: Wₖ = 1/(A Bₖ₋₁ Bₖ) + 1/μ. */
+function nonPreemptiveTimes(
+  rates: number[],
+  B: number[],
+  { mu, servers: s }: PriorityQueueInput,
+): ClassTimes {
+  const capacity = s * mu;
+  const lambda = rates.reduce((a, b) => a + b, 0);
+  const r = lambda / mu;
+  let sum = 0;
+  for (let j = 0; j < s; j++) sum += r ** j / factorial(j);
+  const A = ((factorial(s) * (capacity - lambda)) / r ** s) * sum + capacity;
+  const W: number[] = [];
+  const classSteps: Step[] = rates.map((_, k) => {
+    const Wk = 1 / (A * B[k]! * B[k + 1]!) + 1 / mu;
+    W.push(Wk);
+    return {
+      title: `Clase ${k + 1}`,
+      formula: String.raw`W_{${k + 1}} = \frac{1}{A\,B_{${k}}\,B_{${k + 1}}} + \frac{1}{\mu}`,
+      substitution: String.raw`W_{${k + 1}} = \frac{1}{${n(A)}\,(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})} + \frac{1}{${n(mu)}}`,
+      result: `W_{${k + 1}} = ${n(Wk)}`,
+    };
+  });
+  return {
+    A,
+    W,
+    steps: [
+      {
+        title: 'Constante A',
+        explanation: s === 1 ? 'Con un servidor, A se reduce a μ²/λ.' : undefined,
+        formula: String.raw`A = \frac{s!\,(s\mu - \lambda)}{r^s} \sum_{j=0}^{s-1} \frac{r^j}{j!} + s\mu, \qquad r = \frac{\lambda}{\mu}`,
+        substitution: String.raw`A = \frac{${s}!\,(${n(capacity)} - ${n(lambda)})}{(${n(r)})^{${s}}}\,(${n(sum, 8)}) + ${n(capacity)}`,
+        result: `A = ${n(A)}`,
+      },
+      {
+        title: 'Tiempo promedio en el sistema de cada clase',
+        explanation:
+          'Un cliente en servicio no se interrumpe aunque llegue otro de mayor prioridad.',
+        children: classSteps,
+      },
+    ],
+  };
+}
+
+/** Con interrupciones y un servidor: Wₖ = (1/μ)/(Bₖ₋₁ Bₖ). */
+function preemptiveSingleTimes(rates: number[], B: number[], mu: number): ClassTimes {
+  const W: (number | null)[] = [];
+  const classSteps: Step[] = rates.map((_, k) => {
+    if (B[k + 1]! <= 0) {
+      W.push(null);
+      return {
+        title: `Clase ${k + 1}`,
+        explanation: `B_${k + 1} ≤ 0: las clases 1 a ${k + 1} ocupan toda la capacidad y esta clase no alcanza el estado estable.`,
+      };
+    }
+    const Wk = 1 / mu / (B[k]! * B[k + 1]!);
+    W.push(Wk);
+    return {
+      title: `Clase ${k + 1}`,
+      formula: String.raw`W_{${k + 1}} = \frac{1/\mu}{B_{${k}}\,B_{${k + 1}}}`,
+      substitution: String.raw`W_{${k + 1}} = \frac{1/${n(mu)}}{(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})}`,
+      result: `W_{${k + 1}} = ${n(Wk)}`,
+    };
+  });
+  return {
+    A: null,
+    W,
+    steps: [
+      {
+        title: 'Tiempo promedio en el sistema de cada clase',
+        explanation:
+          'Con interrupción, un cliente de menor prioridad en servicio vuelve a la cola cuando llega uno de mayor prioridad. W_k incluye todo el tiempo de servicio.',
+        children: classSteps,
+      },
+    ],
+  };
+}
+
+/** Con interrupciones y s servidores: las clases 1 a k juntas son un M/M/s. */
+function preemptiveMultiTimes(
+  rates: number[],
+  cumulative: number[],
+  mu: number,
+  s: number,
+): ClassTimes {
+  const W: (number | null)[] = [];
+  let previousTotal = 0;
+  let previousW = 0;
+  const classSteps: Step[] = rates.map((rate, k) => {
+    const total = cumulative[k]!;
+    const m = mmsMeasures(total, mu, s);
+    if (!m) {
+      W.push(null);
+      return {
+        title: `Clase ${k + 1}`,
+        explanation: `Las clases 1 a ${k + 1} llegan a ${formatNumber(total)} ≥ sμ: esta clase no alcanza el estado estable.`,
+      };
+    }
+    const Wk = (total * m.W - previousTotal * previousW) / rate;
+    W.push(Wk);
+    const step: Step = {
+      title: `Clase ${k + 1}`,
+      explanation: `Las clases 1 a ${k + 1} se comportan como un M/M/${s} con Λ = ${formatNumber(total)}, cuyo tiempo en el sistema es W̄ = ${formatNumber(m.W, 8)}.`,
+      formula:
+        k === 0
+          ? String.raw`W_1 = \bar W_1`
+          : String.raw`W_{${k + 1}} = \frac{\Lambda_{${k + 1}}\bar W_{${k + 1}} - \Lambda_{${k}}\bar W_{${k}}}{\lambda_{${k + 1}}}`,
+      substitution:
+        k === 0
+          ? `W_1 = ${n(m.W)}`
+          : String.raw`W_{${k + 1}} = \frac{(${n(total)})(${n(m.W, 8)}) - (${n(previousTotal)})(${n(previousW, 8)})}{${n(rate)}}`,
+      result: `W_{${k + 1}} = ${n(Wk)}`,
+    };
+    previousTotal = total;
+    previousW = m.W;
+    return step;
+  });
+  return {
+    A: null,
+    W,
+    steps: [
+      {
+        title: 'Tiempo promedio en el sistema de cada clase',
+        explanation:
+          'Las clases de mayor prioridad no se ven afectadas por las de menor prioridad. Por eso las clases 1 a k juntas se analizan como un M/M/s, y el tiempo de la clase k se despeja del promedio ponderado.',
+        formula: String.raw`\Lambda_k \bar W_k = \sum_{i=1}^{k} \lambda_i W_i`,
+        children: classSteps,
+      },
+    ],
+  };
+}
+
+function classTimes(
+  input: PriorityQueueInput,
+  rates: number[],
+  cumulative: number[],
+  B: number[],
+): ClassTimes {
+  if (input.discipline === 'no-apropiativa') return nonPreemptiveTimes(rates, B, input);
+  if (input.servers === 1) return preemptiveSingleTimes(rates, B, input.mu);
+  return preemptiveMultiTimes(rates, cumulative, input.mu, input.servers);
+}
 
 export function solvePriorityQueue(input: PriorityQueueInput): Result {
   const parsed = parseRates(input.rates);
@@ -130,110 +281,20 @@ export function solvePriorityQueue(input: PriorityQueueInput): Result {
     };
   }
 
-  let A: number | null = null;
-  const W: (number | null)[] = [];
-  if (discipline === 'no-apropiativa') {
-    if (lambda >= capacity) {
-      return {
-        ok: false,
-        error: {
-          code: 'unstable',
-          message: `λ = ${formatNumber(lambda)} ≥ sμ = ${formatNumber(capacity)}: sin interrupciones, la cola total crece sin límite y el modelo no tiene estado estable.`,
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    const r = lambda / mu;
-    let sum = 0;
-    for (let j = 0; j < s; j++) sum += r ** j / factorial(j);
-    A = ((factorial(s) * (capacity - lambda)) / r ** s) * sum + capacity;
-    steps.push({
-      title: 'Constante A',
-      explanation: s === 1 ? 'Con un servidor, A se reduce a μ²/λ.' : undefined,
-      formula: String.raw`A = \frac{s!\,(s\mu - \lambda)}{r^s} \sum_{j=0}^{s-1} \frac{r^j}{j!} + s\mu, \qquad r = \frac{\lambda}{\mu}`,
-      substitution: String.raw`A = \frac{${s}!\,(${n(capacity)} - ${n(lambda)})}{(${n(r)})^{${s}}}\,(${n(sum, 8)}) + ${n(capacity)}`,
-      result: `A = ${n(A)}`,
-    });
-    const classSteps: Step[] = rates.map((_, k) => {
-      const Wk = 1 / (A! * B[k]! * B[k + 1]!) + 1 / mu;
-      W.push(Wk);
-      return {
-        title: `Clase ${k + 1}`,
-        formula: String.raw`W_{${k + 1}} = \frac{1}{A\,B_{${k}}\,B_{${k + 1}}} + \frac{1}{\mu}`,
-        substitution: String.raw`W_{${k + 1}} = \frac{1}{${n(A!)}\,(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})} + \frac{1}{${n(mu)}}`,
-        result: `W_{${k + 1}} = ${n(Wk)}`,
-      };
-    });
-    steps.push({
-      title: 'Tiempo promedio en el sistema de cada clase',
-      explanation: 'Un cliente en servicio no se interrumpe aunque llegue otro de mayor prioridad.',
-      children: classSteps,
-    });
-  } else if (s === 1) {
-    const classSteps: Step[] = rates.map((_, k) => {
-      if (B[k + 1]! <= 0) {
-        W.push(null);
-        return {
-          title: `Clase ${k + 1}`,
-          explanation: `B_${k + 1} ≤ 0: las clases 1 a ${k + 1} ocupan toda la capacidad y esta clase no alcanza el estado estable.`,
-        };
-      }
-      const Wk = 1 / mu / (B[k]! * B[k + 1]!);
-      W.push(Wk);
-      return {
-        title: `Clase ${k + 1}`,
-        formula: String.raw`W_{${k + 1}} = \frac{1/\mu}{B_{${k}}\,B_{${k + 1}}}`,
-        substitution: String.raw`W_{${k + 1}} = \frac{1/${n(mu)}}{(${n(B[k]!, 6)})(${n(B[k + 1]!, 6)})}`,
-        result: `W_{${k + 1}} = ${n(Wk)}`,
-      };
-    });
-    steps.push({
-      title: 'Tiempo promedio en el sistema de cada clase',
-      explanation:
-        'Con interrupción, un cliente de menor prioridad en servicio vuelve a la cola cuando llega uno de mayor prioridad. W_k incluye todo el tiempo de servicio.',
-      children: classSteps,
-    });
-  } else {
-    let previousTotal = 0;
-    let previousW = 0;
-    const classSteps: Step[] = rates.map((rate, k) => {
-      const total = cumulative[k]!;
-      const m = mmsMeasures(total, mu, s);
-      if (!m) {
-        W.push(null);
-        return {
-          title: `Clase ${k + 1}`,
-          explanation: `Las clases 1 a ${k + 1} llegan a ${formatNumber(total)} ≥ sμ: esta clase no alcanza el estado estable.`,
-        };
-      }
-      const Wk = (total * m.W - previousTotal * previousW) / rate;
-      W.push(Wk);
-      const step: Step = {
-        title: `Clase ${k + 1}`,
-        explanation: `Las clases 1 a ${k + 1} se comportan como un M/M/${s} con Λ = ${formatNumber(total)}, cuyo tiempo en el sistema es W̄ = ${formatNumber(m.W, 8)}.`,
-        formula:
-          k === 0
-            ? String.raw`W_1 = \bar W_1`
-            : String.raw`W_{${k + 1}} = \frac{\Lambda_{${k + 1}}\bar W_{${k + 1}} - \Lambda_{${k}}\bar W_{${k}}}{\lambda_{${k + 1}}}`,
-        substitution:
-          k === 0
-            ? `W_1 = ${n(m.W)}`
-            : String.raw`W_{${k + 1}} = \frac{(${n(total)})(${n(m.W, 8)}) - (${n(previousTotal)})(${n(previousW, 8)})}{${n(rate)}}`,
-        result: `W_{${k + 1}} = ${n(Wk)}`,
-      };
-      previousTotal = total;
-      previousW = m.W;
-      return step;
-    });
-    steps.push({
-      title: 'Tiempo promedio en el sistema de cada clase',
-      explanation:
-        'Las clases de mayor prioridad no se ven afectadas por las de menor prioridad. Por eso las clases 1 a k juntas se analizan como un M/M/s, y el tiempo de la clase k se despeja del promedio ponderado.',
-      formula: String.raw`\Lambda_k \bar W_k = \sum_{i=1}^{k} \lambda_i W_i`,
-      children: classSteps,
-    });
+  if (discipline === 'no-apropiativa' && lambda >= capacity) {
+    return {
+      ok: false,
+      error: {
+        code: 'unstable',
+        message: `λ = ${formatNumber(lambda)} ≥ sμ = ${formatNumber(capacity)}: sin interrupciones, la cola total crece sin límite y el modelo no tiene estado estable.`,
+      },
+      ...emptyTrace(),
+      steps,
+    };
   }
+  const times = classTimes(input, rates, cumulative, B);
+  const { A, W } = times;
+  steps.push(...times.steps);
 
   const classes: PriorityClassResult[] = rates.map((rate, k) => {
     const Wk = W[k] ?? null;

@@ -93,7 +93,8 @@ export function solveJackson({ stations, routing }: JacksonInput): Result {
     const terms = routing.flatMap((row, i) =>
       row[j]! > 0 ? [String.raw`${n(row[j]!)}\,\lambda_{${i + 1}}`] : [],
     );
-    return String.raw`\lambda_{${j + 1}} = ${n(a[j]!)}${terms.length ? ` + ${terms.join(' + ')}` : ''}`;
+    const routed = terms.length ? ' + ' + terms.join(' + ') : '';
+    return String.raw`\lambda_{${j + 1}} = ${n(a[j]!)}${routed}`;
   });
   const steps: Step[] = [
     {

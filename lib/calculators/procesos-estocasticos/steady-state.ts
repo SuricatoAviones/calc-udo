@@ -38,10 +38,10 @@ export function solveSteadyState({
   const size = P.length;
   const piName = (j: number) => String.raw`\pi_{${j + 1}}`;
 
-  const equations = P.map(
-    (_, j) =>
-      `${piName(j)} &= ${P.map((row, i) => String.raw`${n(row[j]!)}\,${piName(i)}`).join(' + ')}`,
-  );
+  const equations = P.map((_, j) => {
+    const sum = P.map((row, i) => String.raw`${n(row[j]!)}\,${piName(i)}`).join(' + ');
+    return `${piName(j)} &= ${sum}`;
+  });
   const steps: Step[] = [
     {
       title: 'Plantear las ecuaciones de balance',
