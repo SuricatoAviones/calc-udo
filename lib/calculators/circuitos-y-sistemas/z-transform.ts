@@ -174,42 +174,48 @@ function binomialTex(r: number): string {
   return String.raw`\binom{k}{${r - 1}}`;
 }
 
+/**
+ * Término de un par de polos complejos: amplitud·rᵏ·cos(ωk + θ). Como Kuo (ec. 2-222), la fase
+ * se deja en (−π/2, π/2]: si no cae ahí, se cambia el signo de la amplitud y se resta π
+ * (cos(x + π) = −cos x).
+ */
+function complexTermTex(t: SequenceTerm, exponent: string, binom: string) {
+  const r = t.order;
+  const magnitude = C.abs(t.pole);
+  const omega = C.arg(t.pole);
+  let theta = C.arg(t.residue);
+  let amplitude = 2 * C.abs(t.residue);
+  if (Math.abs(theta) > Math.PI / 2 + 1e-12) {
+    theta -= Math.sign(theta) * Math.PI;
+    amplitude = -amplitude;
+  }
+  const radius = magnitude === 1 ? '' : `${baseTex(magnitude)}^{${exponent}}`;
+  const angle = r === 1 ? `${n(omega)}k` : String.raw`${n(omega)}\left(k - ${r - 1}\right)`;
+  const sign = theta < 0 ? '-' : '+';
+  const phase = Math.abs(theta) < 1e-12 ? '' : ` ${sign} ${n(Math.abs(theta))}`;
+  return {
+    coef: amplitude,
+    body: String.raw`${binom}${radius}\cos\left(${angle}${phase}\right)`,
+  };
+}
+
+/** LaTeX de un término de la sucesión: impulso, potencia de un polo real o par complejo. */
+function sequenceTermTex(t: SequenceTerm): { coef: number; body: string } {
+  const r = t.order;
+  if (C.isZero(t.pole)) {
+    return { coef: t.residue.re, body: String.raw`\delta\left(${shiftTex(r - 1)}\right)` };
+  }
+  const exponent = r === 1 ? 'k' : `k - ${r - 1}`;
+  const binom = binomialTex(r);
+  if (t.pole.im !== 0) return complexTermTex(t, exponent, binom);
+  const p = t.pole.re;
+  const power = p === 1 ? '' : `${baseTex(p)}^{${exponent}}`;
+  return { coef: t.residue.re, body: `${binom}${power}` };
+}
+
 /** LaTeX de los términos de la sucesión (para unir con `joinTerms`). */
 export function sequenceTermsTex(terms: SequenceTerm[]): { coef: number; body: string }[] {
-  const out: { coef: number; body: string }[] = [];
-  for (const t of terms) {
-    const r = t.order;
-    if (C.isZero(t.pole)) {
-      out.push({ coef: t.residue.re, body: String.raw`\delta\left(${shiftTex(r - 1)}\right)` });
-      continue;
-    }
-    const exponent = r === 1 ? 'k' : `k - ${r - 1}`;
-    const binom = binomialTex(r);
-    if (t.pole.im === 0) {
-      const p = t.pole.re;
-      const power = p === 1 ? '' : `${baseTex(p)}^{${exponent}}`;
-      out.push({ coef: t.residue.re, body: `${binom}${power}` });
-      continue;
-    }
-    const magnitude = C.abs(t.pole);
-    const omega = C.arg(t.pole);
-    // Como Kuo (ec. 2-222), la fase se deja en (−π/2, π/2]: si no cae ahí, se cambia el signo de
-    // la amplitud y se resta π (cos(x + π) = −cos x).
-    let theta = C.arg(t.residue);
-    let amplitude = 2 * C.abs(t.residue);
-    if (Math.abs(theta) > Math.PI / 2 + 1e-12) {
-      theta -= Math.sign(theta) * Math.PI;
-      amplitude = -amplitude;
-    }
-    const radius = magnitude === 1 ? '' : `${baseTex(magnitude)}^{${exponent}}`;
-    const angle = r === 1 ? `${n(omega)}k` : String.raw`${n(omega)}\left(k - ${r - 1}\right)`;
-    const phase = Math.abs(theta) < 1e-12 ? '' : ` ${theta < 0 ? '-' : '+'} ${n(Math.abs(theta))}`;
-    out.push({
-      coef: amplitude,
-      body: String.raw`${binom}${radius}\cos\left(${angle}${phase}\right)`,
-    });
-  }
-  return out;
+  return terms.map(sequenceTermTex);
 }
 
 export function sequenceTex(terms: SequenceTerm[]): string {

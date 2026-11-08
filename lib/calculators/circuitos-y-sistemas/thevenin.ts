@@ -73,8 +73,8 @@ function voltageBetween(doc: CircuitDocument, a: GridPoint, b: GridPoint): numbe
   return mna.result.nodeVoltages[ia]! - mna.result.nodeVoltages[ib]!;
 }
 
-/** Calcula el equivalente de Thévenin/Norton visto por la resistencia de carga indicada. */
-export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninOutcome {
+/** La carga elegida, o el error si no existe o no es una resistencia. */
+function findLoad(doc: CircuitDocument, loadId: string): CircuitComponent | TheveninFailure {
   const load = doc.components.find((c) => c.id === loadId);
   if (!load) {
     return {
@@ -83,13 +83,99 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
       message: 'Elige una resistencia de carga entre cuyos terminales buscar el equivalente.',
     };
   }
-  if (load.kind !== 'resistor') {
-    return {
-      ok: false,
-      code: 'carga-no-valida',
-      message: `La carga (${componentLabel(load)}) debe ser una resistencia.`,
-    };
+  if (load.kind === 'resistor') return load;
+  return {
+    ok: false,
+    code: 'carga-no-valida',
+    message: `La carga (${componentLabel(load)}) debe ser una resistencia.`,
+  };
+}
+
+/**
+ * R_th: con las fuentes apagadas se aplica 1 A entre los terminales y se mide la tensión. Si no
+ * hay camino resistivo, R_th es infinita.
+ */
+function theveninResistance(withoutLoad: CircuitDocument, load: CircuitComponent): number {
+  const testDoc: CircuitDocument = {
+    ...withoutLoad,
+    components: [
+      ...deactivateSources(withoutLoad.components),
+      { id: '__test__', kind: 'current-source', a: load.b, b: load.a, value: 1, label: 'I_t' },
+    ],
+  };
+  return voltageBetween(testDoc, load.a, load.b) ?? Number.POSITIVE_INFINITY;
+}
+
+/** I_N = V_th / R_th: 0 si R_th es infinita; infinita si R_th es prácticamente 0. */
+function nortonCurrent(vTh: number, rTh: number): number {
+  if (!Number.isFinite(rTh)) return 0;
+  return Math.abs(rTh) < 1e-12 ? Number.POSITIVE_INFINITY : vTh / rTh;
+}
+
+/** Valores del equivalente y de la carga reconectada. */
+function equivalentValues(vTh: number, rTh: number, loadValue: number) {
+  const finite = Number.isFinite(rTh);
+  const pMax = finite && rTh > 1e-12 ? (vTh * vTh) / (4 * rTh) : Number.POSITIVE_INFINITY;
+  const total = rTh + loadValue;
+  const loadCurrent = finite && total > 1e-12 ? vTh / total : 0;
+  return {
+    iN: nortonCurrent(vTh, rTh),
+    pMax,
+    loadCurrent,
+    loadPower: loadCurrent * loadCurrent * loadValue,
+  };
+}
+
+function summaryTableOf(result: TheveninResult): ResultTable {
+  const { vTh, rTh, iN, pMax, loadCurrent, loadPower, loadLabel } = result;
+  const finiteText = (v: number, unit: string, otherwise: string) =>
+    Number.isFinite(v) ? `${formatNumber(v, 6)} ${unit}` : otherwise;
+  return {
+    id: 'equivalente',
+    title: 'Equivalente de Thévenin y Norton',
+    columns: [
+      { key: 'magnitud', header: 'Magnitud' },
+      { key: 'valor', header: 'Valor' },
+    ],
+    rows: [
+      { magnitud: 'Tensión de Thévenin V_{th}', valor: `${formatNumber(vTh, 6)} V` },
+      {
+        magnitud: 'Resistencia de Thévenin R_{th}',
+        valor: finiteText(rTh, 'Ω', '∞ (circuito abierto)'),
+      },
+      { magnitud: 'Corriente de Norton I_{N}', valor: finiteText(iN, 'A', '∞ (fuente ideal)') },
+      { magnitud: 'Potencia máxima P_{máx}', valor: finiteText(pMax, 'W', '—') },
+      {
+        magnitud: `Corriente de la carga ${loadLabel}`,
+        valor: `${formatNumber(loadCurrent, 6)} A`,
+      },
+      { magnitud: `Potencia de la carga ${loadLabel}`, valor: `${formatNumber(loadPower, 6)} W` },
+    ],
+  };
+}
+
+function theveninNotices(rTh: number): Notice[] {
+  if (!Number.isFinite(rTh)) {
+    return [
+      {
+        level: 'warning',
+        message: 'No hay camino resistivo entre los terminales: R_th es infinita.',
+      },
+    ];
   }
+  if (rTh > 1e-12) return [];
+  return [
+    {
+      level: 'info',
+      message: 'R_th es prácticamente 0 Ω (fuente ideal); la corriente de Norton sería infinita.',
+    },
+  ];
+}
+
+/** Calcula el equivalente de Thévenin/Norton visto por la resistencia de carga indicada. */
+export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninOutcome {
+  const load = findLoad(doc, loadId);
+  if ('ok' in load) return load;
   const structural = validateTopology(buildTopology(doc));
   if (structural) {
     return { ok: false, code: structural.code, message: structural.message };
@@ -117,22 +203,9 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
     };
   }
 
-  const testDoc: CircuitDocument = {
-    ...withoutLoad,
-    components: [
-      ...deactivateSources(withoutLoad.components),
-      { id: '__test__', kind: 'current-source', a: load.b, b: load.a, value: 1, label: 'I_t' },
-    ],
-  };
-  const rThMeasured = voltageBetween(testDoc, load.a, load.b);
-  const rTh = rThMeasured === null ? Number.POSITIVE_INFINITY : rThMeasured;
-
+  const rTh = theveninResistance(withoutLoad, load);
   const finite = Number.isFinite(rTh);
-  const iN = finite ? (Math.abs(rTh) < 1e-12 ? Number.POSITIVE_INFINITY : vTh / rTh) : 0;
-  const pMax = finite && rTh > 1e-12 ? (vTh * vTh) / (4 * rTh) : Number.POSITIVE_INFINITY;
-  const total = rTh + load.value;
-  const loadCurrent = finite && total > 1e-12 ? vTh / total : 0;
-  const loadPower = loadCurrent * loadCurrent * load.value;
+  const { iN, pMax, loadCurrent, loadPower } = equivalentValues(vTh, rTh, load.value);
 
   const result: TheveninResult = {
     loadId,
@@ -147,38 +220,8 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
     loadCurrent,
     loadPower,
   };
-
-  const summaryTable: ResultTable = {
-    id: 'equivalente',
-    title: 'Equivalente de Thévenin y Norton',
-    columns: [
-      { key: 'magnitud', header: 'Magnitud' },
-      { key: 'valor', header: 'Valor' },
-    ],
-    rows: [
-      { magnitud: 'Tensión de Thévenin V_{th}', valor: `${formatNumber(vTh, 6)} V` },
-      {
-        magnitud: 'Resistencia de Thévenin R_{th}',
-        valor: finite ? `${formatNumber(rTh, 6)} Ω` : '∞ (circuito abierto)',
-      },
-      {
-        magnitud: 'Corriente de Norton I_{N}',
-        valor: Number.isFinite(iN) ? `${formatNumber(iN, 6)} A` : '∞ (fuente ideal)',
-      },
-      {
-        magnitud: 'Potencia máxima P_{máx}',
-        valor: Number.isFinite(pMax) ? `${formatNumber(pMax, 6)} W` : '—',
-      },
-      {
-        magnitud: `Corriente de la carga ${loadLabel(load)}`,
-        valor: `${formatNumber(loadCurrent, 6)} A`,
-      },
-      {
-        magnitud: `Potencia de la carga ${loadLabel(load)}`,
-        valor: `${formatNumber(loadPower, 6)} W`,
-      },
-    ],
-  };
+  const summaryTable = summaryTableOf(result);
+  const rThTex = finite ? formatNumber(rTh, 6) : TEX.infty;
 
   const steps: Step[] = [
     {
@@ -216,35 +259,17 @@ export function computeThevenin(doc: CircuitDocument, loadId: string): TheveninO
       explanation:
         'El equivalente de Thévenin es una fuente V_th en serie con R_th; el de Norton, una fuente I_N en paralelo con R_th.',
       formula: String.raw`V_{th} = I_{N}\,R_{th}`,
-      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V},\ R_{th} = ${finite ? formatNumber(rTh, 6) : TEX.infty}\ \Omega`,
+      result: String.raw`V_{th} = ${formatNumber(vTh, 6)}\text{ V},\ R_{th} = ${rThTex}\ \Omega`,
     },
     {
       title: 'Con la carga conectada',
       explanation:
         'Al reconectar la carga, la corriente es la tensión de Thévenin entre R_th + R_L.',
       formula: String.raw`i_L = \frac{V_{th}}{R_{th} + R_L}`,
-      substitution: String.raw`i_L = \frac{${formatNumber(vTh, 6)}}{${finite ? formatNumber(rTh, 6) : TEX.infty} + ${formatNumber(load.value, 6)}}`,
+      substitution: String.raw`i_L = \frac{${formatNumber(vTh, 6)}}{${rThTex} + ${formatNumber(load.value, 6)}}`,
       result: String.raw`i_L = ${formatNumber(loadCurrent, 6)}\text{ A},\quad P_L = ${formatNumber(loadPower, 6)}\text{ W}`,
     },
   ];
 
-  const notices: Notice[] = [];
-  if (!finite) {
-    notices.push({
-      level: 'warning',
-      message: 'No hay camino resistivo entre los terminales: R_th es infinita.',
-    });
-  }
-  if (finite && rTh <= 1e-12) {
-    notices.push({
-      level: 'info',
-      message: 'R_th es prácticamente 0 Ω (fuente ideal); la corriente de Norton sería infinita.',
-    });
-  }
-
-  return { ok: true, result, steps, tables: [summaryTable], notices };
-}
-
-function loadLabel(c: CircuitComponent): string {
-  return componentLabel(c);
+  return { ok: true, result, steps, tables: [summaryTable], notices: theveninNotices(rTh) };
 }

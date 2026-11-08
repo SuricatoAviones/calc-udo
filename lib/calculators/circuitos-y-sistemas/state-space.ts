@@ -237,6 +237,113 @@ export function outputEquation(
   return { ok: true, C: clean.slice(0, model.states.length), D: clean.slice(model.states.length) };
 }
 
+/** Un valor de R, C o L válido: positivo (NaN no lo es). */
+const isPositive = (v: number) => v > 0;
+
+/** Problemas de los elementos que impiden formular las ecuaciones de estado. */
+function storageError(
+  doc: CircuitDocument,
+  storage: CircuitComponent[],
+): { code: StateSpaceErrorCode; message: string } | null {
+  if (storage.length === 0) {
+    return {
+      code: 'sin-elementos-almacenadores',
+      message: 'El circuito no tiene capacitores ni inductores: no hay variables de estado.',
+    };
+  }
+  if (storage.length > MAX_STATES) {
+    return {
+      code: 'demasiadas-variables',
+      message: `Como máximo ${MAX_STATES} capacitores e inductores.`,
+    };
+  }
+  const passive = new Set(['resistor', 'capacitor', 'inductor']);
+  const bad = doc.components.find((c) => passive.has(c.kind) && !isPositive(c.value));
+  if (!bad) return null;
+  return {
+    code: 'valores-invalidos',
+    message: `${componentLabel(bad)} debe tener un valor mayor que 0.`,
+  };
+}
+
+const byLabel = (a: CircuitComponent, b: CircuitComponent) =>
+  componentLabel(a).localeCompare(componentLabel(b), 'es', { numeric: true });
+
+/** Variables de estado: primero los capacitores (v_C) y luego los inductores (i_L). */
+function stateVariables(
+  capacitors: CircuitComponent[],
+  inductors: CircuitComponent[],
+): StateVariable[] {
+  return [...capacitors, ...inductors].map((c) => ({
+    id: c.id,
+    label: componentLabel(c),
+    kind: c.kind as 'capacitor' | 'inductor',
+    value: c.value,
+    initial: c.initial ?? 0,
+    tex: stateTex(c),
+  }));
+}
+
+/** Entradas: las fuentes independientes, ordenadas por etiqueta. */
+function inputSources(doc: CircuitDocument): InputSource[] {
+  return doc.components
+    .filter((c) => c.kind === 'voltage-source' || c.kind === 'current-source')
+    .sort(byLabel)
+    .map((c) => ({
+      id: c.id,
+      label: componentLabel(c),
+      kind: c.kind as 'voltage-source' | 'current-source',
+      value: c.value,
+      tex: labelTex(componentLabel(c)),
+    }));
+}
+
+function variablesStep(states: StateVariable[], inputs: InputSource[]): Step {
+  const column = (items: { tex: string }[]) =>
+    String.raw`\begin{bmatrix} ${items.map((s) => s.tex).join(TEX.newline)} \end{bmatrix}`;
+  const uSymbols = inputs.length ? String.raw`,\quad \mathbf{u} = ${column(inputs)}` : '';
+  const uValues = inputs.length
+    ? String.raw`,\quad \mathbf{u} = ${toLatexMatrix(
+        inputs.map((s) => [s.value]),
+        DIGITS,
+      )}`
+    : '';
+  const x0 = toLatexMatrix(
+    states.map((s) => [s.initial]),
+    DIGITS,
+  );
+  return {
+    title: 'Variables de estado y entradas',
+    explanation:
+      'Las variables de estado son los voltajes de los capacitores (+ en el terminal marcado) y las corrientes de los inductores (del terminal marcado hacia el otro): describen la energía almacenada. Las entradas son las fuentes independientes, de cd a partir de t = 0.',
+    formula: String.raw`\mathbf{x} = ${column(states)}${uSymbols}`,
+    result: String.raw`\mathbf{x}(0) = ${x0}${uValues}`,
+  };
+}
+
+/**
+ * Por qué la red es impropia (un capacitor fuera del árbol normal o un inductor dentro), o
+ * `null` si es propia.
+ */
+function improperExplanation(
+  tree: ReturnType<typeof normalTree>,
+  capacitors: CircuitComponent[],
+  inductors: CircuitComponent[],
+): string | null {
+  const capOutside = capacitors.filter((c) => !tree.inTree.has(c.id));
+  const indInside = inductors.filter((c) => tree.inTree.has(c.id));
+  if (capOutside.length === 0 && indInside.length === 0) return null;
+  const plural = (list: CircuitComponent[]) => (list.length > 1 ? 'n' : '');
+  const names = (list: CircuitComponent[]) => list.map(componentLabel).join(', ');
+  const parts = [
+    capOutside.length > 0 &&
+      `${names(capOutside)} no cabe${plural(capOutside)} en el árbol (forma un lazo solo con capacitores y fuentes de voltaje)`,
+    indInside.length > 0 &&
+      `${names(indInside)} queda${plural(indInside)} en el árbol (hay un corte formado solo por inductores y fuentes de corriente)`,
+  ].filter(Boolean);
+  return `${parts.join('; ')}. Sus variables no son independientes, así que no todas pueden ser variables de estado.`;
+}
+
 /** Formula ẋ = Ax + Bu a partir del circuito dibujado. */
 export function formulateStateEquations(doc: CircuitDocument): FormulationOutcome {
   const steps: Step[] = [];
@@ -248,67 +355,14 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
   });
 
   const storage = doc.components.filter((c) => c.kind === 'capacitor' || c.kind === 'inductor');
-  if (storage.length === 0) {
-    return fail(
-      'sin-elementos-almacenadores',
-      'El circuito no tiene capacitores ni inductores: no hay variables de estado.',
-    );
-  }
-  if (storage.length > MAX_STATES) {
-    return fail('demasiadas-variables', `Como máximo ${MAX_STATES} capacitores e inductores.`);
-  }
-  const bad = doc.components.find(
-    (c) =>
-      (c.kind === 'resistor' || c.kind === 'capacitor' || c.kind === 'inductor') && !(c.value > 0),
-  );
-  if (bad) {
-    return fail('valores-invalidos', `${componentLabel(bad)} debe tener un valor mayor que 0.`);
-  }
+  const invalid = storageError(doc, storage);
+  if (invalid) return fail(invalid.code, invalid.message);
 
-  const byLabel = (a: CircuitComponent, b: CircuitComponent) =>
-    componentLabel(a).localeCompare(componentLabel(b), 'es', { numeric: true });
   const capacitors = storage.filter((c) => c.kind === 'capacitor').sort(byLabel);
   const inductors = storage.filter((c) => c.kind === 'inductor').sort(byLabel);
-  const states: StateVariable[] = [...capacitors, ...inductors].map((c) => ({
-    id: c.id,
-    label: componentLabel(c),
-    kind: c.kind as 'capacitor' | 'inductor',
-    value: c.value,
-    initial: c.initial ?? 0,
-    tex: stateTex(c),
-  }));
-  const inputs: InputSource[] = doc.components
-    .filter((c) => c.kind === 'voltage-source' || c.kind === 'current-source')
-    .sort(byLabel)
-    .map((c) => ({
-      id: c.id,
-      label: componentLabel(c),
-      kind: c.kind as 'voltage-source' | 'current-source',
-      value: c.value,
-      tex: labelTex(componentLabel(c)),
-    }));
-
-  steps.push({
-    title: 'Variables de estado y entradas',
-    explanation:
-      'Las variables de estado son los voltajes de los capacitores (+ en el terminal marcado) y las corrientes de los inductores (del terminal marcado hacia el otro): describen la energía almacenada. Las entradas son las fuentes independientes, de cd a partir de t = 0.',
-    formula: String.raw`\mathbf{x} = \begin{bmatrix} ${states.map((s) => s.tex).join(TEX.newline)} \end{bmatrix}${
-      inputs.length
-        ? String.raw`,\quad \mathbf{u} = \begin{bmatrix} ${inputs.map((s) => s.tex).join(TEX.newline)} \end{bmatrix}`
-        : ''
-    }`,
-    result: String.raw`\mathbf{x}(0) = ${toLatexMatrix(
-      states.map((s) => [s.initial]),
-      DIGITS,
-    )}${
-      inputs.length
-        ? String.raw`,\quad \mathbf{u} = ${toLatexMatrix(
-            inputs.map((s) => [s.value]),
-            DIGITS,
-          )}`
-        : ''
-    }`,
-  });
+  const states = stateVariables(capacitors, inductors);
+  const inputs = inputSources(doc);
+  steps.push(variablesStep(states, inputs));
 
   // Grafo y árbol normal.
   const topology = buildTopology(doc);
@@ -326,19 +380,9 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
     explanation: `El grafo tiene ${usedNodes} nodos y ${doc.components.length} ramas, así que el árbol tiene ${usedNodes - 1} ramas. Se eligen primero las fuentes de voltaje, luego los capacitores, las resistencias, los inductores y al final las fuentes de corriente, sin cerrar lazos. Ramas del árbol: ${treeLabels.join(', ') || '—'}. Cuerdas (coárbol): ${linkLabels.join(', ') || '—'}.`,
   });
 
-  const capOutside = capacitors.filter((c) => !tree.inTree.has(c.id));
-  const indInside = inductors.filter((c) => tree.inTree.has(c.id));
-  if (capOutside.length > 0 || indInside.length > 0) {
-    const parts = [
-      capOutside.length > 0 &&
-        `${capOutside.map(componentLabel).join(', ')} no cabe${capOutside.length > 1 ? 'n' : ''} en el árbol (forma un lazo solo con capacitores y fuentes de voltaje)`,
-      indInside.length > 0 &&
-        `${indInside.map(componentLabel).join(', ')} queda${indInside.length > 1 ? 'n' : ''} en el árbol (hay un corte formado solo por inductores y fuentes de corriente)`,
-    ].filter(Boolean);
-    steps.push({
-      title: 'Red impropia',
-      explanation: `${parts.join('; ')}. Sus variables no son independientes, así que no todas pueden ser variables de estado.`,
-    });
+  const improper = improperExplanation(tree, capacitors, inductors);
+  if (improper) {
+    steps.push({ title: 'Red impropia', explanation: improper });
     return fail(
       'red-impropia',
       'La red es impropia: hay un lazo de capacitores y fuentes de voltaje o un corte de inductores y fuentes de corriente. Agrega una resistencia en ese lazo o en paralelo con ese corte.',
@@ -413,6 +457,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
   const B = raw.map((row) => row.slice(states.length).map((v) => tidy(v, scale)));
   const vars = [...states.map((s) => s.tex), ...inputs.map((u) => u.tex)];
 
+  const bTex = inputs.length ? String.raw`,\quad B = ${toLatexMatrix(B, DIGITS)}` : '';
   steps.push(
     {
       title: 'Eliminación de las variables de las resistencias',
@@ -439,7 +484,7 @@ export function formulateStateEquations(doc: CircuitDocument): FormulationOutcom
         ),
       })),
       formula: String.raw`\dot{\mathbf{x}} = A\,\mathbf{x} + B\,\mathbf{u}`,
-      result: `A = ${toLatexMatrix(A, DIGITS)}${inputs.length ? String.raw`,\quad B = ${toLatexMatrix(B, DIGITS)}` : ''}`,
+      result: `A = ${toLatexMatrix(A, DIGITS)}${bTex}`,
     },
   );
 

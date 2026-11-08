@@ -89,6 +89,50 @@ interface Segment {
   expr: ParsedExpression;
 }
 
+const QUANTITIES = {
+  voltaje: { symbol: 'v', upper: 'V', unit: 'V' },
+  corriente: { symbol: 'i', upper: 'I', unit: 'A' },
+} as const;
+
+/** Tramos del periodo, cada uno desde el final del anterior; o el mensaje de error. */
+function readSegments(input: AverageRmsInput): Segment[] | string {
+  const segments: Segment[] = [];
+  let from = 0;
+  for (const segment of input.segments) {
+    const end = parseConstant(segment.end);
+    const parsed = parseFunction(segment.expression, ['t']);
+    if (typeof end === 'string' || end <= from) return 'Revisa los finales de los tramos.';
+    if (!parsed.ok) return parsed.message;
+    segments.push({ from, to: end, expr: parsed.expr });
+    from = end;
+  }
+  return segments;
+}
+
+/** La forma de onda: la expresión si es un solo tramo; si no, una función por tramos. */
+function waveformTex(segments: Segment[]): string {
+  if (segments.length === 1) return segments[0]!.expr.tex;
+  const piece = (s: Segment) => String.raw`${s.expr.tex} & ${n(s.from)} \le t < ${n(s.to)}`;
+  return String.raw`\begin{cases} ${segments.map(piece).join(TEX.newline)} \end{cases}`;
+}
+
+/** P = I²R o V²/R con el valor eficaz. */
+function powerStep(quantity: AverageRmsInput['quantity'], rms: number, r: number) {
+  const current = quantity === 'corriente';
+  const power = current ? rms ** 2 * r : rms ** 2 / r;
+  const step: Step = {
+    title: 'Potencia promedio en la resistencia',
+    explanation:
+      'El valor eficaz entrega a una resistencia la misma potencia promedio que un valor de cd igual.',
+    formula: current ? 'P = I_{ef}^{2}R' : String.raw`P = \frac{V_{ef}^{2}}{R}`,
+    substitution: current
+      ? `P = (${n(rms)})^{2}(${n(r)})`
+      : String.raw`P = \frac{(${n(rms)})^{2}}{${n(r)}}`,
+    result: String.raw`P = ${n(power)}\ \text{W}`,
+  };
+  return { power, step };
+}
+
 export function solveAverageRms(
   input: AverageRmsInput,
 ): CalculatorResult<AverageRmsValue, AverageRmsErrorCode> {
@@ -101,21 +145,11 @@ export function solveAverageRms(
     notices: [{ level: 'error' as const, message }],
   });
 
-  const segments: Segment[] = [];
-  let from = 0;
-  for (const segment of input.segments) {
-    const end = parseConstant(segment.end);
-    const parsed = parseFunction(segment.expression, ['t']);
-    if (typeof end === 'string' || end <= from)
-      return fail('expresion-invalida', 'Revisa los finales de los tramos.');
-    if (!parsed.ok) return fail('expresion-invalida', parsed.message);
-    segments.push({ from, to: end, expr: parsed.expr });
-    from = end;
-  }
-  const period = from;
-  const symbol = input.quantity === 'voltaje' ? 'v' : 'i';
-  const upper = input.quantity === 'voltaje' ? 'V' : 'I';
-  const unit = input.quantity === 'voltaje' ? 'V' : 'A';
+  const read = readSegments(input);
+  if (typeof read === 'string') return fail('expresion-invalida', read);
+  const segments = read;
+  const period = segments.at(-1)!.to;
+  const { symbol, upper, unit } = QUANTITIES[input.quantity];
 
   const steps: Step[] = [
     {
@@ -124,11 +158,7 @@ export function solveAverageRms(
         segments.length > 1
           ? 'La señal se repite cada T segundos; en un periodo se define por tramos.'
           : 'La señal se repite cada T segundos.',
-      formula: `${symbol}(t) = ${
-        segments.length === 1
-          ? segments[0]!.expr.tex
-          : String.raw`\begin{cases} ${segments.map((s) => String.raw`${s.expr.tex} & ${n(s.from)} \le t < ${n(s.to)}`).join(TEX.newline)} \end{cases}`
-      }`,
+      formula: `${symbol}(t) = ${waveformTex(segments)}`,
       result: String.raw`T = ${n(period)}\ \text{s}`,
     },
   ];
@@ -180,20 +210,9 @@ export function solveAverageRms(
 
   let power: number | undefined;
   if (input.resistance !== undefined) {
-    const r = input.resistance;
-    power = input.quantity === 'corriente' ? rms ** 2 * r : rms ** 2 / r;
-    steps.push({
-      title: 'Potencia promedio en la resistencia',
-      explanation:
-        'El valor eficaz entrega a una resistencia la misma potencia promedio que un valor de cd igual.',
-      formula:
-        input.quantity === 'corriente' ? 'P = I_{ef}^{2}R' : String.raw`P = \frac{V_{ef}^{2}}{R}`,
-      substitution:
-        input.quantity === 'corriente'
-          ? `P = (${n(rms)})^{2}(${n(r)})`
-          : String.raw`P = \frac{(${n(rms)})^{2}}{${n(r)}}`,
-      result: String.raw`P = ${n(power)}\ \text{W}`,
-    });
+    const computed = powerStep(input.quantity, rms, input.resistance);
+    power = computed.power;
+    steps.push(computed.step);
   }
 
   // Muestras para la gráfica: dos periodos.

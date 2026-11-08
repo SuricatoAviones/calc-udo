@@ -105,62 +105,85 @@ function classify(alpha: number, omega0: number): Natural {
   };
 }
 
-function response(
+/** Condiciones iniciales x(0⁺), x′(0⁺) y valor final x_f de una respuesta. */
+interface InitialConditions {
+  x0: number;
+  dx0: number;
+  xInf: number;
+}
+
+/**
+ * Constantes de la respuesta natural a partir de d = x(0⁺) − x_f y x′(0⁺): A₁ y A₂ (sobre o
+ * críticamente amortiguada) o B₁ y B₂ (subamortiguada).
+ */
+function naturalConstants(
   natural: Natural,
-  name: string,
-  unit: string,
-  x0: number,
+  d: number,
   dx0: number,
-  xInf: number,
-  derivation: Step,
-  time: number | undefined,
-): { value: ResponseValue; step: Step } {
+): { constants: [number, number]; pieces: TimePiece[]; step: Step } {
   const { alpha, s1, s2, omegaD, damping } = natural;
-  const d = x0 - xInf;
-  const children: Step[] = [derivation];
-  let constants: [number, number];
-  let pieces: TimePiece[];
   if (damping === 'sobreamortiguado') {
     const A1 = (dx0 - s2 * d) / (s1 - s2);
     const A2 = d - A1;
-    constants = [A1, A2];
-    pieces = [
-      { power: 0, sigma: s1, omega: 0, a: A1, b: 0 },
-      { power: 0, sigma: s2, omega: 0, a: A2, b: 0 },
-    ];
-    children.push({
-      title: 'Constantes A₁ y A₂',
-      explanation: 'Se evalúan x(t) y su derivada en t = 0⁺ y se resuelve el sistema.',
-      formula: String.raw`\begin{cases} A_1 + A_2 = x(0^{+}) - x_f \\ s_1A_1 + s_2A_2 = x'(0^{+}) \end{cases}`,
-      substitution: String.raw`\begin{cases} A_1 + A_2 = ${n(d)} \\ ${n(s1)}A_1 + (${n(s2)})A_2 = ${n(dx0)} \end{cases}`,
-      result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
-    });
-  } else if (damping === 'critico') {
+    return {
+      constants: [A1, A2],
+      pieces: [
+        { power: 0, sigma: s1, omega: 0, a: A1, b: 0 },
+        { power: 0, sigma: s2, omega: 0, a: A2, b: 0 },
+      ],
+      step: {
+        title: 'Constantes A₁ y A₂',
+        explanation: 'Se evalúan x(t) y su derivada en t = 0⁺ y se resuelve el sistema.',
+        formula: String.raw`\begin{cases} A_1 + A_2 = x(0^{+}) - x_f \\ s_1A_1 + s_2A_2 = x'(0^{+}) \end{cases}`,
+        substitution: String.raw`\begin{cases} A_1 + A_2 = ${n(d)} \\ ${n(s1)}A_1 + (${n(s2)})A_2 = ${n(dx0)} \end{cases}`,
+        result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
+      },
+    };
+  }
+  if (damping === 'critico') {
     const A2 = d;
     const A1 = dx0 + alpha * A2;
-    constants = [A1, A2];
-    pieces = [
-      { power: 1, sigma: -alpha, omega: 0, a: A1, b: 0 },
-      { power: 0, sigma: -alpha, omega: 0, a: A2, b: 0 },
-    ];
-    children.push({
-      title: 'Constantes A₁ y A₂',
-      formula: String.raw`A_2 = x(0^{+}) - x_f,\qquad A_1 - \alpha A_2 = x'(0^{+})`,
-      substitution: String.raw`A_2 = ${n(d)},\qquad A_1 = ${n(dx0)} + (${n(alpha)})(${n(A2)})`,
-      result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
-    });
-  } else {
-    const B1 = d;
-    const B2 = (dx0 + alpha * B1) / omegaD;
-    constants = [B1, B2];
-    pieces = [{ power: 0, sigma: -alpha, omega: omegaD, a: B1, b: B2 }];
-    children.push({
+    return {
+      constants: [A1, A2],
+      pieces: [
+        { power: 1, sigma: -alpha, omega: 0, a: A1, b: 0 },
+        { power: 0, sigma: -alpha, omega: 0, a: A2, b: 0 },
+      ],
+      step: {
+        title: 'Constantes A₁ y A₂',
+        formula: String.raw`A_2 = x(0^{+}) - x_f,\qquad A_1 - \alpha A_2 = x'(0^{+})`,
+        substitution: String.raw`A_2 = ${n(d)},\qquad A_1 = ${n(dx0)} + (${n(alpha)})(${n(A2)})`,
+        result: String.raw`A_1 = ${n(A1)},\quad A_2 = ${n(A2)}`,
+      },
+    };
+  }
+  const B1 = d;
+  const B2 = (dx0 + alpha * B1) / omegaD;
+  return {
+    constants: [B1, B2],
+    pieces: [{ power: 0, sigma: -alpha, omega: omegaD, a: B1, b: B2 }],
+    step: {
       title: 'Constantes B₁ y B₂',
       formula: String.raw`B_1 = x(0^{+}) - x_f,\qquad -\alpha B_1 + \omega_d B_2 = x'(0^{+})`,
       substitution: String.raw`B_1 = ${n(d)},\qquad B_2 = \frac{${n(dx0)} + (${n(alpha)})(${n(B1)})}{${n(omegaD)}}`,
       result: String.raw`B_1 = ${n(B1)},\quad B_2 = ${n(B2)}`,
-    });
-  }
+    },
+  };
+}
+
+/** Unidad en LaTeX detrás de un valor (nada si la variable no tiene unidad). */
+const unitTex = (unit: string) => (unit ? String.raw`\ \text{${unit}}` : '');
+
+function response(
+  natural: Natural,
+  name: string,
+  unit: string,
+  { x0, dx0, xInf }: InitialConditions,
+  derivation: Step,
+  time: number | undefined,
+): { value: ResponseValue; step: Step } {
+  const { constants, pieces, step } = naturalConstants(natural, x0 - xInf, dx0);
+  const children: Step[] = [derivation, step];
   const all: TimePiece[] = [
     ...(xInf !== 0 ? [{ power: 0, sigma: 0, omega: 0, a: xInf, b: 0 }] : []),
     ...pieces,
@@ -176,9 +199,13 @@ function response(
       0,
     );
   const atTime = time === undefined ? undefined : evaluate(time);
+  const atText =
+    atTime === undefined
+      ? ''
+      : String.raw`,\quad ${name}(${n(time!)}) = ${n(atTime)}\ \text{${unit}}`;
   children.push({
     title: 'Respuesta',
-    result: String.raw`${name}(t) = ${tex}\ \text{${unit}}${atTime === undefined ? '' : String.raw`,\quad ${name}(${n(time!)}) = ${n(atTime)}\ \text{${unit}}`}`,
+    result: String.raw`${name}(t) = ${tex}\ \text{${unit}}${atText}`,
   });
   return {
     value: { name, unit, x0, dx0, xInf, constants, tex, pieces: all, atTime },
@@ -186,35 +213,171 @@ function response(
   };
 }
 
+/** Ecuación y α del RLC en paralelo (variable v) y en serie (variable i). */
+const CIRCUITS = {
+  paralelo: {
+    title: 'Circuito RLC en paralelo',
+    explanation:
+      'v es el voltaje común (+ arriba) e i_L baja por el inductor. La fuente de cd I_s, si la hay, entra al nodo superior a partir de t = 0.',
+    equation: String.raw`C\frac{d^{2}v}{dt^{2}} + \frac{1}{R}\frac{dv}{dt} + \frac{1}{L}v = 0`,
+    alpha: (R: number, L: number, Cap: number) => 1 / (2 * R * Cap),
+    alphaFormula: String.raw`\alpha = \frac{1}{2RC}`,
+    alphaSubstitution: (R: number, L: number, Cap: number) =>
+      String.raw`\alpha = \frac{1}{2(${n(R)})(${n(Cap)})}`,
+  },
+  serie: {
+    title: 'Circuito RLC en serie',
+    explanation:
+      'i circula en sentido horario por los tres elementos y v_C tiene su + por donde entra i. La fuente de cd V_s, si la hay, está en serie a partir de t = 0.',
+    equation: String.raw`L\frac{d^{2}i}{dt^{2}} + R\frac{di}{dt} + \frac{1}{C}i = 0`,
+    alpha: (R: number, L: number) => R / (2 * L),
+    alphaFormula: String.raw`\alpha = \frac{R}{2L}`,
+    alphaSubstitution: (R: number, L: number) => String.raw`\alpha = \frac{${n(R)}}{2(${n(L)})}`,
+  },
+} as const;
+
+/** Raíces de la ecuación característica según el tipo de amortiguamiento. */
+function rootsTex(natural: Natural): string {
+  const { alpha } = natural;
+  if (natural.damping === 'sobreamortiguado')
+    return String.raw`s_1 = ${n(natural.s1)},\quad s_2 = ${n(natural.s2)}`;
+  if (natural.damping === 'critico') return String.raw`s_1 = s_2 = -\alpha = ${n(-alpha)}`;
+  return String.raw`s_{1,2} = ${n(-alpha)} \pm j${n(natural.omegaD)},\quad \omega_d = \sqrt{\omega_0^{2} - \alpha^{2}} = ${n(natural.omegaD)}\ \text{rad/s}`;
+}
+
+const DAMPING_NAMES: Record<Damping, string> = {
+  sobreamortiguado: 'sobreamortiguado',
+  critico: 'críticamente amortiguado',
+  subamortiguado: 'subamortiguado',
+};
+
+/**
+ * Tiempo de la gráfica: unas cinco constantes de tiempo de la envolvente (o entre dos y ocho
+ * periodos de ω_d), y al menos el instante pedido.
+ */
+function plotEnd(natural: Natural, time: number | undefined): number {
+  const slowest =
+    natural.damping === 'sobreamortiguado' ? Math.abs(natural.s1) : Math.max(natural.alpha, 1e-12);
+  let tEnd = 5 / slowest;
+  if (natural.damping === 'subamortiguado') {
+    tEnd = Math.min(tEnd, (8 * 2 * Math.PI) / natural.omegaD);
+    tEnd = Math.max(tEnd, (2 * 2 * Math.PI) / natural.omegaD);
+  }
+  return time === undefined ? tEnd : Math.max(tEnd, time);
+}
+
+type ResponseStep = { value: ResponseValue; step: Step };
+
+/** Modo general: se dan x(0⁺), x′(0⁺) y x_f directamente. */
+function generalResponse(input: SecondOrderInput, natural: Natural): ResponseStep[] {
+  const derivation: Step = {
+    title: 'Condiciones iniciales y valor final',
+    result: String.raw`x(0^{+}) = ${n(input.x0)},\quad x'(0^{+}) = ${n(input.dx0)},\quad x_f = ${n(input.xInf)}`,
+  };
+  const initial = { x0: input.x0, dx0: input.dx0, xInf: input.xInf };
+  return [response(natural, 'x', '', initial, derivation, input.time)];
+}
+
+/** RLC en paralelo: v (LCK en t = 0⁺) e i_L. */
+function parallelResponses(input: SecondOrderInput, natural: Natural): ResponseStep[] {
+  const { resistance: R, inductance: L, capacitance: Cap, vC0, iL0, source: Is, time } = input;
+  const dv0 = (Is - iL0 - vC0 / R) / Cap;
+  const v = response(
+    natural,
+    'v',
+    'V',
+    { x0: vC0, dx0: dv0, xInf: 0 },
+    {
+      title: 'Condiciones iniciales (LCK en t = 0⁺)',
+      explanation:
+        'v(0⁺) = v_C(0) porque el voltaje del capacitor no cambia de golpe. La derivada sale de la corriente del capacitor: i_C = I_s − i_L − v/R. Con cd, en t → ∞ el inductor es un corto: v_f = 0.',
+      formula: String.raw`v'(0^{+}) = \frac{i_C(0^{+})}{C} = \frac{I_s - i_L(0) - v(0)/R}{C}`,
+      substitution: String.raw`v'(0^{+}) = \frac{${n(Is)} - (${n(iL0)}) - (${n(vC0)})/${n(R)}}{${n(Cap)}}`,
+      result: String.raw`v(0^{+}) = ${n(vC0)},\quad v'(0^{+}) = ${n(dv0)}\ \text{V/s},\quad v_f = 0`,
+    },
+    time,
+  );
+  const diL0 = vC0 / L;
+  const i = response(
+    natural,
+    'i_L',
+    'A',
+    { x0: iL0, dx0: diL0, xInf: Is },
+    {
+      title: 'Condiciones iniciales del inductor',
+      explanation:
+        'i_L(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe; su derivada es v/L. En t → ∞ toda la corriente de la fuente pasa por el inductor.',
+      formula: String.raw`i_L'(0^{+}) = \frac{v(0^{+})}{L}`,
+      substitution: String.raw`i_L'(0^{+}) = \frac{${n(vC0)}}{${n(L)}}`,
+      result: String.raw`i_L(0^{+}) = ${n(iL0)},\quad i_L'(0^{+}) = ${n(diL0)}\ \text{A/s},\quad i_{L,f} = ${n(Is)}`,
+    },
+    time,
+  );
+  return [v, i];
+}
+
+/** RLC en serie: i (LVK en t = 0⁺) y v_C. */
+function seriesResponses(input: SecondOrderInput, natural: Natural): ResponseStep[] {
+  const { resistance: R, inductance: L, capacitance: Cap, vC0, iL0, source: Vs, time } = input;
+  const di0 = (Vs - R * iL0 - vC0) / L;
+  const i = response(
+    natural,
+    'i',
+    'A',
+    { x0: iL0, dx0: di0, xInf: 0 },
+    {
+      title: 'Condiciones iniciales (LVK en t = 0⁺)',
+      explanation:
+        'i(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe. La derivada sale del voltaje del inductor: v_L = V_s − Ri − v_C. Con cd, en t → ∞ el capacitor es un abierto: i_f = 0.',
+      formula: String.raw`i'(0^{+}) = \frac{v_L(0^{+})}{L} = \frac{V_s - R\,i(0) - v_C(0)}{L}`,
+      substitution: String.raw`i'(0^{+}) = \frac{${n(Vs)} - (${n(R)})(${n(iL0)}) - (${n(vC0)})}{${n(L)}}`,
+      result: String.raw`i(0^{+}) = ${n(iL0)},\quad i'(0^{+}) = ${n(di0)}\ \text{A/s},\quad i_f = 0`,
+    },
+    time,
+  );
+  const dvC0 = iL0 / Cap;
+  const v = response(
+    natural,
+    'v_C',
+    'V',
+    { x0: vC0, dx0: dvC0, xInf: Vs },
+    {
+      title: 'Condiciones iniciales del capacitor',
+      explanation:
+        'v_C(0⁺) = v_C(0); su derivada es i/C. En t → ∞ el capacitor queda cargado al voltaje de la fuente.',
+      formula: String.raw`v_C'(0^{+}) = \frac{i(0^{+})}{C}`,
+      substitution: String.raw`v_C'(0^{+}) = \frac{${n(iL0)}}{${n(Cap)}}`,
+      result: String.raw`v_C(0^{+}) = ${n(vC0)},\quad v_C'(0^{+}) = ${n(dvC0)}\ \text{V/s},\quad v_{C,f} = ${n(Vs)}`,
+    },
+    time,
+  );
+  return [i, v];
+}
+
+function circuitResponses(input: SecondOrderInput, natural: Natural): ResponseStep[] {
+  if (input.mode === 'general') return generalResponse(input, natural);
+  return input.circuit === 'paralelo'
+    ? parallelResponses(input, natural)
+    : seriesResponses(input, natural);
+}
+
 export function solveSecondOrder(
   input: SecondOrderInput,
 ): CalculatorResult<SecondOrderValue, never> {
   const { resistance: R, inductance: L, capacitance: Cap } = input;
-  const parallel = input.circuit === 'paralelo';
-  const alpha = parallel ? 1 / (2 * R * Cap) : R / (2 * L);
+  const circuit = CIRCUITS[input.circuit];
+  const alpha = circuit.alpha(R, L, Cap);
   const omega0 = 1 / Math.sqrt(L * Cap);
   const natural = classify(alpha, omega0);
   const steps: Step[] = [];
   const notices: Notice[] = [];
 
   steps.push(
-    {
-      title: parallel ? 'Circuito RLC en paralelo' : 'Circuito RLC en serie',
-      explanation: parallel
-        ? 'v es el voltaje común (+ arriba) e i_L baja por el inductor. La fuente de cd I_s, si la hay, entra al nodo superior a partir de t = 0.'
-        : 'i circula en sentido horario por los tres elementos y v_C tiene su + por donde entra i. La fuente de cd V_s, si la hay, está en serie a partir de t = 0.',
-      formula: parallel
-        ? String.raw`C\frac{d^{2}v}{dt^{2}} + \frac{1}{R}\frac{dv}{dt} + \frac{1}{L}v = 0`
-        : String.raw`L\frac{d^{2}i}{dt^{2}} + R\frac{di}{dt} + \frac{1}{C}i = 0`,
-    },
+    { title: circuit.title, explanation: circuit.explanation, formula: circuit.equation },
     {
       title: 'Frecuencias α y ω₀',
-      formula: parallel
-        ? String.raw`\alpha = \frac{1}{2RC},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`
-        : String.raw`\alpha = \frac{R}{2L},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`,
-      substitution: parallel
-        ? String.raw`\alpha = \frac{1}{2(${n(R)})(${n(Cap)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`
-        : String.raw`\alpha = \frac{${n(R)}}{2(${n(L)})},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`,
+      formula: String.raw`${circuit.alphaFormula},\qquad \omega_0 = \frac{1}{\sqrt{LC}}`,
+      substitution: String.raw`${circuit.alphaSubstitution(R, L, Cap)},\qquad \omega_0 = \frac{1}{\sqrt{(${n(L)})(${n(Cap)})}}`,
       result: String.raw`\alpha = ${n(alpha)}\ \text{s}^{-1},\quad \omega_0 = ${n(omega0)}\ \text{rad/s}`,
     },
   );
@@ -228,12 +391,7 @@ export function solveSecondOrder(
     title: 'Tipo de respuesta',
     explanation: `${dampingText} Razón de amortiguamiento ζ = α/ω₀ = ${formatNumber(alpha / omega0, DIGITS)}.`,
     formula: String.raw`s_{1,2} = -\alpha \pm \sqrt{\alpha^{2} - \omega_0^{2}}`,
-    result:
-      natural.damping === 'sobreamortiguado'
-        ? String.raw`s_1 = ${n(natural.s1)},\quad s_2 = ${n(natural.s2)}`
-        : natural.damping === 'critico'
-          ? String.raw`s_1 = s_2 = -\alpha = ${n(-alpha)}`
-          : String.raw`s_{1,2} = ${n(-alpha)} \pm j${n(natural.omegaD)},\quad \omega_d = \sqrt{\omega_0^{2} - \alpha^{2}} = ${n(natural.omegaD)}\ \text{rad/s}`,
+    result: rootsTex(natural),
   });
   if (natural.damping !== 'critico' && Math.abs(alpha - omega0) / omega0 < 1e-3) {
     notices.push({
@@ -254,107 +412,12 @@ export function solveSecondOrder(
     formula: form,
   });
 
-  const responses: ResponseValue[] = [];
   const time = input.time;
-  if (input.mode === 'general') {
-    const derivation: Step = {
-      title: 'Condiciones iniciales y valor final',
-      result: String.raw`x(0^{+}) = ${n(input.x0)},\quad x'(0^{+}) = ${n(input.dx0)},\quad x_f = ${n(input.xInf)}`,
-    };
-    const r = response(natural, 'x', '', input.x0, input.dx0, input.xInf, derivation, time);
-    responses.push(r.value);
-    steps.push(r.step);
-  } else if (parallel) {
-    const { vC0, iL0, source: Is } = input;
-    const dv0 = (Is - iL0 - vC0 / R) / Cap;
-    const v = response(
-      natural,
-      'v',
-      'V',
-      vC0,
-      dv0,
-      0,
-      {
-        title: 'Condiciones iniciales (LCK en t = 0⁺)',
-        explanation:
-          'v(0⁺) = v_C(0) porque el voltaje del capacitor no cambia de golpe. La derivada sale de la corriente del capacitor: i_C = I_s − i_L − v/R. Con cd, en t → ∞ el inductor es un corto: v_f = 0.',
-        formula: String.raw`v'(0^{+}) = \frac{i_C(0^{+})}{C} = \frac{I_s - i_L(0) - v(0)/R}{C}`,
-        substitution: String.raw`v'(0^{+}) = \frac{${n(Is)} - (${n(iL0)}) - (${n(vC0)})/${n(R)}}{${n(Cap)}}`,
-        result: String.raw`v(0^{+}) = ${n(vC0)},\quad v'(0^{+}) = ${n(dv0)}\ \text{V/s},\quad v_f = 0`,
-      },
-      time,
-    );
-    const diL0 = vC0 / L;
-    const i = response(
-      natural,
-      'i_L',
-      'A',
-      iL0,
-      diL0,
-      Is,
-      {
-        title: 'Condiciones iniciales del inductor',
-        explanation:
-          'i_L(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe; su derivada es v/L. En t → ∞ toda la corriente de la fuente pasa por el inductor.',
-        formula: String.raw`i_L'(0^{+}) = \frac{v(0^{+})}{L}`,
-        substitution: String.raw`i_L'(0^{+}) = \frac{${n(vC0)}}{${n(L)}}`,
-        result: String.raw`i_L(0^{+}) = ${n(iL0)},\quad i_L'(0^{+}) = ${n(diL0)}\ \text{A/s},\quad i_{L,f} = ${n(Is)}`,
-      },
-      time,
-    );
-    responses.push(v.value, i.value);
-    steps.push(v.step, i.step);
-  } else {
-    const { vC0, iL0, source: Vs } = input;
-    const di0 = (Vs - R * iL0 - vC0) / L;
-    const i = response(
-      natural,
-      'i',
-      'A',
-      iL0,
-      di0,
-      0,
-      {
-        title: 'Condiciones iniciales (LVK en t = 0⁺)',
-        explanation:
-          'i(0⁺) = i_L(0) porque la corriente del inductor no cambia de golpe. La derivada sale del voltaje del inductor: v_L = V_s − Ri − v_C. Con cd, en t → ∞ el capacitor es un abierto: i_f = 0.',
-        formula: String.raw`i'(0^{+}) = \frac{v_L(0^{+})}{L} = \frac{V_s - R\,i(0) - v_C(0)}{L}`,
-        substitution: String.raw`i'(0^{+}) = \frac{${n(Vs)} - (${n(R)})(${n(iL0)}) - (${n(vC0)})}{${n(L)}}`,
-        result: String.raw`i(0^{+}) = ${n(iL0)},\quad i'(0^{+}) = ${n(di0)}\ \text{A/s},\quad i_f = 0`,
-      },
-      time,
-    );
-    const dvC0 = iL0 / Cap;
-    const v = response(
-      natural,
-      'v_C',
-      'V',
-      vC0,
-      dvC0,
-      Vs,
-      {
-        title: 'Condiciones iniciales del capacitor',
-        explanation:
-          'v_C(0⁺) = v_C(0); su derivada es i/C. En t → ∞ el capacitor queda cargado al voltaje de la fuente.',
-        formula: String.raw`v_C'(0^{+}) = \frac{i(0^{+})}{C}`,
-        substitution: String.raw`v_C'(0^{+}) = \frac{${n(iL0)}}{${n(Cap)}}`,
-        result: String.raw`v_C(0^{+}) = ${n(vC0)},\quad v_C'(0^{+}) = ${n(dvC0)}\ \text{V/s},\quad v_{C,f} = ${n(Vs)}`,
-      },
-      time,
-    );
-    responses.push(i.value, v.value);
-    steps.push(i.step, v.step);
-  }
+  const computed = circuitResponses(input, natural);
+  const responses = computed.map((r) => r.value);
+  steps.push(...computed.map((r) => r.step));
 
-  // Gráfica: unas cinco constantes de tiempo de la envolvente (o tres periodos de ω_d).
-  const slowest =
-    natural.damping === 'sobreamortiguado' ? Math.abs(natural.s1) : Math.max(alpha, 1e-12);
-  let tEnd = 5 / slowest;
-  if (natural.damping === 'subamortiguado')
-    tEnd = Math.min(tEnd, (8 * 2 * Math.PI) / natural.omegaD);
-  if (natural.damping === 'subamortiguado')
-    tEnd = Math.max(tEnd, (2 * 2 * Math.PI) / natural.omegaD);
-  if (time !== undefined) tEnd = Math.max(tEnd, time);
+  const tEnd = plotEnd(natural, time);
   const samples = 500;
   const series: Series[] = responses.map((r) => ({
     id: `respuesta-${r.name}`,
@@ -392,11 +455,11 @@ export function solveSecondOrder(
       { label: 'ω₀', value: String.raw`${n(omega0)}\ \text{rad/s}` },
       {
         label: 'Tipo',
-        value: String.raw`\text{${{ sobreamortiguado: 'sobreamortiguado', critico: 'críticamente amortiguado', subamortiguado: 'subamortiguado' }[natural.damping]}}`,
+        value: String.raw`\text{${DAMPING_NAMES[natural.damping]}}`,
       },
       ...responses.map((r, i) => ({
         label: `${r.name}(t)`,
-        value: `${r.name}(t) = ${r.tex}${r.unit ? String.raw`\ \text{${r.unit}}` : ''}`,
+        value: `${r.name}(t) = ${r.tex}${unitTex(r.unit)}`,
         emphasis: i === 0,
       })),
     ],

@@ -14,6 +14,9 @@ describe('relaciones-v-i-p', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.iExpr).toContain('5');
+    // Regresión: el texto de la derivada salía como «[object Object]». Se verifica por inspección
+    // (d/dt de 10 sin t es 10 cos t), no contra un libro.
+    expect(result.value.iExpr).toBe('0.5 * (10 * cos(t))');
     expect(result.summary).toEqual(
       expect.arrayContaining([
         { label: 'i(0)', value: expect.stringContaining('5'), emphasis: undefined },

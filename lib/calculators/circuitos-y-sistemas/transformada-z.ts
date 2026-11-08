@@ -23,7 +23,13 @@ import {
 } from '@/lib/math/polynomials';
 import type { Calculator, CalculatorResult, ResultTable, Series, Step } from '../types';
 import { DIGITS, factoredTex, joinTerms, parseTransform, polyTex, rationalTex } from './laplace';
-import { expansionTemplate, expansionTex, residueSteps } from './laplace-inverse';
+import {
+  expansionTemplate,
+  expansionTex,
+  orderSuffix,
+  poleText,
+  residueSteps,
+} from './laplace-inverse';
 import { partialFractions } from './partial-fractions';
 import {
   parseSignal,
@@ -48,6 +54,22 @@ const n = (v: number) => toLatexNumber(v, DIGITS);
 const DISCRETE = { variable: 'k', discrete: true };
 const MAX_ORDER = 6;
 
+/** Mensaje cuando falta la expresión, según el modo. */
+const EMPTY_EXPRESSION = {
+  inversa: 'Escribe X(z).',
+  sucesion: 'Escribe x(k).',
+  ecuacion: 'Escribe la excitación x(k) (0 si no hay).',
+} as const;
+
+/** `z^{k}` en LaTeX (`z` si k = 1). */
+const zPower = (k: number) => (k === 1 ? 'z' : `z^{${k}}`);
+
+/** `z^{-k}` en LaTeX: vacío para k = 0 y `z^{-1}` para k = 1. */
+function zInversePower(k: number): string {
+  if (k === 0) return '';
+  return k === 1 ? 'z^{-1}' : `z^{-${k}}`;
+}
+
 const inputSchema = z
   .object({
     mode: z.enum(['sucesion', 'inversa', 'ecuacion']),
@@ -65,12 +87,7 @@ const inputSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['expression'],
-        message:
-          input.mode === 'inversa'
-            ? 'Escribe X(z).'
-            : input.mode === 'sucesion'
-              ? 'Escribe x(k).'
-              : 'Escribe la excitación x(k) (0 si no hay).',
+        message: EMPTY_EXPRESSION[input.mode],
       });
     }
     if (input.mode !== 'ecuacion') return;
@@ -228,10 +245,12 @@ function forwardSteps(
     if (!term.ok) return { code: 'fuera-de-tabla', message: term.message };
     const { num, den } = zRational(zFormOfSignal(term.signal));
     const pair = describeZPair(term.signal);
+    const transform = zTex(num, den);
+    const signed = sign < 0 ? String.raw`-\left(${transform}\right)` : transform;
     children.push({
       title: pair.name,
       formula: pair.formula,
-      result: String.raw`\mathcal{Z}\left\{${sign < 0 ? '-' : ''}${signalNodeTex(node)}\right\} = ${sign < 0 ? String.raw`-\left(${zTex(num, den)}\right)` : zTex(num, den)}`,
+      result: String.raw`\mathcal{Z}\left\{${sign < 0 ? '-' : ''}${signalNodeTex(node)}\right\} = ${signed}`,
     });
   }
   const { num, den } = zRational(zFormOfSignal(parsed.signal));
@@ -272,12 +291,7 @@ function inverseZ(
       title: 'Polos',
       formula: `${polyTex(zDen, 'z')} = 0`,
       result: `${polyTex(zDen, 'z')} = ${factoredTex(roots, zDen[0]!, 'z')}`,
-      explanation: `Polos: ${roots
-        .map(
-          (r) =>
-            `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (multiplicidad ${r.multiplicity})` : ''}`,
-        )
-        .join(', ')}.`,
+      explanation: `Polos: ${roots.map(poleText).join(', ')}.`,
     },
     {
       title: 'Forma de la expansión',
@@ -305,7 +319,7 @@ function inverseZ(
     }
     if (t.pole.im === 0) {
       return {
-        title: `Polo real ${C.toTextRect(t.pole, DIGITS)}${t.order > 1 ? `, orden ${t.order}` : ''}`,
+        title: `Polo real ${C.toTextRect(t.pole, DIGITS)}${orderSuffix(t.order)}`,
         formula:
           t.order === 1
             ? String.raw`\frac{Kz}{z - p} \leftrightarrow K\,p^{k}`
@@ -366,7 +380,7 @@ function solveSequence(input: ZInput): Result {
         'Al dividir el numerador entre el denominador en potencias de z⁻¹, el coeficiente de z⁻ᵏ es x(k) (tabla de abajo).',
       result: String.raw`X(z) = ${series
         .slice(0, 4)
-        .map((v, k) => `${n(v)}${k === 0 ? '' : k === 1 ? 'z^{-1}' : `z^{-${k}}`}`)
+        .map((v, k) => `${n(v)}${zInversePower(k)}`)
         .join(' + ')
         .replaceAll('+ -', '- ')} + \cdots`,
     },
@@ -487,11 +501,11 @@ function solveEquation(input: ZInput): Result {
   for (let i = order; i >= 1; i--) {
     const terms = Array.from({ length: i }, (_, j) => {
       const power = i - j;
-      return `y(${j})${power === 1 ? 'z' : `z^{${power}}`}`;
+      return `y(${j})${zPower(power)}`;
     });
     shiftSteps.push({
       title: `Z{y(k + ${i})}`,
-      formula: String.raw`\mathcal{Z}\{${shiftName(i)}\} = ${i === 1 ? 'z' : `z^{${i}}`}Y(z) - ${terms.join(' - ')}`,
+      formula: String.raw`\mathcal{Z}\{${shiftName(i)}\} = ${zPower(i)}Y(z) - ${terms.join(' - ')}`,
     });
   }
   steps.push(
@@ -550,7 +564,8 @@ function solveEquation(input: ZInput): Result {
   // Contraste con la recursión directa.
   const count = input.samples;
   const recursion: number[] = [...initial];
-  for (let k = 0; recursion.length < count; k++) {
+  while (recursion.length < count) {
+    const k = recursion.length - initial.length;
     let acc = signalAt(forward.signal, k);
     for (let i = 0; i < order; i++) acc -= a[order - i]! * recursion[k + i]!;
     recursion.push(acc / a[0]!);

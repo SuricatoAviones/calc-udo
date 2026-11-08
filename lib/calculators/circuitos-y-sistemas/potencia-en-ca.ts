@@ -66,6 +66,18 @@ export interface PowerValue {
   character: 'atrasado' | 'adelantado' | 'unitario';
 }
 
+/** FP unitario (en fase), atrasado (carga inductiva, θ > 0) o adelantado (capacitiva). */
+function powerFactorCharacter(thetaDeg: number): PowerValue['character'] {
+  if (Math.abs(thetaDeg) < 1e-9) return 'unitario';
+  return thetaDeg > 0 ? 'atrasado' : 'adelantado';
+}
+
+const CHARACTER_EXPLANATION: Record<PowerValue['character'], string> = {
+  unitario: 'Voltaje y corriente están en fase: carga resistiva.',
+  atrasado: 'La corriente se atrasa respecto del voltaje: carga inductiva (FP atrasado).',
+  adelantado: 'La corriente se adelanta al voltaje: carga capacitiva (FP adelantado).',
+};
+
 export function solvePower(input: PowerInput): CalculatorResult<PowerValue, never> {
   const toRms = input.values === 'amplitud' ? 1 / Math.SQRT2 : 1;
   const label = input.values === 'amplitud' ? 'amplitud' : 'valor eficaz';
@@ -140,8 +152,7 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, neve
   const reactive = apparent * Math.sin(theta);
   const complexPower = C.mul(vRms, C.conj(iRms));
   const powerFactor = Math.cos(theta);
-  const character: PowerValue['character'] =
-    Math.abs(thetaDeg) < 1e-9 ? 'unitario' : thetaDeg > 0 ? 'atrasado' : 'adelantado';
+  const character = powerFactorCharacter(thetaDeg);
 
   steps.push({
     title: 'Potencia promedio (activa)',
@@ -178,12 +189,7 @@ export function solvePower(input: PowerInput): CalculatorResult<PowerValue, neve
     },
     {
       title: 'Factor de potencia',
-      explanation:
-        character === 'unitario'
-          ? 'Voltaje y corriente están en fase: carga resistiva.'
-          : character === 'atrasado'
-            ? 'La corriente se atrasa respecto del voltaje: carga inductiva (FP atrasado).'
-            : 'La corriente se adelanta al voltaje: carga capacitiva (FP adelantado).',
+      explanation: CHARACTER_EXPLANATION[character],
       formula: String.raw`\text{FP} = \frac{P}{|\mathbf{S}|} = \cos\theta`,
       result: String.raw`\text{FP} = ${n(powerFactor)}\ \text{(${character})}`,
     },

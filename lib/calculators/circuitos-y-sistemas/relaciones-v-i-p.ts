@@ -10,9 +10,9 @@
  */
 import { derivative } from 'mathjs';
 import { z } from 'zod';
-import { expressionFromNode, parseFunction } from '@/lib/math/expression';
+import { expressionFromNode, parseFunction, type ParsedExpression } from '@/lib/math/expression';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
-import type { Calculator, CalculatorResult, Series, Step } from '../types';
+import type { Calculator, CalculatorResult, Notice, Series, Step } from '../types';
 
 const relacionesInputSchema = z.object({
   component: z.enum(['resistor', 'capacitor', 'inductor']),
@@ -85,6 +85,115 @@ function makeSeries(
   };
 }
 
+/** Una magnitud (v o i) como texto, LaTeX y función del tiempo. */
+interface Quantity {
+  expr: string;
+  latex: string;
+  at: (t: number) => number;
+}
+
+/** Relación constitutiva de cada elemento. */
+const CONSTITUTIVE: Record<RelacionesVipInput['component'], string> = {
+  resistor: String.raw`v(t) = R\,i(t)`,
+  capacitor: String.raw`i(t) = C\,\frac{dv}{dt}`,
+  inductor: String.raw`v(t) = L\,\frac{di}{dt}`,
+};
+
+/** Coeficiente delante de la derivada: se omite si es 1. */
+const factorTex = (val: number) => (val === 1 ? '' : toLatexNumber(val));
+
+/** Derivada de la magnitud dada multiplicada por el valor del elemento (i = C dv/dt, v = L di/dt). */
+function scaledDerivative(
+  parsed: ParsedExpression,
+  val: number,
+  symbol: string,
+  name: 'i' | 'v',
+  of: 'v' | 'i',
+): Quantity {
+  const d = expressionFromNode(derivative(parsed.node, 't'), ['t']);
+  return {
+    expr: `${val} * (${d.source})`,
+    latex: String.raw`${name}(t) = ${toLatexNumber(val)}\,${symbol} \cdot \frac{d${of}}{dt} = ${factorTex(val)}${d.tex}`,
+    at: (t) => val * d.evaluateAt({ t }),
+  };
+}
+
+/** Integral numérica de la magnitud dada dividida entre el valor del elemento (condición inicial 0). */
+function scaledIntegral(
+  input: RelacionesVipInput,
+  parsed: ParsedExpression,
+  f: (t: number) => number,
+  symbol: string,
+  name: 'i' | 'v',
+): Quantity {
+  const val = input.value;
+  const { evalFn } = numericIntegral(f, input.tEnd, input.samples, 1 / val);
+  return {
+    expr: `(1/${val}) * ∫(${input.expression}) dt`,
+    latex: String.raw`${name}(t) = \frac{1}{${toLatexNumber(val)}\,${symbol}} \int_0^t ${parsed.tex} \, d\tau`,
+    at: evalFn,
+  };
+}
+
+/** Con el voltaje dado: i = v/R, i = C dv/dt o i = (1/L)∫v dt. */
+function currentFromVoltage(
+  input: RelacionesVipInput,
+  parsed: ParsedExpression,
+  f: (t: number) => number,
+): Quantity {
+  const val = input.value;
+  const symbol = SYMBOL[input.component];
+  if (input.component === 'resistor') {
+    return {
+      expr: `(${input.expression}) / ${val}`,
+      latex: String.raw`i(t) = \frac{${parsed.tex}}{${toLatexNumber(val)}\,${symbol}}`,
+      at: (t) => f(t) / val,
+    };
+  }
+  if (input.component === 'capacitor') return scaledDerivative(parsed, val, symbol, 'i', 'v');
+  return scaledIntegral(input, parsed, f, symbol, 'i');
+}
+
+/** Con la corriente dada: v = R i, v = L di/dt o v = (1/C)∫i dt. */
+function voltageFromCurrent(
+  input: RelacionesVipInput,
+  parsed: ParsedExpression,
+  f: (t: number) => number,
+): Quantity {
+  const val = input.value;
+  const symbol = SYMBOL[input.component];
+  if (input.component === 'resistor') {
+    return {
+      expr: `${val} * (${input.expression})`,
+      latex: String.raw`v(t) = ${toLatexNumber(val)}\,${symbol} \cdot ${parsed.tex}`,
+      at: (t) => val * f(t),
+    };
+  }
+  if (input.component === 'inductor') return scaledDerivative(parsed, val, symbol, 'v', 'i');
+  return scaledIntegral(input, parsed, f, symbol, 'v');
+}
+
+/** Al integrar se supone condición inicial cero; se avisa al estudiante. */
+function initialConditionNotices(input: RelacionesVipInput): Notice[] {
+  if (input.component === 'capacitor' && input.known === 'current') {
+    return [
+      {
+        level: 'info',
+        message: 'Se asume v(0) = 0 V (condición inicial cero) al integrar la corriente.',
+      },
+    ];
+  }
+  if (input.component === 'inductor' && input.known === 'voltage') {
+    return [
+      {
+        level: 'info',
+        message: 'Se asume i(0) = 0 A (condición inicial cero) al integrar el voltaje.',
+      },
+    ];
+  }
+  return [];
+}
+
 export function solveRelacionesVip(
   input: RelacionesVipInput,
 ): CalculatorResult<RelacionesVipValue, RelacionesVipErrorCode> {
@@ -97,64 +206,18 @@ export function solveRelacionesVip(
     };
   }
   const f = (t: number) => parsed.expr.evaluateAt({ t });
-
-  let vExpr: string;
-  let iExpr: string;
-  let vLatex: string;
-  let iLatex: string;
-  let v: (t: number) => number;
-  let i: (t: number) => number;
-
   const c = input.component;
-  const val = input.value;
-  const symbol = SYMBOL[c];
+  const given: Quantity = { expr: input.expression, latex: parsed.expr.tex, at: f };
 
+  const voltageKnown = input.known === 'voltage';
+  let volt: Quantity;
+  let curr: Quantity;
   try {
-    if (input.known === 'voltage') {
-      vExpr = input.expression;
-      vLatex = `v(t) = ${parsed.expr.tex}`;
-      v = f;
-      if (c === 'resistor') {
-        iExpr = `(${input.expression}) / ${val}`;
-        iLatex = String.raw`i(t) = \frac{${parsed.expr.tex}}{${toLatexNumber(val)}\,${symbol}}`;
-        i = (t) => f(t) / val;
-      } else if (c === 'capacitor') {
-        const d = derivative(parsed.expr.node, 't');
-        const di = expressionFromNode(d, ['t']);
-        iExpr = `${val} * (${di.toString()})`;
-        iLatex = String.raw`i(t) = ${toLatexNumber(val)}\,${symbol} \cdot \frac{dv}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${di.tex}`;
-        i = (t) => val * di.evaluateAt({ t });
-      } else {
-        // inductor, known voltage
-        // i(t) = (1/L) * integral v dt  → numeric
-        const { evalFn } = numericIntegral(f, input.tEnd, input.samples, 1 / val);
-        iExpr = `(1/${val}) * ∫(${input.expression}) dt`;
-        iLatex = String.raw`i(t) = \frac{1}{${toLatexNumber(val)}\,${symbol}} \int_0^t ${parsed.expr.tex} \, d\tau`;
-        i = evalFn;
-      }
-    } else {
-      // known current
-      iExpr = input.expression;
-      iLatex = `i(t) = ${parsed.expr.tex}`;
-      i = f;
-      if (c === 'resistor') {
-        vExpr = `${val} * (${input.expression})`;
-        vLatex = String.raw`v(t) = ${toLatexNumber(val)}\,${symbol} \cdot ${parsed.expr.tex}`;
-        v = (t) => val * f(t);
-      } else if (c === 'inductor') {
-        const d = derivative(parsed.expr.node, 't');
-        const dv = expressionFromNode(d, ['t']);
-        vExpr = `${val} * (${dv.toString()})`;
-        vLatex = String.raw`v(t) = ${toLatexNumber(val)}\,${symbol} \cdot \frac{di}{dt} = ${val === 1 ? '' : toLatexNumber(val)}${dv.tex}`;
-        v = (t) => val * dv.evaluateAt({ t });
-      } else {
-        // capacitor, known current
-        const { evalFn } = numericIntegral(f, input.tEnd, input.samples, 1 / val);
-        vExpr = `(1/${val}) * ∫(${input.expression}) dt`;
-        vLatex = String.raw`v(t) = \frac{1}{${toLatexNumber(val)}\,${symbol}} \int_0^t ${parsed.expr.tex} \, d\tau`;
-        v = evalFn;
-      }
-    }
+    const other = voltageKnown
+      ? currentFromVoltage(input, parsed.expr, f)
+      : voltageFromCurrent(input, parsed.expr, f);
+    volt = voltageKnown ? { ...given, latex: `v(t) = ${given.latex}` } : other;
+    curr = voltageKnown ? other : { ...given, latex: `i(t) = ${given.latex}` };
   } catch {
     return {
       ok: false,
@@ -165,6 +228,8 @@ export function solveRelacionesVip(
       ...emptyTrace(),
     };
   }
+  const { expr: vExpr, latex: vLatex, at: v } = volt;
+  const { expr: iExpr, latex: iLatex, at: i } = curr;
 
   const pExpr = `(${vExpr}) * (${iExpr})`;
   const pLatex = String.raw`p(t) = v(t)\cdot i(t)`;
@@ -176,20 +241,15 @@ export function solveRelacionesVip(
     {
       title: 'Relación constitutiva',
       explanation: `Se trabaja con una ${COMPONENT_NAMES[c]}. Convención pasiva: la corriente entra por el terminal de voltaje positivo.`,
-      formula:
-        c === 'resistor'
-          ? String.raw`v(t) = R\,i(t)`
-          : c === 'capacitor'
-            ? String.raw`i(t) = C\,\frac{dv}{dt}`
-            : String.raw`v(t) = L\,\frac{di}{dt}`,
+      formula: CONSTITUTIVE[c],
     },
     {
-      title: input.known === 'voltage' ? 'Voltaje dado' : 'Corriente dada',
-      formula: input.known === 'voltage' ? vLatex : iLatex,
+      title: voltageKnown ? 'Voltaje dado' : 'Corriente dada',
+      formula: voltageKnown ? vLatex : iLatex,
     },
     {
-      title: input.known === 'voltage' ? 'Corriente resultante' : 'Voltaje resultante',
-      formula: input.known === 'voltage' ? iLatex : vLatex,
+      title: voltageKnown ? 'Corriente resultante' : 'Voltaje resultante',
+      formula: voltageKnown ? iLatex : vLatex,
     },
     {
       title: 'Potencia instantánea',
@@ -221,22 +281,7 @@ export function solveRelacionesVip(
     steps,
     tables: [],
     series: [series],
-    notices:
-      c === 'capacitor' && input.known === 'current'
-        ? [
-            {
-              level: 'info',
-              message: 'Se asume v(0) = 0 V (condición inicial cero) al integrar la corriente.',
-            },
-          ]
-        : c === 'inductor' && input.known === 'voltage'
-          ? [
-              {
-                level: 'info',
-                message: 'Se asume i(0) = 0 A (condición inicial cero) al integrar el voltaje.',
-              },
-            ]
-          : [],
+    notices: initialConditionNotices(input),
   };
 }
 

@@ -16,7 +16,7 @@ import { z } from 'zod';
 import * as C from '@/lib/math/complex';
 import { parseDataList } from '@/lib/math/data-list';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
-import { addPoly, mulPoly, trimPoly, type Poly } from '@/lib/math/polynomials';
+import { addPoly, isZeroPoly, mulPoly, trimPoly, type Poly } from '@/lib/math/polynomials';
 import type { Calculator, CalculatorResult, Notice, Series, Step } from '../types';
 import {
   DIGITS,
@@ -130,8 +130,67 @@ function toRationals(groups: LaplaceGroup[]): DelayedRational[] {
   return groups.map((g) => ({ delay: g.delay, ...groupToRational(g) }));
 }
 
+interface TablePair {
+  name: string;
+  formula: string;
+}
+
+type GroupPole = LaplaceGroup['poles'][number];
+
+/** Potencias k (1, 2, …) del factor del polo que tienen residuo distinto de cero. */
+const nonzeroOrders = (p: GroupPole) =>
+  p.residues.map((r, k) => (C.isZero(r, 1e-14) ? -1 : k + 1)).filter((k) => k > 0);
+
+/** Un polo real p con una sola potencia k: escalón, rampa, exponencial o tⁿe^{−at}. */
+function realPolePair(p: number, k: number): TablePair {
+  if (p === 0 && k === 1)
+    return { name: 'Escalón', formula: String.raw`K\,u(t) \leftrightarrow \frac{K}{s}` };
+  if (p === 0)
+    return {
+      name: 'Potencia de t (rampa)',
+      formula: String.raw`t^{n} \leftrightarrow \frac{n!}{s^{n+1}}`,
+    };
+  if (k === 1)
+    return { name: 'Exponencial', formula: String.raw`e^{-at} \leftrightarrow \frac{1}{s + a}` };
+  return {
+    name: 'Potencia de t por exponencial',
+    formula: String.raw`t^{n}e^{-at} \leftrightarrow \frac{n!}{(s + a)^{n+1}}`,
+  };
+}
+
+/** Un par de polos complejos simples: seno y coseno, amortiguados si la parte real no es 0. */
+function complexPair(damped: boolean): TablePair {
+  if (damped) {
+    return {
+      name: 'Seno y coseno amortiguados (desplazamiento en frecuencia)',
+      formula: String.raw`e^{-at}\sin\omega t \leftrightarrow \frac{\omega}{(s + a)^{2} + \omega^{2}},\quad e^{-at}\cos\omega t \leftrightarrow \frac{s + a}{(s + a)^{2} + \omega^{2}}`,
+    };
+  }
+  return {
+    name: 'Seno y coseno',
+    formula: String.raw`\sin\omega t \leftrightarrow \frac{\omega}{s^{2} + \omega^{2}},\quad \cos\omega t \leftrightarrow \frac{s}{s^{2} + \omega^{2}}`,
+  };
+}
+
+/** Par de la tabla de un grupo sin retardo, o `null` si no tiene una forma básica. */
+function basicPair(g: LaplaceGroup): TablePair | null {
+  const poles = g.poles.filter((p) => p.residues.some((r) => !C.isZero(r, 1e-14)));
+  if (poles.length === 0 && !C.isZero(g.impulse)) {
+    return { name: 'Impulso', formula: String.raw`\delta(t) \leftrightarrow 1` };
+  }
+  if (!C.isZero(g.impulse)) return null;
+  const first = poles[0];
+  if (poles.length === 1 && first!.pole.im === 0 && nonzeroOrders(first!).length === 1) {
+    return realPolePair(first!.pole.re, nonzeroOrders(first!)[0]!);
+  }
+  const simple = poles.every((p) => nonzeroOrders(p).every((k) => k === 1));
+  if (poles.length === 2 && first!.pole.im !== 0 && simple)
+    return complexPair(first!.pole.re !== 0);
+  return null;
+}
+
 /** Par de la tabla que se usa para un sumando, según la forma de su transformada. */
-function describePair(groups: LaplaceGroup[]): { name: string; formula: string } {
+function describePair(groups: LaplaceGroup[]): TablePair {
   const generic = {
     name: 'Linealidad y tabla de pares',
     formula: String.raw`\mathcal{L}\{a f_1(t) + b f_2(t)\} = a F_1(s) + b F_2(s)`,
@@ -139,57 +198,10 @@ function describePair(groups: LaplaceGroup[]): { name: string; formula: string }
   if (groups.length !== 1) return generic;
   const g = groups[0]!;
   const delay = g.delay;
-  let base: { name: string; formula: string } | null = null;
-  const poles = g.poles.filter((p) => p.residues.some((r) => !C.isZero(r, 1e-14)));
-  if (poles.length === 0 && !C.isZero(g.impulse)) {
-    base = { name: 'Impulso', formula: String.raw`\delta(t) \leftrightarrow 1` };
-  } else if (C.isZero(g.impulse)) {
-    const nonzero = (p: (typeof poles)[number]) =>
-      p.residues.map((r, k) => (C.isZero(r, 1e-14) ? -1 : k + 1)).filter((k) => k > 0);
-    if (poles.length === 1 && poles[0]!.pole.im === 0 && nonzero(poles[0]!).length === 1) {
-      const p = poles[0]!.pole.re;
-      const k = nonzero(poles[0]!)[0]!;
-      if (p === 0 && k === 1)
-        base = { name: 'Escalón', formula: String.raw`K\,u(t) \leftrightarrow \frac{K}{s}` };
-      else if (p === 0) {
-        base = {
-          name: 'Potencia de t (rampa)',
-          formula: String.raw`t^{n} \leftrightarrow \frac{n!}{s^{n+1}}`,
-        };
-      } else if (k === 1) {
-        base = {
-          name: 'Exponencial',
-          formula: String.raw`e^{-at} \leftrightarrow \frac{1}{s + a}`,
-        };
-      } else {
-        base = {
-          name: 'Potencia de t por exponencial',
-          formula: String.raw`t^{n}e^{-at} \leftrightarrow \frac{n!}{(s + a)^{n+1}}`,
-        };
-      }
-    } else if (
-      poles.length === 2 &&
-      poles[0]!.pole.im !== 0 &&
-      poles.every((p) => nonzero(p).every((k) => k === 1))
-    ) {
-      const damped = poles[0]!.pole.re !== 0;
-      base = damped
-        ? {
-            name: 'Seno y coseno amortiguados (desplazamiento en frecuencia)',
-            formula: String.raw`e^{-at}\sin\omega t \leftrightarrow \frac{\omega}{(s + a)^{2} + \omega^{2}},\quad e^{-at}\cos\omega t \leftrightarrow \frac{s + a}{(s + a)^{2} + \omega^{2}}`,
-          }
-        : {
-            name: 'Seno y coseno',
-            formula: String.raw`\sin\omega t \leftrightarrow \frac{\omega}{s^{2} + \omega^{2}},\quad \cos\omega t \leftrightarrow \frac{s}{s^{2} + \omega^{2}}`,
-          };
-    }
-  }
-  if (!base) {
-    base = {
-      name: 'Linealidad y desplazamiento en frecuencia',
-      formula: String.raw`\mathcal{L}\{e^{-at}f(t)\} = F(s + a),\quad \mathcal{L}\{t^{n}f(t)\} = (-1)^{n}\frac{d^{n}F}{ds^{n}}`,
-    };
-  }
+  const base = basicPair(g) ?? {
+    name: 'Linealidad y desplazamiento en frecuencia',
+    formula: String.raw`\mathcal{L}\{e^{-at}f(t)\} = F(s + a),\quad \mathcal{L}\{t^{n}f(t)\} = (-1)^{n}\frac{d^{n}F}{ds^{n}}`,
+  };
   if (delay === 0) return base;
   return {
     name: `${base.name} con desplazamiento en el tiempo`,
@@ -215,11 +227,12 @@ function transformSteps(
     const groups = laplaceOfSignal(signal.signal);
     const pair = describePair(groups);
     const termTex = `${sign < 0 ? '-' : ''}${signalNodeTex(node)}`;
-    const transform = toRationals(groups);
+    const transform = transformTex(toRationals(groups));
+    const signed = sign < 0 ? String.raw`-\left(${transform}\right)` : transform;
     children.push({
       title: pair.name,
       formula: pair.formula,
-      result: String.raw`\mathcal{L}\left\{${termTex}\right\} = ${sign < 0 ? String.raw`-\left(${transformTex(transform)}\right)` : transformTex(transform)}`,
+      result: String.raw`\mathcal{L}\left\{${termTex}\right\} = ${signed}`,
     });
   }
   if (split.terms.length > 1) {
@@ -299,18 +312,10 @@ function initialName(k: number): string {
   return `y^{(${k})}(0)`;
 }
 
-function solveEquation(input: LaplaceInput): Result {
-  const a = parseDataList(input.coefficients).values; // aₙ … a₀
+/** `aₙy⁽ⁿ⁾ + … + a₀y` en LaTeX, sin los términos de coeficiente 0. */
+function equationLhsTex(a: number[]): string {
   const order = a.length - 1;
-  const ic = parseDataList(input.initial).values;
-  const initial = ic.length === 0 ? new Array<number>(order).fill(0) : ic;
-
-  const built = transformSteps(input.expression, 'f');
-  if ('message' in built) return fail(built.code, built.message);
-  const forcing = toRationals(built.groups);
-
-  // Ecuación en LaTeX.
-  const lhs = a
+  return a
     .map((c, i) => ({ c, k: order - i }))
     .filter(({ c }) => c !== 0)
     .map(({ c, k }, i) => {
@@ -321,35 +326,81 @@ function solveEquation(input: LaplaceInput): Result {
       return c < 0 ? ` - ${term}` : ` + ${term}`;
     })
     .join('');
+}
+
+/** `s^{k}` en LaTeX: vacío para k = 0 y `s` para k = 1. */
+function sPower(k: number): string {
+  if (k === 0) return '';
+  return k === 1 ? 's' : `s^{${k}}`;
+}
+
+/** ℒ{y⁽ᵏ⁾} = sᵏY − Σ_{j<k} s^{k−1−j} y⁽ʲ⁾(0), con las condiciones iniciales sustituidas. */
+function derivativeTransformStep(k: number, initial: number[]): Step {
+  const terms = Array.from({ length: k }, (_, j) => `${sPower(k - 1 - j)}${initialName(j)}`);
+  const values = Array.from({ length: k }, (_, j) => `${n(initial[j]!)}${sPower(k - 1 - j)}`);
+  const name = ["y'", "y''"][k - 1] ?? `y^(${k})`;
+  return {
+    title: `ℒ{${name}}`,
+    formula: String.raw`\mathcal{L}\{${derivativeName(k)}\} = ${sPower(k)}Y(s) - ${terms.join(' - ')}`,
+    substitution: String.raw`= ${sPower(k)}Y(s) - \left(${values.join(' + ')}\right)`,
+  };
+}
+
+/** I(s) = Σ_k a_k Σ_{j<k} s^{k−1−j} y⁽ʲ⁾(0): lo que aportan las condiciones iniciales. */
+function initialConditionsPoly(a: number[], initial: number[]): Poly {
+  const order = a.length - 1;
+  let ip: Poly = [0];
+  for (let k = 1; k <= order; k++) {
+    const ak = a[order - k]!;
+    if (ak === 0) continue;
+    ip = addPoly(
+      ip,
+      Array.from({ length: k }, (_, j) => initial[j]! * ak),
+    );
+  }
+  return trimPoly(ip);
+}
+
+/** Y(s) = [F(s) + I(s)] / P(s), un grupo por retardo de la excitación. */
+function solutionGroups(forcing: DelayedRational[], ip: Poly, p: Poly): DelayedRational[] {
+  const groups: DelayedRational[] = [];
+  const zeroDelay = forcing.find((g) => g.delay === 0);
+  if (zeroDelay) {
+    groups.push({
+      delay: 0,
+      num: addPoly(zeroDelay.num, mulPoly(ip, zeroDelay.den)),
+      den: mulPoly(zeroDelay.den, p),
+    });
+  } else if (!isZeroPoly(ip)) {
+    groups.push({ delay: 0, num: ip, den: p });
+  }
+  for (const g of forcing) {
+    if (g.delay !== 0) groups.push({ delay: g.delay, num: g.num, den: mulPoly(g.den, p) });
+  }
+  return groups.sort((x, y) => x.delay - y.delay);
+}
+
+function solveEquation(input: LaplaceInput): Result {
+  const a = parseDataList(input.coefficients).values; // aₙ … a₀
+  const order = a.length - 1;
+  const ic = parseDataList(input.initial).values;
+  const initial = ic.length === 0 ? new Array<number>(order).fill(0) : ic;
+
+  const built = transformSteps(input.expression, 'f');
+  if ('message' in built) return fail(built.code, built.message);
+  const forcing = toRationals(built.groups);
+
   const fTex = signalTex(input.expression) ?? input.expression;
   const steps: Step[] = [
     {
       title: 'Ecuación diferencial',
-      formula: `${lhs} = ${fTex}`,
+      formula: `${equationLhsTex(a)} = ${fTex}`,
       result: initial.map((v, k) => `${initialName(k)} = ${n(v)}`).join(String.raw`,\ `),
     },
   ];
 
-  // ℒ{y⁽ᵏ⁾} = sᵏY − Σ_{j<k} s^{k−1−j} y⁽ʲ⁾(0).
   const derivativeSteps: Step[] = [];
-  for (let k = order; k >= 1; k--) {
-    const terms = Array.from({ length: k }, (_, j) => {
-      const power = k - 1 - j;
-      const s = power === 0 ? '' : power === 1 ? 's' : `s^{${power}}`;
-      return `${s}${initialName(j)}`;
-    });
-    const values = Array.from({ length: k }, (_, j) => {
-      const power = k - 1 - j;
-      const s = power === 0 ? '' : power === 1 ? 's' : `s^{${power}}`;
-      const v = initial[j]!;
-      return `${n(v)}${s}`;
-    });
-    derivativeSteps.push({
-      title: `ℒ{${k === 1 ? "y'" : k === 2 ? "y''" : `y^(${k})`}}`,
-      formula: String.raw`\mathcal{L}\{${derivativeName(k)}\} = ${k === 1 ? '' : `s^{${k}}`}${k === 1 ? 's' : ''}Y(s) - ${terms.join(' - ')}`,
-      substitution: String.raw`= ${k === 1 ? 's' : `s^{${k}}`}Y(s) - \left(${values.join(' + ')}\right)`,
-    });
-  }
+  for (let k = order; k >= 1; k--) derivativeSteps.push(derivativeTransformStep(k, initial));
   steps.push({
     title: 'Transformada de cada derivada',
     explanation: 'Propiedad de derivación: cada derivada aporta las condiciones iniciales.',
@@ -360,41 +411,19 @@ function solveEquation(input: LaplaceInput): Result {
     built.steps.length === 1 && built.steps[0]!.children ? built.steps[0]!.children : built.steps;
   steps.push({ title: 'Transformada de la excitación', children: forcingSteps });
 
-  // P(s) = Σ aᵢ s^{order − i}; I(s) = Σ_k a_k Σ_{j<k} s^{k−1−j} y⁽ʲ⁾(0).
+  // P(s) = Σ aᵢ s^{order − i}.
   const p: Poly = trimPoly(a.slice());
-  let ip: Poly = [0];
-  for (let k = 1; k <= order; k++) {
-    const ak = a[order - k]!;
-    if (ak === 0) continue;
-    const poly: Poly = Array.from({ length: k }, (_, j) => initial[j]! * ak);
-    ip = addPoly(ip, poly);
-  }
-  ip = trimPoly(ip);
-
-  // Y(s) = [F(s) + I(s)] / P(s), grupo por retardo.
-  const groups: DelayedRational[] = [];
-  const zeroDelay = forcing.find((g) => g.delay === 0);
-  if (zeroDelay) {
-    groups.push({
-      delay: 0,
-      num: addPoly(zeroDelay.num, mulPoly(ip, zeroDelay.den)),
-      den: mulPoly(zeroDelay.den, p),
-    });
-  } else if (!(ip.length === 1 && ip[0] === 0)) {
-    groups.push({ delay: 0, num: ip, den: p });
-  }
-  for (const g of forcing) {
-    if (g.delay === 0) continue;
-    groups.push({ delay: g.delay, num: g.num, den: mulPoly(g.den, p) });
-  }
-  groups.sort((x, y) => x.delay - y.delay);
+  const ip = initialConditionsPoly(a, initial);
+  const groups = solutionGroups(forcing, ip, p);
+  const ipTex = polyTex(ip);
+  const ipTerm = ipTex.startsWith('-') ? String.raw`\left(${ipTex}\right)` : ipTex;
 
   steps.push({
     title: 'Ecuación algebraica en s',
     explanation:
       'Se reemplaza cada transformada y se agrupan los términos con Y(s): el polinomio característico multiplica a Y(s) y las condiciones iniciales pasan al lado derecho.',
-    formula: String.raw`\left(${polyTex(p)}\right)Y(s) - \left(${polyTex(ip)}\right) = F(s)`,
-    result: String.raw`Y(s) = \frac{F(s) + ${polyTex(ip).startsWith('-') ? String.raw`\left(${polyTex(ip)}\right)` : polyTex(ip)}}{${polyTex(p)}} = ${transformTex(groups)}`,
+    formula: String.raw`\left(${polyTex(p)}\right)Y(s) - \left(${ipTex}\right) = F(s)`,
+    result: String.raw`Y(s) = \frac{F(s) + ${ipTerm}}{${polyTex(p)}} = ${transformTex(groups)}`,
   });
 
   if (groups.length === 0) {

@@ -64,17 +64,17 @@ export function solveStateEquations(
   const { charPoly, M } = faddeevLeverrier(model.A);
   const roots = polyRoots(charPoly);
   const stable = roots.every((r) => r.value.re < 0);
+  const rootsText = roots
+    .map((r) => C.toTextRect(r.value, DIGITS) + (r.multiplicity > 1 ? ' (doble)' : ''))
+    .join(', ');
+  const stability = stable
+    ? 'Todas tienen parte real negativa: la respuesta natural se extingue y la red es estable.'
+    : 'Hay raíces con parte real no negativa: la respuesta natural no se extingue.';
 
   steps.push(
     {
       title: 'Ecuación característica',
-      explanation: `Sus raíces son las frecuencias naturales de la red: ${roots
-        .map((r) => `${C.toTextRect(r.value, DIGITS)}${r.multiplicity > 1 ? ` (doble)` : ''}`)
-        .join(', ')}. ${
-        stable
-          ? 'Todas tienen parte real negativa: la respuesta natural se extingue y la red es estable.'
-          : 'Hay raíces con parte real no negativa: la respuesta natural no se extingue.'
-      }`,
+      explanation: `Sus raíces son las frecuencias naturales de la red: ${rootsText}. ${stability}`,
       formula: String.raw`\det(sI - A) = \det ${sIminusATex(model.A)} = 0`,
       result: `${polyTex(charPoly, 's')} = 0`,
     },
