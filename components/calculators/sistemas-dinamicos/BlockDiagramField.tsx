@@ -253,7 +253,7 @@ export function BlockDiagramField({ name }: Readonly<{ name: string }>) {
   const { control } = useFormContext();
   const { field } = useController({ name, control, defaultValue: EMPTY });
   const doc = (field.value as BlockDiagramDocument | undefined) ?? EMPTY;
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLFieldSetElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [tool, setTool] = useState<Tool>('select');
   const [selection, setSelection] = useState<Selection>(null);
@@ -758,13 +758,12 @@ export function BlockDiagramField({ name }: Readonly<{ name: string }>) {
   const draftPreview = draft && hover ? [...draft, ...orthogonal(draft.at(-1)!, hover)] : draft;
 
   const content = (
-    <div
+    <fieldset
       className={cn(
-        'flex flex-col gap-2 outline-none',
+        'flex min-w-0 flex-col gap-2 outline-none',
         expanded && 'bg-background fixed inset-0 z-50 p-3',
       )}
       ref={rootRef}
-      role="group"
       aria-label="Constructor de diagramas de bloques"
     >
       <div
@@ -959,7 +958,7 @@ export function BlockDiagramField({ name }: Readonly<{ name: string }>) {
         </div>
       )}
       <BlockDiagramGuide />
-    </div>
+    </fieldset>
   );
   // El panel del formulario es sticky (crea su propio contexto de apilamiento): en pantalla
   // completa el editor se dibuja directamente en el body para quedar sobre el encabezado.

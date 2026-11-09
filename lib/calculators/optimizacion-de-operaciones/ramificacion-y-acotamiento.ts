@@ -104,7 +104,6 @@ interface Search {
   lp: LinearProgram;
   integer: number[];
   vars: string[];
-  max: boolean;
   nodes: BranchNode[];
   /** Solución exacta de cada nodo, para la tabla. */
   exact: { x: Rational[] | null; z: Rational | null }[];
@@ -131,9 +130,10 @@ function nodeTitle(id: number, bounds: Bound[], variables: string[]): string {
   return `Nodo ${id}: ${list}`;
 }
 
-/** ¿z mejora la cota de la mejor solución entera? */
-function improves(z: Rational, bound: Rational, max: boolean): boolean {
-  return max ? z.cmp(bound) > 0 : z.cmp(bound) < 0;
+/** ¿z mejora la cota de la mejor solución entera? (Mayor al maximizar, menor al minimizar). */
+function improves(z: Rational, bound: Rational, sense: LinearProgram['sense']): boolean {
+  const direction = sense === 'max' ? 1 : -1;
+  return direction * z.cmp(bound) > 0;
 }
 
 /**
@@ -171,7 +171,7 @@ function visitNode(s: Search): string | null {
   const solution = String.raw`${pointTex(solved.x, vars)},\quad z = ${solved.z.toLatex()}`;
 
   const current = s.incumbent;
-  if (current !== null && !improves(solved.z, current.z, s.max)) {
+  if (current !== null && !improves(solved.z, current.z, lp.sense)) {
     s.nodes.push({ ...base, outcome: 'podado' });
     s.nodeSteps.push({
       title,
@@ -261,7 +261,6 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
     lp,
     integer,
     vars,
-    max: lp.sense === 'max',
     nodes: [],
     exact: [],
     nodeSteps: [],

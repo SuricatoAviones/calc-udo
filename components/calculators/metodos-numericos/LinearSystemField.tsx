@@ -8,6 +8,7 @@ import {
   firstErrorMessage,
   Stepper,
 } from '@/components/calculators/form/MatrixField';
+import { gridSlots } from '@/components/calculators/keys';
 import { parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
 
@@ -71,9 +72,9 @@ export function LinearSystemField({
               <table className="w-full border-separate border-spacing-1">
                 <thead>
                   <tr>
-                    {system[0]?.map((_, j) => (
+                    {gridSlots(system[0] ?? [], 'col-').map(({ index: j, key }) => (
                       <th
-                        key={`col-${j}`}
+                        key={key}
                         scope="col"
                         className={cn(
                           'text-muted-foreground text-xs font-normal',
@@ -86,11 +87,11 @@ export function LinearSystemField({
                   </tr>
                 </thead>
                 <tbody>
-                  {system.map((row, i) => (
-                    <tr key={`fila-${i}`}>
-                      {row.map((v, j) => (
+                  {gridSlots(system, 'fila-').map(({ item: row, index: i, key: rowKey }) => (
+                    <tr key={rowKey}>
+                      {gridSlots(row, 'col-').map(({ item: v, index: j, key: colKey }) => (
                         <td
-                          key={`${size}-${i}-${j}`}
+                          key={`${size}-${rowKey}-${colKey}`}
                           className={cn('min-w-14', j === size && 'border-l pl-1')}
                         >
                           <input

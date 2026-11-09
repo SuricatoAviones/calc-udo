@@ -215,9 +215,9 @@ export function priceOut(t: Tableau): { tableau: Tableau; operations: string[] }
 const LEAVING_MARK = String.raw`\ \leftarrow`;
 const ENTERING_MARK = String.raw`\ \uparrow`;
 
-/** La razón, con su marca si es la que decide la variable que sale o la que entra. */
-function markedRatio(ratio: { toLatex(): string }, marked: boolean, mark: string): string {
-  return marked ? ratio.toLatex() + mark : ratio.toLatex();
+/** La razón con su marca (vacía si no es la que decide la variable que sale o la que entra). */
+function markedRatio(ratio: { toLatex(): string }, mark: string): string {
+  return ratio.toLatex() + mark;
 }
 
 /** «z: F_z − (c)·F_{x}» en LaTeX, con el signo simplificado. */
@@ -404,10 +404,9 @@ export function tableauTable(
     });
     if (info) {
       const ratio = info.ratios[i];
+      const mark = i === info.leaving ? LEAVING_MARK : '';
       cells.ratio =
-        ratio === null || ratio === undefined
-          ? String.raw`\text{—}`
-          : markedRatio(ratio, i === info.leaving, LEAVING_MARK);
+        ratio === null || ratio === undefined ? String.raw`\text{—}` : markedRatio(ratio, mark);
     }
     return cells;
   });
@@ -556,8 +555,8 @@ export function dualTableauTable(
     );
     const ratioRow: Record<string, string | null> = { basic: String.raw`\text{Razón}`, rhs: null };
     info.ratios.forEach((ratio, j) => {
-      ratioRow[`c${j}`] =
-        ratio === null ? null : markedRatio(ratio, j === info.entering, ENTERING_MARK);
+      const mark = j === info.entering ? ENTERING_MARK : '';
+      ratioRow[`c${j}`] = ratio === null ? null : markedRatio(ratio, mark);
     });
     table.rows.push(ratioRow);
   }

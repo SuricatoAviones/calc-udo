@@ -15,3 +15,16 @@ export function withKeys<T>(
     return { item, key: count === 0 ? b : `${b}#${count}` };
   });
 }
+
+/**
+ * Filas o columnas de una rejilla (matriz, tabla de transporte) con una clave de posición:
+ * `fila-0`, `fila-1`… En una rejilla cada celda es su posición, no su valor (dos celdas pueden
+ * valer lo mismo y el valor cambia al escribir), así que la clave debe seguir a la posición. Las
+ * filas y columnas solo se agregan o quitan al final, cuando cambia el tamaño.
+ */
+export function gridSlots<T>(
+  items: readonly T[],
+  prefix: string,
+): { item: T; index: number; key: string }[] {
+  return items.map((item, index) => ({ item, index, key: `${prefix}${index}` }));
+}

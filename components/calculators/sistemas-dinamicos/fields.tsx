@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { ExpressionField, SelectField } from '@/components/calculators/form/fields';
 import { cellClass, display, firstErrorMessage } from '@/components/calculators/form/MatrixField';
+import { gridSlots } from '@/components/calculators/keys';
 import { parseDecimal } from '@/lib/math/format';
 import { gainPreviewTex } from '@/lib/calculators/sistemas-dinamicos/symbolic';
 import {
@@ -92,10 +93,10 @@ export function GridField({
             <div className="overflow-x-auto">
               <table className="border-separate border-spacing-1">
                 <tbody>
-                  {matrix.map((row, i) => (
-                    <tr key={`fila-${i}`}>
-                      {row.map((v, j) => (
-                        <td key={`${rows}-${cols}-${i}-${j}`} className="w-16 min-w-14">
+                  {gridSlots(matrix, 'fila-').map(({ item: row, index: i, key: rowKey }) => (
+                    <tr key={rowKey}>
+                      {gridSlots(row, 'col-').map(({ item: v, index: j, key: colKey }) => (
+                        <td key={`${rows}-${cols}-${rowKey}-${colKey}`} className="w-16 min-w-14">
                           <input
                             type="text"
                             inputMode="decimal"

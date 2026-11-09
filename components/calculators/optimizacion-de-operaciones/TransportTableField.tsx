@@ -7,6 +7,7 @@ import {
   display,
   firstErrorMessage,
 } from '@/components/calculators/form/MatrixField';
+import { gridSlots } from '@/components/calculators/keys';
 import { formatNumber, parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
 
@@ -103,24 +104,26 @@ export function TransportTableField() {
           <thead>
             <tr>
               <th className="w-8" />
-              {Array.from({ length: cols }, (_, j) => (
-                <th key={j} scope="col" className={headerClass}>
-                  D{j + 1}
-                </th>
-              ))}
+              {gridSlots(Array.from({ length: cols }), 'destino-').map(
+                ({ index: j, key: colKey }) => (
+                  <th key={colKey} scope="col" className={headerClass}>
+                    D{j + 1}
+                  </th>
+                ),
+              )}
               <th scope="col" className={cn(headerClass, 'font-medium')}>
                 Oferta
               </th>
             </tr>
           </thead>
           <tbody>
-            {matrix.map((row, i) => (
-              <tr key={`origen-${i}`}>
+            {gridSlots(matrix, 'origen-').map(({ item: row, index: i, key: rowKey }) => (
+              <tr key={rowKey}>
                 <th scope="row" className={headerClass}>
                   O{i + 1}
                 </th>
-                {row.map((v, j) => (
-                  <td key={`${key}-${i}-${j}`} className="min-w-12">
+                {gridSlots(row, 'destino-').map(({ item: v, index: j, key: colKey }) => (
+                  <td key={`${key}-${rowKey}-${colKey}`} className="min-w-12">
                     <input
                       type="text"
                       inputMode="decimal"
@@ -134,7 +137,7 @@ export function TransportTableField() {
                     />
                   </td>
                 ))}
-                <td key={`${key}-s-${i}`} className="min-w-12">
+                <td key={`${key}-oferta-${rowKey}`} className="min-w-12">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -153,21 +156,23 @@ export function TransportTableField() {
               <th scope="row" className={cn(headerClass, 'font-medium')}>
                 Dem.
               </th>
-              {Array.from({ length: cols }, (_, j) => (
-                <td key={`${key}-d-${j}`} className="min-w-12">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    aria-label={`Demanda de D${j + 1}`}
-                    aria-invalid={Boolean(error)}
-                    defaultValue={display(d[j])}
-                    onChange={(e) => demand.field.onChange(setAt(d, j, e.target.value))}
-                    onBlur={demand.field.onBlur}
-                    className={cn(cellClass, 'bg-muted/60 font-medium')}
-                  />
-                </td>
-              ))}
+              {gridSlots(Array.from({ length: cols }), 'destino-').map(
+                ({ index: j, key: colKey }) => (
+                  <td key={`${key}-demanda-${colKey}`} className="min-w-12">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      aria-label={`Demanda de D${j + 1}`}
+                      aria-invalid={Boolean(error)}
+                      defaultValue={display(d[j])}
+                      onChange={(e) => demand.field.onChange(setAt(d, j, e.target.value))}
+                      onBlur={demand.field.onBlur}
+                      className={cn(cellClass, 'bg-muted/60 font-medium')}
+                    />
+                  </td>
+                ),
+              )}
               <td
                 className={cn(
                   'tabular px-1 text-center font-mono text-xs',

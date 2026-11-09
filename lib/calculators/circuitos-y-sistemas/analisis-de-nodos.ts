@@ -11,8 +11,7 @@ import { z } from 'zod';
 import { formatNumber } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, SummaryItem } from '../types';
 import { circuitDocumentSchema, buildTopology, validateTopology } from './circuit';
-import type { MnaErrorCode } from './mna';
-import { solveMna, type MnaResult } from './mna';
+import { solveMna, type MnaErrorCode, type MnaResult } from './mna';
 
 /**
  * La entrada es un único campo `circuit` para que el constructor interactivo sea un campo del

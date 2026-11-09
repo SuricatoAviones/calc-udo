@@ -3,6 +3,7 @@
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
+import { gridSlots } from '@/components/calculators/keys';
 import { Button } from '@/components/ui/button';
 import { formatNumber, parseDecimal } from '@/lib/math/format';
 import { cn } from '@/lib/utils';
@@ -117,9 +118,9 @@ export function MatrixField({
                 <thead>
                   <tr>
                     <th className="w-6" />
-                    {matrix.map((_, j) => (
+                    {gridSlots(matrix, 'col-').map(({ index: j, key }) => (
                       <th
-                        key={`col-${j}`}
+                        key={key}
                         scope="col"
                         className="text-muted-foreground text-xs font-normal"
                       >
@@ -134,16 +135,16 @@ export function MatrixField({
                   </tr>
                 </thead>
                 <tbody>
-                  {matrix.map((row, i) => {
+                  {gridSlots(matrix, 'fila-').map(({ item: row, index: i, key: rowKey }) => {
                     const sum = row.reduce((s, v) => s + (Number.isNaN(v) ? 0 : v), 0);
                     const sumOk = Math.abs(sum - 1) <= 1e-6;
                     return (
-                      <tr key={`fila-${i}`}>
+                      <tr key={rowKey}>
                         <th scope="row" className="text-muted-foreground text-xs font-normal">
                           {i + 1}
                         </th>
-                        {row.map((v, j) => (
-                          <td key={`${size}-${i}-${j}`} className="min-w-14">
+                        {gridSlots(row, 'col-').map(({ item: v, index: j, key: colKey }) => (
+                          <td key={`${size}-${rowKey}-${colKey}`} className="min-w-14">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -314,9 +315,9 @@ export function RectangularMatrixField({
                 <thead>
                   <tr>
                     <th className="w-8" />
-                    {matrix[0]?.map((_, j) => (
+                    {gridSlots(matrix[0] ?? [], 'col-').map(({ index: j, key }) => (
                       <th
-                        key={`col-${j}`}
+                        key={key}
                         scope="col"
                         className="text-muted-foreground text-xs font-normal"
                       >
@@ -327,14 +328,14 @@ export function RectangularMatrixField({
                   </tr>
                 </thead>
                 <tbody>
-                  {matrix.map((row, i) => (
-                    <tr key={`fila-${i}`}>
+                  {gridSlots(matrix, 'fila-').map(({ item: row, index: i, key: rowKey }) => (
+                    <tr key={rowKey}>
                       <th scope="row" className="text-muted-foreground text-xs font-normal">
                         {rowPrefix}
                         {i + 1}
                       </th>
-                      {row.map((v, j) => (
-                        <td key={`${rows}-${cols}-${i}-${j}`} className="min-w-14">
+                      {gridSlots(row, 'col-').map(({ item: v, index: j, key: colKey }) => (
+                        <td key={`${rows}-${cols}-${rowKey}-${colKey}`} className="min-w-14">
                           <input
                             type="text"
                             inputMode="decimal"
@@ -436,9 +437,9 @@ export function OptionalVectorField({
                   className="grid gap-1"
                   style={{ gridTemplateColumns: `repeat(${size}, minmax(3.5rem, 1fr))` }}
                 >
-                  {value.map((v, j) => (
+                  {gridSlots(value, 'estado-').map(({ item: v, index: j, key }) => (
                     <input
-                      key={`${size}-${j}-${value.length}`}
+                      key={`${size}-${key}-${value.length}`}
                       type="text"
                       inputMode="decimal"
                       autoComplete="off"
