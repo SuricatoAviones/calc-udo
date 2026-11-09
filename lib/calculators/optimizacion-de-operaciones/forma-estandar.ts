@@ -73,12 +73,13 @@ export function solveStandardForm(
   const names = lp.variables.map(variableLatex);
 
   const canonical = canonicalConstraints(lp);
-  const canonicalLatex = `\\begin{aligned} \\${lp.sense}\\ z &= ${linearLatex(lp.objective, names)} \\\\ ${canonical
+  const canonicalRows = canonical
     .map(
       ({ constraint: c }) =>
         `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
     )
-    .join(TEX.newline)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(TEX.newline);
+  const canonicalLatex = String.raw`\begin{aligned} ${TEX[lp.sense]}\ z &= ${linearLatex(lp.objective, names)} \\ ${canonicalRows} \\ ${names.join(', ')} &\ge 0 \end{aligned}`;
   trace.steps.push({
     title: 'Forma canónica',
     explanation:
@@ -95,9 +96,10 @@ export function solveStandardForm(
   const columnNames = columns.map((c) => c.latex);
   const rows = sf.rows.map((row) => keep.map((j) => row[j]!));
   const objective = keep.map((j) => (j < lp.variables.length ? lp.objective[j]! : Rational.ZERO));
-  const standardLatex = `\\begin{aligned} \\${lp.sense}\\ z &= ${linearLatex(objective, columnNames)} \\\\ ${rows
+  const standardRows = rows
     .map((row, i) => `${linearLatex(row, columnNames)} &= ${sf.rhs[i]!.toLatex()}`)
-    .join(TEX.newline)} \\\\ ${columnNames.join(', ')} &\\ge 0 \\end{aligned}`;
+    .join(TEX.newline);
+  const standardLatex = String.raw`\begin{aligned} ${TEX[lp.sense]}\ z &= ${linearLatex(objective, columnNames)} \\ ${standardRows} \\ ${columnNames.join(', ')} &\ge 0 \end{aligned}`;
   const slacks = columns.filter((c) => c.kind === 'slack').length;
   const surpluses = columns.filter((c) => c.kind === 'surplus').length;
   const needArtificial = sf.relations.filter((r) => r !== '<=').length;

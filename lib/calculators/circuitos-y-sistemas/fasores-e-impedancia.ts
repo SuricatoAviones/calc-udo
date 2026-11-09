@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import * as C from '@/lib/math/complex';
 import type { Complex } from '@/lib/math/complex';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, toLatexNumber, TEX } from '@/lib/math/format';
 import type { Calculator, CalculatorResult, ResultTable, Series, Step } from '../types';
 
 const DIGITS = 6;
@@ -67,7 +67,7 @@ function sinusoidTex(
   const angle = Math.abs(angleDeg) < 1e-12 ? 0 : angleDeg;
   const sign = angle < 0 ? '-' : '+';
   const phase = angle === 0 ? '' : String.raw` ${sign} ${n(Math.abs(angle))}^{\circ}`;
-  return `${n(amplitude)}\\${fn}\\left(${n(omega)}t${phase}\\right)`;
+  return String.raw`${n(amplitude)}${TEX[fn]}\left(${n(omega)}t${phase}\right)`;
 }
 
 function timeTex(magnitude: number, omega: number, angleDeg: number): string {

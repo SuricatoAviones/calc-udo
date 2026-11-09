@@ -54,7 +54,8 @@ export function stageTable(options: {
 /** `\min\{7,\ 9,\ 10\}` o `\max\{…\}`; con una sola alternativa, el número solo. */
 export function optimumLatex(kind: 'min' | 'max', values: number[]): string {
   if (values.length === 1) return n(values[0]!);
-  return `\\${kind}\\{${values.map((v) => n(v)).join(TEX.listSep)}\\}`;
+  const list = values.map((v) => n(v)).join(TEX.listSep);
+  return String.raw`${TEX[kind]}\{${list}\}`;
 }
 
 /** Índices de los valores óptimos (con tolerancia para empates de coma flotante). */

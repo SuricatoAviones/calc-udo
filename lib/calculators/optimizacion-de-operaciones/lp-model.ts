@@ -341,7 +341,7 @@ export function lpLatex(lp: LinearProgram, objectiveName = 'z'): string {
   const rows = lp.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${lp.sense}\\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(TEX.newline)} \\\\ ${names.join(', ')} &\\ge 0 \\end{aligned}`;
+  return String.raw`\begin{aligned} ${TEX[lp.sense]}\ ${objectiveName} &= ${linearLatex(lp.objective, names)} \\ \text{s.a.}\quad ${rows.join(TEX.newline)} \\ ${names.join(', ')} &\ge 0 \end{aligned}`;
 }
 
 /** Valor de la función objetivo en un punto. */

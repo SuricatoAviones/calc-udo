@@ -89,12 +89,12 @@ export default function LegalNoticePage() {
       <h2>5. Propiedad intelectual</h2>
       <ul>
         <li>
-          El código fuente de CalcUDO se publica bajo la{' '}
+          Puedes usar, copiar, modificar y redistribuir el código fuente de CalcUDO conservando el
+          aviso de copyright y la licencia, porque se publica bajo la{' '}
           <a href={LICENSE_URL} rel="noopener noreferrer">
             licencia MIT
           </a>
-          . Puedes usarlo, copiarlo, modificarlo y redistribuirlo conservando el aviso de copyright
-          y la licencia.
+          .
         </li>
         <li>
           Los libros citados en cada calculadora pertenecen a sus autores y editoriales. CalcUDO

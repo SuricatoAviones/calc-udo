@@ -30,6 +30,11 @@ export const TEX = {
   checkmark: String.raw`\checkmark`,
   times: String.raw`\times`,
   pm: String.raw`\pm`,
+  /** Operadores que se eligen con un dato (`TEX[lp.sense]`, `TEX[fn]`). */
+  max: String.raw`\max`,
+  min: String.raw`\min`,
+  cos: String.raw`\cos`,
+  sin: String.raw`\sin`,
 } as const;
 
 /** Por debajo de este valor absoluto (o por encima del grande) se usa notación científica. */

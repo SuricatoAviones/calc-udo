@@ -117,7 +117,7 @@ export function zRational(form: PoleForm): { num: Poly; den: Poly } {
   const { num, den } = formToRational(form);
   let N = trimPoly([...num, 0]);
   let D = trimPoly(den);
-  while (N.length > 1 && D.length > 1 && N[N.length - 1] === 0 && D[D.length - 1] === 0) {
+  while (N.length > 1 && D.length > 1 && N.at(-1) === 0 && D.at(-1) === 0) {
     N = N.slice(0, -1);
     D = D.slice(0, -1);
   }

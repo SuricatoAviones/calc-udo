@@ -78,7 +78,8 @@ export function dualLatex(dual: DualModel): string {
   const rows = dual.constraints.map(
     (c) => `${linearLatex(c.coefficients, names)} &${relationLatex[c.relation]} ${c.rhs.toLatex()}`,
   );
-  return `\\begin{aligned} \\${dual.sense}\\ w &= ${linearLatex(dual.objective, names)} \\\\ \\text{s.a.}\\quad ${rows.join(TEX.newline)} \\\\ &${dual.signs.map((sign, i) => signLatex(sign, i)).join(TEX.listSep)} \\end{aligned}`;
+  const signs = dual.signs.map((sign, i) => signLatex(sign, i)).join(TEX.listSep);
+  return String.raw`\begin{aligned} ${TEX[dual.sense]}\ w &= ${linearLatex(dual.objective, names)} \\ \text{s.a.}\quad ${rows.join(TEX.newline)} \\ &${signs} \end{aligned}`;
 }
 
 /**

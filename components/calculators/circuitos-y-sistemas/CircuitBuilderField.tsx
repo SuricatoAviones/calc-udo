@@ -663,7 +663,7 @@ export function CircuitBuilderField({
   function undo() {
     setPast((p) => {
       if (p.length === 0) return p;
-      const prev = p[p.length - 1]!;
+      const prev = p.at(-1)!;
       setFuture((f) => [doc, ...f].slice(0, 50));
       field.onChange(prev);
       return p.slice(0, -1);

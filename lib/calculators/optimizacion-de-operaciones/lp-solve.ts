@@ -109,7 +109,7 @@ export function standardFormLatex(
   const decisions = lp.objective.concat(
     new Array<Rational>(sf.columns.length - lp.variables.length).fill(Rational.ZERO),
   );
-  let objective = `\\${lp.sense}\\ z = ${linearLatex(decisions, names)}`;
+  let objective = String.raw`${TEX[lp.sense]}\ z = ${linearLatex(decisions, names)}`;
   if (mode === 'big-m' && artificial.length > 0) {
     objective += ` ${lp.sense === 'max' ? '-' : '+'} M(${artificial.join(' + ')})`;
   }

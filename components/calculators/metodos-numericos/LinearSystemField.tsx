@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 function resize(system: number[][], size: number): number[][] {
   return Array.from({ length: size }, (_, i) =>
     Array.from({ length: size + 1 }, (_, j) => {
-      if (j === size) return system[i]?.[system[i]!.length - 1] ?? 0;
+      if (j === size) return system[i]?.at(-1) ?? 0;
       return system[i]?.[j] ?? (i === j ? 1 : 0);
     }),
   );

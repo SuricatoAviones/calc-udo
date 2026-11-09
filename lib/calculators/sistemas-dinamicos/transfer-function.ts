@@ -219,4 +219,4 @@ export function rootPoints(roots: PolyRoot[]): { x: number; y: number }[] {
   return roots.map((r) => ({ x: r.value.re, y: r.value.im }));
 }
 
-export { polyTex };
+export { polyTex } from '../circuitos-y-sistemas/laplace';

@@ -304,7 +304,7 @@ function numericIntegral(
   return {
     evalFn: (t: number) => {
       if (t <= 0) return 0;
-      if (t >= tEnd) return acc[acc.length - 1]!.value;
+      if (t >= tEnd) return acc.at(-1)!.value;
       const idx = Math.floor((t / tEnd) * samples);
       const a = acc[idx]!;
       const b = acc[idx + 1] ?? a;
