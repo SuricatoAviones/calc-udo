@@ -150,6 +150,67 @@ function show(m: Matrix, augmentedColumns: number): string {
 }
 
 /**
+ * Pivoteo parcial en la columna k: sube a la fila k la de mayor |a_ik| (modifica `m`). Devuelve
+ * cuántos intercambios hizo (0 o 1) y el paso, si hay algo que mostrar.
+ */
+function partialPivot(
+  m: Matrix,
+  k: number,
+  augmentedColumns: number,
+): { swaps: number; steps: Step[] } {
+  let best = k;
+  for (let r = k + 1; r < m.length; r++) {
+    if (Math.abs(m[r]![k]!) > Math.abs(m[best]![k]!)) best = r;
+  }
+  const candidates = m
+    .slice(k)
+    .map((row, r) => `|a_{${k + r + 1}${k + 1}}| = ${n(Math.abs(row[k]!))}`)
+    .join(String.raw`,\ `);
+  if (best !== k) {
+    [m[k], m[best]] = [m[best]!, m[k]!];
+    const step: Step = {
+      title: `Pivoteo parcial: intercambiar R${k + 1} y R${best + 1}`,
+      explanation: `En la columna ${k + 1}, el mayor valor absoluto desde la fila ${k + 1} hacia abajo está en la fila ${best + 1}. Se usa como pivote para reducir el error de redondeo.`,
+      substitution: candidates,
+      result: String.raw`R_{${k + 1}} \leftrightarrow R_{${best + 1}}:\quad ${show(m, augmentedColumns)}`,
+    };
+    return { swaps: 1, steps: [step] };
+  }
+  if (k === m.length - 1) return { swaps: 0, steps: [] };
+  const step: Step = {
+    title: 'Pivoteo parcial: no hace falta intercambiar',
+    explanation: `El mayor valor absoluto de la columna ${k + 1} ya está en la fila del pivote.`,
+    substitution: candidates,
+  };
+  return { swaps: 0, steps: [step] };
+}
+
+/** Anula la columna k debajo del pivote, fila por fila (modifica `m`). */
+function eliminateBelow(m: Matrix, k: number, pivot: number): Step[] {
+  const children: Step[] = [];
+  for (let i = k + 1; i < m.length; i++) {
+    const a = m[i]![k]!;
+    if (a === 0) {
+      children.push({
+        title: `Fila ${i + 1}: ya tiene un cero en la columna ${k + 1}`,
+        result: `a_{${i + 1}${k + 1}} = 0`,
+      });
+      continue;
+    }
+    const factor = a / pivot;
+    for (let c = k; c < m[i]!.length; c++) m[i]![c]! -= factor * m[k]![c]!;
+    m[i]![k] = 0; // exacto: evita residuos de redondeo bajo la diagonal
+    children.push({
+      title: `Eliminar a${sub(i + 1, k + 1)} con la fila ${k + 1}`,
+      formula: String.raw`f_{${i + 1}${k + 1}} = \frac{a_{${i + 1}${k + 1}}}{a_{${k + 1}${k + 1}}}, \qquad R_{${i + 1}} \leftarrow R_{${i + 1}} - f_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
+      substitution: String.raw`f_{${i + 1}${k + 1}} = \frac{${n(a)}}{${n(pivot)}} = ${n(factor)}`,
+      result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(TEX.listSep)})`,
+    });
+  }
+  return children;
+}
+
+/**
  * Eliminación hacia adelante con la traza de cada etapa. Si una columna no tiene pivote distinto
  * de cero, se detiene ahí (`zeroPivotColumn`) y devuelve los pasos hechos hasta ese momento; sin
  * pivoteo se detiene en cuanto el pivote de la diagonal es cero.
@@ -167,30 +228,9 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
     const children: Step[] = [];
 
     if (options.pivoting) {
-      let best = k;
-      for (let r = k + 1; r < m.length; r++) {
-        if (Math.abs(m[r]![k]!) > Math.abs(m[best]![k]!)) best = r;
-      }
-      const candidates = m
-        .slice(k)
-        .map((row, r) => `|a_{${k + r + 1}${k + 1}}| = ${n(Math.abs(row[k]!))}`)
-        .join(String.raw`,\ `);
-      if (best !== k) {
-        [m[k], m[best]] = [m[best]!, m[k]!];
-        swaps++;
-        children.push({
-          title: `Pivoteo parcial: intercambiar R${k + 1} y R${best + 1}`,
-          explanation: `En la columna ${k + 1}, el mayor valor absoluto desde la fila ${k + 1} hacia abajo está en la fila ${best + 1}. Se usa como pivote para reducir el error de redondeo.`,
-          substitution: candidates,
-          result: String.raw`R_{${k + 1}} \leftrightarrow R_{${best + 1}}:\quad ${show(m, options.augmentedColumns)}`,
-        });
-      } else if (k < m.length - 1) {
-        children.push({
-          title: 'Pivoteo parcial: no hace falta intercambiar',
-          explanation: `El mayor valor absoluto de la columna ${k + 1} ya está en la fila del pivote.`,
-          substitution: candidates,
-        });
-      }
+      const pivoting = partialPivot(m, k, options.augmentedColumns);
+      swaps += pivoting.swaps;
+      children.push(...pivoting.steps);
     }
 
     const pivot = m[k]![k]!;
@@ -200,25 +240,7 @@ export function forwardElimination(input: Matrix, options: EliminationOptions): 
     }
     if (k === size - 1) break;
 
-    for (let i = k + 1; i < m.length; i++) {
-      const a = m[i]![k]!;
-      if (a === 0) {
-        children.push({
-          title: `Fila ${i + 1}: ya tiene un cero en la columna ${k + 1}`,
-          result: `a_{${i + 1}${k + 1}} = 0`,
-        });
-        continue;
-      }
-      const factor = a / pivot;
-      for (let c = k; c < m[i]!.length; c++) m[i]![c]! -= factor * m[k]![c]!;
-      m[i]![k] = 0; // exacto: evita residuos de redondeo bajo la diagonal
-      children.push({
-        title: `Eliminar a${sub(i + 1, k + 1)} con la fila ${k + 1}`,
-        formula: String.raw`f_{${i + 1}${k + 1}} = \frac{a_{${i + 1}${k + 1}}}{a_{${k + 1}${k + 1}}}, \qquad R_{${i + 1}} \leftarrow R_{${i + 1}} - f_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
-        substitution: String.raw`f_{${i + 1}${k + 1}} = \frac{${n(a)}}{${n(pivot)}} = ${n(factor)}`,
-        result: `R_{${i + 1}} = (${m[i]!.map((v) => n(v)).join(TEX.listSep)})`,
-      });
-    }
+    children.push(...eliminateBelow(m, k, pivot));
     stages.push(cloneMatrix(m));
     steps.push({
       title: `Eliminación en la columna ${k + 1} (pivote a${sub(k + 1, k + 1)} = ${formatNumber(m[k]![k]!, MATRIX_DIGITS)})`,
@@ -244,6 +266,8 @@ export function determinantFromUpper(upper: Matrix, swaps: number): { value: num
   const diagonal = upper.map((row, i) => row[i]!);
   const product = diagonal.reduce((p, v) => p * v, 1);
   const value = (swaps % 2 === 0 ? 1 : -1) * product;
+  const sign = swaps === 0 ? '' : String.raw`(-1)^{${swaps}}\,`;
+  const factors = diagonal.map((v) => `(${n(v)})`).join('');
   return {
     value,
     step: {
@@ -253,7 +277,7 @@ export function determinantFromUpper(upper: Matrix, swaps: number): { value: num
           ? 'El determinante de una matriz triangular es el producto de su diagonal, y la eliminación (restar a una fila un múltiplo de otra) no lo cambia.'
           : `El determinante de una matriz triangular es el producto de su diagonal. La eliminación no lo cambia, pero cada uno de los ${swaps} intercambio(s) de filas le cambia el signo: se multiplica por (−1)^${swaps}.`,
       formula: String.raw`\det A = (-1)^{p}\, a_{11} a_{22} \cdots a_{${size}${size}}`,
-      substitution: String.raw`\det A = ${swaps === 0 ? '' : String.raw`(-1)^{${swaps}}\,`}${diagonal.map((v) => `(${n(v)})`).join('')}`,
+      substitution: String.raw`\det A = ${sign}${factors}`,
       result: String.raw`\det A = ${n(value)}`,
     },
   };
@@ -275,14 +299,13 @@ export function backSubstitution(upper: Matrix): { x: number[]; steps: Step[] } 
     }
     x[i] = sum / row[i]!;
     const idx = i + 1;
+    const symbolic = terms.map(({ j }) => `a_{${idx}${j + 1}}x_{${j + 1}}`).join(' - ');
+    const numeric = terms.map(({ j, a }) => `${op(a)}${op(x[j]!)}`).join(' - ');
     const formula =
       terms.length === 0
         ? String.raw`x_{${idx}} = \frac{b_{${idx}}}{a_{${idx}${idx}}}`
-        : String.raw`x_{${idx}} = \frac{b_{${idx}} - ${terms.map(({ j }) => `a_{${idx}${j + 1}}x_{${j + 1}}`).join(' - ')}}{a_{${idx}${idx}}}`;
-    const numerator =
-      terms.length === 0
-        ? n(b)
-        : `${n(b)} - ${terms.map(({ j, a }) => `${op(a)}${op(x[j]!)}`).join(' - ')}`;
+        : String.raw`x_{${idx}} = \frac{b_{${idx}} - ${symbolic}}{a_{${idx}${idx}}}`;
+    const numerator = terms.length === 0 ? n(b) : `${n(b)} - ${numeric}`;
     steps.push({
       title: `Despejar x${subscript(idx)}`,
       formula,

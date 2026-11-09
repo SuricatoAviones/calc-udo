@@ -34,22 +34,24 @@ export type RectangleInput = z.infer<typeof rectangleInputSchema>;
 
 const n = toLatexNumber;
 
-const DESCRIPTION: Record<RectangleVariant, { where: string; label: string }> = {
-  izquierda: { where: 'el extremo izquierdo', label: 'x' },
-  derecha: { where: 'el extremo derecho', label: 'x' },
-  'punto-medio': { where: 'el punto medio', label: String.raw`\bar{x}` },
+const DESCRIPTION: Record<RectangleVariant, { where: string; label: string; formula: string }> = {
+  izquierda: {
+    where: 'el extremo izquierdo',
+    label: 'x',
+    formula: 'x_i = a + i·h, con i = 0 … n − 1',
+  },
+  derecha: { where: 'el extremo derecho', label: 'x', formula: 'x_i = a + i·h, con i = 1 … n' },
+  'punto-medio': {
+    where: 'el punto medio',
+    label: String.raw`\bar{x}`,
+    formula: 'x̄_i = a + (i + ½)·h, con i = 0 … n − 1',
+  },
 };
 
 const rule: IntegrationRule<RectangleInput> = {
   firstIndex: (input) => (input.variant === 'derecha' ? 1 : 0),
   nodesExplanation: (input) => {
-    const { where } = DESCRIPTION[input.variant];
-    const formula =
-      input.variant === 'punto-medio'
-        ? 'x̄_i = a + (i + ½)·h, con i = 0 … n − 1'
-        : input.variant === 'izquierda'
-          ? 'x_i = a + i·h, con i = 0 … n − 1'
-          : 'x_i = a + i·h, con i = 1 … n';
+    const { where, formula } = DESCRIPTION[input.variant];
     return `La altura de cada rectángulo es f evaluada en ${where} del segmento: ${formula}.`;
   },
   nodes: (input, h) =>

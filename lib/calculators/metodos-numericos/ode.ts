@@ -47,7 +47,9 @@ interface OdeBounds {
 
 /** Validaciones del intervalo y del paso, comunes a todos los métodos. */
 export function refineOde(v: OdeBounds, ctx: z.RefinementCtx): void {
-  if (!(v.xf > v.x0)) {
+  // Escrito así para que también rechace NaN.
+  const forward = v.xf > v.x0;
+  if (!forward) {
     ctx.addIssue({
       code: 'custom',
       path: ['xf'],
@@ -140,36 +142,92 @@ export function slopeStep(
   };
 }
 
-export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactory): OdeResult {
-  const { x0, y0, h } = input;
-  const parsed = parseFunction(input.expression, ['x', 'y']);
-  if (!parsed.ok) {
-    return {
-      ok: false,
-      error: { code: 'invalid-expression', message: parsed.message },
-      ...emptyTrace(),
-    };
-  }
-  const f = parsed.expr;
+type PreparedOde =
+  { f: ParsedExpression; exact: ParsedExpression | null; rule: OdeRule } | { message: string };
 
+/** Lee f(x, y), la solución exacta (si se dio) y arma la regla del método. */
+function prepareOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactory): PreparedOde {
+  const parsed = parseFunction(input.expression, ['x', 'y']);
+  if (!parsed.ok) return { message: parsed.message };
   let exact: ParsedExpression | null = null;
   if (input.exact) {
     const parsedExact = parseFunction(input.exact, 'x');
-    if (!parsedExact.ok) {
-      return {
-        ok: false,
-        error: { code: 'invalid-expression', message: `Solución exacta: ${parsedExact.message}` },
-        ...emptyTrace(),
-      };
-    }
+    if (!parsedExact.ok) return { message: `Solución exacta: ${parsedExact.message}` };
     exact = parsedExact.expr;
   }
+  const rule =
+    typeof ruleOrFactory === 'function' ? ruleOrFactory(parsed.expr, exact) : ruleOrFactory;
+  if (typeof rule === 'string') return { message: rule };
+  return { f: parsed.expr, exact, rule };
+}
 
-  const built = typeof ruleOrFactory === 'function' ? ruleOrFactory(f, exact) : ruleOrFactory;
-  if (typeof built === 'string') {
-    return { ok: false, error: { code: 'invalid-expression', message: built }, ...emptyTrace() };
+interface Advance {
+  slopes: Slope[];
+  update: Step;
+  extra?: Step[];
+}
+
+/**
+ * Paso i en la traza: completo en los primeros, el último y si son pocos; un aviso en lugar de
+ * los intermedios; `null` para el resto.
+ */
+function reportStep(
+  rule: OdeRule,
+  i: number,
+  xs: number[],
+  { slopes, update, extra }: Advance,
+): Step | null {
+  const count = xs.length - 1;
+  const detailed = count <= 2 * DETAILED_STEPS || i < DETAILED_STEPS || i === count - 1;
+  if (detailed) {
+    const label = rule.stepTitle?.(i);
+    const suffix = label ? ` (${label})` : '';
+    return {
+      title: `Paso ${i + 1}: de x = ${formatNumber(xs[i]!)} a x = ${formatNumber(xs[i + 1]!)}${suffix}`,
+      children: [...slopes.map((s) => s.step), update, ...(extra ?? [])],
+    };
   }
-  const rule = built;
+  if (i === DETAILED_STEPS) {
+    return {
+      title: `Pasos ${DETAILED_STEPS + 1} a ${count - 1}`,
+      explanation:
+        'Se repite el mismo procedimiento en cada paso. Los valores de cada uno están en la tabla de resultados.',
+    };
+  }
+  return null;
+}
+
+/** Valor verdadero y su error relativo en x_f, si se dio la solución exacta. */
+function trueValueSummary(
+  xf: number,
+  trueValues: number[] | null,
+  trueRelativeErrors: (number | null)[] | null,
+): SummaryItem[] {
+  if (!trueValues) return [];
+  const items: SummaryItem[] = [
+    { label: 'Valor verdadero', value: `y(${n(xf)}) = ${n(trueValues.at(-1)!)}` },
+  ];
+  const et = trueRelativeErrors?.at(-1);
+  if (et !== null && et !== undefined) {
+    items.push({
+      label: 'Error relativo verdadero',
+      value: String.raw`\varepsilon_t = ${n(et, 4)}\,\%`,
+    });
+  }
+  return items;
+}
+
+export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactory): OdeResult {
+  const { x0, y0, h } = input;
+  const prepared = prepareOde(input, ruleOrFactory);
+  if ('message' in prepared) {
+    return {
+      ok: false,
+      error: { code: 'invalid-expression', message: prepared.message },
+      ...emptyTrace(),
+    };
+  }
+  const { f, exact, rule } = prepared;
 
   const count = Math.round((input.xf - x0) / h);
   const xs = Array.from({ length: count + 1 }, (_, i) => x0 + i * h);
@@ -200,7 +258,7 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
       x: xs[i]!,
       y,
       ...(trueValues ? { yTrue: trueValues[i]!, et: trueErrors!(i, y) } : {}),
-      ...(slopeRows[i] ?? {}),
+      ...slopeRows[i],
     }));
     const columns: TableColumn[] = [
       { key: 'i', header: 'i' },
@@ -243,27 +301,13 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
 
   for (let i = 0; i < count; i++) {
     const x = xs[i]!;
-    const y = ys[i]!;
-    const { yNext, slopes, update, extra } = rule.advance(f, i, x, y, h);
+    const advance = rule.advance(f, i, x, ys[i]!, h);
+    const { yNext, slopes } = advance;
     slopeRows[i] = Object.fromEntries(slopes.map((s) => [s.key, s.value]));
+    const report = reportStep(rule, i, xs, advance);
+    if (report) steps.push(report);
 
-    const detailed = count <= 2 * DETAILED_STEPS || i < DETAILED_STEPS || i === count - 1;
-    if (detailed) {
-      const label = rule.stepTitle?.(i);
-      steps.push({
-        title: `Paso ${i + 1}: de x = ${formatNumber(x)} a x = ${formatNumber(xs[i + 1]!)}${label ? ` (${label})` : ''}`,
-        children: [...slopes.map((s) => s.step), update, ...(extra ?? [])],
-      });
-    } else if (i === DETAILED_STEPS) {
-      steps.push({
-        title: `Pasos ${DETAILED_STEPS + 1} a ${count - 1}`,
-        explanation:
-          'Se repite el mismo procedimiento en cada paso. Los valores de cada uno están en la tabla de resultados.',
-      });
-    }
-
-    const bad = slopes.find((s) => !Number.isFinite(s.value));
-    if (bad || !Number.isFinite(yNext)) {
+    if (slopes.some((s) => !Number.isFinite(s.value)) || !Number.isFinite(yNext)) {
       return {
         ok: false,
         error: {
@@ -278,6 +322,7 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
 
   const yFinal = ys.at(-1)!;
   const xf = xs.at(-1)!;
+  const trueRelativeErrors = trueValues ? ys.map((y, i) => trueErrors!(i, y)) : null;
   const summary: SummaryItem[] = [
     {
       label: `Solución aproximada en x = ${formatNumber(xf)}`,
@@ -285,18 +330,8 @@ export function solveOde(input: OdeInput, ruleOrFactory: OdeRule | OdeRuleFactor
       emphasis: true,
     },
     { label: 'Pasos', value: String.raw`${count} \text{ pasos de } h = ${n(h)}` },
+    ...trueValueSummary(xf, trueValues, trueRelativeErrors),
   ];
-  const trueRelativeErrors = trueValues ? ys.map((y, i) => trueErrors!(i, y)) : null;
-  if (trueValues) {
-    const et = trueRelativeErrors!.at(-1);
-    summary.push({ label: 'Valor verdadero', value: `y(${n(xf)}) = ${n(trueValues.at(-1)!)}` });
-    if (et !== null && et !== undefined) {
-      summary.push({
-        label: 'Error relativo verdadero',
-        value: String.raw`\varepsilon_t = ${n(et, 4)}\,\%`,
-      });
-    }
-  }
   steps.push({
     title: 'Resultado',
     explanation: `Después de ${count} pasos se llega a x = ${formatNumber(xf)}.`,

@@ -89,19 +89,20 @@ function threeEighths(
   };
 }
 
+/** Qué regla se aplica según la paridad de n. */
+function ruleChoiceText(n: number): string {
+  if (n % 2 === 0) return `Como n = ${n} es par, se aplica Simpson 1/3 en todos los segmentos.`;
+  if (n === 3) return 'Como n = 3, se aplica Simpson 3/8.';
+  return `Como n = ${n} es impar, se aplica Simpson 1/3 en los primeros ${n - 3} segmentos y Simpson 3/8 en los últimos 3.`;
+}
+
 const rule: IntegrationRule<SimpsonInput> = {
   validate: (input) =>
     input.n < 2
       ? 'La regla de Simpson necesita al menos 2 segmentos (3 puntos) para ajustar una parábola.'
       : null,
   nodesExplanation: (input) =>
-    `Se usan los ${input.n + 1} puntos x_i = a + i·h. ${
-      input.n % 2 === 0
-        ? `Como n = ${input.n} es par, se aplica Simpson 1/3 en todos los segmentos.`
-        : input.n === 3
-          ? 'Como n = 3, se aplica Simpson 3/8.'
-          : `Como n = ${input.n} es impar, se aplica Simpson 1/3 en los primeros ${input.n - 3} segmentos y Simpson 3/8 en los últimos 3.`
-    }`,
+    `Se usan los ${input.n + 1} puntos x_i = a + i·h. ${ruleChoiceText(input.n)}`,
   nodes: (input, h) => Array.from({ length: input.n + 1 }, (_, i) => input.a + i * h),
   apply: (input, _h, nodes) => {
     if (input.n % 2 === 0) return oneThird(nodes, 'Simpson 1/3');

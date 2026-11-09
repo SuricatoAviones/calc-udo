@@ -9,7 +9,13 @@
  *               Es el cambio de variable x = y + r que se usa para trasladar las raíces.
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import {
+  formatNumber,
+  joinSignedTerms,
+  powerTex,
+  toLatexNumber,
+  toLatexOperand,
+} from '@/lib/math/format';
 import {
   emptyTrace,
   type Calculator,
@@ -107,13 +113,16 @@ export function solveSyntheticDivision(
   const first = divisionStep(coefficients, r, 'División sintética', 'P(x)');
   steps.push(first.step);
   const isRoot = Math.abs(first.remainder) <= 1e-12 * Math.max(1, ...coefficients.map(Math.abs));
+  const factorization = isRoot
+    ? String.raw`, \quad P(x) = (${divisor})(${polynomialLatex(first.quotient)})`
+    : '';
   steps.push({
     title: 'Teorema del residuo',
     explanation: isRoot
       ? `El residuo es 0: r = ${formatNumber(r)} es raíz de P y (x − r) es un factor. Q(x) es el polinomio deflactado, de un grado menos, que conserva las demás raíces.`
       : `El residuo es el valor del polinomio en r. Como no es 0, r = ${formatNumber(r)} no es raíz de P.`,
     formula: String.raw`P(x) = (x - r)\,Q(x) + R, \qquad R = P(r)`,
-    result: `P(${n(r)}) = ${n(first.remainder)}${isRoot ? String.raw`, \quad P(x) = (${divisor})(${polynomialLatex(first.quotient)})` : ''}`,
+    result: `P(${n(r)}) = ${n(first.remainder)}${factorization}`,
   });
 
   const division = syntheticDivision(coefficients, r);
@@ -155,7 +164,8 @@ export function solveSyntheticDivision(
   const shifted: number[] = [first.remainder];
   let current = first.quotient;
   const repeated: Step[] = [];
-  for (let k = 1; current.length > 1; k++) {
+  // Cada división quita un grado: Q₁ tiene `degree` coeficientes y se para en la constante.
+  for (let k = 1; k < degree; k++) {
     const next = divisionStep(current, r, `División ${k + 1}`, `Q_{${k}}(x)`);
     repeated.push({
       ...next.step,
@@ -173,18 +183,18 @@ export function solveSyntheticDivision(
     result: `c_{${degree}} = ${n(current[0]!)}`,
   });
 
-  const shiftedTex = shifted
-    .map((c, k) => ({ c, k }))
-    .reverse()
-    .filter(({ c }) => c !== 0)
-    .map(({ c, k }, i) => {
-      const abs = Math.abs(c);
-      const base = k === 0 ? '' : k === 1 ? `(${divisor})` : `(${divisor})^{${k}}`;
-      const body = `${k > 0 && abs === 1 ? '' : n(abs)}${base}`;
-      if (i === 0) return c < 0 ? `-${body}` : body;
-      return c < 0 ? `- ${body}` : `+ ${body}`;
-    })
-    .join(' ');
+  const factor = `(${divisor})`;
+  const shiftedTex = joinSignedTerms(
+    shifted
+      .map((c, k) => ({ c, k }))
+      .reverse()
+      .filter(({ c }) => c !== 0)
+      .map(({ c, k }) => {
+        const abs = Math.abs(c);
+        const coefficient = k > 0 && abs === 1 ? '' : n(abs);
+        return { negative: c < 0, text: `${coefficient}${powerTex(factor, k)}` };
+      }),
+  );
   const factorials = shifted.map((_, k) =>
     Array.from({ length: k }, (__, i) => i + 1).reduce((p, v) => p * v, 1),
   );

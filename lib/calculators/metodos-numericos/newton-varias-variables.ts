@@ -68,21 +68,15 @@ function vectorTex(values: number[]): string {
   return String.raw`\begin{bmatrix} ${values.map((v) => n(v, 7)).join(TEX.newline)} \end{bmatrix}`;
 }
 
-export function solveNewtonSystem(input: NewtonSystemInput): Result {
-  const size = Number(input.size);
-  const vars = VARIABLES.slice(0, size) as unknown as string[];
-  const sources = [input.f1, input.f2, input.f3 ?? ''].slice(0, size);
+type ParsedSystem =
+  { equations: ParsedExpression[]; jacobian: ParsedExpression[][] } | { message: string };
 
+/** Lee las ecuaciones y deriva la jacobiana simbólica. */
+function parseSystem(sources: string[], vars: string[]): ParsedSystem {
   const equations: ParsedExpression[] = [];
   for (const [i, source] of sources.entries()) {
     const parsed = parseFunction(source, vars);
-    if (!parsed.ok) {
-      return {
-        ok: false,
-        error: { code: 'invalid-expression', message: `Ecuación ${i + 1}: ${parsed.message}` },
-        ...emptyTrace(),
-      };
-    }
+    if (!parsed.ok) return { message: `Ecuación ${i + 1}: ${parsed.message}` };
     equations.push(parsed.expr);
   }
   const jacobian: ParsedExpression[][] = [];
@@ -90,30 +84,141 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
     const row: ParsedExpression[] = [];
     for (const v of vars) {
       const d = differentiate(eq, v);
-      if (!d.ok) {
-        return {
-          ok: false,
-          error: {
-            code: 'invalid-expression',
-            message: 'No se pudo derivar una ecuación simbólicamente.',
-          },
-          ...emptyTrace(),
-        };
-      }
+      if (!d.ok) return { message: 'No se pudo derivar una ecuación simbólicamente.' };
       row.push(d.expr);
     }
     jacobian.push(row);
   }
+  return { equations, jacobian };
+}
+
+/** Δ de J Δ = −F y det J (solo con dos ecuaciones); `null` si J es singular. */
+function newtonDelta(J: number[][], F: number[]): { delta: number[]; det: number | null } | null {
+  const delta = solveLinearSystem(
+    J,
+    F.map((v) => -v),
+  );
+  const det = J.length === 2 ? J[0]![0]! * J[1]![1]! - J[0]![1]! * J[1]![0]! : null;
+  if (!delta || det === 0) return null;
+  return { delta, det };
+}
+
+/** Con dos ecuaciones, la regla de Cramer de Chapra (ecuaciones 6.24). */
+function cramerSteps(
+  it: number,
+  point: number[],
+  next: number[],
+  F: number[],
+  J: number[][],
+  det: number,
+): Step[] {
+  const [u, v] = F as [number, number];
+  const [[ux, uy], [vx, vy]] = J as [[number, number], [number, number]];
+  return [
+    {
+      title: 'Determinante de la jacobiana',
+      formula: String.raw`\det J = \frac{\partial f_1}{\partial x}\frac{\partial f_2}{\partial y} - \frac{\partial f_1}{\partial y}\frac{\partial f_2}{\partial x}`,
+      substitution: String.raw`\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
+      result: String.raw`\det J = ${n(det)}`,
+    },
+    {
+      title: 'Nuevos valores (ecuaciones 6.24)',
+      formula: String.raw`x_{i+1} = x_i - \frac{f_1 \frac{\partial f_2}{\partial y} - f_2 \frac{\partial f_1}{\partial y}}{\det J}, \quad y_{i+1} = y_i - \frac{f_2 \frac{\partial f_1}{\partial x} - f_1 \frac{\partial f_2}{\partial x}}{\det J}`,
+      substitution: String.raw`x_{${it}} = ${n(point[0]!)} - \frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det)}}, \quad y_{${it}} = ${n(point[1]!)} - \frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det)}}`,
+      result: String.raw`x_{${it}} = ${n(next[0]!)}, \quad y_{${it}} = ${n(next[1]!)}`,
+    },
+  ];
+}
+
+/** Con tres ecuaciones, el sistema lineal J Δ = −F por eliminación de Gauss. */
+function gaussSteps(
+  it: number,
+  names: string[],
+  next: number[],
+  F: number[],
+  J: number[][],
+  delta: number[],
+): Step[] {
+  return [
+    {
+      title: 'Resolver J Δ = −F',
+      explanation: 'Se resuelve el sistema lineal con eliminación de Gauss y pivoteo parcial.',
+      formula: String.raw`J\,\Delta = -F`,
+      substitution: String.raw`${texMatrix(J, 7)} \Delta = ${vectorTex(F.map((v) => -v))}`,
+      result: String.raw`\Delta = ${vectorTex(delta)}`,
+    },
+    {
+      title: 'Nuevos valores',
+      formula: String.raw`x_{i+1} = x_i + \Delta`,
+      result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(String.raw`,\quad `),
+    },
+  ];
+}
+
+/** El mayor error relativo; `null` si alguna variable vale 0 (no está definido). */
+function maxError(errors: (number | null)[]): number | null {
+  return errors.includes(null) ? null : Math.max(...(errors as number[]));
+}
+
+function errorExplanation(converged: boolean, ea: number | null, tolerance: number): string {
+  if (converged) {
+    return `El mayor error es menor que εs = ${formatNumber(tolerance)} %: el método convergió.`;
+  }
+  if (ea === null) return 'No está definido para una variable que vale 0. Se sigue iterando.';
+  return `El mayor error no es menor que εs = ${formatNumber(tolerance)} %: se sigue iterando.`;
+}
+
+function errorStep(
+  names: string[],
+  errors: (number | null)[],
+  ea: number | null,
+  tolerance: number,
+): Step {
+  const converged = ea !== null && ea < tolerance;
+  const perVariable = names
+    .map((v, k) => {
+      const e = errors[k];
+      const value = e === null ? TEX.dash : n(e!, 6);
+      return String.raw`\varepsilon_{a,${v}} = ${value}\,\%`;
+    })
+    .join(String.raw`,\quad `);
+  return {
+    title: 'Error aproximado',
+    explanation: errorExplanation(converged, ea, tolerance),
+    formula: String.raw`\varepsilon_a = \max_k \left|\frac{x_k^{(i+1)} - x_k^{(i)}}{x_k^{(i+1)}}\right| 100\%`,
+    result: ea === null ? undefined : perVariable,
+  };
+}
+
+export function solveNewtonSystem(input: NewtonSystemInput): Result {
+  const size = Number(input.size);
+  const vars = VARIABLES.slice(0, size) as unknown as string[];
+  const sources = [input.f1, input.f2, input.f3 ?? ''].slice(0, size);
+
+  const system = parseSystem(sources, vars);
+  if ('message' in system) {
+    return {
+      ok: false,
+      error: { code: 'invalid-expression', message: system.message },
+      ...emptyTrace(),
+    };
+  }
+  const { equations, jacobian } = system;
 
   let point = [input.x0, input.y0, input.z0 ?? 0].slice(0, size);
   const names = vars.map((v) => `${v}`);
   const rows: Record<string, number | null>[] = [];
+  const argumentList = names.join(', ');
+  const systemTex = equations
+    .map((e, i) => `f_{${i + 1}}(${argumentList}) &= ${e.tex} = 0`)
+    .join(TEX.newline);
+  const jacobianTex = jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(TEX.newline);
   const steps: Step[] = [
     {
       title: 'Sistema y matriz jacobiana',
-      explanation: `Se buscan ${names.join(', ')} tales que todas las funciones valgan 0. La jacobiana reúne las derivadas parciales de cada función respecto de cada variable.`,
-      formula: String.raw`\begin{aligned} ${equations.map((e, i) => `f_{${i + 1}}(${names.join(', ')}) &= ${e.tex} = 0`).join(TEX.newline)} \end{aligned}`,
-      result: String.raw`J = \begin{bmatrix} ${jacobian.map((row) => row.map((d) => d.tex).join(' & ')).join(TEX.newline)} \end{bmatrix}`,
+      explanation: `Se buscan ${argumentList} tales que todas las funciones valgan 0. La jacobiana reúne las derivadas parciales de cada función respecto de cada variable.`,
+      formula: String.raw`\begin{aligned} ${systemTex} \end{aligned}`,
+      result: String.raw`J = \begin{bmatrix} ${jacobianTex} \end{bmatrix}`,
     },
   ];
   const trace = () => ({
@@ -171,12 +276,8 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         result: `J${at} = ${texMatrix(J, 7)}`,
       },
     ];
-    const delta = solveLinearSystem(
-      J,
-      F.map((v) => -v),
-    );
-    const det = size === 2 ? J[0]![0]! * J[1]![1]! - J[0]![1]! * J[1]![0]! : null;
-    if (!delta || (det !== null && det === 0)) {
+    const solved = newtonDelta(J, F);
+    if (!solved) {
       children.push({
         title: 'La jacobiana es singular',
         explanation: 'Su determinante es 0, así que el sistema J Δ = −F no tiene solución única.',
@@ -191,66 +292,21 @@ export function solveNewtonSystem(input: NewtonSystemInput): Result {
         ...trace(),
       };
     }
+    const { delta, det } = solved;
     const next = point.map((v, k) => v + delta[k]!);
-    if (size === 2) {
-      const [u, v] = F as [number, number];
-      const [[ux, uy], [vx, vy]] = J as [[number, number], [number, number]];
-      children.push(
-        {
-          title: 'Determinante de la jacobiana',
-          formula: String.raw`\det J = \frac{\partial f_1}{\partial x}\frac{\partial f_2}{\partial y} - \frac{\partial f_1}{\partial y}\frac{\partial f_2}{\partial x}`,
-          substitution: String.raw`\det J = ${op(ux)}${op(vy)} - ${op(uy)}${op(vx)}`,
-          result: String.raw`\det J = ${n(det!)}`,
-        },
-        {
-          title: 'Nuevos valores (ecuaciones 6.24)',
-          formula: String.raw`x_{i+1} = x_i - \frac{f_1 \frac{\partial f_2}{\partial y} - f_2 \frac{\partial f_1}{\partial y}}{\det J}, \quad y_{i+1} = y_i - \frac{f_2 \frac{\partial f_1}{\partial x} - f_1 \frac{\partial f_2}{\partial x}}{\det J}`,
-          substitution: String.raw`x_{${it}} = ${n(point[0]!)} - \frac{${op(u)}${op(vy)} - ${op(v)}${op(uy)}}{${n(det!)}}, \quad y_{${it}} = ${n(point[1]!)} - \frac{${op(v)}${op(ux)} - ${op(u)}${op(vx)}}{${n(det!)}}`,
-          result: String.raw`x_{${it}} = ${n(next[0]!)}, \quad y_{${it}} = ${n(next[1]!)}`,
-        },
-      );
-    } else {
-      children.push(
-        {
-          title: 'Resolver J Δ = −F',
-          explanation: 'Se resuelve el sistema lineal con eliminación de Gauss y pivoteo parcial.',
-          formula: String.raw`J\,\Delta = -F`,
-          substitution: String.raw`${texMatrix(J, 7)} \Delta = ${vectorTex(F.map((v) => -v))}`,
-          result: String.raw`\Delta = ${vectorTex(delta)}`,
-        },
-        {
-          title: 'Nuevos valores',
-          formula: String.raw`x_{i+1} = x_i + \Delta`,
-          result: names.map((v, k) => `${v}_{${it}} = ${n(next[k]!)}`).join(String.raw`,\quad `),
-        },
-      );
-    }
+    children.push(
+      ...(det === null
+        ? gaussSteps(it, names, next, F, J, delta)
+        : cramerSteps(it, point, next, F, J, det)),
+    );
     const errors = next.map((v, k) => (v === 0 ? null : Math.abs((v - point[k]!) / v) * 100));
-    const ea = errors.some((e) => e === null) ? null : Math.max(...(errors as number[]));
-    const converged = ea !== null && ea < input.tolerance;
-    children.push({
-      title: 'Error aproximado',
-      explanation: converged
-        ? `El mayor error es menor que εs = ${formatNumber(input.tolerance)} %: el método convergió.`
-        : ea === null
-          ? 'No está definido para una variable que vale 0. Se sigue iterando.'
-          : `El mayor error no es menor que εs = ${formatNumber(input.tolerance)} %: se sigue iterando.`,
-      formula: String.raw`\varepsilon_a = \max_k \left|\frac{x_k^{(i+1)} - x_k^{(i)}}{x_k^{(i+1)}}\right| 100\%`,
-      result:
-        ea === null
-          ? undefined
-          : names
-              .map(
-                (v, k) =>
-                  String.raw`\varepsilon_{a,${v}} = ${errors[k] === null ? TEX.dash : n(errors[k]!, 6)}\,\%`,
-              )
-              .join(String.raw`,\quad `),
-    });
+    const ea = maxError(errors);
+    children.push(errorStep(names, errors, ea, input.tolerance));
     steps.push({ title: `Iteración ${it}`, children });
     point = next;
     rows.push({ i: it, ...Object.fromEntries(names.map((v, k) => [v, point[k]!])), ea });
 
-    if (converged) {
+    if (ea !== null && ea < input.tolerance) {
       const residuals = equations.map((e) =>
         e.evaluateAt(Object.fromEntries(names.map((v, k) => [v, point[k]!]))),
       );

@@ -17,7 +17,7 @@
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
 import { parseFunction } from '@/lib/math/expression';
-import { formatNumber, toLatexNumber } from '@/lib/math/format';
+import { formatNumber, joinSignedTerms, toLatexNumber } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import {
   emptyTrace,
@@ -72,7 +72,9 @@ export const undeterminedCoefficientsInputSchema = z
         message: `Para la derivada de orden ${v.order} hacen falta al menos ${v.order + 1} nodos.`,
       });
     }
-    if (v.target === 'integral' && !(v.b > v.a)) {
+    // Escrito así para que también rechace NaN.
+    const ascending = v.b > v.a;
+    if (v.target === 'integral' && !ascending) {
       ctx.addIssue({
         code: 'custom',
         path: ['b'],
@@ -159,13 +161,117 @@ function linearCombination(coefficients: Rational[], names: string[]): string {
   const terms = coefficients
     .map((c, j) => ({ c, j }))
     .filter(({ c }) => !c.isZero())
-    .map(({ c, j }, i) => {
+    .map(({ c, j }) => {
       const abs = c.abs();
-      const body = `${abs.eq(Rational.ONE) ? '' : String.raw`${abs.toLatex()}\,`}${names[j]}`;
-      if (i === 0) return c.sign() < 0 ? `-${body}` : body;
-      return c.sign() < 0 ? `- ${body}` : `+ ${body}`;
+      const coefficient = abs.eq(Rational.ONE) ? '' : String.raw`${abs.toLatex()}\,`;
+      return { negative: c.sign() < 0, text: `${coefficient}${names[j]}` };
     });
-  return terms.length === 0 ? '0' : terms.join(' ');
+  return terms.length === 0 ? '0' : joinSignedTerms(terms);
+}
+
+/** Factor delante de la suma: 1/h, 1/hᵈ (derivada) o h (integral). */
+function scaleTex(derivative: boolean, d: number): string {
+  if (!derivative) return 'h';
+  return d === 1 ? String.raw`\frac{1}{h}` : String.raw`\frac{1}{h^{${d}}}`;
+}
+
+/** f(t) = 1, t, t², … en el título de cada condición. */
+function powerTitle(k: number): string {
+  if (k === 0) return 'f(t) = 1';
+  return k === 1 ? 'f(t) = t' : `f(t) = t^${k}`;
+}
+
+interface TruncationError {
+  /** Grado máximo de los polinomios para los que la fórmula es exacta. */
+  exactDegree: number;
+  errorPower: number | null;
+  errorConstant: Rational | null;
+}
+
+/** Primer k en que la fórmula deja de ser exacta: da el orden y la constante del error. */
+function truncationError(
+  solution: Rational[],
+  t: Rational[],
+  momentOf: (k: number) => Rational,
+  derivative: boolean,
+  d: number,
+): TruncationError {
+  const size = solution.length;
+  let exactDegree = size - 1;
+  for (let k = size; k < size + 6; k++) {
+    const achieved = solution.reduce((s, c, j) => s.add(c.mul(power(t[j]!, k))), Rational.ZERO);
+    const expected = momentOf(k);
+    if (!achieved.eq(expected)) {
+      return {
+        exactDegree,
+        errorPower: derivative ? k - d : k + 1,
+        errorConstant: expected.sub(achieved).div(Rational.of(factorial(k))),
+      };
+    }
+    exactDegree = k;
+  }
+  return { exactDegree, errorPower: null, errorConstant: null };
+}
+
+/** Orden de la derivada f⁽ᵏ⁾(ξ) del término de error. */
+function errorDerivativeOrder(errorPower: number | null, derivative: boolean, d: number) {
+  if (errorPower === null) return null;
+  return derivative ? errorPower + d : errorPower - 1;
+}
+
+function truncationStep(
+  { exactDegree, errorPower, errorConstant }: TruncationError,
+  derivativeK: number | null,
+): Step {
+  if (errorPower === null || errorConstant === null) {
+    return {
+      title: 'Error de truncamiento',
+      explanation: `La fórmula es exacta al menos hasta polinomios de grado ${exactDegree}.`,
+    };
+  }
+  const next = exactDegree + 1;
+  return {
+    title: 'Error de truncamiento',
+    explanation: `La fórmula es exacta para polinomios de grado ≤ ${exactDegree}; con t^${next} ya no. El término que falta da el error de truncamiento.`,
+    formula: String.raw`E = \frac{M_{${next}} - \sum_j c_j t_j^{${next}}}{${next}!}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
+    result: String.raw`E = ${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi) = O(h^{${errorPower}})`,
+  };
+}
+
+type Applied =
+  { applied: number; step: Step } | { code: UndeterminedCoefficientsErrorCode; message: string };
+
+/** Evalúa la fórmula en una función dada, con los xᵢ y h del formulario. */
+function applyFormula(
+  input: UndeterminedCoefficientsInput,
+  expression: string,
+  nodes: number[],
+  solution: Rational[],
+): Applied {
+  const parsed = parseFunction(expression);
+  if (!parsed.ok) return { code: 'invalid-expression', message: parsed.message };
+  const derivative = input.target === 'derivada';
+  const d = input.order;
+  const x0 = input.x0!;
+  const h = input.h!;
+  const values = nodes.map((tj) => parsed.expr.evaluate(x0 + tj * h));
+  if (values.some((v) => !Number.isFinite(v))) {
+    return { code: 'non-finite', message: 'f no tiene un valor real finito en algún nodo.' };
+  }
+  const sum = solution.reduce((s, c, j) => s + c.toNumber() * values[j]!, 0);
+  const applied = derivative ? sum / h ** d : sum * h;
+  const target = derivative ? `f^{(${d})}(${toLatexNumber(x0)})` : String.raw`\int f(x)\,dx`;
+  return {
+    applied,
+    step: {
+      title: `Aplicar a f(x) = ${expression}`,
+      explanation: `Con xᵢ = ${formatNumber(x0)} y h = ${formatNumber(h)}.`,
+      substitution: nodes
+        .map((tj, j) => `f(${toLatexNumber(x0 + tj * h)}) = ${toLatexNumber(values[j]!)}`)
+        .join(String.raw`,\ `),
+      result: String.raw`${target} \approx ${toLatexNumber(applied)}`,
+    },
+  };
 }
 
 /** Σ cⱼ f(xᵢ + tⱼh) en LaTeX. */
@@ -186,11 +292,7 @@ export function solveUndeterminedCoefficients(
   const lhsName = derivative
     ? `f^{(${d})}(x_i)`
     : String.raw`\int_{${nodeTermPoint(input.a)}}^{${nodeTermPoint(input.b)}} f(x)\,dx`;
-  const scale = derivative
-    ? d === 1
-      ? String.raw`\frac{1}{h}`
-      : String.raw`\frac{1}{h^{${d}}}`
-    : 'h';
+  const scale = scaleTex(derivative, d);
 
   const matrix = Array.from({ length: size }, (_, k) => t.map((tj) => power(tj, k)));
   const rhs = Array.from({ length: size }, (_, k) => moment(input.target, k, d, a, b));
@@ -207,7 +309,7 @@ export function solveUndeterminedCoefficients(
         ? `Con xᵢ = 0 y h = 1, la fórmula debe dar la derivada de orden ${d} de cada potencia tᵏ en 0, que vale ${d}! si k = ${d} y 0 si no.`
         : `Con xᵢ = 0 y h = 1, la fórmula debe dar la integral de cada potencia tᵏ entre ${formatNumber(input.a)} y ${formatNumber(input.b)}: (b^{k+1} − a^{k+1})/(k + 1).`,
       children: matrix.map((row, k) => ({
-        title: k === 0 ? 'f(t) = 1' : k === 1 ? 'f(t) = t' : `f(t) = t^${k}`,
+        title: powerTitle(k),
         result: `${linearCombination(
           row,
           row.map((_, j) => `c_{${j}}`),
@@ -231,78 +333,32 @@ export function solveUndeterminedCoefficients(
     result: solution.map((c, j) => `c_{${j}} = ${c.toLatex()}`).join(String.raw`,\quad `),
   });
 
-  // Primer k en que la fórmula deja de ser exacta: da el orden del error.
-  let exactDegree = size - 1;
-  let errorPower: number | null = null;
-  let errorConstant: Rational | null = null;
-  for (let k = size; k < size + 6; k++) {
-    const achieved = solution.reduce((s, c, j) => s.add(c.mul(power(t[j]!, k))), Rational.ZERO);
-    const expected = moment(input.target, k, d, a, b);
-    if (achieved.eq(expected)) {
-      exactDegree = k;
-      continue;
-    }
-    errorConstant = expected.sub(achieved).div(Rational.of(factorial(k)));
-    errorPower = derivative ? k - d : k + 1;
-    break;
-  }
+  const truncation = truncationError(
+    solution,
+    t,
+    (k) => moment(input.target, k, d, a, b),
+    derivative,
+    d,
+  );
+  const { exactDegree, errorPower, errorConstant } = truncation;
 
   const formulaTex = String.raw`${lhsName} \approx ${scale}\left[${formulaSum(solution, nodes)}\right]`;
-  const derivativeK = errorPower === null ? null : derivative ? errorPower + d : errorPower - 1;
-  steps.push(
-    {
-      title: 'Fórmula',
-      result: formulaTex,
-    },
-    {
-      title: 'Error de truncamiento',
-      explanation:
-        errorPower === null
-          ? `La fórmula es exacta al menos hasta polinomios de grado ${exactDegree}.`
-          : `La fórmula es exacta para polinomios de grado ≤ ${exactDegree}; con t^${exactDegree + 1} ya no. El término que falta da el error de truncamiento.`,
-      formula:
-        errorPower === null
-          ? undefined
-          : String.raw`E = \frac{M_{${exactDegree + 1}} - \sum_j c_j t_j^{${exactDegree + 1}}}{${exactDegree + 1}!}\, h^{${errorPower}} f^{(${derivativeK})}(\xi)`,
-      result:
-        errorPower === null || errorConstant === null
-          ? undefined
-          : String.raw`E = ${errorConstant.toLatex()}\, h^{${errorPower}} f^{(${derivativeK})}(\xi) = O(h^{${errorPower}})`,
-    },
-  );
+  const derivativeK = errorDerivativeOrder(errorPower, derivative, d);
+  steps.push({ title: 'Fórmula', result: formulaTex }, truncationStep(truncation, derivativeK));
 
   let applied: number | null = null;
   if (input.expression) {
-    const parsed = parseFunction(input.expression);
-    if (!parsed.ok) {
+    const result = applyFormula(input, input.expression, nodes, solution);
+    if ('code' in result) {
       return {
         ok: false,
-        error: { code: 'invalid-expression', message: parsed.message },
+        error: { code: result.code, message: result.message },
         ...emptyTrace(),
         steps,
       };
     }
-    const x0 = input.x0!;
-    const h = input.h!;
-    const values = nodes.map((tj) => parsed.expr.evaluate(x0 + tj * h));
-    if (values.some((v) => !Number.isFinite(v))) {
-      return {
-        ok: false,
-        error: { code: 'non-finite', message: 'f no tiene un valor real finito en algún nodo.' },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    const sum = solution.reduce((s, c, j) => s + c.toNumber() * values[j]!, 0);
-    applied = derivative ? sum / h ** d : sum * h;
-    steps.push({
-      title: `Aplicar a f(x) = ${input.expression}`,
-      explanation: `Con xᵢ = ${formatNumber(x0)} y h = ${formatNumber(h)}.`,
-      substitution: nodes
-        .map((tj, j) => `f(${toLatexNumber(x0 + tj * h)}) = ${toLatexNumber(values[j]!)}`)
-        .join(String.raw`,\ `),
-      result: String.raw`${derivative ? `f^{(${d})}(${toLatexNumber(x0)})` : String.raw`\int f(x)\,dx`} \approx ${toLatexNumber(applied)}`,
-    });
+    applied = result.applied;
+    steps.push(result.step);
   }
 
   const summary: SummaryItem[] = [

@@ -67,6 +67,90 @@ const op = (v: number) => toLatexOperand(v, 8);
 const factorial = (k: number) =>
   Array.from({ length: k }, (_, i) => i + 1).reduce((p, v) => p * v, 1);
 
+interface Term {
+  term: number;
+  formula: string;
+  substitution: string;
+}
+
+/** s(s − 1)(s − 2)… con k factores. */
+function sFactors(k: number): string {
+  return Array.from({ length: k }, (_, j) => (j === 0 ? 's' : `(s - ${j})`)).join('');
+}
+
+/** Término k de Newton-Gregory: s(s − 1)⋯(s − k + 1)/k! Δᵏy₀. */
+function forwardTerm(k: number, s: number, coefficients: number[]): Term {
+  let product = 1;
+  for (let j = 0; j < k; j++) product *= s - j;
+  const term = (coefficients[k]! * product) / factorial(k);
+  if (k === 0) return { term, formula: 'y_0', substitution: n(coefficients[0]!) };
+  const numericFactors = Array.from({ length: k }, (_, j) => `(${n(s - j)})`).join('');
+  return {
+    term,
+    formula: String.raw`\frac{${sFactors(k)}}{${k}!}\,${forwardName(0, k)}`,
+    substitution: String.raw`\frac{${numericFactors}}{${factorial(k)}}${op(coefficients[k]!)}`,
+  };
+}
+
+/** Término k con diferencias divididas: b_k(x − x₀)⋯(x − x_{k−1}). */
+function dividedTerm(k: number, xp: number, x: number[], coefficients: number[]): Term {
+  let product = 1;
+  for (let j = 0; j < k; j++) product *= xp - x[j]!;
+  const symbolic = Array.from({ length: k }, (_, j) => `(x - x_{${j}})`).join('');
+  const numeric = Array.from({ length: k }, (_, j) => `(${n(xp)} - ${op(x[j]!)})`).join('');
+  return {
+    term: coefficients[k]! * product,
+    formula: `b_{${k}}${symbolic}`,
+    substitution: `${op(coefficients[k]!)}${numeric}`,
+  };
+}
+
+const signOf = (c: number) => (c < 0 ? '-' : '+');
+
+function forwardForm(coefficients: number[]): string {
+  return coefficients
+    .map((c, k) => {
+      if (k === 0) return n(c);
+      return String.raw`${signOf(c)} \frac{${n(Math.abs(c))}}{${k}!}${sFactors(k)}`;
+    })
+    .join(' ');
+}
+
+/** (x − x_j) con el signo resuelto; solo x si x_j = 0. */
+function nodeFactor(xj: number): string {
+  if (xj === 0) return 'x';
+  const sign = xj < 0 ? '+' : '-';
+  return `(x ${sign} ${n(Math.abs(xj))})`;
+}
+
+function dividedForm(coefficients: number[], x: number[]): string {
+  return coefficients
+    .map((c, k) => {
+      if (k === 0) return n(c);
+      const factors = x
+        .slice(0, k)
+        .map((xj) => nodeFactor(xj))
+        .join('');
+      return `${signOf(c)} ${n(Math.abs(c))}${factors}`;
+    })
+    .join(' ');
+}
+
+/** Error relativo verdadero (si se dio el valor verdadero) y aviso de extrapolación. */
+function summaryNotes(xp: number, x: number[], et: number | null): SummaryItem[] {
+  const notes: SummaryItem[] = [];
+  if (et !== null) {
+    notes.push({
+      label: 'Error relativo verdadero',
+      value: String.raw`\varepsilon_t = ${n(et)}\,\%`,
+    });
+  }
+  if (xp < Math.min(...x) || xp > Math.max(...x)) {
+    notes.push({ label: 'Atención', value: String.raw`\text{extrapolación}` });
+  }
+  return notes;
+}
+
 export function solveNewtonInterpolation(
   input: NewtonInterpolationInput,
 ): CalculatorResult<NewtonInterpolationValue, never> {
@@ -77,12 +161,13 @@ export function solveNewtonInterpolation(
   const levels = forward ? forwardDifferences(y) : dividedDifferences(x, y);
   const coefficients = levels.map((level) => level[0]!);
   const h = forward ? equalSpacing(x)! : null;
-  const s = h !== null ? (xp - x[0]!) / h : null;
+  const s = h === null ? null : (xp - x[0]!) / h;
+  const spacing = h === null ? '' : ` ${describeSpacing(h)}`;
 
   const steps: Step[] = [
     {
       title: 'Datos',
-      explanation: `${size} puntos: el polinomio interpolante es de grado ${size - 1} como máximo.${h !== null ? ` ${describeSpacing(h)}` : ''}`,
+      explanation: `${size} puntos: el polinomio interpolante es de grado ${size - 1} como máximo.${spacing}`,
       result: x.map((xi, i) => String.raw`(${n(xi)},\ ${n(y[i]!)})`).join(String.raw`,\ `),
     },
     {
@@ -99,55 +184,21 @@ export function solveNewtonInterpolation(
   ];
 
   // Términos del polinomio evaluados en xp.
-  const terms: number[] = [];
-  const termSteps: Step[] = [];
-  for (let k = 0; k < size; k++) {
-    let term: number;
-    let formula: string;
-    let substitution: string;
-    if (forward) {
-      let product = 1;
-      for (let j = 0; j < k; j++) product *= s! - j;
-      term = (coefficients[k]! * product) / factorial(k);
-      const factors = Array.from({ length: k }, (_, j) => (j === 0 ? 's' : `(s - ${j})`)).join('');
-      formula = k === 0 ? 'y_0' : String.raw`\frac{${factors}}{${k}!}\,${forwardName(0, k)}`;
-      const numericFactors = Array.from({ length: k }, (_, j) => `(${n(s! - j)})`).join('');
-      substitution =
-        k === 0
-          ? n(coefficients[0]!)
-          : String.raw`\frac{${numericFactors}}{${factorial(k)}}${op(coefficients[k]!)}`;
-    } else {
-      let product = 1;
-      for (let j = 0; j < k; j++) product *= xp - x[j]!;
-      term = coefficients[k]! * product;
-      formula = `b_{${k}}${Array.from({ length: k }, (_, j) => `(x - x_{${j}})`).join('')}`;
-      substitution = `${op(coefficients[k]!)}${Array.from({ length: k }, (_, j) => `(${n(xp)} - ${op(x[j]!)})`).join('')}`;
-    }
-    terms.push(term);
-    termSteps.push({ title: `Término ${k}`, formula, substitution, result: n(term) });
-  }
+  const evaluated = Array.from({ length: size }, (_, k) =>
+    forward ? forwardTerm(k, s!, coefficients) : dividedTerm(k, xp, x, coefficients),
+  );
+  const terms = evaluated.map((t) => t.term);
+  const termSteps: Step[] = evaluated.map(({ term, formula, substitution }, k) => ({
+    title: `Término ${k}`,
+    formula,
+    substitution,
+    result: n(term),
+  }));
   const approximations = terms.reduce<number[]>((acc, t) => [...acc, (acc.at(-1) ?? 0) + t], []);
   const value = approximations.at(-1)!;
 
-  const newtonForm = forward
-    ? `f_{${size - 1}}(x) = ${coefficients
-        .map((c, k) => {
-          if (k === 0) return n(c);
-          const factors = Array.from({ length: k }, (_, j) => (j === 0 ? 's' : `(s - ${j})`)).join(
-            '',
-          );
-          return String.raw`${c < 0 ? '-' : '+'} \frac{${n(Math.abs(c))}}{${k}!}${factors}`;
-        })
-        .join(' ')}`
-    : `f_{${size - 1}}(x) = ${coefficients
-        .map((c, k) => {
-          const factors = Array.from({ length: k }, (_, j) =>
-            x[j] === 0 ? 'x' : `(x ${x[j]! < 0 ? '+' : '-'} ${n(Math.abs(x[j]!))})`,
-          ).join('');
-          if (k === 0) return n(c);
-          return `${c < 0 ? '-' : '+'} ${n(Math.abs(c))}${factors}`;
-        })
-        .join(' ')}`;
+  const newtonTerms = forward ? forwardForm(coefficients) : dividedForm(coefficients, x);
+  const newtonForm = `f_{${size - 1}}(x) = ${newtonTerms}`;
 
   steps.push({
     title: 'Polinomio de Newton',
@@ -243,16 +294,8 @@ export function solveNewtonInterpolation(
       emphasis: true,
     },
     { label: 'Grado', value: String(size - 1) },
+    ...summaryNotes(xp, x, rows.at(-1)!.et),
   ];
-  if (input.trueValue !== undefined && rows.at(-1)!.et !== null) {
-    summary.push({
-      label: 'Error relativo verdadero',
-      value: String.raw`\varepsilon_t = ${n(rows.at(-1)!.et!)}\,\%`,
-    });
-  }
-  if (xp < Math.min(...x) || xp > Math.max(...x)) {
-    summary.push({ label: 'Atención', value: String.raw`\text{extrapolación}` });
-  }
 
   return {
     ok: true,

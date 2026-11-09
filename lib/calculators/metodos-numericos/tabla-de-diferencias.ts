@@ -57,6 +57,15 @@ const op = (v: number) => toLatexOperand(v, 8);
 /** Cálculos que se detallan por nivel. */
 const DETAILED_PER_LEVEL = 3;
 
+/** Encabezado de la columna de orden k: Δᵏ y_i (hacia adelante) o f[x_i, …, x_{i+k}]. */
+function levelHeader(forward: boolean, k: number): string {
+  if (forward) {
+    if (k === 0) return 'y_i';
+    return k === 1 ? String.raw`\Delta y_i` : String.raw`\Delta^{${k}} y_i`;
+  }
+  return k === 0 ? 'f[x_i]' : String.raw`f[x_i, \ldots, x_{i+${k}}]`;
+}
+
 export function solveDifferenceTable(
   input: DifferenceTableInput,
 ): CalculatorResult<DifferenceTableValue, never> {
@@ -116,13 +125,7 @@ export function solveDifferenceTable(
     { key: 'x', header: 'x_i' },
     ...levels.map((_, k) => ({
       key: `d${k}`,
-      header: forward
-        ? k === 0
-          ? 'y_i'
-          : String.raw`\Delta${k === 1 ? '' : `^{${k}}`} y_i`
-        : k === 0
-          ? 'f[x_i]'
-          : String.raw`f[x_i, \ldots, x_{i+${k}}]`,
+      header: levelHeader(forward, k),
     })),
   ];
   const rows = x.map((xi, i) => {

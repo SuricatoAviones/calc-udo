@@ -61,6 +61,102 @@ const op = toLatexOperand;
 /** Con más iteraciones del corrector que esto, solo se detallan las primeras y la última. */
 const DETAILED_ITERATIONS = 5;
 
+interface Prediction {
+  predictor: number;
+  step: Step;
+}
+
+function midpointPredictor(i: number, yPrev: number, k1: number, h: number): Prediction {
+  const predictor = yPrev + k1 * 2 * h;
+  return {
+    predictor,
+    step: {
+      title: 'Predictor del punto medio',
+      formula: String.raw`y^0_{i+1} = y_{i-1} + y'_i\,2h`,
+      substitution: String.raw`y^0_{${i + 1}} = ${n(yPrev)} + ${op(k1)}\,(2)(${n(h)})`,
+      result: `y^0_{${i + 1}} = ${n(predictor)}`,
+    },
+  };
+}
+
+function eulerPredictor(i: number, y: number, k1: number, h: number): Prediction {
+  const predictor = y + k1 * h;
+  return {
+    predictor,
+    step: {
+      title: 'Predictor de Euler',
+      formula: String.raw`y^0_{i+1} = y_i + y'_i\,h`,
+      substitution: String.raw`y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\,(${n(h)})`,
+      result: `y^0_{${i + 1}} = ${n(predictor)}`,
+    },
+  };
+}
+
+interface CorrectorStart {
+  evaluate: (x: number, y: number) => number;
+  i: number;
+  x1: number;
+  y: number;
+  k1: number;
+  h: number;
+  predictor: number;
+  maxIterations: number;
+  tolerance: number;
+}
+
+interface CorrectorRun {
+  value: number;
+  ea: number | null;
+  iterations: number;
+  steps: Step[];
+}
+
+function correctorIterationStep(
+  c: CorrectorStart,
+  j: number,
+  current: number,
+  slope: number,
+  next: number,
+  ea: number | null,
+): Step {
+  const { i, y, k1, x1, h } = c;
+  const error = ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`;
+  return {
+    title: `Corrector, iteración ${j}`,
+    formula:
+      j === 1
+        ? String.raw`y^j_{i+1} = y_i + \frac{y'_i + f(x_{i+1},\ y^{j-1}_{i+1})}{2}\,h`
+        : undefined,
+    substitution: String.raw`y^{${j}}_{${i + 1}} = ${n(y)} + \frac{${n(k1)} + f(${n(x1)},\ ${n(current)})}{2}\,(${n(h)}) = ${n(y)} + \frac{${n(k1)} + ${op(slope)}}{2}\,(${n(h)})`,
+    result: `y^{${j}}_{${i + 1}} = ${n(next)}${error}`,
+  };
+}
+
+/** Corrector del trapecio iterado hasta |εa| < εs o el máximo de iteraciones. */
+function runCorrector(c: CorrectorStart): CorrectorRun {
+  let current = c.predictor;
+  let ea: number | null = null;
+  let iterations = 0;
+  const steps: Step[] = [];
+  for (let j = 1; j <= c.maxIterations; j++) {
+    const slope = c.evaluate(c.x1, current);
+    const next = c.y + ((c.k1 + slope) / 2) * c.h;
+    ea = next === 0 ? null : Math.abs((next - current) / next) * 100;
+    iterations = j;
+    if (j <= DETAILED_ITERATIONS || j === c.maxIterations) {
+      steps.push(correctorIterationStep(c, j, current, slope, next, ea));
+    } else if (j === DETAILED_ITERATIONS + 1) {
+      steps.push({
+        title: 'Iteraciones siguientes',
+        explanation: 'Se repite el corrector con el último valor obtenido.',
+      });
+    }
+    current = next;
+    if (!Number.isFinite(next) || (ea !== null && ea < c.tolerance)) break;
+  }
+  return { value: current, ea, iterations, steps };
+}
+
 function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory {
   return (f, exact): OdeRule | string => {
     const midpoint = input.predictor === 'punto-medio';
@@ -113,56 +209,25 @@ function predictorCorrectorRule(input: PredictorCorrectorInput): OdeRuleFactory 
             ],
           };
         }
-        let predictor: number;
-        let predictorStep: Step;
-        if (midpoint) {
-          const yPrev = previous.get(i - 1)!;
-          predictor = yPrev + k1 * 2 * h;
-          predictorStep = {
-            title: 'Predictor del punto medio',
-            formula: String.raw`y^0_{i+1} = y_{i-1} + y'_i\,2h`,
-            substitution: String.raw`y^0_{${i + 1}} = ${n(yPrev)} + ${op(k1)}\,(2)(${n(h)})`,
-            result: `y^0_{${i + 1}} = ${n(predictor)}`,
-          };
-        } else {
-          predictor = y + k1 * h;
-          predictorStep = {
-            title: 'Predictor de Euler',
-            formula: String.raw`y^0_{i+1} = y_i + y'_i\,h`,
-            substitution: String.raw`y^0_{${i + 1}} = ${n(y)} + ${op(k1)}\,(${n(h)})`,
-            result: `y^0_{${i + 1}} = ${n(predictor)}`,
-          };
-        }
-
-        const x1 = x + h;
-        let current = predictor;
-        let ea: number | null = null;
-        let iterations = 0;
-        const iterationSteps: Step[] = [];
-        for (let j = 1; j <= input.maxIterations; j++) {
-          const slope = evaluate(x1, current);
-          const next = y + ((k1 + slope) / 2) * h;
-          ea = next === 0 ? null : Math.abs((next - current) / next) * 100;
-          iterations = j;
-          if (j <= DETAILED_ITERATIONS || j === input.maxIterations) {
-            iterationSteps.push({
-              title: `Corrector, iteración ${j}`,
-              formula:
-                j === 1
-                  ? String.raw`y^j_{i+1} = y_i + \frac{y'_i + f(x_{i+1},\ y^{j-1}_{i+1})}{2}\,h`
-                  : undefined,
-              substitution: String.raw`y^{${j}}_{${i + 1}} = ${n(y)} + \frac{${n(k1)} + f(${n(x1)},\ ${n(current)})}{2}\,(${n(h)}) = ${n(y)} + \frac{${n(k1)} + ${op(slope)}}{2}\,(${n(h)})`,
-              result: `y^{${j}}_{${i + 1}} = ${n(next)}${ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`}`,
-            });
-          } else if (j === DETAILED_ITERATIONS + 1) {
-            iterationSteps.push({
-              title: 'Iteraciones siguientes',
-              explanation: 'Se repite el corrector con el último valor obtenido.',
-            });
-          }
-          current = next;
-          if (!Number.isFinite(next) || (ea !== null && ea < input.tolerance)) break;
-        }
+        const { predictor, step: predictorStep } = midpoint
+          ? midpointPredictor(i, previous.get(i - 1)!, k1, h)
+          : eulerPredictor(i, y, k1, h);
+        const {
+          value: current,
+          ea,
+          iterations,
+          steps: iterationSteps,
+        } = runCorrector({
+          evaluate,
+          i,
+          x1: x + h,
+          y,
+          k1,
+          h,
+          predictor,
+          maxIterations: input.maxIterations,
+          tolerance: input.tolerance,
+        });
         const converged = ea !== null && ea < input.tolerance;
         return {
           yNext: current,

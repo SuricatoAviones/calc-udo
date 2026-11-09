@@ -10,7 +10,7 @@
  */
 import { z } from 'zod';
 import { parseDataList } from '@/lib/math/data-list';
-import { toLatexNumber } from '@/lib/math/format';
+import { powerTex, toLatexNumber } from '@/lib/math/format';
 
 export const MAX_DEGREE = 20;
 
@@ -50,7 +50,7 @@ export function polynomialLatex(
     if (a === 0) return;
     const power = degree - i;
     const abs = Math.abs(a);
-    const base = power === 0 ? '' : power === 1 ? variable : `${variable}^{${power}}`;
+    const base = powerTex(variable, power);
     const coef = power > 0 && abs === 1 ? '' : toLatexNumber(abs, digits);
     const body = `${coef}${base}`;
     if (terms.length === 0) terms.push(a < 0 ? `-${body}` : body);

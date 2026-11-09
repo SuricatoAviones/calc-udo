@@ -68,6 +68,8 @@ const op = (v: number) => toLatexOperand(v, 7);
 /** Con más iteraciones que esto por factor, solo se detallan las primeras y la última. */
 const DETAILED_ITERATIONS = 6;
 
+type Row = Record<string, number | string | null>;
+
 function listLatex(name: string, values: number[], degree: number): string {
   return values.map((v, i) => `${name}_{${degree - i}} = ${n(v)}`).join(String.raw`,\ `);
 }
@@ -81,6 +83,159 @@ function bairstowDivision(values: number[], r: number, s: number): number[] {
     out.push(v + r * prev1 + s * prev2);
   });
   return out;
+}
+
+/** x² − r x − s con los signos ya resueltos. */
+function factorTex(r: number, s: number): string {
+  const rSign = r < 0 ? '+' : '-';
+  const sSign = s < 0 ? '+' : '-';
+  return `x^2 ${rSign} ${n(Math.abs(r))}x ${sSign} ${n(Math.abs(s))}`;
+}
+
+/** |Δ / valor| × 100 %; `null` si el valor es 0. */
+function relativeError(delta: number, value: number): number | null {
+  return value === 0 ? null : Math.abs(delta / value) * 100;
+}
+
+/** εa con su %, o una raya si no está definido. */
+function errorTex(e: number | null): string {
+  return e === null ? TEX.dash : String.raw`${n(e)}\,\%`;
+}
+
+function divisionSteps(b: number[], c: number[], degree: number): Step[] {
+  return [
+    {
+      title: 'Primera división: coeficientes b',
+      formula: String.raw`b_n = a_n,\ b_{n-1} = a_{n-1} + r b_n,\ b_i = a_i + r b_{i+1} + s b_{i+2}`,
+      result: listLatex('b', b, degree),
+    },
+    {
+      title: 'Segunda división: coeficientes c',
+      formula: String.raw`c_n = b_n,\ c_{n-1} = b_{n-1} + r c_n,\ c_i = b_i + r c_{i+1} + s c_{i+2}`,
+      result: listLatex('c', c.slice(0, degree), degree),
+    },
+  ];
+}
+
+interface Correction {
+  b0: number;
+  b1: number;
+  c1: number;
+  c2: number;
+  c3: number;
+  dr: number;
+  ds: number;
+}
+
+function correctionSteps(
+  { b0, b1, c1, c2, c3, dr, ds }: Correction,
+  r: number,
+  s: number,
+  errors: { ear: number | null; eas: number | null; converged: boolean; tolerance: number },
+): Step[] {
+  const { ear, eas, converged, tolerance } = errors;
+  return [
+    {
+      title: 'Correcciones Δr y Δs',
+      formula: String.raw`\begin{aligned} c_2\,\Delta r + c_3\,\Delta s &= -b_1 \\ c_1\,\Delta r + c_2\,\Delta s &= -b_0 \end{aligned}`,
+      substitution: String.raw`\begin{aligned} ${n(c2)}\,\Delta r + ${op(c3)}\,\Delta s &= ${n(-b1)} \\ ${n(c1)}\,\Delta r + ${op(c2)}\,\Delta s &= ${n(-b0)} \end{aligned}`,
+      result: String.raw`\Delta r = ${n(dr)},\quad \Delta s = ${n(ds)}`,
+    },
+    {
+      title: 'Nuevos r y s',
+      formula: String.raw`r \leftarrow r + \Delta r, \qquad s \leftarrow s + \Delta s`,
+      result: String.raw`r = ${n(r)},\quad s = ${n(s)}`,
+    },
+    {
+      title: 'Errores aproximados',
+      explanation: converged
+        ? `Ambos errores son menores que εs = ${formatNumber(tolerance)} %: el factor convergió.`
+        : `Algún error no es menor que εs = ${formatNumber(tolerance)} %: se sigue iterando.`,
+      formula: String.raw`\varepsilon_{a,r} = \left|\frac{\Delta r}{r}\right| 100\%, \quad \varepsilon_{a,s} = \left|\frac{\Delta s}{s}\right| 100\%`,
+      result: String.raw`\varepsilon_{a,r} = ${errorTex(ear)},\quad \varepsilon_{a,s} = ${errorTex(eas)}`,
+    },
+  ];
+}
+
+interface FactorSearch {
+  r: number;
+  s: number;
+  tolerance: number;
+  maxIterations: number;
+  factorNumber: number;
+}
+
+type FactorOutcome =
+  | { ok: true; r: number; s: number; iterations: number; steps: Step[] }
+  | { ok: false; code: BairstowErrorCode; message: string; steps: Step[] };
+
+/** Itera r y s hasta que el residuo del factor cuadrático se anule (o falle). */
+function findFactor(coefficients: number[], search: FactorSearch, rows: Row[]): FactorOutcome {
+  const { tolerance, maxIterations, factorNumber } = search;
+  const degree = coefficients.length - 1;
+  let { r, s } = search;
+  const iterationSteps: Step[] = [];
+  for (let iteration = 1; iteration <= maxIterations; iteration++) {
+    const b = bairstowDivision(coefficients, r, s);
+    const c = bairstowDivision(b, r, s);
+    const b0 = b[degree]!;
+    const b1 = b[degree - 1]!;
+    const c1 = c[degree - 1]!;
+    const c2 = c[degree - 2]!;
+    const c3 = c[degree - 3]!;
+    const det = c2 * c2 - c3 * c1;
+    const children = divisionSteps(b, c, degree);
+    const title = `Iteración ${iteration}`;
+    if (!Number.isFinite(det) || [...b, ...c].some((v) => !Number.isFinite(v))) {
+      return {
+        ok: false,
+        code: 'non-finite',
+        message:
+          'Los coeficientes crecieron sin control: el método diverge. Prueba otros valores iniciales r₀ y s₀.',
+        steps: [...iterationSteps, { title, children }],
+      };
+    }
+    if (Math.abs(det) < 1e-14 * Math.max(1, c2 * c2, Math.abs(c3 * c1))) {
+      const singular: Step = {
+        title: 'Sistema sin solución única',
+        explanation: 'El determinante c₂² − c₃c₁ es 0: no se pueden calcular Δr y Δs.',
+      };
+      return {
+        ok: false,
+        code: 'singular-system',
+        message:
+          'El sistema para Δr y Δs no tiene solución única. Prueba otros valores iniciales r₀ y s₀.',
+        steps: [...iterationSteps, { title, children: [...children, singular] }],
+      };
+    }
+    const dr = (-b1 * c2 + b0 * c3) / det;
+    const ds = (-b0 * c2 + b1 * c1) / det;
+    r += dr;
+    s += ds;
+    const ear = relativeError(dr, r);
+    const eas = relativeError(ds, s);
+    rows.push({ factor: factorNumber, iteration, dr, ds, r, s, ear, eas });
+    const converged = ear !== null && eas !== null && ear < tolerance && eas < tolerance;
+    children.push(
+      ...correctionSteps({ b0, b1, c1, c2, c3, dr, ds }, r, s, { ear, eas, converged, tolerance }),
+    );
+    if (iteration <= DETAILED_ITERATIONS || converged || iteration === maxIterations) {
+      iterationSteps.push({ title, children });
+    } else if (iteration === DETAILED_ITERATIONS + 1) {
+      iterationSteps.push({
+        title: 'Iteraciones siguientes',
+        explanation:
+          'Se repite el mismo procedimiento; los valores están en la tabla de iteraciones.',
+      });
+    }
+    if (converged) return { ok: true, r, s, iterations: iteration, steps: iterationSteps };
+  }
+  return {
+    ok: false,
+    code: 'max-iterations',
+    message: `El factor ${factorNumber} no convergió en ${maxIterations} iteraciones. Aumenta el máximo o prueba otros r₀ y s₀.`,
+    steps: iterationSteps,
+  };
 }
 
 function rootsFromCoefficients(coefficients: number[]): { roots: ComplexRoot[]; step: Step } {
@@ -128,7 +283,7 @@ export function solveBairstow(input: BairstowInput): Result {
       result: `f(x) = ${polynomialLatex(coefficients)}`,
     },
   ];
-  const rows: Record<string, number | string | null>[] = [];
+  const rows: Row[] = [];
   const factors: BairstowFactor[] = [];
   const roots: ComplexRoot[] = [];
   const trace = () => ({
@@ -156,152 +311,40 @@ export function solveBairstow(input: BairstowInput): Result {
   while (coefficients.length - 1 >= 3) {
     const degree = coefficients.length - 1;
     const factorNumber = factors.length + 1;
-    const iterationSteps: Step[] = [];
-    let converged = false;
-    let iteration = 0;
-    let b: number[] = [];
-
-    while (iteration < input.maxIterations) {
-      iteration++;
-      b = bairstowDivision(coefficients, r, s);
-      const c = bairstowDivision(b, r, s);
-      const b0 = b[degree]!;
-      const b1 = b[degree - 1]!;
-      const c1 = c[degree - 1]!;
-      const c2 = c[degree - 2]!;
-      const c3 = c[degree - 3]!;
-      const det = c2 * c2 - c3 * c1;
-      const detailed = iteration <= DETAILED_ITERATIONS;
-      const children: Step[] = [
-        {
-          title: 'Primera división: coeficientes b',
-          formula: String.raw`b_n = a_n,\ b_{n-1} = a_{n-1} + r b_n,\ b_i = a_i + r b_{i+1} + s b_{i+2}`,
-          result: listLatex('b', b, degree),
-        },
-        {
-          title: 'Segunda división: coeficientes c',
-          formula: String.raw`c_n = b_n,\ c_{n-1} = b_{n-1} + r c_n,\ c_i = b_i + r c_{i+1} + s c_{i+2}`,
-          result: listLatex('c', c.slice(0, degree), degree),
-        },
-      ];
-      if (!Number.isFinite(det) || [...b, ...c].some((v) => !Number.isFinite(v))) {
-        steps.push({
-          title: `Factor ${factorNumber}`,
-          children: [...iterationSteps, { title: `Iteración ${iteration}`, children }],
-        });
-        return {
-          ok: false,
-          error: {
-            code: 'non-finite',
-            message:
-              'Los coeficientes crecieron sin control: el método diverge. Prueba otros valores iniciales r₀ y s₀.',
-          },
-          ...trace(),
-        };
-      }
-      if (Math.abs(det) < 1e-14 * Math.max(1, c2 * c2, Math.abs(c3 * c1))) {
-        steps.push({
-          title: `Factor ${factorNumber}`,
-          children: [
-            ...iterationSteps,
-            {
-              title: `Iteración ${iteration}`,
-              children: [
-                ...children,
-                {
-                  title: 'Sistema sin solución única',
-                  explanation: 'El determinante c₂² − c₃c₁ es 0: no se pueden calcular Δr y Δs.',
-                },
-              ],
-            },
-          ],
-        });
-        return {
-          ok: false,
-          error: {
-            code: 'singular-system',
-            message:
-              'El sistema para Δr y Δs no tiene solución única. Prueba otros valores iniciales r₀ y s₀.',
-          },
-          ...trace(),
-        };
-      }
-      const dr = (-b1 * c2 + b0 * c3) / det;
-      const ds = (-b0 * c2 + b1 * c1) / det;
-      r += dr;
-      s += ds;
-      const ear = r === 0 ? null : Math.abs(dr / r) * 100;
-      const eas = s === 0 ? null : Math.abs(ds / s) * 100;
-      rows.push({ factor: factorNumber, iteration, dr, ds, r, s, ear, eas });
-      converged = ear !== null && eas !== null && ear < tolerance && eas < tolerance;
-      children.push(
-        {
-          title: 'Correcciones Δr y Δs',
-          formula: String.raw`\begin{aligned} c_2\,\Delta r + c_3\,\Delta s &= -b_1 \\ c_1\,\Delta r + c_2\,\Delta s &= -b_0 \end{aligned}`,
-          substitution: String.raw`\begin{aligned} ${n(c2)}\,\Delta r + ${op(c3)}\,\Delta s &= ${n(-b1)} \\ ${n(c1)}\,\Delta r + ${op(c2)}\,\Delta s &= ${n(-b0)} \end{aligned}`,
-          result: String.raw`\Delta r = ${n(dr)},\quad \Delta s = ${n(ds)}`,
-        },
-        {
-          title: 'Nuevos r y s',
-          formula: String.raw`r \leftarrow r + \Delta r, \qquad s \leftarrow s + \Delta s`,
-          result: String.raw`r = ${n(r)},\quad s = ${n(s)}`,
-        },
-        {
-          title: 'Errores aproximados',
-          explanation: converged
-            ? `Ambos errores son menores que εs = ${formatNumber(tolerance)} %: el factor convergió.`
-            : `Algún error no es menor que εs = ${formatNumber(tolerance)} %: se sigue iterando.`,
-          formula: String.raw`\varepsilon_{a,r} = \left|\frac{\Delta r}{r}\right| 100\%, \quad \varepsilon_{a,s} = \left|\frac{\Delta s}{s}\right| 100\%`,
-          result: String.raw`\varepsilon_{a,r} = ${ear === null ? TEX.dash : String.raw`${n(ear)}\,\%`},\quad \varepsilon_{a,s} = ${eas === null ? TEX.dash : String.raw`${n(eas)}\,\%`}`,
-        },
-      );
-      if (detailed || converged || iteration === input.maxIterations) {
-        iterationSteps.push({ title: `Iteración ${iteration}`, children });
-      } else if (iteration === DETAILED_ITERATIONS + 1) {
-        iterationSteps.push({
-          title: 'Iteraciones siguientes',
-          explanation:
-            'Se repite el mismo procedimiento; los valores están en la tabla de iteraciones.',
-        });
-      }
-      if (converged) break;
+    const found = findFactor(
+      coefficients,
+      { r, s, tolerance, maxIterations: input.maxIterations, factorNumber },
+      rows,
+    );
+    if (!found.ok) {
+      steps.push({ title: `Factor ${factorNumber}`, children: found.steps });
+      return { ok: false, error: { code: found.code, message: found.message }, ...trace() };
     }
-
-    if (!converged) {
-      steps.push({ title: `Factor ${factorNumber}`, children: iterationSteps });
-      return {
-        ok: false,
-        error: {
-          code: 'max-iterations',
-          message: `El factor ${factorNumber} no convergió en ${input.maxIterations} iteraciones. Aumenta el máximo o prueba otros r₀ y s₀.`,
-        },
-        ...trace(),
-      };
-    }
+    ({ r, s } = found);
 
     // Se recalcula b con los r y s finales para deflactar.
-    b = bairstowDivision(coefficients, r, s);
+    const b = bairstowDivision(coefficients, r, s);
     const factorRoots = quadraticFactorRoots(r, s);
     const quotient = b.slice(0, degree - 1);
-    factors.push({ r, s, roots: factorRoots, iterations: iteration });
+    factors.push({ r, s, roots: factorRoots, iterations: found.iterations });
     roots.push(...factorRoots);
-    iterationSteps.push(
-      {
-        title: 'Raíces del factor',
-        formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
-        substitution: String.raw`x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
-        result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
-      },
-      {
-        title: 'Polinomio deflactado',
-        explanation:
-          'El cociente de la división entre el factor cuadrático conserva las raíces restantes.',
-        result: String.raw`f(x) \approx (x^2 ${r < 0 ? '+' : '-'} ${n(Math.abs(r))}x ${s < 0 ? '+' : '-'} ${n(Math.abs(s))})(${polynomialLatex(quotient)})`,
-      },
-    );
     steps.push({
-      title: `Factor ${factorNumber}: ${iteration} iteraciones`,
-      children: iterationSteps,
+      title: `Factor ${factorNumber}: ${found.iterations} iteraciones`,
+      children: [
+        ...found.steps,
+        {
+          title: 'Raíces del factor',
+          formula: String.raw`x = \frac{r \pm \sqrt{r^2 + 4s}}{2}`,
+          substitution: String.raw`x = \frac{${n(r)} \pm \sqrt{${op(r)}^2 + 4${op(s)}}}{2}`,
+          result: factorRoots.map((root) => `x = ${complexLatex(root)}`).join(String.raw`,\quad `),
+        },
+        {
+          title: 'Polinomio deflactado',
+          explanation:
+            'El cociente de la división entre el factor cuadrático conserva las raíces restantes.',
+          result: String.raw`f(x) \approx (${factorTex(r, s)})(${polynomialLatex(quotient)})`,
+        },
+      ],
       result: String.raw`x^2 - r x - s \text{ con } r = ${n(r)},\ s = ${n(s)}`,
     });
     coefficients = quotient;
@@ -317,10 +360,7 @@ export function solveBairstow(input: BairstowInput): Result {
       value: roots.map((root) => complexLatex(root)).join(String.raw`,\quad `),
       emphasis: true,
     },
-    ...factors.map((f, i) => ({
-      label: `Factor ${i + 1}`,
-      value: `x^2 ${f.r < 0 ? '+' : '-'} ${n(Math.abs(f.r))}x ${f.s < 0 ? '+' : '-'} ${n(Math.abs(f.s))}`,
-    })),
+    ...factors.map((f, i) => ({ label: `Factor ${i + 1}`, value: factorTex(f.r, f.s) })),
   ];
   const result = trace();
   return {

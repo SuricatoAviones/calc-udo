@@ -56,6 +56,12 @@ function minorMatrix(m: Matrix, row: number, col: number): Matrix {
 }
 
 /** Determinante por cofactores, con un paso por menor. `name` es el nombre LaTeX (D, M_{12}…). */
+/** Signo delante del término j de la expansión: + − + … (el primero sin signo). */
+function cofactorSign(j: number): string {
+  if (j === 0) return '';
+  return j % 2 === 0 ? ' + ' : ' - ';
+}
+
 function cofactorDeterminant(m: Matrix, name: string): { value: number; step: Step } {
   const size = m.length;
   if (size === 1) {
@@ -87,7 +93,8 @@ function cofactorDeterminant(m: Matrix, name: string): { value: number; step: St
   }
   const first = m[0]!;
   const value = first.reduce((s, a, j) => s + (j % 2 === 0 ? 1 : -1) * a * minors[j]!, 0);
-  const sign = (j: number) => (j === 0 ? '' : j % 2 === 0 ? ' + ' : ' - ');
+  const expansion = first.map((_, j) => `${cofactorSign(j)}a_{1${j + 1}} M_{1${j + 1}}`).join('');
+  const products = first.map((a, j) => `${cofactorSign(j)}${op(a)}${op(minors[j]!)}`).join('');
   return {
     value,
     step: {
@@ -95,8 +102,8 @@ function cofactorDeterminant(m: Matrix, name: string): { value: number; step: St
       explanation:
         'Cada elemento de la primera fila se multiplica por su menor (el determinante que queda al quitar su fila y su columna), con signos alternados + − + ….',
       children,
-      formula: `${name} = ${first.map((_, j) => `${sign(j)}a_{1${j + 1}} M_{1${j + 1}}`).join('')}`,
-      substitution: `${name} = ${first.map((a, j) => `${sign(j)}${op(a)}${op(minors[j]!)}`).join('')}`,
+      formula: `${name} = ${expansion}`,
+      substitution: `${name} = ${products}`,
       result: `${name} = ${n(value)}`,
     },
   };

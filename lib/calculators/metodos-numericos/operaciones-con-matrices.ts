@@ -40,6 +40,21 @@ export type MatrixOperation = (typeof matrixOperations)[number];
 
 const usesB = (op: MatrixOperation) => op === 'suma' || op === 'resta' || op === 'producto';
 
+/** Por qué A y B no sirven para la operación, o `null` si sus dimensiones son compatibles. */
+function dimensionIssue(operation: MatrixOperation, A: number[][], B: number[][]): string | null {
+  const rowsA = A.length;
+  const colsA = A[0]?.length ?? 0;
+  const rowsB = B.length;
+  const colsB = B[0]?.length ?? 0;
+  if (operation === 'producto') {
+    if (colsA === rowsB) return null;
+    return `Para multiplicar A·B, el número de columnas de A (${colsA}) debe ser igual al de filas de B (${rowsB}).`;
+  }
+  if (rowsA === rowsB && colsA === colsB) return null;
+  const verb = operation === 'suma' ? 'sumar' : 'restar';
+  return `Para ${verb}, A y B deben tener las mismas dimensiones (A es ${rowsA} × ${colsA} y B es ${rowsB} × ${colsB}).`;
+}
+
 export const matrixOperationsInputSchema = z
   .object({
     operation: z.enum(matrixOperations, { error: 'Elige una operación.' }),
@@ -58,22 +73,8 @@ export const matrixOperationsInputSchema = z
         ctx.addIssue({ code: 'custom', path: ['B'], message: 'Escribe la matriz B.' });
         return;
       }
-      const rowsB = v.B.length;
-      const colsB = v.B[0]?.length ?? 0;
-      if (v.operation !== 'producto' && (rowsA !== rowsB || colsA !== colsB)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['B'],
-          message: `Para ${v.operation === 'suma' ? 'sumar' : 'restar'}, A y B deben tener las mismas dimensiones (A es ${rowsA} × ${colsA} y B es ${rowsB} × ${colsB}).`,
-        });
-      }
-      if (v.operation === 'producto' && colsA !== rowsB) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['B'],
-          message: `Para multiplicar A·B, el número de columnas de A (${colsA}) debe ser igual al de filas de B (${rowsB}).`,
-        });
-      }
+      const issue = dimensionIssue(v.operation, v.A, v.B);
+      if (issue) ctx.addIssue({ code: 'custom', path: ['B'], message: issue });
     }
     if (v.operation === 'escalar' && v.k === undefined) {
       ctx.addIssue({ code: 'custom', path: ['k'], message: 'Ingresa el escalar k.' });
@@ -123,6 +124,7 @@ function success(result: Matrix, steps: Step[], summaryLabel: string): Result {
 function elementwise(A: Matrix, B: Matrix, sign: 1 | -1): Result {
   const symbol = sign === 1 ? '+' : '-';
   const C = A.map((row, i) => row.map((a, j) => a + sign * B[i]![j]!));
+  const cells = A.map((row, i) => row.map((a, j) => `${n(a)} ${symbol} ${op(B[i]![j]!)}`));
   return success(
     C,
     [
@@ -131,7 +133,7 @@ function elementwise(A: Matrix, B: Matrix, sign: 1 | -1): Result {
         title: sign === 1 ? 'Sumar elemento a elemento' : 'Restar elemento a elemento',
         explanation: `A y B tienen las mismas dimensiones (${formatNumber(A.length)} × ${formatNumber(A[0]!.length)}), así que se opera cada par de elementos que ocupan la misma posición.`,
         formula: `c_{ij} = a_{ij} ${symbol} b_{ij}`,
-        substitution: `C = ${texMatrixOf(A.map((row, i) => row.map((a, j) => `${n(a)} ${symbol} ${op(B[i]![j]!)}`)))}`,
+        substitution: `C = ${texMatrixOf(cells)}`,
         result: `C = A ${symbol} B = ${texMatrix(C)}`,
       },
     ],
@@ -141,6 +143,7 @@ function elementwise(A: Matrix, B: Matrix, sign: 1 | -1): Result {
 
 function scalar(A: Matrix, k: number): Result {
   const C = A.map((row) => row.map((a) => k * a));
+  const cells = A.map((row) => row.map((a) => `${op(k)}${op(a)}`));
   return success(
     C,
     [
@@ -148,7 +151,7 @@ function scalar(A: Matrix, k: number): Result {
       {
         title: 'Multiplicar cada elemento por k',
         formula: String.raw`c_{ij} = k\,a_{ij}`,
-        substitution: `kA = ${texMatrixOf(A.map((row) => row.map((a) => `${op(k)}${op(a)}`)))}`,
+        substitution: `kA = ${texMatrixOf(cells)}`,
         result: `kA = ${texMatrix(C)}`,
       },
     ],
@@ -171,9 +174,13 @@ function product(A: Matrix, B: Matrix): Result {
         terms.push(`${op(A[i]![k]!)}${op(B[k]![j]!)}`);
       }
       C[i]![j] = sum;
+      const symbolic = Array.from(
+        { length: inner },
+        (_, k) => `a_{${i + 1}${k + 1}}b_{${k + 1}${j + 1}}`,
+      ).join(' + ');
       entries.push({
         title: `Elemento c${'₀₁₂₃₄₅₆₇₈₉'[i + 1]}${'₀₁₂₃₄₅₆₇₈₉'[j + 1]}: fila ${i + 1} de A por columna ${j + 1} de B`,
-        formula: `c_{${i + 1}${j + 1}} = ${Array.from({ length: inner }, (_, k) => `a_{${i + 1}${k + 1}}b_{${k + 1}${j + 1}}`).join(' + ')}`,
+        formula: `c_{${i + 1}${j + 1}} = ${symbolic}`,
         substitution: `c_{${i + 1}${j + 1}} = ${terms.join(' + ')}`,
         result: `c_{${i + 1}${j + 1}} = ${n(sum)}`,
       });
@@ -223,6 +230,34 @@ function transpose(A: Matrix): Result {
   );
 }
 
+/** Gauss-Jordan en la columna k: normaliza la fila del pivote y anula las demás (modifica `m`). */
+function gaussJordanColumn(m: Matrix, k: number): Step[] {
+  const pivot = m[k]![k]!;
+  m[k] = m[k]!.map((v) => v / pivot);
+  m[k]![k] = 1;
+  const children: Step[] = [
+    {
+      title: `Normalizar la fila ${k + 1}`,
+      formula: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{a_{${k + 1}${k + 1}}}`,
+      substitution: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{${n(pivot)}}`,
+      result: `R_{${k + 1}} = (${m[k]!.map(n).join(TEX.listSep)})`,
+    },
+  ];
+  for (let i = 0; i < m.length; i++) {
+    const factor = m[i]![k]!;
+    if (i === k || factor === 0) continue;
+    m[i] = m[i]!.map((v, c) => v - factor * m[k]![c]!);
+    m[i]![k] = 0;
+    children.push({
+      title: `Hacer cero el elemento de la fila ${i + 1}`,
+      formula: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - a_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
+      substitution: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - ${op(factor)}\,R_{${k + 1}}`,
+      result: `R_{${i + 1}} = (${m[i]!.map(n).join(TEX.listSep)})`,
+    });
+  }
+  return children;
+}
+
 function inverse(A: Matrix): Result {
   const size = A.length;
   const scale = matrixScale(A);
@@ -263,28 +298,7 @@ function inverse(A: Matrix): Result {
         explanation: `El mayor valor absoluto de la columna ${k + 1} está en la fila ${best + 1}.`,
       });
     }
-    const pivot = m[k]![k]!;
-    m[k] = m[k]!.map((v) => v / pivot);
-    m[k]![k] = 1;
-    children.push({
-      title: `Normalizar la fila ${k + 1}`,
-      formula: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{a_{${k + 1}${k + 1}}}`,
-      substitution: String.raw`R_{${k + 1}} \leftarrow \frac{R_{${k + 1}}}{${n(pivot)}}`,
-      result: `R_{${k + 1}} = (${m[k]!.map(n).join(TEX.listSep)})`,
-    });
-    for (let i = 0; i < size; i++) {
-      if (i === k) continue;
-      const factor = m[i]![k]!;
-      if (factor === 0) continue;
-      m[i] = m[i]!.map((v, c) => v - factor * m[k]![c]!);
-      m[i]![k] = 0;
-      children.push({
-        title: `Hacer cero el elemento de la fila ${i + 1}`,
-        formula: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - a_{${i + 1}${k + 1}}\,R_{${k + 1}}`,
-        substitution: String.raw`R_{${i + 1}} \leftarrow R_{${i + 1}} - ${op(factor)}\,R_{${k + 1}}`,
-        result: `R_{${i + 1}} = (${m[i]!.map(n).join(TEX.listSep)})`,
-      });
-    }
+    children.push(...gaussJordanColumn(m, k));
     steps.push({
       title: `Columna ${k + 1}`,
       children,

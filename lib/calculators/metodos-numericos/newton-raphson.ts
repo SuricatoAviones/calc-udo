@@ -108,6 +108,53 @@ function buildTrace(steps: Step[], rows: IterationRow[], notices: Trace['notices
 
 // ─── Algoritmo ──────────────────────────────────────────────────────────────
 
+type StopCheck =
+  | { kind: 'root'; step: Step }
+  | { kind: 'fail'; code: NewtonRaphsonErrorCode; message: string; step: Step };
+
+/** Antes de aplicar la fórmula: f o f' no finitas, raíz exacta o derivada nula detienen el método. */
+function checkIterate(
+  i: number,
+  x: number,
+  fx: number,
+  dfx: number,
+  evaluation: Step[],
+): StopCheck | null {
+  const title = `Iteración ${i + 1}`;
+  if (!Number.isFinite(fx) || !Number.isFinite(dfx)) {
+    return {
+      kind: 'fail',
+      code: 'non-finite',
+      message: `f(x) o f'(x) no tiene un valor real finito en x = ${formatNumber(x)} (por ejemplo, una división entre cero o la raíz de un negativo). Prueba con otro valor inicial.`,
+      step: { title, children: evaluation },
+    };
+  }
+  if (fx === 0) {
+    return {
+      kind: 'root',
+      step: {
+        title: i === 0 ? 'Comprobar el valor inicial' : title,
+        explanation: `f(${formatNumber(x)}) = 0, así que ${formatNumber(x)} es una raíz exacta y no hace falta seguir iterando.`,
+        children: evaluation.slice(0, 1),
+      },
+    };
+  }
+  if (dfx === 0) {
+    return {
+      kind: 'fail',
+      code: 'zero-derivative',
+      message: `La derivada se anula en x = ${formatNumber(x)} (iteración ${i + 1}); el método no puede continuar. Prueba con otro valor inicial.`,
+      step: {
+        title,
+        explanation:
+          'La derivada vale 0: la recta tangente es horizontal y nunca corta el eje x, así que la fórmula dividiría entre cero.',
+        children: evaluation,
+      },
+    };
+  }
+  return null;
+}
+
 export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
   const { x0, tolerance, maxIterations } = input;
 
@@ -173,38 +220,15 @@ export function solveNewtonRaphson(input: NewtonRaphsonInput): Result {
       },
     ];
 
-    if (!Number.isFinite(fx) || !Number.isFinite(dfx)) {
-      steps.push({ title: `Iteración ${i + 1}`, children: evaluation });
-      return fail(
-        'non-finite',
-        `f(x) o f'(x) no tiene un valor real finito en x = ${formatNumber(x)} (por ejemplo, una división entre cero o la raíz de un negativo). Prueba con otro valor inicial.`,
-      );
-    }
-
-    if (fx === 0) {
-      steps.push({
-        title: i === 0 ? 'Comprobar el valor inicial' : `Iteración ${i + 1}`,
-        explanation: `f(${formatNumber(x)}) = 0, así que ${formatNumber(x)} es una raíz exacta y no hace falta seguir iterando.`,
-        children: evaluation.slice(0, 1),
-      });
+    const stop = checkIterate(i, x, fx, dfx, evaluation);
+    if (stop) {
+      steps.push(stop.step);
+      if (stop.kind === 'fail') return fail(stop.code, stop.message);
       notices.push({
         level: 'info',
         message: `x = ${formatNumber(x)} es una raíz exacta: f(x) = 0.`,
       });
       return succeed(x, true);
-    }
-
-    if (dfx === 0) {
-      steps.push({
-        title: `Iteración ${i + 1}`,
-        explanation:
-          'La derivada vale 0: la recta tangente es horizontal y nunca corta el eje x, así que la fórmula dividiría entre cero.',
-        children: evaluation,
-      });
-      return fail(
-        'zero-derivative',
-        `La derivada se anula en x = ${formatNumber(x)} (iteración ${i + 1}); el método no puede continuar. Prueba con otro valor inicial.`,
-      );
     }
 
     const xNext = x - fx / dfx;

@@ -15,7 +15,7 @@
  * en x₀ − h, x₀ − 2h, … (antes del punto inicial).
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
+import { formatNumber, joinSignedTerms, toLatexNumber, toLatexOperand } from '@/lib/math/format';
 import type { Calculator, Step } from '../types';
 import {
   odeShape,
@@ -79,22 +79,22 @@ const NAMES: Record<MultistepMethod, string> = {
 };
 
 function fName(offset: number, predicted = false): string {
-  const index = offset === 0 ? 'i' : `i${offset > 0 ? '+' : '-'}${Math.abs(offset)}`;
-  return `f${predicted ? '^0' : ''}_{${index}}`;
+  const sign = offset > 0 ? '+' : '-';
+  const index = offset === 0 ? 'i' : `i${sign}${Math.abs(offset)}`;
+  const mark = predicted ? '^0' : '';
+  return `f${mark}_{${index}}`;
 }
 
 /** Σ wₖ f_{i−k} en LaTeX, general y con números. */
 function weighted(weights: number[], names: string[], values?: number[]): string {
-  return weights
-    .map((w, k) => {
+  return joinSignedTerms(
+    weights.map((w, k) => {
       const abs = Math.abs(w);
-      const body = values
-        ? `${abs === 1 ? '' : abs}${op(values[k]!)}`
-        : `${abs === 1 ? '' : abs}${names[k]}`;
-      if (k === 0) return w < 0 ? `-${body}` : body;
-      return w < 0 ? `- ${body}` : `+ ${body}`;
-    })
-    .join(' ');
+      const coefficient = abs === 1 ? '' : abs;
+      const factor = values ? op(values[k]!) : names[k];
+      return { negative: w < 0, text: `${coefficient}${factor}` };
+    }),
+  );
 }
 
 function multistepRule(

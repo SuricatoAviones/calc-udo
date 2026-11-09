@@ -10,7 +10,7 @@
  *   S_t = Σ(y_i − ȳ)²,  s_y = √(S_t/(n − 1)),  s_{y/x} = √(S_r/(n − (m + 1))),  r² = (S_t − S_r)/S_t
  */
 import { z } from 'zod';
-import { formatNumber, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
+import { formatNumber, powerTex, toLatexNumber, toLatexOperand, TEX } from '@/lib/math/format';
 import { solveLinearSystem } from '@/lib/math/linear-algebra';
 import {
   emptyTrace,
@@ -67,9 +67,88 @@ const op = (v: number) => toLatexOperand(v, 8);
 
 /** Σ x^k, para la notación de las ecuaciones normales. */
 function sumName(power: number, withY: boolean): string {
-  const x = power === 0 ? '' : power === 1 ? 'x_i' : `x_i^{${power}}`;
+  const x = powerTex('x_i', power);
   if (withY) return String.raw`\sum ${x}${x ? TEX.thinSpace : ''}y_i`;
   return power === 0 ? 'n' : String.raw`\sum ${x}`;
+}
+
+/** a_k x^k en la ecuación del modelo. */
+function modelTerm(k: number): string {
+  if (k === 0) return 'a_0';
+  return k === 1 ? 'a_1 x' : `a_{${k}} x^{${k}}`;
+}
+
+/** Coeficientes: con m = 1 las fórmulas de la recta; si no, la solución del sistema. */
+function coefficientsStep(m: number, sumX: number[], sumXY: number[], a: number[]): Step {
+  if (m !== 1) {
+    return {
+      title: 'Resolver el sistema',
+      explanation: 'Se resuelve con eliminación de Gauss y pivoteo parcial.',
+      result: a.map((v, k) => `a_{${k}} = ${n(v)}`).join(String.raw`,\quad `),
+    };
+  }
+  const [s0, s1, s2] = sumX as [number, number, number];
+  const [sy, sxy] = sumXY as [number, number];
+  return {
+    title: 'Coeficientes de la recta',
+    formula: String.raw`a_1 = \frac{n \sum x_i y_i - \sum x_i \sum y_i}{n \sum x_i^2 - \left(\sum x_i\right)^2}, \qquad a_0 = \bar{y} - a_1 \bar{x}`,
+    substitution: String.raw`a_1 = \frac{${n(s0)}(${n(sxy)}) - ${op(s1)}${op(sy)}}{${n(s0)}(${n(s2)}) - ${op(s1)}^2}, \qquad a_0 = ${n(sy / s0)} - ${op(a[1]!)}${op(s1 / s0)}`,
+    result: String.raw`a_1 = ${n(a[1]!)}, \quad a_0 = ${n(a[0]!)}`,
+  };
+}
+
+interface Fit {
+  m: number;
+  count: number;
+  mean: number;
+  st: number;
+  sr: number;
+  sy: number | null;
+  standardError: number | null;
+  r2: number | null;
+  r: number | null;
+}
+
+/** St, Sr y, cuando están definidos, s_y, s_{y/x} y r². */
+function goodnessSteps({ m, count, mean, st, sr, sy, standardError, r2, r }: Fit): Step[] {
+  const fittedTex = m === 1 ? 'a_0 - a_1 x_i' : String.raw`\hat{y}_i`;
+  const steps: Step[] = [
+    {
+      title: 'Suma total de cuadrados',
+      formula: String.raw`S_t = \sum (y_i - \bar{y})^2`,
+      result: String.raw`\bar{y} = ${n(mean)}, \quad S_t = ${n(st)}`,
+    },
+    {
+      title: 'Suma de los cuadrados de los residuos',
+      formula: String.raw`S_r = \sum (y_i - ${fittedTex})^2`,
+      result: `S_r = ${n(sr)}`,
+    },
+  ];
+  if (sy !== null) {
+    steps.push({
+      title: 'Desviación estándar',
+      formula: String.raw`s_y = \sqrt{\frac{S_t}{n - 1}}`,
+      substitution: String.raw`s_y = \sqrt{\frac{${n(st)}}{${count - 1}}}`,
+      result: `s_y = ${n(sy)}`,
+    });
+  }
+  if (standardError !== null) {
+    steps.push({
+      title: 'Error estándar de la estimación',
+      formula: String.raw`s_{y/x} = \sqrt{\frac{S_r}{n - (m + 1)}}`,
+      substitution: String.raw`s_{y/x} = \sqrt{\frac{${n(sr)}}{${count} - ${m + 1}}}`,
+      result: `s_{y/x} = ${n(standardError)}`,
+    });
+  }
+  if (r2 !== null) {
+    steps.push({
+      title: 'Coeficiente de determinación',
+      formula: String.raw`r^2 = \frac{S_t - S_r}{S_t}`,
+      substitution: String.raw`r^2 = \frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
+      result: String.raw`r^2 = ${n(r2)}, \quad r = ${n(r!)}`,
+    });
+  }
+  return steps;
 }
 
 export function solveLeastSquares(
@@ -93,7 +172,7 @@ export function solveLeastSquares(
     {
       title: 'Modelo',
       explanation: `${count} datos. Se ajusta un polinomio de grado ${m} minimizando la suma de los cuadrados de los residuos.`,
-      formula: `y = ${Array.from({ length: m + 1 }, (_, k) => (k === 0 ? 'a_0' : k === 1 ? 'a_1 x' : `a_{${k}} x^{${k}}`)).join(' + ')}`,
+      formula: `y = ${Array.from({ length: m + 1 }, (_, k) => modelTerm(k)).join(' + ')}`,
     },
     {
       title: 'Sumatorias',
@@ -105,14 +184,15 @@ export function solveLeastSquares(
   ];
 
   const system = A.map((row, j) => [...row, sumXY[j]!]);
+  const normalEquations = A.map((row, j) => {
+    const lhs = row.map((_, k) => String.raw`${sumName(j + k, false)}\,a_{${k}}`).join(' + ');
+    return `${lhs} &= ${sumName(j, true)}`;
+  }).join(TEX.newline);
   steps.push({
     title: 'Ecuaciones normales',
     explanation:
       'Se derivan Sr respecto de cada coeficiente y se igualan a 0. Queda un sistema lineal de m + 1 ecuaciones.',
-    formula: String.raw`\begin{aligned} ${A.map(
-      (row, j) =>
-        `${row.map((_, k) => String.raw`${sumName(j + k, false)}\,a_{${k}}`).join(' + ')} &= ${sumName(j, true)}`,
-    ).join(TEX.newline)} \end{aligned}`,
+    formula: String.raw`\begin{aligned} ${normalEquations} \end{aligned}`,
     substitution: texAugmented(system, 1, 8),
   });
 
@@ -130,23 +210,7 @@ export function solveLeastSquares(
     };
   }
   const a = solution;
-
-  if (m === 1) {
-    const [s0, s1, s2] = sumX as [number, number, number];
-    const [sy, sxy] = sumXY as [number, number];
-    steps.push({
-      title: 'Coeficientes de la recta',
-      formula: String.raw`a_1 = \frac{n \sum x_i y_i - \sum x_i \sum y_i}{n \sum x_i^2 - \left(\sum x_i\right)^2}, \qquad a_0 = \bar{y} - a_1 \bar{x}`,
-      substitution: String.raw`a_1 = \frac{${n(s0)}(${n(sxy)}) - ${op(s1)}${op(sy)}}{${n(s0)}(${n(s2)}) - ${op(s1)}^2}, \qquad a_0 = ${n(sy / s0)} - ${op(a[1]!)}${op(s1 / s0)}`,
-      result: String.raw`a_1 = ${n(a[1]!)}, \quad a_0 = ${n(a[0]!)}`,
-    });
-  } else {
-    steps.push({
-      title: 'Resolver el sistema',
-      explanation: 'Se resuelve con eliminación de Gauss y pivoteo parcial.',
-      result: a.map((v, k) => `a_{${k}} = ${n(v)}`).join(String.raw`,\quad `),
-    });
-  }
+  steps.push(coefficientsStep(m, sumX, sumXY, a));
 
   const predict = (t: number) => a.reduce((s, c, k) => s + c * t ** k, 0);
   const mean = y.reduce((s, v) => s + v, 0) / count;
@@ -157,7 +221,9 @@ export function solveLeastSquares(
   const standardError = dof > 0 ? Math.sqrt(sr / dof) : null;
   const sy = count > 1 ? Math.sqrt(st / (count - 1)) : null;
   const r2 = st === 0 ? null : (st - sr) / st;
-  const r = r2 === null ? null : Math.sqrt(Math.max(0, r2)) * (m === 1 && a[1]! < 0 ? -1 : 1);
+  // Con una recta, r tiene el signo de la pendiente.
+  const slopeSign = m === 1 && a[1]! < 0 ? -1 : 1;
+  const r = r2 === null ? null : Math.sqrt(Math.max(0, r2)) * slopeSign;
   const equation = `y = ${polynomialLatex([...a].reverse(), 'x', 7)}`;
 
   steps.push(
@@ -169,48 +235,7 @@ export function solveLeastSquares(
       title: 'Bondad del ajuste',
       explanation:
         'St mide la dispersión de los datos alrededor de la media y Sr la que queda alrededor del ajuste. r² es la fracción de la dispersión que explica el modelo.',
-      children: [
-        {
-          title: 'Suma total de cuadrados',
-          formula: String.raw`S_t = \sum (y_i - \bar{y})^2`,
-          result: String.raw`\bar{y} = ${n(mean)}, \quad S_t = ${n(st)}`,
-        },
-        {
-          title: 'Suma de los cuadrados de los residuos',
-          formula: String.raw`S_r = \sum (y_i - ${m === 1 ? 'a_0 - a_1 x_i' : String.raw`\hat{y}_i`})^2`,
-          result: `S_r = ${n(sr)}`,
-        },
-        ...(sy === null
-          ? []
-          : [
-              {
-                title: 'Desviación estándar',
-                formula: String.raw`s_y = \sqrt{\frac{S_t}{n - 1}}`,
-                substitution: String.raw`s_y = \sqrt{\frac{${n(st)}}{${count - 1}}}`,
-                result: `s_y = ${n(sy)}`,
-              },
-            ]),
-        ...(standardError === null
-          ? []
-          : [
-              {
-                title: 'Error estándar de la estimación',
-                formula: String.raw`s_{y/x} = \sqrt{\frac{S_r}{n - (m + 1)}}`,
-                substitution: String.raw`s_{y/x} = \sqrt{\frac{${n(sr)}}{${count} - ${m + 1}}}`,
-                result: `s_{y/x} = ${n(standardError)}`,
-              },
-            ]),
-        ...(r2 === null
-          ? []
-          : [
-              {
-                title: 'Coeficiente de determinación',
-                formula: String.raw`r^2 = \frac{S_t - S_r}{S_t}`,
-                substitution: String.raw`r^2 = \frac{${n(st)} - ${op(sr)}}{${n(st)}}`,
-                result: String.raw`r^2 = ${n(r2)}, \quad r = ${n(r!)}`,
-              },
-            ]),
-      ],
+      children: goodnessSteps({ m, count, mean, st, sr, sy, standardError, r2, r }),
     },
   );
 

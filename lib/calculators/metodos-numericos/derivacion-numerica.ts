@@ -11,7 +11,7 @@
  * centrada O(h⁴). El valor verdadero se obtiene derivando f simbólicamente.
  */
 import { z } from 'zod';
-import { differentiate, parseFunction } from '@/lib/math/expression';
+import { differentiate, parseFunction, type ParsedExpression } from '@/lib/math/expression';
 import { formatNumber, toLatexNumber } from '@/lib/math/format';
 import {
   emptyTrace,
@@ -107,6 +107,20 @@ function combination(coefficients: number[], terms: string[]): string {
     .join(' ');
 }
 
+/** Derivada exacta (primera o segunda) en x, para el error verdadero; `null` si no se obtiene. */
+function exactDerivative(
+  f: ParsedExpression,
+  second: boolean,
+  x: number,
+): { value: number | null; tex: string | null } {
+  const d1 = differentiate(f);
+  if (!d1.ok) return { value: null, tex: null };
+  const target = second ? differentiate(d1.expr) : d1;
+  if (!target.ok) return { value: null, tex: null };
+  const value = target.expr.evaluate(x);
+  return { value: Number.isFinite(value) ? value : null, tex: target.expr.tex };
+}
+
 export function solveNumericalDerivative(
   input: NumericalDerivativeInput,
 ): CalculatorResult<NumericalDerivativeValue, NumericalDerivativeErrorCode> {
@@ -125,18 +139,7 @@ export function solveNumericalDerivative(
   const hPower = second ? 'h^2' : 'h';
   const formulas = FORMULAS[input.derivative][input.accuracy];
 
-  // Derivada exacta, para el error verdadero.
-  let trueValue: number | null = null;
-  let trueTex: string | null = null;
-  const d1 = differentiate(f);
-  if (d1.ok) {
-    const target = second ? differentiate(d1.expr) : d1;
-    if (target.ok) {
-      const value = target.expr.evaluate(x);
-      trueValue = Number.isFinite(value) ? value : null;
-      trueTex = target.expr.tex;
-    }
-  }
+  const { value: trueValue, tex: trueTex } = exactDerivative(f, second, x);
 
   const offsets = [...new Set(formulas.flatMap((form) => form.offsets))].sort((a, b) => a - b);
   const values = new Map(offsets.map((k) => [k, f.evaluate(x + k * h)]));
@@ -185,11 +188,15 @@ export function solveNumericalDerivative(
       form.coefficients,
       form.offsets.map((k) => `(${n(values.get(k)!)})`),
     );
+    const divisor = form.divisor === 1 ? '' : form.divisor;
+    const divisorFactor = form.divisor === 1 ? '' : String.raw`${form.divisor}\,`;
+    const square = second ? '^2' : '';
+    const errorTex = rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`;
     steps.push({
       title: `${form.name}, ${form.order.replace('O(h^2)', 'O(h²)').replace('O(h^4)', 'O(h⁴)')}`,
-      formula: String.raw`${symbol}(x_i) \approx \frac{${general}}{${form.divisor === 1 ? '' : form.divisor}${hPower}}`,
-      substitution: String.raw`${symbol}(${n(x)}) \approx \frac{${numeric}}{${form.divisor === 1 ? '' : String.raw`${form.divisor}\,`}(${n(h)})${second ? '^2' : ''}}`,
-      result: String.raw`${symbol}(${n(x)}) \approx ${n(value)}${rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`}`,
+      formula: String.raw`${symbol}(x_i) \approx \frac{${general}}{${divisor}${hPower}}`,
+      substitution: String.raw`${symbol}(${n(x)}) \approx \frac{${numeric}}{${divisorFactor}(${n(h)})${square}}`,
+      result: String.raw`${symbol}(${n(x)}) \approx ${n(value)}${errorTex}`,
     });
     return { direction: form.direction, value, trueRelativeError: rel };
   });

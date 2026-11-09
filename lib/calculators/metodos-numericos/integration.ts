@@ -42,7 +42,7 @@ export interface IntegrationInput {
   a: number;
   b: number;
   n: number;
-  exact?: number | undefined;
+  exact?: number;
 }
 
 export interface IntegrationValue {
@@ -86,7 +86,11 @@ export function listOrSum(values: number[], maxListed = 6): string {
   if (values.length === 0) return '0';
   if (values.length > maxListed) return n(values.reduce((s, v) => s + v, 0));
   return values
-    .map((v, i) => (i === 0 ? n(v) : `${v < 0 ? '-' : '+'} ${n(Math.abs(v))}`))
+    .map((v, i) => {
+      if (i === 0) return n(v);
+      const sign = v < 0 ? '-' : '+';
+      return `${sign} ${n(Math.abs(v))}`;
+    })
     .join(' ');
 }
 

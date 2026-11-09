@@ -16,7 +16,7 @@
 import { derivative, type MathNode } from 'mathjs';
 import { z } from 'zod';
 import { scarboroughTolerance } from '@/lib/math/error-metrics';
-import { parseFunction } from '@/lib/math/expression';
+import { parseFunction, type ParsedExpression } from '@/lib/math/expression';
 import { formatNumber, toLatexNumber, toLatexOperand } from '@/lib/math/format';
 import {
   emptyTrace,
@@ -171,6 +171,7 @@ function solveApproximation(input: NumericErrorsInput): Result {
       const s = input.significantFigures;
       const es = scarboroughTolerance(s);
       const meets = Math.abs(rel) < es;
+      const comparison = meets ? '<' : String.raw`\geq`;
       steps.push({
         title: `¿Tiene ${s} cifras significativas correctas?`,
         explanation: meets
@@ -178,7 +179,7 @@ function solveApproximation(input: NumericErrorsInput): Result {
           : `|εt| no es menor que la tolerancia de Scarborough: la aproximación no garantiza ${s} cifras significativas.`,
         formula: String.raw`\varepsilon_s = (0.5 \times 10^{2-n})\,\%`,
         substitution: String.raw`\varepsilon_s = (0.5 \times 10^{2-${s}})\,\% = ${n(es)}\,\%`,
-        result: String.raw`|\varepsilon_t| = ${n(Math.abs(rel))}\,\% ${meets ? '<' : String.raw`\geq`} ${n(es)}\,\%`,
+        result: String.raw`|\varepsilon_t| = ${n(Math.abs(rel))}\,\% ${comparison} ${n(es)}\,\%`,
       });
     }
   }
@@ -291,10 +292,172 @@ const FACTORIALS = Array.from({ length: MAX_ORDER + 1 }, (_, k) =>
   Array.from({ length: k }, (_, i) => i + 1).reduce((p, v) => p * v, 1),
 );
 
+/** f, f′, f″, f‴ y f^{(k)} evaluadas en `at`. */
+function derivativeSymbol(k: number, at: string): string {
+  if (k === 0) return `f(${at})`;
+  if (k <= 3) return `f${"'".repeat(k)}(${at})`;
+  return `f^{(${k})}(${at})`;
+}
+
 function derivativeName(k: number): string {
-  if (k === 0) return 'f(x_i)';
-  if (k <= 3) return `f${"'".repeat(k)}(x_i)`;
-  return `f^{(${k})}(x_i)`;
+  return derivativeSymbol(k, 'x_i');
+}
+
+/** Siguiente derivada simbólica; `null` si mathjs no puede derivar. */
+function nextDerivative(node: MathNode): MathNode | null {
+  try {
+    return derivative(node, 'x');
+  } catch {
+    return null;
+  }
+}
+
+/** Valor de la expresión en x (`NaN` si no es un número real). */
+function valueAt(node: MathNode, x: number): number {
+  try {
+    const value: unknown = node.evaluate({ x });
+    return typeof value === 'number' ? value : Number.NaN;
+  } catch {
+    return Number.NaN;
+  }
+}
+
+/** Error relativo aproximado entre dos órdenes; `null` en el primero o si la aproximación es 0. */
+function approximateErrorBetween(approx: number, previous: number | null): number | null {
+  if (previous === null || approx === 0) return null;
+  return ((approx - previous) / approx) * 100;
+}
+
+interface TaylorTerm {
+  k: number;
+  dk: number;
+  term: number;
+  approx: number;
+  et: number;
+  rel: number | null;
+  ea: number | null;
+}
+
+function taylorOrderStep(t: TaylorTerm, derivativeTex: string, h: number, x: number): Step {
+  const { k, dk, term, approx, et, rel, ea } = t;
+  const relTex = rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`;
+  const eaTex = ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`;
+  const first = k === 0;
+  return {
+    title: `Aproximación de orden ${k}`,
+    children: [
+      {
+        title: first ? 'Valor de f en xᵢ' : `Derivada de orden ${k}`,
+        formula: `${derivativeSymbol(k, 'x')} = ${derivativeTex}`,
+        result: `${derivativeName(k)} = ${n(dk)}`,
+      },
+      {
+        title: 'Término y aproximación',
+        formula: first
+          ? String.raw`f(x) \approx f(x_i)`
+          : String.raw`\text{término} = \frac{${derivativeName(k)}}{${k}!}\,h^{${k}}`,
+        substitution: first
+          ? undefined
+          : String.raw`\frac{${n(dk)}}{${FACTORIALS[k]}}\,(${n(h)})^{${k}} = ${n(term)}`,
+        result: String.raw`f(${n(x)}) \approx ${n(approx)}`,
+      },
+      {
+        title: 'Error de truncamiento',
+        explanation:
+          rel === null
+            ? 'El valor verdadero es 0: solo se reporta el error verdadero.'
+            : 'Lo que falta para llegar al valor verdadero: los términos de la serie que no se incluyeron.',
+        formula: String.raw`E_t = \text{valor verdadero} - \text{aproximación}`,
+        result: `E_t = ${n(et)}${relTex}${eaTex}`,
+      },
+    ],
+  };
+}
+
+interface TaylorSetup {
+  f: ParsedExpression;
+  xi: number;
+  x: number;
+  h: number;
+  order: number;
+  trueValue: number;
+  /** Tolerancia de Scarborough, si se pidieron cifras significativas. */
+  es: number | null;
+  significantFigures: number | undefined;
+}
+
+interface TaylorRun {
+  approx: number;
+  approximations: number[];
+  polynomial: { coefficient: number; k: number }[];
+  rows: Record<string, number | string | null>[];
+  stoppedAt: number | null;
+}
+
+/**
+ * Suma los términos de la serie hasta el orden pedido (o hasta que |εa| < εs) y agrega un paso
+ * por orden a `steps`.
+ */
+function runTaylor(
+  s: TaylorSetup,
+  steps: Step[],
+): TaylorRun | { code: NumericErrorsErrorCode; message: string } {
+  let node: MathNode = s.f.node;
+  let previous: number | null = null;
+  const run: TaylorRun = {
+    approx: 0,
+    approximations: [],
+    polynomial: [],
+    rows: [],
+    stoppedAt: null,
+  };
+  for (let k = 0; k <= s.order; k++) {
+    if (k > 0) {
+      const next = nextDerivative(node);
+      if (!next) {
+        return {
+          code: 'invalid-expression',
+          message: 'No se pudo derivar la función simbólicamente.',
+        };
+      }
+      node = next;
+    }
+    const dk = valueAt(node, s.xi);
+    if (!Number.isFinite(dk)) {
+      steps.push({
+        title: `Orden ${k}`,
+        explanation: `La derivada de orden ${k} no tiene un valor real finito en xᵢ = ${formatNumber(s.xi)}.`,
+      });
+      return {
+        code: 'non-finite',
+        message: `La derivada de orden ${k} de f no está definida en xᵢ = ${formatNumber(s.xi)}.`,
+      };
+    }
+    const coefficient = dk / FACTORIALS[k]!;
+    const term = coefficient * s.h ** k;
+    run.approx += term;
+    const approx = run.approx;
+    run.polynomial.push({ coefficient, k });
+    run.approximations.push(approx);
+    const et = s.trueValue - approx;
+    const rel = relative(s.trueValue, et);
+    const ea = approximateErrorBetween(approx, previous);
+    run.rows.push({ order: k, derivative: dk, term, approx, et, rel, ea });
+    const derivativeTex = k === 0 ? s.f.tex : node.toTex({ implicit: 'show' });
+    steps.push(taylorOrderStep({ k, dk, term, approx, et, rel, ea }, derivativeTex, s.h, s.x));
+    if (s.es !== null && ea !== null && Math.abs(ea) < s.es) {
+      run.stoppedAt = k;
+      steps.push({
+        title: 'Criterio de parada',
+        explanation: `|εa| = ${formatNumber(Math.abs(ea), 4)} % es menor que εs = ${formatNumber(s.es)} % (${s.significantFigures} cifras significativas): se detiene la serie.`,
+        formula: String.raw`\varepsilon_s = (0.5 \times 10^{2-n})\,\%`,
+        substitution: String.raw`\varepsilon_s = (0.5 \times 10^{2-${s.significantFigures}})\,\% = ${n(s.es)}\,\%`,
+      });
+      break;
+    }
+    previous = approx;
+  }
+  return run;
 }
 
 function solveTaylor(input: NumericErrorsInput): Result {
@@ -337,104 +500,14 @@ function solveTaylor(input: NumericErrorsInput): Result {
     };
   }
 
-  let node: MathNode = f.node;
-  let approx = 0;
-  let previous: number | null = null;
-  const rows: Record<string, number | string | null>[] = [];
-  const approximations: number[] = [];
-  const polynomial: { coefficient: number; k: number }[] = [];
-  let stoppedAt: number | null = null;
-
-  for (let k = 0; k <= order; k++) {
-    if (k > 0) {
-      try {
-        node = derivative(node, 'x');
-      } catch {
-        return {
-          ok: false,
-          error: {
-            code: 'invalid-expression',
-            message: 'No se pudo derivar la función simbólicamente.',
-          },
-          ...emptyTrace(),
-          steps,
-        };
-      }
-    }
-    let dk: number;
-    try {
-      const value: unknown = node.evaluate({ x: xi });
-      dk = typeof value === 'number' ? value : Number.NaN;
-    } catch {
-      dk = Number.NaN;
-    }
-    if (!Number.isFinite(dk)) {
-      steps.push({
-        title: `Orden ${k}`,
-        explanation: `La derivada de orden ${k} no tiene un valor real finito en xᵢ = ${formatNumber(xi)}.`,
-      });
-      return {
-        ok: false,
-        error: {
-          code: 'non-finite',
-          message: `La derivada de orden ${k} de f no está definida en xᵢ = ${formatNumber(xi)}.`,
-        },
-        ...emptyTrace(),
-        steps,
-      };
-    }
-    const coefficient = dk / FACTORIALS[k]!;
-    const term = coefficient * h ** k;
-    approx += term;
-    polynomial.push({ coefficient, k });
-    approximations.push(approx);
-    const et = trueValue - approx;
-    const rel = relative(trueValue, et);
-    const ea = previous === null || approx === 0 ? null : ((approx - previous) / approx) * 100;
-    rows.push({ order: k, derivative: dk, term, approx, et, rel, ea });
-
-    const derivativeTex = k === 0 ? f.tex : node.toTex({ implicit: 'show' });
-    const children: Step[] = [
-      {
-        title: k === 0 ? 'Valor de f en xᵢ' : `Derivada de orden ${k}`,
-        formula: `${k === 0 ? 'f(x)' : k <= 3 ? `f${"'".repeat(k)}(x)` : `f^{(${k})}(x)`} = ${derivativeTex}`,
-        result: `${derivativeName(k)} = ${n(dk)}`,
-      },
-      {
-        title: 'Término y aproximación',
-        formula:
-          k === 0
-            ? String.raw`f(x) \approx f(x_i)`
-            : String.raw`\text{término} = \frac{${derivativeName(k)}}{${k}!}\,h^{${k}}`,
-        substitution:
-          k === 0
-            ? undefined
-            : String.raw`\frac{${n(dk)}}{${FACTORIALS[k]}}\,(${n(h)})^{${k}} = ${n(term)}`,
-        result: String.raw`f(${n(x)}) \approx ${n(approx)}`,
-      },
-      {
-        title: 'Error de truncamiento',
-        explanation:
-          rel === null
-            ? 'El valor verdadero es 0: solo se reporta el error verdadero.'
-            : 'Lo que falta para llegar al valor verdadero: los términos de la serie que no se incluyeron.',
-        formula: String.raw`E_t = \text{valor verdadero} - \text{aproximación}`,
-        result: `E_t = ${n(et)}${rel === null ? '' : String.raw`, \quad \varepsilon_t = ${n(rel, 4)}\,\%`}${ea === null ? '' : String.raw`, \quad \varepsilon_a = ${n(ea, 4)}\,\%`}`,
-      },
-    ];
-    steps.push({ title: `Aproximación de orden ${k}`, children });
-    if (es !== null && ea !== null && Math.abs(ea) < es) {
-      stoppedAt = k;
-      steps.push({
-        title: 'Criterio de parada',
-        explanation: `|εa| = ${formatNumber(Math.abs(ea), 4)} % es menor que εs = ${formatNumber(es)} % (${input.significantFigures} cifras significativas): se detiene la serie.`,
-        formula: String.raw`\varepsilon_s = (0.5 \times 10^{2-n})\,\%`,
-        substitution: String.raw`\varepsilon_s = (0.5 \times 10^{2-${input.significantFigures}})\,\% = ${n(es)}\,\%`,
-      });
-      break;
-    }
-    previous = approx;
+  const run = runTaylor(
+    { f, xi, x, h, order, trueValue, es, significantFigures: input.significantFigures },
+    steps,
+  );
+  if ('code' in run) {
+    return { ok: false, error: { code: run.code, message: run.message }, ...emptyTrace(), steps };
   }
+  const { approx, approximations, polynomial, rows, stoppedAt } = run;
 
   const et = trueValue - approx;
   const rel = relative(trueValue, et);

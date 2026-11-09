@@ -122,12 +122,14 @@ export function constantOrder(levels: number[][]): number | null {
 
 /** Nombre LaTeX de una diferencia dividida: f[x_0, x_1, x_2]. */
 export function dividedName(i: number, k: number): string {
-  return `f[${Array.from({ length: k + 1 }, (_, j) => `x_{${i + j}}`).join(', ')}]`;
+  const nodes = Array.from({ length: k + 1 }, (_, j) => `x_{${i + j}}`).join(', ');
+  return `f[${nodes}]`;
 }
 
 export function forwardName(i: number, k: number): string {
   if (k === 0) return `y_{${i}}`;
-  return String.raw`\Delta${k === 1 ? '' : `^{${k}}`} y_{${i}}`;
+  if (k === 1) return String.raw`\Delta y_{${i}}`;
+  return String.raw`\Delta^{${k}} y_{${i}}`;
 }
 
 export function describeSpacing(h: number): string {

@@ -104,6 +104,81 @@ function buildTrace(steps: Step[], rows: Row[], notices: Trace['notices']): Trac
   return trace;
 }
 
+interface Bracket {
+  xl: number;
+  xu: number;
+  fxl: number;
+  fxu: number;
+}
+
+type EndpointCheck =
+  | { kind: 'ok' }
+  | { kind: 'root'; root: number }
+  | { kind: 'error'; code: BracketingErrorCode; message: string };
+
+/** El intervalo inicial debe tener valores finitos y un cambio de signo (o una raíz en un extremo). */
+function checkEndpoints({ xl, xu, fxl, fxu }: Bracket): EndpointCheck {
+  if (!Number.isFinite(fxl) || !Number.isFinite(fxu)) {
+    return {
+      kind: 'error',
+      code: 'non-finite',
+      message: nonFiniteMessage(Number.isFinite(fxl) ? xu : xl),
+    };
+  }
+  if (fxl === 0 || fxu === 0) return { kind: 'root', root: fxl === 0 ? xl : xu };
+  if (fxl * fxu > 0) {
+    return {
+      kind: 'error',
+      code: 'no-sign-change',
+      message: `f(x_l) y f(x_u) tienen el mismo signo, así que el intervalo [${formatNumber(xl)}, ${formatNumber(xu)}] no garantiza una raíz. Grafica la función o prueba con otro intervalo.`,
+    };
+  }
+  return { kind: 'ok' };
+}
+
+/** Prueba f(xₗ)·f(xᵣ) y el nuevo intervalo; `next` es `null` si xᵣ es una raíz exacta. */
+function chooseSubinterval(
+  { xl, xu, fxl, fxu }: Bracket,
+  xr: number,
+  fxr: number,
+): { step: Step; next: Bracket | null } {
+  const product = fxl * fxr;
+  const test = {
+    title: 'Elegir el subintervalo que contiene la raíz',
+    formula: String.raw`f(x_l)\,f(x_r)`,
+    substitution: String.raw`f(x_l)\,f(x_r) = ${op(fxl)}\,${op(fxr)} = ${n(product)}`,
+  };
+  if (product === 0) {
+    return {
+      step: {
+        ...test,
+        explanation: `El producto es 0 porque f(xᵣ) = 0: xᵣ = ${formatNumber(xr)} es una raíz exacta.`,
+      },
+      next: null,
+    };
+  }
+  if (product < 0) {
+    return {
+      step: {
+        ...test,
+        explanation:
+          'El producto es negativo: la raíz está en el primer subintervalo, así que xᵤ toma el valor de xᵣ.',
+        result: String.raw`[x_l,\ x_u] = [${n(xl)},\ ${n(xr)}]`,
+      },
+      next: { xl, xu: xr, fxl, fxu: fxr },
+    };
+  }
+  return {
+    step: {
+      ...test,
+      explanation:
+        'El producto es positivo: la raíz está en el segundo subintervalo, así que xₗ toma el valor de xᵣ.',
+      result: String.raw`[x_l,\ x_u] = [${n(xr)},\ ${n(xu)}]`,
+    },
+    next: { xl: xr, xu, fxl: fxr, fxu },
+  };
+}
+
 export function solveBracketing(input: BracketingInput, rule: BracketingRule): BracketingResult {
   const { tolerance, maxIterations } = input;
   const parsed = parseFunction(input.expression);
@@ -162,19 +237,11 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
     ],
   });
 
-  if (!Number.isFinite(fxl) || !Number.isFinite(fxu)) {
-    return fail('non-finite', nonFiniteMessage(Number.isFinite(fxl) ? xu : xl));
-  }
-  if (fxl === 0 || fxu === 0) {
-    const root = fxl === 0 ? xl : xu;
-    exactRoot(root);
-    return succeed(root);
-  }
-  if (fxl * fxu > 0) {
-    return fail(
-      'no-sign-change',
-      `f(x_l) y f(x_u) tienen el mismo signo, así que el intervalo [${formatNumber(xl)}, ${formatNumber(xu)}] no garantiza una raíz. Grafica la función o prueba con otro intervalo.`,
-    );
+  const check = checkEndpoints({ xl, xu, fxl, fxu });
+  if (check.kind === 'error') return fail(check.code, check.message);
+  if (check.kind === 'root') {
+    exactRoot(check.root);
+    return succeed(check.root);
   }
 
   let xrOld: number | null = null;
@@ -212,34 +279,14 @@ export function solveBracketing(input: BracketingInput, rule: BracketingRule): B
     }
     rows.push({ i, xl, xu, fxl, fxu, xr, fxr, ea });
 
-    const product = fxl * fxr;
-    const testStep: Step = {
-      title: 'Elegir el subintervalo que contiene la raíz',
-      formula: String.raw`f(x_l)\,f(x_r)`,
-      substitution: String.raw`f(x_l)\,f(x_r) = ${op(fxl)}\,${op(fxr)} = ${n(product)}`,
-    };
-    children.push(testStep);
-
-    if (product === 0) {
-      testStep.explanation = `El producto es 0 porque f(xᵣ) = 0: xᵣ = ${formatNumber(xr)} es una raíz exacta.`;
-      steps.push({ title: `Iteración ${i}`, children });
+    const choice = chooseSubinterval({ xl, xu, fxl, fxu }, xr, fxr);
+    children.push(choice.step);
+    steps.push({ title: `Iteración ${i}`, children });
+    if (!choice.next) {
       exactRoot(xr);
       return succeed(xr);
     }
-    if (product < 0) {
-      testStep.explanation =
-        'El producto es negativo: la raíz está en el primer subintervalo, así que xᵤ toma el valor de xᵣ.';
-      testStep.result = String.raw`[x_l,\ x_u] = [${n(xl)},\ ${n(xr)}]`;
-      xu = xr;
-      fxu = fxr;
-    } else {
-      testStep.explanation =
-        'El producto es positivo: la raíz está en el segundo subintervalo, así que xₗ toma el valor de xᵣ.';
-      testStep.result = String.raw`[x_l,\ x_u] = [${n(xr)},\ ${n(xu)}]`;
-      xl = xr;
-      fxl = fxr;
-    }
-    steps.push({ title: `Iteración ${i}`, children });
+    ({ xl, xu, fxl, fxu } = choice.next);
 
     if (converged) {
       steps.push({

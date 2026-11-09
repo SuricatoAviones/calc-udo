@@ -99,6 +99,58 @@ function buildTrace(steps: Step[], rows: Row[], notices: Trace['notices']): Trac
   return trace;
 }
 
+type StopCheck =
+  | { kind: 'root'; step: Step }
+  | { kind: 'fail'; code: SecantErrorCode; message: string; step: Step };
+
+/** Antes de aplicar la fórmula: valores no finitos, raíz exacta o secante horizontal. */
+function checkIterate(
+  i: number,
+  { xPrev, xCurr, fPrev, fCurr }: { xPrev: number; xCurr: number; fPrev: number; fCurr: number },
+  children: Step[],
+): StopCheck | null {
+  const title = `Iteración ${i + 1}`;
+  if (!Number.isFinite(fPrev) || !Number.isFinite(fCurr)) {
+    return {
+      kind: 'fail',
+      code: 'non-finite',
+      message: nonFiniteMessage(Number.isFinite(fPrev) ? xCurr : xPrev),
+      step: {
+        title,
+        explanation:
+          i > 0
+            ? 'La aproximación anterior cayó fuera del dominio de f: el método diverge desde estos valores iniciales.'
+            : undefined,
+        children,
+      },
+    };
+  }
+  if (fCurr === 0) {
+    return {
+      kind: 'root',
+      step: {
+        title: i === 0 ? 'Comprobar el valor inicial' : title,
+        explanation: `f(${formatNumber(xCurr)}) = 0, así que ${formatNumber(xCurr)} es una raíz exacta.`,
+        children: children.slice(1),
+      },
+    };
+  }
+  if (fPrev === fCurr) {
+    return {
+      kind: 'fail',
+      code: 'zero-denominator',
+      message: `f toma el mismo valor en ${formatNumber(xPrev)} y en ${formatNumber(xCurr)} (iteración ${i + 1}); la secante no corta el eje x. Prueba con otros valores iniciales.`,
+      step: {
+        title,
+        explanation:
+          'f(xᵢ₋₁) = f(xᵢ): la recta secante es horizontal y nunca corta el eje x, así que la fórmula dividiría entre cero.',
+        children,
+      },
+    };
+  }
+  return null;
+}
+
 export function solveSecant(input: SecantInput): Result {
   const { tolerance, maxIterations } = input;
   const parsed = parseFunction(input.expression);
@@ -145,42 +197,15 @@ export function solveSecant(input: SecantInput): Result {
       evaluationStep(currLabel, xCurr, fCurr),
     ];
 
-    if (!Number.isFinite(fPrev) || !Number.isFinite(fCurr)) {
-      steps.push({
-        title: `Iteración ${i + 1}`,
-        explanation:
-          i > 0
-            ? 'La aproximación anterior cayó fuera del dominio de f: el método diverge desde estos valores iniciales.'
-            : undefined,
-        children,
-      });
-      return fail('non-finite', nonFiniteMessage(Number.isFinite(fPrev) ? xCurr : xPrev));
-    }
-
-    if (fCurr === 0) {
-      steps.push({
-        title: i === 0 ? 'Comprobar el valor inicial' : `Iteración ${i + 1}`,
-        explanation: `f(${formatNumber(xCurr)}) = 0, así que ${formatNumber(xCurr)} es una raíz exacta.`,
-        children: children.slice(1),
-      });
+    const stop = checkIterate(i, { xPrev, xCurr, fPrev, fCurr }, children);
+    if (stop) {
+      steps.push(stop.step);
+      if (stop.kind === 'fail') return fail(stop.code, stop.message);
       notices.push({
         level: 'info',
         message: `x = ${formatNumber(xCurr)} es una raíz exacta: f(x) = 0.`,
       });
       return succeed(xCurr);
-    }
-
-    if (fPrev === fCurr) {
-      steps.push({
-        title: `Iteración ${i + 1}`,
-        explanation:
-          'f(xᵢ₋₁) = f(xᵢ): la recta secante es horizontal y nunca corta el eje x, así que la fórmula dividiría entre cero.',
-        children,
-      });
-      return fail(
-        'zero-denominator',
-        `f toma el mismo valor en ${formatNumber(xPrev)} y en ${formatNumber(xCurr)} (iteración ${i + 1}); la secante no corta el eje x. Prueba con otros valores iniciales.`,
-      );
     }
 
     const xNext = xCurr - (fCurr * (xPrev - xCurr)) / (fPrev - fCurr);
