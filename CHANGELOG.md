@@ -7,6 +7,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Relaciones v-i-p**: en el paso a paso, la derivada de la señal se mostraba como
+  «[object Object]».
+
+### Cambiado
+
+- Código revisado contra los avisos de SonarCloud (ADR-041): los solucionadores largos se parten
+  por etapas, sin ternarios ni plantillas anidadas, con props de solo lectura y claves de React
+  estables. La traza de las calculadoras no cambia.
+- Aviso legal: la frase sobre la licencia MIT se reordenó para terminar en el enlace, con el mismo
+  contenido.
+
 ## [1.2.0] — 2026-11-02
 
 ### Agregado

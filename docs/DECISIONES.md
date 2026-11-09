@@ -960,3 +960,31 @@ Plantilla:
 - **Alternativas descartadas:** _Desactivar S7780 en SonarCloud_: la regla señala justo la fuente
   de los □ de ADR-014. _Convertir a mano_: 224 archivos; el codemod es verificable contra la lista
   de Sonar.
+- **Ampliación (2026-11-09), el resto de los avisos:** se atendieron las demás reglas sin cambiar
+  la traza (los tests conservan sus valores esperados):
+  - _Complejidad cognitiva (S3776, máximo 15):_ los solucionadores largos se parten por etapa
+    (lectura, cálculo de cada caso, pasos, resumen). Una etapa que puede fallar devuelve una unión
+    discriminada (`'code' in r`, `kind`) y el solucionador decide; `solve()` sigue sin lanzar.
+  - _Ternarios y plantillas anidados (S3358, S4624):_ tablas `Record`, funciones cortas con `if`
+    y las piezas internas calculadas antes en constantes. Piezas compartidas: `TEX`, `powerTex`,
+    `joinSignedTerms` y `plural` en `lib/math/format.ts`, `byAlternative` en
+    `estadistica-2/hypothesis.ts` y `withKeys` en `components/calculators/keys.ts` (claves de
+    React a partir del contenido, no del índice).
+  - En `String.raw` una `\` justo antes de `${…}` escapa la interpolación, así que los operadores
+    que dependen de un dato salen de `TEX` (`TEX[lp.sense]` da `\max` o `\min`).
+  - Las comparaciones negadas (S1940) se reescriben sin cambiar el trato de `NaN`
+    (`const ascending = b > a; if (!ascending)`), props `Readonly<…>` (S6759), `push` combinados
+    (S7778), `.at(-1)` (S7755), `export … from` (S7763) y expresiones regulares sin retroceso
+    superlineal (S8786).
+  - Accesibilidad: `<fieldset>` y `<output>` en lugar de roles ARIA; un enlace seguido de una
+    frase en la línea siguiente es espaciado ambiguo (S6772), y la frase del aviso legal sobre la
+    licencia MIT se reordenó para terminar en el enlace, con el mismo contenido.
+  - `prefers-reduced-motion` sin `!important`: la regla sin capa ya gana a las utilidades de
+    Tailwind, que van en `@layer`.
+  - Un aviso era un error real: en Relaciones v-i-p la derivada se mostraba como
+    «[object Object]» (S6551); tiene test de regresión.
+  - Verificación: las reglas se replicaron en local con `eslint-plugin-sonarjs`, `unicorn`,
+    `jsx-a11y` y `react` y se contrastaron con la lista exportada de SonarCloud. Las reglas locales
+    que señalan más casos que Sonar (callbacks pasados por referencia, `replace` con clases de
+    caracteres, índices como clave en rejillas) se revisaron contra esa lista en lugar de
+    aplicarse a ciegas. Esa configuración no se versiona: SonarCloud sigue siendo la referencia.
