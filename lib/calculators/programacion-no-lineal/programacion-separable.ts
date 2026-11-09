@@ -72,6 +72,12 @@ function parseBreakpoints(text: string): Map<number, number[]> | string {
   return result;
 }
 
+/** El campo del formulario al que corresponde un error del modelo. */
+function fieldOf(message: string): 'breakpoints' | 'constraints' | 'objective' {
+  if (message.startsWith('Puntos')) return 'breakpoints';
+  return message.startsWith('Restricción') ? 'constraints' : 'objective';
+}
+
 export const separableInputSchema = z
   .object({
     sense: z.enum(['max', 'min'], { error: 'Elige si se maximiza o se minimiza.' }),
@@ -90,12 +96,7 @@ export const separableInputSchema = z
   .superRefine((v, ctx) => {
     const model = readModel(v);
     if (typeof model === 'string') {
-      const path = model.startsWith('Puntos')
-        ? 'breakpoints'
-        : model.startsWith('Restricción')
-          ? 'constraints'
-          : 'objective';
-      ctx.addIssue({ code: 'custom', path: [path], message: model });
+      ctx.addIssue({ code: 'custom', path: [fieldOf(model)], message: model });
     }
   });
 
@@ -367,10 +368,11 @@ export function solveSeparable(input: SeparableInput): Result {
       })
       .map((b) => (meta[b] as { k: number }).k)
       .sort((a, b) => a - b);
-    const adjacent =
-      positive.length <= 1 || (positive.length === 2 && positive[1]! - positive[0]! === 1);
+    const gap = positive.length === 2 ? positive[1]! - positive[0]! : 0;
+    const adjacent = positive.length <= 1 || gap === 1;
     if (adjacent) return null;
-    return String.raw`\text{quedarían positivos } ${positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(TEX.listSep)} \text{, que no son adyacentes}`;
+    const list = positive.map((k) => `w_{${entering.j + 1}${k + 1}}`).join(TEX.listSep);
+    return String.raw`\text{quedarían positivos } ${list} \text{, que no son adyacentes}`;
   };
   const run = runRestrictedSimplex(start, admissible);
   const trace = restrictedTrace(run, 'separable');

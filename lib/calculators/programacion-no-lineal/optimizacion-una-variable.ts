@@ -121,6 +121,79 @@ function tidy(x: number): number {
   return Number(x.toPrecision(11));
 }
 
+/** ¿g[i] es un mínimo local de |f′| en la malla, sin cambio de signo alrededor? */
+function touchesZero(g: number[], i: number): boolean {
+  const gi = g[i]!;
+  const prev = g[i - 1];
+  const next = g[i + 1];
+  if (prev === undefined || next === undefined) return false;
+  if (!Number.isFinite(prev) || !Number.isFinite(next)) return false;
+  return (
+    Math.abs(gi) <= Math.abs(prev) &&
+    Math.abs(gi) <= Math.abs(next) &&
+    Math.sign(prev) === Math.sign(gi) &&
+    Math.sign(next) === Math.sign(gi)
+  );
+}
+
+/**
+ * Raíces de f′ en la malla: ceros exactos, cambios de signo (bisección) y mínimos de |f′| que
+ * llegan a 0 sin cambiar de signo (sección dorada).
+ */
+function derivativeZeros(d1: ParsedExpression, xs: number[], g: number[]): number[] {
+  const scale = Math.max(1, ...g.filter(Number.isFinite).map(Math.abs));
+  const candidates: number[] = [];
+  for (let i = 0; i <= GRID; i++) {
+    const gi = g[i]!;
+    if (!Number.isFinite(gi)) continue;
+    if (gi === 0) {
+      candidates.push(xs[i]!);
+      continue;
+    }
+    const next = g[i + 1];
+    if (next !== undefined && Number.isFinite(next) && Math.sign(gi) * Math.sign(next) < 0) {
+      candidates.push(bisect((x) => d1.evaluate(x), xs[i]!, xs[i + 1]!));
+    }
+    if (touchesZero(g, i)) {
+      const x = goldenMin((t) => Math.abs(d1.evaluate(t)), xs[i - 1]!, xs[i + 1]!);
+      if (Math.abs(d1.evaluate(x)) < 1e-7 * scale) candidates.push(x);
+    }
+  }
+  return candidates;
+}
+
+/** Orden par: mínimo si la derivada es positiva y máximo si es negativa; orden impar: inflexión. */
+function kindOf(order: number, derivative: number): StationaryKind {
+  if (order % 2 === 1) return 'punto de inflexión';
+  return derivative > 0 ? 'mínimo local' : 'máximo local';
+}
+
+/** Clasifica x₀ por la primera derivada de orden ≥ 2 que no se anula. */
+function classifyStationary(x: number, derivatives: ParsedExpression[]): StationaryPoint {
+  const fx = derivatives[0]!.evaluate(x);
+  for (let k = 2; k <= MAX_ORDER; k++) {
+    const value = derivatives[k]!.evaluate(x);
+    const size = Math.max(
+      1,
+      Math.abs(fx),
+      ...derivatives.slice(1, k).map((d) => Math.abs(d.evaluate(x))),
+    );
+    if (Number.isFinite(value) && Math.abs(value) > 1e-6 * size) {
+      return { x, f: fx, order: k, derivative: value, kind: kindOf(k, value) };
+    }
+  }
+  return { x, f: fx, order: null, derivative: null, kind: 'no concluyente' };
+}
+
+function classificationText(p: StationaryPoint): string {
+  if (p.order === null) {
+    return `Las derivadas hasta el orden ${MAX_ORDER} se anulan: el criterio no concluye.`;
+  }
+  if (p.order === 2) return `f″ ${p.derivative! > 0 ? '> 0' : '< 0'}: ${p.kind}.`;
+  const parity = p.order % 2 === 0 ? 'par' : 'impar';
+  return `La primera derivada no nula es la de orden ${p.order} (${parity}): ${p.kind}.`;
+}
+
 export function solveOneVariable({ expression, a, b }: OneVariableInput): Result {
   const parsed = parseFunction(expression, 'x');
   if (!parsed.ok) {
@@ -167,58 +240,15 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
       steps,
     };
   }
-  const scale = Math.max(1, ...g.filter(Number.isFinite).map(Math.abs));
-  const candidates: number[] = [];
-  for (let i = 0; i <= GRID; i++) {
-    const gi = g[i]!;
-    if (!Number.isFinite(gi)) continue;
-    if (gi === 0) {
-      candidates.push(xs[i]!);
-      continue;
-    }
-    const next = g[i + 1];
-    if (next !== undefined && Number.isFinite(next) && Math.sign(gi) * Math.sign(next) < 0) {
-      candidates.push(bisect((x) => d1.evaluate(x), xs[i]!, xs[i + 1]!));
-    }
-    const prev = g[i - 1];
-    if (
-      prev !== undefined &&
-      next !== undefined &&
-      Number.isFinite(prev) &&
-      Number.isFinite(next) &&
-      Math.abs(gi) <= Math.abs(prev) &&
-      Math.abs(gi) <= Math.abs(next) &&
-      Math.sign(prev) === Math.sign(gi) &&
-      Math.sign(next) === Math.sign(gi)
-    ) {
-      const x = goldenMin((t) => Math.abs(d1.evaluate(t)), xs[i - 1]!, xs[i + 1]!);
-      if (Math.abs(d1.evaluate(x)) < 1e-7 * scale) candidates.push(x);
-    }
-  }
+  const candidates = derivativeZeros(d1, xs, g);
+  candidates.sort((p, q) => p - q);
   const unique: number[] = [];
-  for (const x of candidates.sort((p, q) => p - q)) {
+  for (const x of candidates) {
     if (x <= a || x >= b) continue;
     if (unique.every((u) => Math.abs(u - x) > 10 * h)) unique.push(x);
   }
 
-  const stationary: StationaryPoint[] = unique.map((raw) => {
-    const x = tidy(raw);
-    const fx = f.evaluate(x);
-    for (let k = 2; k <= MAX_ORDER; k++) {
-      const value = derivatives[k]!.evaluate(x);
-      const size = Math.max(
-        1,
-        Math.abs(fx),
-        ...derivatives.slice(1, k).map((d) => Math.abs(d.evaluate(x))),
-      );
-      if (Number.isFinite(value) && Math.abs(value) > 1e-6 * size) {
-        const kind: StationaryKind =
-          k % 2 === 1 ? 'punto de inflexión' : value > 0 ? 'mínimo local' : 'máximo local';
-        return { x, f: fx, order: k, derivative: value, kind };
-      }
-    }
-    return { x, f: fx, order: null, derivative: null, kind: 'no concluyente' as const };
-  });
+  const stationary = unique.map((raw) => classifyStationary(tidy(raw), derivatives));
 
   steps.push({
     title: 'Puntos estacionarios (condición necesaria)',
@@ -243,12 +273,7 @@ export function solveOneVariable({ expression, a, b }: OneVariableInput): Result
     }
     steps.push({
       title: `Clasificar x = ${formatNumber(p.x, 8)}`,
-      explanation:
-        p.order === null
-          ? `Las derivadas hasta el orden ${MAX_ORDER} se anulan: el criterio no concluye.`
-          : p.order === 2
-            ? `f″ ${p.derivative! > 0 ? '> 0' : '< 0'}: ${p.kind}.`
-            : `La primera derivada no nula es la de orden ${p.order} (${p.order % 2 === 0 ? 'par' : 'impar'}): ${p.kind}.`,
+      explanation: classificationText(p),
       children,
       result: String.raw`x_{${i + 1}} = ${n(p.x)}: \ \text{${p.kind}}, \quad f(x_{${i + 1}}) = ${n(p.f)}`,
     });

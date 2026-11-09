@@ -123,27 +123,36 @@ function readModel(v: {
       ? 'La función objetivo debe ser cóncava (D semidefinida negativa) para que las condiciones KKT sean suficientes.'
       : 'La función objetivo debe ser convexa para minimizarla con este método.';
   }
+  const system = linearSystem(lines, names);
+  if (typeof system === 'string') return system;
+  return { n, names, C, D, A: system.A, b: system.b };
+}
+
+/** Las restricciones como AX ≤ b con b ≥ 0 (las ≥ se multiplican por −1). */
+function linearSystem(
+  lines: string[],
+  names: string[],
+): { A: Rational[][]; b: Rational[] } | string {
   const A: Rational[][] = [];
   const b: Rational[] = [];
   for (const [index, line] of lines.entries()) {
     const constraint = parseConstraintLine(line, names);
     if (typeof constraint === 'string') return `Restricción ${index + 1}: ${constraint}.`;
-    let coefficients = constraint.coefficients;
-    let rhs = constraint.rhs;
     if (constraint.relation === '=') {
       return `Restricción ${index + 1}: el método de Wolfe usa restricciones AX ≤ b.`;
     }
-    if (constraint.relation === '>=') {
-      coefficients = coefficients.map((c) => c.neg());
-      rhs = rhs.neg();
-    }
+    const flip = constraint.relation === '>=';
+    const coefficients = flip
+      ? constraint.coefficients.map((c) => c.neg())
+      : constraint.coefficients;
+    const rhs = flip ? constraint.rhs.neg() : constraint.rhs;
     if (rhs.sign() < 0) {
       return `Restricción ${index + 1}: escríbela como AX ≤ b con b ≥ 0 (así las holguras forman la base inicial).`;
     }
     A.push(coefficients);
     b.push(rhs);
   }
-  return { n, names, C, D, A, b };
+  return { A, b };
 }
 
 export interface WolfeValue {
@@ -159,6 +168,49 @@ export type WolfeErrorCode = 'invalid-model' | 'infeasible' | 'max-iterations';
 type Result = CalculatorResult<WolfeValue, WolfeErrorCode>;
 
 const n = toLatexNumber;
+
+/** Las primeras columnas de la tabla son x_1 … x_n. */
+const xColumn = (j: number) => j;
+
+/**
+ * Ecuaciones del sistema KKT en la tabla: −2DX + Aᵀλ − μ + R = Cᵀ (fila por −1 si Cⱼ < 0) y
+ * AX + S = b.
+ */
+function kktRows(
+  data: { Cr: Rational[]; minus2D: Rational[][]; A: Rational[][]; b: Rational[] },
+  width: number,
+  col: {
+    xCol: (j: number) => number;
+    lambdaCol: (i: number) => number;
+    muCol: (j: number) => number;
+    rCol: (j: number) => number;
+    sCol: (i: number) => number;
+  },
+): { rows: Rational[][]; rhs: Rational[] } {
+  const { Cr, minus2D, A, b } = data;
+  const size = Cr.length;
+  const m = A.length;
+  const rows: Rational[][] = [];
+  const rhs: Rational[] = [];
+  for (let j = 0; j < size; j++) {
+    const row = new Array<Rational>(width).fill(Rational.ZERO);
+    const flip = Cr[j]!.sign() < 0 ? Rational.of(-1) : Rational.ONE;
+    for (let k = 0; k < size; k++) row[col.xCol(k)] = minus2D[j]![k]!.mul(flip);
+    for (let i = 0; i < m; i++) row[col.lambdaCol(i)] = A[i]![j]!.mul(flip);
+    row[col.muCol(j)] = Rational.of(-1).mul(flip);
+    row[col.rCol(j)] = Rational.ONE;
+    rows.push(row);
+    rhs.push(Cr[j]!.mul(flip));
+  }
+  for (let i = 0; i < m; i++) {
+    const row = new Array<Rational>(width).fill(Rational.ZERO);
+    for (let j = 0; j < size; j++) row[col.xCol(j)] = A[i]![j]!;
+    row[col.sCol(i)] = Rational.ONE;
+    rows.push(row);
+    rhs.push(b[i]!);
+  }
+  return { rows, rhs };
+}
 
 export function solveWolfe(input: WolfeInput): Result {
   const model = readModel(input);
@@ -215,31 +267,18 @@ export function solveWolfe(input: WolfeInput): Result {
     ...A.map((_, i) => ({ name: `s${i + 1}`, latex: `S_{${i + 1}}`, kind: 'slack' as const })),
   ];
   const width = columns.length;
-  const xCol = (j: number) => j;
   const lambdaCol = (i: number) => size + i;
   const muCol = (j: number) => size + m + j;
   const rCol = (j: number) => size + m + size + j;
   const sCol = (i: number) => size + m + 2 * size + i;
 
-  const rows: Rational[][] = [];
-  const rhs: Rational[] = [];
-  for (let j = 0; j < size; j++) {
-    const row = new Array<Rational>(width).fill(Rational.ZERO);
-    const flip = Cr[j]!.sign() < 0 ? Rational.of(-1) : Rational.ONE;
-    for (let k = 0; k < size; k++) row[xCol(k)] = minus2D[j]![k]!.mul(flip);
-    for (let i = 0; i < m; i++) row[lambdaCol(i)] = A[i]![j]!.mul(flip);
-    row[muCol(j)] = Rational.of(-1).mul(flip);
-    row[rCol(j)] = Rational.ONE;
-    rows.push(row);
-    rhs.push(Cr[j]!.mul(flip));
-  }
-  for (let i = 0; i < m; i++) {
-    const row = new Array<Rational>(width).fill(Rational.ZERO);
-    for (let j = 0; j < size; j++) row[xCol(j)] = A[i]![j]!;
-    row[sCol(i)] = Rational.ONE;
-    rows.push(row);
-    rhs.push(b[i]!);
-  }
+  const { rows, rhs } = kktRows({ Cr, minus2D, A, b }, width, {
+    xCol: xColumn,
+    lambdaCol,
+    muCol,
+    rCol,
+    sCol,
+  });
   const basis = [...model.names.map((_, j) => rCol(j)), ...A.map((_, i) => sCol(i))];
   const zRow = columns.map(
     (c) => new MValue(c.kind === 'artificial' ? Rational.of(-1) : Rational.ZERO),
@@ -266,7 +305,7 @@ export function solveWolfe(input: WolfeInput): Result {
   const complement = (col: number): number | null => {
     if (col < size) return muCol(col);
     if (col < size + m) return sCol(col - size);
-    if (col < size + m + size) return xCol(col - size - m);
+    if (col < size + m + size) return xColumn(col - size - m);
     if (col >= size + m + 2 * size) return lambdaCol(col - size - m - 2 * size);
     return null;
   };
@@ -298,18 +337,21 @@ export function solveWolfe(input: WolfeInput): Result {
     };
   }
 
-  const x = model.names.map((_, j) => values[xCol(j)]!.toNumber());
+  const x = model.names.map((_, j) => values[xColumn(j)]!.toNumber());
   const lambda = A.map((_, i) => values[lambdaCol(i)]!.toNumber());
   const mu = model.names.map((_, j) => values[muCol(j)]!.toNumber());
   const objective = parseNlpExpression(
     input.objective.replace(/^\s*(?:(?:max|min)\s*)?z\s*=/i, ''),
   );
   const zValue = objective.ok ? evaluateAt(objective.expr, x) : Number.NaN;
+  const xValues = model.names
+    .map((_, j) => `x_{${j + 1}} = ${values[xColumn(j)]!.toLatex()}`)
+    .join(TEX.listSep);
   steps.push({
     title: 'Solución óptima',
     explanation:
       'La fase I terminó con r = 0: la solución cumple todas las condiciones KKT, que aquí son suficientes.',
-    result: String.raw`${model.names.map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`).join(TEX.listSep)}, \qquad z = ${n(zValue)}`,
+    result: String.raw`${xValues}, \qquad z = ${n(zValue)}`,
   });
 
   return {
@@ -319,7 +361,7 @@ export function solveWolfe(input: WolfeInput): Result {
       {
         label: 'Solución óptima',
         value: model.names
-          .map((_, j) => `x_{${j + 1}} = ${values[xCol(j)]!.toLatex()}`)
+          .map((_, j) => `x_{${j + 1}} = ${values[xColumn(j)]!.toLatex()}`)
           .join(String.raw`,\ `),
         emphasis: true,
       },

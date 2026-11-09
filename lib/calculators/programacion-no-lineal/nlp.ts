@@ -165,17 +165,39 @@ export function classifyMatrix(H: number[][], tolerance = 1e-9): Definiteness {
   if (minors.every((d, k) => (k % 2 === 0 ? d < -eps(k + 1) : d > eps(k + 1)))) {
     return 'definida negativa';
   }
-  let positive = true;
-  let negative = true;
-  for (let k = 1; k <= H.length; k++) {
-    for (const d of principalMinors(H, k)) {
-      if (d < -eps(k)) positive = false;
-      if ((k % 2 === 1 ? -d : d) < -eps(k)) negative = false;
-    }
-  }
+  const { positive, negative } = semidefiniteness(H, eps);
   if (positive) return 'semidefinida positiva';
   if (negative) return 'semidefinida negativa';
   return 'indefinida';
+}
+
+/**
+ * Semidefinida positiva si todos los menores principales son ≥ 0; negativa si los de orden k
+ * tienen el signo de (−1)^k (o son 0).
+ */
+function semidefiniteness(
+  H: number[][],
+  eps: (k: number) => number,
+): { positive: boolean; negative: boolean } {
+  let positive = true;
+  let negative = true;
+  for (let k = 1; k <= H.length; k++) {
+    const sign = k % 2 === 1 ? -1 : 1;
+    for (const d of principalMinors(H, k)) {
+      if (d < -eps(k)) positive = false;
+      if (sign * d < -eps(k)) negative = false;
+    }
+  }
+  return { positive, negative };
+}
+
+/** Hace ceros debajo del pivote M[k][k] en la matriz aumentada. */
+function eliminateColumn(M: number[][], k: number): void {
+  const size = M.length;
+  for (let i = k + 1; i < size; i++) {
+    const factor = M[i]![k]! / M[k]![k]!;
+    for (let j = k; j <= size; j++) M[i]![j]! -= factor * M[k]![j]!;
+  }
 }
 
 /** Solución de A x = b por eliminación con pivoteo parcial; `null` si es singular. */
@@ -187,10 +209,7 @@ export function solveDense(A: number[][], b: number[]): number[] | null {
     for (let i = k + 1; i < size; i++) if (Math.abs(M[i]![k]!) > Math.abs(M[pivot]![k]!)) pivot = i;
     if (Math.abs(M[pivot]![k]!) < 1e-13) return null;
     [M[pivot], M[k]] = [M[k]!, M[pivot]!];
-    for (let i = k + 1; i < size; i++) {
-      const factor = M[i]![k]! / M[k]![k]!;
-      for (let j = k; j <= size; j++) M[i]![j]! -= factor * M[k]![j]!;
-    }
+    eliminateColumn(M, k);
   }
   const x = new Array<number>(size).fill(0);
   for (let i = size - 1; i >= 0; i--) {

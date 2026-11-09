@@ -16,6 +16,7 @@
  * (minimizar) y la región factible es convexa (tabla 20.1).
  */
 import { z } from 'zod';
+import type { ParsedExpression } from '@/lib/math/expression';
 import { toLatexNumber, TEX } from '@/lib/math/format';
 import {
   emptyTrace,
@@ -39,6 +40,7 @@ import {
   relationTex,
   solveDense,
   type ConstraintRelation,
+  type Definiteness,
   type NlpConstraint,
 } from './nlp';
 
@@ -122,12 +124,6 @@ function requiredSign(sense: 'max' | 'min', relation: ConstraintRelation): Multi
   return nonNegative ? 'mayor o igual que 0' : 'menor o igual que 0';
 }
 
-const SIGN_TEX: Record<MultiplierSign, string> = {
-  'mayor o igual que 0': String.raw`\ge 0`,
-  'menor o igual que 0': String.raw`\le 0`,
-  libre: String.raw`\text{ libre}`,
-};
-
 /** Mínimos cuadrados: resuelve (AᵀA) x = Aᵀ b. */
 function leastSquares(A: number[][], b: number[]): number[] | null {
   const k = A[0]?.length ?? 0;
@@ -141,6 +137,112 @@ function leastSquares(A: number[][], b: number[]): number[] | null {
   return solveDense(AtA, Atb);
 }
 
+/** El signo del multiplicador entre paréntesis, junto a su valor. */
+const SIGN_IN_PARENS: Record<MultiplierSign, string> = {
+  'mayor o igual que 0': String.raw`\ge 0`,
+  'menor o igual que 0': String.raw`\le 0`,
+  libre: String.raw`\text{libre}`,
+};
+
+const RELATION_TEXT: Record<ConstraintRelation, string> = { '<=': '≤', '>=': '≥', '=': '=' };
+
+const ACTIVE_NOTE = String.raw`\ \text{(activa)}`;
+
+function invalid(message: string): Result {
+  return { ok: false, error: { code: 'invalid-expression', message }, ...emptyTrace() };
+}
+
+/** g ≤ 0, g ≥ 0 o g = 0 con la tolerancia dada. */
+function satisfiedWithin(relation: ConstraintRelation, g: number, tolerance: number): boolean {
+  if (relation === '=') return Math.abs(g) <= tolerance;
+  return relation === '<=' ? g <= tolerance : g >= -tolerance;
+}
+
+function hasRequiredSign(r: KktConstraintResult): boolean {
+  if (r.requiredSign === 'libre') return true;
+  return r.requiredSign === 'mayor o igual que 0' ? r.lambda >= -1e-9 : r.lambda <= 1e-9;
+}
+
+function failureReason(feasible: boolean, stationary: boolean): string {
+  if (!feasible) {
+    return 'El punto no cumple todas las restricciones, así que no puede ser un punto KKT.';
+  }
+  if (!stationary) {
+    return 'No existen multiplicadores que anulen el gradiente de la función de Lagrange en este punto.';
+  }
+  return 'Algún multiplicador tiene el signo equivocado: se puede mejorar la función objetivo moviéndose dentro de la región factible.';
+}
+
+/** Curvatura de una restricción compatible con una región convexa (≤ convexa, ≥ cóncava, = lineal). */
+function convexConstraint(relation: ConstraintRelation, cls: Definiteness): boolean {
+  if (cls === 'nula') return true;
+  if (relation === '=') return false;
+  const convex = cls === 'definida positiva' || cls === 'semidefinida positiva';
+  const concave = cls === 'definida negativa' || cls === 'semidefinida negativa';
+  return relation === '<=' ? convex : concave;
+}
+
+/**
+ * Suficiencia: funciones cuadráticas o lineales (hessianas constantes), objetivo cóncavo al
+ * maximizar (convexo al minimizar) y región factible convexa.
+ */
+function isSufficient(
+  sense: 'max' | 'min',
+  f: ParsedExpression,
+  constraints: NlpConstraint[],
+  x: number[],
+  size: number,
+): boolean {
+  const hessF = hessianOf(f, size);
+  const hessG = constraints.map((c) => hessianOf(c.g, size));
+  const probe = x.map((v) => v + 0.731);
+  const constant = (H: ReturnType<typeof hessianOf>) =>
+    H !== null &&
+    evaluateMatrix(H, x).every((row, i) =>
+      row.every((v, j) => Math.abs(v - evaluateMatrix(H, probe)[i]![j]!) < 1e-9),
+    );
+  if (!constant(hessF) || !hessG.every(constant)) return false;
+  const fClass = classifyMatrix(evaluateMatrix(hessF!, x));
+  const fOk =
+    sense === 'max'
+      ? ['definida negativa', 'semidefinida negativa', 'nula'].includes(fClass)
+      : ['definida positiva', 'semidefinida positiva', 'nula'].includes(fClass);
+  return (
+    fOk &&
+    constraints.every((c, i) =>
+      convexConstraint(c.relation, classifyMatrix(evaluateMatrix(hessG[i]!, x))),
+    )
+  );
+}
+
+/**
+ * Estacionariedad: λ de las restricciones activas que mejor cumplen ∇f = Σ λ_i ∇g_i (mínimos
+ * cuadrados) y el residuo; `lambdas` es `null` si el sistema es singular.
+ */
+function stationarity(
+  df: number[],
+  dg: number[][],
+  activeIdx: number[],
+): { lambdas: number[] | null; residual: number } {
+  const A = df.map((_, j) => activeIdx.map((i) => dg[i]![j]!));
+  const lambdas = activeIdx.length > 0 ? leastSquares(A, df) : [];
+  if (!lambdas) return { lambdas, residual: Math.hypot(...df) };
+  const residual = Math.hypot(
+    ...df.map((v, j) => v - activeIdx.reduce((acc, i, k) => acc + lambdas[k]! * dg[i]![j]!, 0)),
+  );
+  return { lambdas, residual };
+}
+
+function sufficiencyStep(sense: 'max' | 'min', sufficient: boolean): Step {
+  const curvature = sense === 'max' ? 'cóncava' : 'convexa';
+  return {
+    title: 'Suficiencia',
+    explanation: sufficient
+      ? `La función objetivo es ${curvature} y la región factible es convexa (restricciones ≤ convexas, ≥ cóncavas, = lineales): las condiciones KKT también son suficientes y el punto es un óptimo global.`
+      : 'No se pudo confirmar la convexidad de todo el problema (tabla 20.1 de Taha): el punto cumple las condiciones necesarias, pero podría ser un óptimo local o no serlo.',
+  };
+}
+
 export function solveKkt({
   sense,
   objective,
@@ -149,37 +251,22 @@ export function solveKkt({
 }: KktInput): Result {
   const parsedF = parseNlpExpression(objective);
   const parsedG = parseConstraintList(text);
-  if (!parsedF.ok || typeof parsedG === 'string') {
-    return {
-      ok: false,
-      error: {
-        code: 'invalid-expression',
-        message: parsedF.ok ? String(parsedG) : parsedF.message,
-      },
-      ...emptyTrace(),
-    };
-  }
+  if (!parsedF.ok) return invalid(parsedF.message);
+  if (typeof parsedG === 'string') return invalid(parsedG);
   const f = parsedF.expr;
   const constraints: NlpConstraint[] = parsedG;
   const size = Math.max(parsedF.maxIndex, ...constraints.map((c) => c.maxIndex), 1);
   const x = parsePoint(pointText, size) as number[];
   const gradF = gradientOf(f, size);
   const gradG = constraints.map((c) => gradientOf(c.g, size));
-  if (!gradF || gradG.some((g) => !g)) {
-    return {
-      ok: false,
-      error: { code: 'invalid-expression', message: 'No se pudieron derivar las funciones.' },
-      ...emptyTrace(),
-    };
-  }
+  if (!gradF || gradG.some((g) => !g)) return invalid('No se pudieron derivar las funciones.');
 
   const gValues = constraints.map((c) => clean(evaluateAt(c.g, x)));
   const scale = Math.max(1, ...x.map(Math.abs));
   const results: KktConstraintResult[] = constraints.map((c, i) => {
     const g = gValues[i]!;
     const active = Math.abs(g) <= TOL * scale;
-    const feasible =
-      c.relation === '=' ? active : c.relation === '<=' ? g <= TOL * scale : g >= -TOL * scale;
+    const feasible = satisfiedWithin(c.relation, g, TOL * scale);
     return {
       index: i + 1,
       relation: c.relation,
@@ -206,10 +293,10 @@ export function solveKkt({
       title: 'Factibilidad del punto',
       explanation: `Se evalúa cada g_i en X = ${pointTex(x)}. Las restricciones con g_i = 0 son activas (se cumplen con igualdad).`,
       substitution: results
-        .map(
-          (r) =>
-            String.raw`g_{${r.index}}(X) = ${n(r.g, 8)} \ ${r.feasible ? TEX.checkmark : TEX.times}${r.active ? String.raw`\ \text{(activa)}` : ''}`,
-        )
+        .map((r) => {
+          const activeNote = r.active ? ACTIVE_NOTE : '';
+          return String.raw`g_{${r.index}}(X) = ${n(r.g, 8)} \ ${r.feasible ? TEX.checkmark : TEX.times}${activeNote}`;
+        })
         .join(String.raw` \\ `),
       result: feasible
         ? String.raw`\text{El punto es factible}`
@@ -221,24 +308,17 @@ export function solveKkt({
   const df = evaluateVector(gradF, x);
   const dg = gradG.map((g) => evaluateVector(g!, x));
   const activeIdx = results.filter((r) => r.active).map((r) => r.index - 1);
-  const A = df.map((_, j) => activeIdx.map((i) => dg[i]![j]!));
-  const lambdas = activeIdx.length > 0 ? leastSquares(A, df) : [];
-  let residual = Math.hypot(...df);
-  if (lambdas) {
-    activeIdx.forEach((i, k) => {
-      results[i]!.lambda = clean(lambdas[k]!);
-    });
-    residual = Math.hypot(
-      ...df.map((v, j) => v - activeIdx.reduce((acc, i, k) => acc + lambdas[k]! * dg[i]![j]!, 0)),
-    );
-  }
+  const { lambdas, residual } = stationarity(df, dg, activeIdx);
+  lambdas?.forEach((l, k) => {
+    results[activeIdx[k]!]!.lambda = clean(l);
+  });
   const stationary = lambdas !== null && residual <= 1e-6 * Math.max(1, Math.hypot(...df));
-  for (const r of results) {
-    r.signOk =
-      r.requiredSign === 'libre' ||
-      (r.requiredSign === 'mayor o igual que 0' ? r.lambda >= -1e-9 : r.lambda <= 1e-9);
-  }
+  for (const r of results) r.signOk = hasRequiredSign(r);
   const signsOk = results.every((r) => r.signOk);
+  const lambdaTex = activeIdx
+    .map((i) => String.raw`\lambda_{${i + 1}} = ${n(results[i]!.lambda, 8)}`)
+    .join(String.raw`,\ `);
+  const stationaryTex = activeIdx.length > 0 ? lambdaTex : String.raw`\nabla f(X) = 0`;
 
   steps.push(
     {
@@ -260,11 +340,7 @@ export function solveKkt({
         .map((i) => String.raw`,\quad \nabla g_{${i + 1}}(X) = ${pointTex(dg[i]!)}`)
         .join('')}`,
       result: stationary
-        ? activeIdx.length > 0
-          ? activeIdx
-              .map((i) => String.raw`\lambda_{${i + 1}} = ${n(results[i]!.lambda, 8)}`)
-              .join(String.raw`,\ `)
-          : String.raw`\nabla f(X) = 0`
+        ? stationaryTex
         : String.raw`\text{No hay multiplicadores que anulen el gradiente (residuo } ${n(residual, 4)})`,
     },
     {
@@ -276,7 +352,7 @@ export function solveKkt({
       substitution: results
         .map(
           (r) =>
-            String.raw`\lambda_{${r.index}} = ${n(r.lambda, 8)} \ (${SIGN_TEX[r.requiredSign].replace(String.raw`\text{ libre}`, String.raw`\text{libre}`)}) \ ${r.signOk ? TEX.checkmark : TEX.times}`,
+            String.raw`\lambda_{${r.index}} = ${n(r.lambda, 8)} \ (${SIGN_IN_PARENS[r.requiredSign]}) \ ${r.signOk ? TEX.checkmark : TEX.times}`,
         )
         .join(String.raw` \\ `),
     },
@@ -285,43 +361,12 @@ export function solveKkt({
   const isKkt = feasible && stationary && signsOk;
 
   // Suficiencia: funciones cuadráticas o lineales (hessianas constantes) con la curvatura correcta.
-  let sufficient = false;
-  if (isKkt) {
-    const hessF = hessianOf(f, size);
-    const hessG = constraints.map((c) => hessianOf(c.g, size));
-    const probe = x.map((v) => v + 0.731);
-    const constant = (H: ReturnType<typeof hessianOf>) =>
-      H !== null &&
-      evaluateMatrix(H, x).every((row, i) =>
-        row.every((v, j) => Math.abs(v - evaluateMatrix(H, probe)[i]![j]!) < 1e-9),
-      );
-    if (constant(hessF) && hessG.every(constant)) {
-      const fClass = classifyMatrix(evaluateMatrix(hessF!, x));
-      const fOk =
-        sense === 'max'
-          ? ['definida negativa', 'semidefinida negativa', 'nula'].includes(fClass)
-          : ['definida positiva', 'semidefinida positiva', 'nula'].includes(fClass);
-      const gOk = constraints.every((c, i) => {
-        const cls = classifyMatrix(evaluateMatrix(hessG[i]!, x));
-        if (cls === 'nula') return true;
-        if (c.relation === '=') return false;
-        const convex = cls === 'definida positiva' || cls === 'semidefinida positiva';
-        const concave = cls === 'definida negativa' || cls === 'semidefinida negativa';
-        return c.relation === '<=' ? convex : concave;
-      });
-      sufficient = fOk && gOk;
-    }
-    steps.push({
-      title: 'Suficiencia',
-      explanation: sufficient
-        ? `La función objetivo es ${sense === 'max' ? 'cóncava' : 'convexa'} y la región factible es convexa (restricciones ≤ convexas, ≥ cóncavas, = lineales): las condiciones KKT también son suficientes y el punto es un óptimo global.`
-        : 'No se pudo confirmar la convexidad de todo el problema (tabla 20.1 de Taha): el punto cumple las condiciones necesarias, pero podría ser un óptimo local o no serlo.',
-    });
-  }
+  const sufficient = isKkt && isSufficient(sense, f, constraints, x, size);
+  if (isKkt) steps.push(sufficiencyStep(sense, sufficient));
 
   const rows = results.map((r): Record<string, CellValue> => ({
     index: r.index,
-    relation: r.relation === '<=' ? '≤' : r.relation === '>=' ? '≥' : '=',
+    relation: RELATION_TEXT[r.relation],
     g: r.g,
     active: r.active ? 'sí' : 'no',
     lambda: r.lambda,
@@ -377,11 +422,7 @@ export function solveKkt({
       : [
           {
             level: 'warning',
-            message: !feasible
-              ? 'El punto no cumple todas las restricciones, así que no puede ser un punto KKT.'
-              : !stationary
-                ? 'No existen multiplicadores que anulen el gradiente de la función de Lagrange en este punto.'
-                : 'Algún multiplicador tiene el signo equivocado: se puede mejorar la función objetivo moviéndose dentro de la región factible.',
+            message: failureReason(feasible, stationary),
           },
         ],
   };

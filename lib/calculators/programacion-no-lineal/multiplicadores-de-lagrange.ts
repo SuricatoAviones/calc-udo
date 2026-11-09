@@ -100,19 +100,35 @@ type Result = CalculatorResult<LagrangeValue, LagrangeErrorCode>;
 
 const n = toLatexNumber;
 
+function invalidExpression(message: string): Result {
+  return { ok: false, error: { code: 'invalid-expression', message }, ...emptyTrace() };
+}
+
+const lambdaTex = (i: number) => String.raw`\lambda_{${i + 1}}`;
+
+/** `- \lambda_1(g_1) - \lambda_2(g_2) …` con las expresiones dadas. */
+function minusLambdas(expressions: string[]): string {
+  return expressions.map((e, i) => String.raw`- ${lambdaTex(i)}\left(${e}\right)`).join(' ');
+}
+
+function lagrangeKind(isMin: boolean, isMax: boolean): LagrangeKind {
+  if (isMin) return 'mínimo local';
+  return isMax ? 'máximo local' : 'no concluyente';
+}
+
+/** Explicación de la condición suficiente; `±` es el signo de (−1)^m. */
+const SUFFICIENT_TEXT: Record<LagrangeKind, string> = {
+  'mínimo local': 'Todos los menores tienen el signo de (−1)^m = ±: es un mínimo.',
+  'máximo local': 'Los menores alternan de signo empezando por (−1)^{m+1}: es un máximo.',
+  'no concluyente':
+    'Los signos no siguen ninguno de los dos patrones: la condición suficiente no concluye.',
+};
+
 export function solveLagrange({ objective, constraints: text, start }: LagrangeInput): Result {
   const parsedF = parseNlpExpression(objective);
   const parsedG = parseConstraintList(text);
-  if (!parsedF.ok || typeof parsedG === 'string') {
-    return {
-      ok: false,
-      error: {
-        code: 'invalid-expression',
-        message: parsedF.ok ? String(parsedG) : parsedF.message,
-      },
-      ...emptyTrace(),
-    };
-  }
+  if (!parsedF.ok) return invalidExpression(parsedF.message);
+  if (typeof parsedG === 'string') return invalidExpression(parsedG);
   const f = parsedF.expr;
   const constraints: NlpConstraint[] = parsedG;
   const size = Math.max(parsedF.maxIndex, ...constraints.map((c) => c.maxIndex));
@@ -122,36 +138,29 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
   const gradG = constraints.map((c) => gradientOf(c.g, size));
   const hessG = constraints.map((c) => hessianOf(c.g, size));
   if (!gradF || !hessF || gradG.some((g) => !g) || hessG.some((h) => !h)) {
-    return {
-      ok: false,
-      error: { code: 'invalid-expression', message: 'No se pudieron derivar las funciones.' },
-      ...emptyTrace(),
-    };
+    return invalidExpression('No se pudieron derivar las funciones.');
   }
 
-  const lambdaTex = (i: number) => String.raw`\lambda_{${i + 1}}`;
   const gTex = constraints.map((c, i) => `g_{${i + 1}}(X) = ${c.g.tex}`);
+  const lagrangeTerms = minusLambdas(constraints.map((c) => c.g.tex));
+  const stationarity = gradF
+    .map((df, j) => `${df.tex} ${minusLambdas(gradG.map((g) => g![j]!.tex))} &= 0`)
+    .join(TEX.newline);
+  const feasibility = constraints.map((c) => c.g.tex + ' &= 0').join(TEX.newline);
   const steps: Step[] = [
     {
       title: 'Función de Lagrange',
       explanation:
         'Cada restricción se escribe como g_i(X) = 0 (lado izquierdo menos lado derecho). Se resta cada una multiplicada por su multiplicador λ_i.',
       formula: String.raw`L(X, \lambda) = f(X) - \sum_i \lambda_i\,g_i(X)`,
-      substitution: `${gTex.join(String.raw`,\quad `)}`,
-      result: `L = ${f.tex} ${constraints.map((c, i) => String.raw`- ${lambdaTex(i)}\left(${c.g.tex}\right)`).join(' ')}`,
+      substitution: gTex.join(String.raw`,\quad `),
+      result: `L = ${f.tex} ${lagrangeTerms}`,
     },
     {
       title: 'Condiciones necesarias',
       explanation: `Se igualan a cero las ${size} derivadas respecto de las variables y las ${m} respecto de los multiplicadores (que devuelven las restricciones).`,
       formula: String.raw`\frac{\partial L}{\partial x_j} = \frac{\partial f}{\partial x_j} - \sum_i \lambda_i \frac{\partial g_i}{\partial x_j} = 0, \qquad \frac{\partial L}{\partial \lambda_i} = -g_i(X) = 0`,
-      substitution: String.raw`\begin{aligned} ${gradF
-        .map(
-          (df, j) =>
-            `${df.tex} ${constraints.map((_, i) => String.raw`- ${lambdaTex(i)}\left(${gradG[i]![j]!.tex}\right)`).join(' ')} &= 0`,
-        )
-        .join(
-          TEX.newline,
-        )} \\ ${constraints.map((c) => `${c.g.tex} &= 0`).join(TEX.newline)} \end{aligned}`,
+      substitution: String.raw`\begin{aligned} ${stationarity} \\ ${feasibility} \end{aligned}`,
     },
   ];
 
@@ -226,7 +235,7 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
   const minSign = m % 2 === 0 ? 1 : -1;
   const isMin = borderedMinors.every((d) => Math.sign(d) === minSign);
   const isMax = borderedMinors.every((d, k) => Math.sign(d) === ((m + 1 + k) % 2 === 0 ? 1 : -1));
-  const kind: LagrangeKind = isMin ? 'mínimo local' : isMax ? 'máximo local' : 'no concluyente';
+  const kind = lagrangeKind(isMin, isMax);
 
   steps.push(
     {
@@ -244,11 +253,7 @@ export function solveLagrange({ objective, constraints: text, start }: LagrangeI
     },
     {
       title: 'Condición suficiente',
-      explanation: isMin
-        ? `Todos los menores tienen el signo de (−1)^m = ${minSign > 0 ? '+' : '−'}: es un mínimo.`
-        : isMax
-          ? 'Los menores alternan de signo empezando por (−1)^{m+1}: es un máximo.'
-          : 'Los signos no siguen ninguno de los dos patrones: la condición suficiente no concluye.',
+      explanation: SUFFICIENT_TEXT[kind].replace('±', minSign > 0 ? '+' : '−'),
       result: String.raw`\text{${kind}}`,
     },
     {

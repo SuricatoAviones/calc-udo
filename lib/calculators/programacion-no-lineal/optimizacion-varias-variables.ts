@@ -103,6 +103,20 @@ const KIND: Record<Definiteness, MultiVariableKind> = {
   nula: 'no concluyente',
 };
 
+/** Qué dice la hessiana en el punto estacionario. */
+function sufficientText(definiteness: Definiteness): string {
+  switch (definiteness) {
+    case 'definida positiva':
+      return 'Todos los menores dominantes son positivos: H es definida positiva y X₀ es un mínimo.';
+    case 'definida negativa':
+      return 'Los menores dominantes alternan de signo empezando negativo: H es definida negativa y X₀ es un máximo.';
+    case 'indefinida':
+      return 'H es indefinida (no es semidefinida positiva ni negativa): X₀ es un punto de silla.';
+    default:
+      return `H es ${definiteness}: el criterio de la segunda derivada no concluye; habría que estudiar términos de orden superior.`;
+  }
+}
+
 export function solveMultiVariable({ expression, start }: MultiVariableInput): Result {
   const parsed = parseNlpExpression(expression);
   if (!parsed.ok) {
@@ -127,11 +141,14 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     };
   }
   const names = NLP_VARIABLES.slice(0, size);
+  const partials = names
+    .map((_, j) => String.raw`\frac{\partial f}{\partial x_{${j + 1}}}`)
+    .join(TEX.listSep);
   const steps: Step[] = [
     {
       title: 'Gradiente (condición necesaria)',
       explanation: 'En un extremo todas las derivadas parciales se anulan: ∇f(X₀) = 0.',
-      formula: String.raw`\nabla f = \left(${names.map((_, j) => String.raw`\frac{\partial f}{\partial x_{${j + 1}}}`).join(TEX.listSep)}\right)`,
+      formula: String.raw`\nabla f = \left(${partials}\right)`,
       result: String.raw`\nabla f = ${expressionVectorTex(gradient)} = \mathbf{0}`,
     },
     {
@@ -198,14 +215,7 @@ export function solveMultiVariable({ expression, start }: MultiVariableInput): R
     },
     {
       title: 'Condición suficiente',
-      explanation:
-        definiteness === 'definida positiva'
-          ? 'Todos los menores dominantes son positivos: H es definida positiva y X₀ es un mínimo.'
-          : definiteness === 'definida negativa'
-            ? 'Los menores dominantes alternan de signo empezando negativo: H es definida negativa y X₀ es un máximo.'
-            : definiteness === 'indefinida'
-              ? 'H es indefinida (no es semidefinida positiva ni negativa): X₀ es un punto de silla.'
-              : `H es ${definiteness}: el criterio de la segunda derivada no concluye; habría que estudiar términos de orden superior.`,
+      explanation: sufficientText(definiteness),
       result: String.raw`\text{${kind}}`,
     },
   );

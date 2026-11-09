@@ -226,38 +226,59 @@ function optimize(
     const gnorm = Math.hypot(...grad);
     if (gnorm < 1e-10 * Math.max(1, Math.abs(value)))
       return { point: x, iterations: k, converged: true };
-    const H = barrier.hessian(x);
-    let direction = solveDense(
-      H,
-      grad.map((g) => -g),
-    );
-    // La dirección de Newton debe mejorar P; si no, se usa el gradiente.
-    const slope = direction ? direction.reduce((acc, d, j) => acc + d * grad[j]!, 0) : 0;
-    if (!direction || (sense === 'max' ? slope <= 0 : slope >= 0)) {
-      direction = sense === 'max' ? grad : grad.map((g) => -g);
+    const direction = searchDirection(barrier.hessian(x), grad, sense);
+    const step = lineSearch(barrier, { x, value }, direction, interior, better);
+    if (!step) return { point: x, iterations: k, converged: gnorm < 1e-6 };
+    const change = Math.hypot(...step.x.map((v, j) => v - x[j]!));
+    x = step.x;
+    value = step.value;
+    if (change < 1e-13 * Math.max(1, Math.hypot(...x))) {
+      return { point: x, iterations: k + 1, converged: true };
     }
-    let t = 1;
-    let improved = false;
-    for (let s = 0; s < 60; s++) {
-      const candidate = x.map((v, j) => v + t * direction[j]!);
-      if (interior(candidate)) {
-        const candidateValue = barrier.value(candidate);
-        if (Number.isFinite(candidateValue) && better(candidateValue, value)) {
-          const change = Math.hypot(...candidate.map((v, j) => v - x[j]!));
-          x = candidate;
-          value = candidateValue;
-          improved = true;
-          if (change < 1e-13 * Math.max(1, Math.hypot(...x))) {
-            return { point: x, iterations: k + 1, converged: true };
-          }
-          break;
-        }
-      }
-      t /= 2;
-    }
-    if (!improved) return { point: x, iterations: k, converged: gnorm < 1e-6 };
   }
   return { point: x, iterations: 200, converged: false };
+}
+
+/** La dirección de Newton si mejora P; si no, el gradiente (o su opuesto al minimizar). */
+function searchDirection(H: number[][], grad: number[], sense: 'max' | 'min'): number[] {
+  const direction = solveDense(
+    H,
+    grad.map((g) => -g),
+  );
+  const slope = direction ? direction.reduce((acc, d, j) => acc + d * grad[j]!, 0) : 0;
+  const worse = sense === 'max' ? slope <= 0 : slope >= 0;
+  if (!direction || worse) return sense === 'max' ? grad : grad.map((g) => -g);
+  return direction;
+}
+
+/** Paso a la mitad hasta encontrar un punto interior que mejore P (a lo sumo 60 veces). */
+function lineSearch(
+  barrier: Barrier,
+  from: { x: number[]; value: number },
+  direction: number[],
+  interior: (x: number[]) => boolean,
+  better: (a: number, b: number) => boolean,
+): { x: number[]; value: number } | null {
+  let t = 1;
+  for (let s = 0; s < 60; s++) {
+    const candidate = from.x.map((v, j) => v + t * direction[j]!);
+    if (interior(candidate)) {
+      const value = barrier.value(candidate);
+      if (Number.isFinite(value) && better(value, from.value)) return { x: candidate, value };
+    }
+    t /= 2;
+  }
+  return null;
+}
+
+function invalidExpression(message: string): Result {
+  return { ok: false, error: { code: 'invalid-expression', message }, ...emptyTrace() };
+}
+
+/** Término de barrera de una desigualdad: 1/(−g) para g ≤ 0 y 1/g para g ≥ 0. */
+function barrierTerm(c: NlpConstraint): string[] {
+  if (c.relation === '<=') return [String.raw`\frac{1}{-\left(${c.g.tex}\right)}`];
+  return c.relation === '>=' ? [String.raw`\frac{1}{${c.g.tex}}`] : [];
 }
 
 export function solvePenalty(input: PenaltyInput): Result {
@@ -265,29 +286,15 @@ export function solvePenalty(input: PenaltyInput): Result {
   const nonNegative = input.nonNegative === 'si';
   const parsedF = parseNlpExpression(objective);
   const parsedG = parseConstraintList(input.constraints);
-  if (!parsedF.ok || typeof parsedG === 'string') {
-    return {
-      ok: false,
-      error: {
-        code: 'invalid-expression',
-        message: parsedF.ok ? String(parsedG) : parsedF.message,
-      },
-      ...emptyTrace(),
-    };
-  }
+  if (!parsedF.ok) return invalidExpression(parsedF.message);
+  if (typeof parsedG === 'string') return invalidExpression(parsedG);
   const constraints = parsedG;
   const size = Math.max(parsedF.maxIndex, ...constraints.map((c) => c.maxIndex), 1);
   const start = parsePoint(input.start, size) as number[];
   const interior = (x: number[]) => slacks(constraints, x, nonNegative).every((s) => s > 0);
 
   const barrierTerms = [
-    ...constraints.flatMap((c) =>
-      c.relation === '<='
-        ? [String.raw`\frac{1}{-\left(${c.g.tex}\right)}`]
-        : c.relation === '>='
-          ? [String.raw`\frac{1}{${c.g.tex}}`]
-          : [],
-    ),
+    ...constraints.flatMap((c) => barrierTerm(c)),
     ...(nonNegative
       ? Array.from({ length: size }, (_, j) => String.raw`\frac{1}{x_{${j + 1}}}`)
       : []),
@@ -296,13 +303,17 @@ export function solvePenalty(input: PenaltyInput): Result {
     .filter((c) => c.relation === '=')
     .map((c) => String.raw`\frac{\left(${c.g.tex}\right)^2}{\sqrt{r}}`);
   const sign = sense === 'max' ? '-' : '+';
+  const barrierPart =
+    barrierTerms.length > 0 ? String.raw`${sign} r\left(${barrierTerms.join(' + ')}\right)` : '';
+  const equalityPart =
+    equalityTerms.length > 0 ? ` ${sign} ` + equalityTerms.join(` ${sign} `) : '';
   const steps: Step[] = [
     {
       title: 'Función barrera',
       explanation:
         'Cada término crece sin límite cuando el punto se acerca a la frontera de una restricción (o a xⱼ = 0), así que la búsqueda nunca sale de la región factible.',
       formula: String.raw`P(x; r) = f(x) ${sign} r\,B(x)`,
-      result: `P(x; r) = ${parsedF.expr.tex} ${barrierTerms.length > 0 ? String.raw`${sign} r\left(${barrierTerms.join(' + ')}\right)` : ''}${equalityTerms.length > 0 ? ` ${sign} ${equalityTerms.join(` ${sign} `)}` : ''}`,
+      result: `P(x; r) = ${parsedF.expr.tex} ${barrierPart}${equalityPart}`,
     },
   ];
 
