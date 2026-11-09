@@ -13,7 +13,7 @@ import { latexLines } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import { emptyTrace, type CalculatorResult, type Calculator } from '../types';
 import { variableLatex, type LinearProgram, type LpConstraint } from './lp-model';
-import { parseForSolve, type LpInput, type LpValue } from './lp-solve';
+import { invalidModelMessage, parseForSolve, type LpInput, type LpValue } from './lp-solve';
 import { lpInputSchema } from './simplex';
 import {
   alternativeOptimaColumns,
@@ -52,13 +52,28 @@ function toLessEqual(lp: LinearProgram): { lp: LinearProgram; notes: string[] } 
   return { lp: { ...lp, constraints }, notes };
 }
 
+/** `± c x`: el coeficiente 1 no se escribe. */
+function signedTerm(a: Rational, latex: string): string {
+  const coefficient = a.abs().eq(Rational.ONE) ? '' : a.abs().toLatex();
+  return `${a.sign() < 0 ? '-' : '+'} ${coefficient}${latex}`;
+}
+
+/** Lado izquierdo de un renglón de la tabla: `2x_1 - x_2 + s_1` (sin el + inicial). */
+function rowTermsTex(row: Rational[], columns: { latex: string }[]): string {
+  return row
+    .map((a, j) => (a.isZero() ? null : signedTerm(a, columns[j]!.latex)))
+    .filter(Boolean)
+    .join(' ')
+    .replace(/^\+ /, '');
+}
+
 export function solveDualSimplex(input: LpInput): Result {
   const parsed = parseForSolve(input);
   if (!parsed.ok) {
     const failure = parsed.result;
     return {
       ok: false,
-      error: { code: 'invalid-model', message: failure.ok ? '' : failure.error.message },
+      error: { code: 'invalid-model', message: invalidModelMessage(failure) },
       ...emptyTrace(),
     };
   }
@@ -72,18 +87,7 @@ export function solveDualSimplex(input: LpInput): Result {
       'El dual simplex empieza con las holguras como base. Para eso todas las restricciones deben ser ≤, aunque el lado derecho quede negativo (la solución inicial no es factible).',
     substitution: notes.length > 0 ? notes.join('; ') : undefined,
     result: latexLines(
-      t.rows.map(
-        (row, i) =>
-          `${row
-            .map((a, j) =>
-              a.isZero()
-                ? null
-                : `${a.sign() < 0 ? '-' : '+'} ${a.abs().eq(Rational.ONE) ? '' : a.abs().toLatex()}${t.columns[j]!.latex}`,
-            )
-            .filter(Boolean)
-            .join(' ')
-            .replace(/^\+ /, '')} = ${t.rhs[i]!.toLatex()}`,
-      ),
+      t.rows.map((row, i) => `${rowTermsTex(row, t.columns)} = ${t.rhs[i]!.toLatex()}`),
     ),
   });
 
@@ -136,7 +140,7 @@ export function solveDualSimplex(input: LpInput): Result {
     tableauTable(
       t,
       `dual-${iterations}`,
-      `${iterations === 0 ? 'Tabla inicial' : `Tabla ${iterations}`} (óptima y factible)`,
+      `${iterations === 0 ? 'Tabla inicial' : 'Tabla ' + iterations} (óptima y factible)`,
     ),
   );
 

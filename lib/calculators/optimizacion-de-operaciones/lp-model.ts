@@ -69,36 +69,94 @@ function parseExpression(source: string): LinearExpression | string {
     } else if (i > 0) {
       return `falta un signo antes de «${text.slice(i)}»`;
     }
-    const numberMatch = /^(\d+(?:\.\d+)?|\.\d+)(?:\/(\d+(?:\.\d+)?))?/.exec(text.slice(i));
-    let coefficient: Rational | null = null;
-    if (numberMatch) {
-      coefficient = Rational.fromNumber(Number(numberMatch[1]));
-      if (numberMatch[2] !== undefined) {
-        const den = Rational.fromNumber(Number(numberMatch[2]));
-        if (den.isZero()) return 'hay una división entre 0';
-        coefficient = coefficient.div(den);
-      }
-      i += numberMatch[0].length;
-    }
-    const nameMatch = /^[a-zA-Z][a-zA-Z0-9_]*/.exec(text.slice(i));
-    if (nameMatch) i += nameMatch[0].length;
-    if (!numberMatch && !nameMatch) return `no se entiende «${text.slice(i) || text}»`;
-    const value = (coefficient ?? Rational.ONE).mul(Rational.of(sign));
-    if (nameMatch) {
-      const name = nameMatch[0].replaceAll('_', '');
-      terms.set(name, (terms.get(name) ?? Rational.ZERO).add(value));
-    } else {
-      constant = constant.add(value);
-    }
+    const term = readTerm(text, i);
+    if (typeof term === 'string') return term;
+    i = term.end;
+    const value = (term.coefficient ?? Rational.ONE).mul(Rational.of(sign));
+    if (term.name) terms.set(term.name, (terms.get(term.name) ?? Rational.ZERO).add(value));
+    else constant = constant.add(value);
   }
   return { terms, constant };
+}
+
+/**
+ * Un término sin signo que empieza en `i`: coeficiente (entero, decimal o fracción) y variable,
+ * cualquiera de los dos opcional pero no ambos. `end` es la posición siguiente.
+ */
+function readTerm(
+  text: string,
+  i: number,
+): { coefficient: Rational | null; name: string | null; end: number } | string {
+  const numberMatch = /^(\d+(?:\.\d+)?|\.\d+)(?:\/(\d+(?:\.\d+)?))?/.exec(text.slice(i));
+  let coefficient: Rational | null = null;
+  let end = i;
+  if (numberMatch) {
+    coefficient = Rational.fromNumber(Number(numberMatch[1]));
+    if (numberMatch[2] !== undefined) {
+      const den = Rational.fromNumber(Number(numberMatch[2]));
+      if (den.isZero()) return 'hay una división entre 0';
+      coefficient = coefficient.div(den);
+    }
+    end += numberMatch[0].length;
+  }
+  const nameMatch = /^[a-zA-Z]\w*/.exec(text.slice(end));
+  if (nameMatch) end += nameMatch[0].length;
+  if (!numberMatch && !nameMatch) return `no se entiende «${text.slice(end) || text}»`;
+  return { coefficient, name: nameMatch ? nameMatch[0].replaceAll('_', '') : null, end };
 }
 
 function naturalCompare(a: string, b: string): number {
   return a.localeCompare(b, 'es', { numeric: true });
 }
 
-const NON_NEGATIVITY = /^[a-zA-Z][a-zA-Z0-9_]*(,[a-zA-Z][a-zA-Z0-9_]*)*>=0$/;
+const NON_NEGATIVITY = /^[a-zA-Z]\w*(,[a-zA-Z]\w*)*>=0$/;
+/** «max z =», «min w =», «z =» o «=» al inicio de la función objetivo. */
+const OBJECTIVE_PREFIX = /^(max|min)?[zw]?=/i;
+
+type ConstraintRow = { lhs: Map<string, Rational>; relation: Relation; rhs: Rational };
+
+/**
+ * Una línea de restricción: sus coeficientes con todo pasado a la izquierda, `'omitir'` si es de
+ * no negatividad, o el mensaje de error.
+ */
+function readConstraintRow(line: string): ConstraintRow | 'omitir' | { error: string } {
+  const text = normalize(line);
+  if (NON_NEGATIVITY.test(text)) return 'omitir';
+  const split = splitRelation(text);
+  if (!split) return { error: 'falta el signo de la restricción (<=, >= o =)' };
+  const { left, relation, right } = split;
+  if (/[<>=]/.test(right)) return { error: 'usa un solo signo por restricción' };
+  const l = parseExpression(left);
+  const r = parseExpression(right);
+  if (typeof l === 'string') return { error: l };
+  if (typeof r === 'string') return { error: r };
+  const lhs = new Map(l.terms);
+  for (const [name, value] of r.terms) lhs.set(name, (lhs.get(name) ?? Rational.ZERO).sub(value));
+  const rhs = r.constant.sub(l.constant);
+  const nonZero = [...lhs.values()].filter((v) => !v.isZero());
+  if (nonZero.length === 0) return { error: 'la restricción no tiene variables' };
+  // Una restricción «x1 >= 0» es de no negatividad: ya está incluida.
+  if (nonZero.length === 1 && nonZero[0]!.sign() > 0 && relation === '>=' && rhs.isZero()) {
+    return 'omitir';
+  }
+  return { lhs, relation, rhs };
+}
+
+/** Variables del modelo en orden natural, o el error si son muchas o usan un nombre reservado. */
+function programVariables(
+  objective: Map<string, Rational>,
+  rows: ConstraintRow[],
+): string[] | string {
+  const names = new Set<string>(objective.keys());
+  for (const row of rows) for (const name of row.lhs.keys()) names.add(name);
+  const variables = [...names].sort(naturalCompare);
+  if (variables.length > MAX_VARIABLES) return `El máximo es ${MAX_VARIABLES} variables.`;
+  const reserved = variables.find((v) => RESERVED.test(v));
+  if (reserved) {
+    return `«${reserved}» se reserva para holguras (s), excesos (e) y artificiales (R); usa otro nombre, como x1, x2…`;
+  }
+  return variables;
+}
 
 export function parseLinearProgram(
   sense: Sense,
@@ -106,7 +164,7 @@ export function parseLinearProgram(
   constraintsText: string,
 ): ParsedLp {
   const notices: string[] = [];
-  const objectiveSource = normalize(objectiveText).replace(/^(max|min)?(z|w)?=/i, '');
+  const objectiveSource = normalize(objectiveText).replace(OBJECTIVE_PREFIX, '');
   const objective = parseExpression(objectiveSource);
   if (typeof objective === 'string')
     return { ok: false, message: `Función objetivo: ${objective}.` };
@@ -114,47 +172,15 @@ export function parseLinearProgram(
     notices.push('La constante de la función objetivo no cambia la solución; se omite.');
   }
 
-  const rows: { lhs: Map<string, Rational>; relation: Relation; rhs: Rational }[] = [];
+  const rows: ConstraintRow[] = [];
   const lines = constraintsText.split(/\r?\n|;/).map((l) => l.trim());
   let skipped = 0;
   for (const [index, line] of lines.entries()) {
     if (line === '') continue;
-    const text = normalize(line);
-    if (NON_NEGATIVITY.test(text)) {
-      skipped++;
-      continue;
-    }
-    const split = splitRelation(text);
-    if (!split) {
-      return {
-        ok: false,
-        message: `Línea ${index + 1}: falta el signo de la restricción (<=, >= o =).`,
-      };
-    }
-    const { left, relation: rel, right } = split;
-    if (/[<>=]/.test(right)) {
-      return { ok: false, message: `Línea ${index + 1}: usa un solo signo por restricción.` };
-    }
-    const l = parseExpression(left);
-    const r = parseExpression(right);
-    if (typeof l === 'string') return { ok: false, message: `Línea ${index + 1}: ${l}.` };
-    if (typeof r === 'string') return { ok: false, message: `Línea ${index + 1}: ${r}.` };
-    const lhs = new Map(l.terms);
-    for (const [name, value] of r.terms) lhs.set(name, (lhs.get(name) ?? Rational.ZERO).sub(value));
-    const rhs = r.constant.sub(l.constant);
-    if ([...lhs.values()].every((v) => v.isZero())) {
-      return {
-        ok: false,
-        message: `Línea ${index + 1}: la restricción no tiene variables.`,
-      };
-    }
-    // Una restricción «x1 >= 0» es de no negatividad: ya está incluida.
-    const nonZero = [...lhs.values()].filter((v) => !v.isZero());
-    if (nonZero.length === 1 && nonZero[0]!.sign() > 0 && rel === '>=' && rhs.isZero()) {
-      skipped++;
-      continue;
-    }
-    rows.push({ lhs, relation: rel as Relation, rhs });
+    const row = readConstraintRow(line);
+    if (row === 'omitir') skipped++;
+    else if ('error' in row) return { ok: false, message: `Línea ${index + 1}: ${row.error}.` };
+    else rows.push(row);
   }
   if (skipped > 0) {
     notices.push(
@@ -166,19 +192,8 @@ export function parseLinearProgram(
     return { ok: false, message: `El máximo es ${MAX_CONSTRAINTS} restricciones.` };
   }
 
-  const names = new Set<string>(objective.terms.keys());
-  for (const row of rows) for (const name of row.lhs.keys()) names.add(name);
-  const variables = [...names].sort(naturalCompare);
-  if (variables.length > MAX_VARIABLES) {
-    return { ok: false, message: `El máximo es ${MAX_VARIABLES} variables.` };
-  }
-  const reserved = variables.find((v) => RESERVED.test(v));
-  if (reserved) {
-    return {
-      ok: false,
-      message: `«${reserved}» se reserva para holguras (s), excesos (e) y artificiales (R); usa otro nombre, como x1, x2…`,
-    };
-  }
+  const variables = programVariables(objective.terms, rows);
+  if (typeof variables === 'string') return { ok: false, message: variables };
   const coefficientsOf = (map: Map<string, Rational>) =>
     variables.map((v) => map.get(v) ?? Rational.ZERO);
 
@@ -210,7 +225,7 @@ function coefficientsOver(terms: Map<string, Rational>, variables: string[]): Ra
  * «z =»), p. ej. una función objetivo nueva. Devuelve los coeficientes o un mensaje de error.
  */
 export function parseLinearCoefficients(text: string, variables: string[]): Rational[] | string {
-  const source = normalize(text).replace(/^(max|min)?(z|w)?=/i, '');
+  const source = normalize(text).replace(OBJECTIVE_PREFIX, '');
   const parsed = parseExpression(source);
   if (typeof parsed === 'string') return parsed;
   if (!parsed.constant.isZero()) return 'la expresión no debe tener un término constante';
@@ -306,6 +321,19 @@ export const relationLatex: Record<Relation, string> = {
   '>=': String.raw`\ge`,
   '=': '=',
 };
+
+/** La relación en texto: ≤, ≥ o =. */
+export const RELATION_TEXT: Record<Relation, string> = { '<=': '≤', '>=': '≥', '=': '=' };
+
+/** La relación contraria (la que tiene una restricción que no se cumple): > o <. */
+export const VIOLATED_LATEX: Record<Relation, string> = {
+  '<=': '>',
+  '>=': '<',
+  '=': String.raw`\ne`,
+};
+
+/** La relación al multiplicar ambos lados por −1. */
+export const FLIPPED: Record<Relation, Relation> = { '<=': '>=', '>=': '<=', '=': '=' };
 
 /** El modelo completo en LaTeX (arreglo alineado). */
 export function lpLatex(lp: LinearProgram, objectiveName = 'z'): string {

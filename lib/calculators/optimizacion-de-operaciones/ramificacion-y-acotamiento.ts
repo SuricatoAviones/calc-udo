@@ -20,7 +20,7 @@ import {
   type LinearProgram,
   type LpConstraint,
 } from './lp-model';
-import { parseForSolve, solveLpSilently } from './lp-solve';
+import { invalidModelMessage, parseForSolve, solveLpSilently } from './lp-solve';
 import { TEX } from '@/lib/math/format';
 
 const MAX_NODES = 60;
@@ -92,13 +92,154 @@ function withBounds(lp: LinearProgram, bounds: Bound[]): LinearProgram {
   return { ...lp, constraints: [...lp.constraints, ...extra] };
 }
 
+const OUTCOME_TEXT: Record<NodeOutcome, string> = {
+  entera: 'Entera (candidata)',
+  podado: 'Podado por la cota',
+  infactible: 'Infactible',
+  ramificado: 'Se ramifica',
+};
+
+/** Estado de la búsqueda en profundidad del árbol. */
+interface Search {
+  lp: LinearProgram;
+  integer: number[];
+  vars: string[];
+  max: boolean;
+  nodes: BranchNode[];
+  /** Solución exacta de cada nodo, para la tabla. */
+  exact: { x: Rational[] | null; z: Rational | null }[];
+  nodeSteps: Step[];
+  incumbent: { z: Rational; x: Rational[] } | null;
+  relaxation: Rational | null;
+  stack: { bounds: Bound[]; parent: number | null }[];
+}
+
+function boundTex(b: Bound, vars: string[]): string {
+  return `${vars[b.variable]} ${b.relation === '<=' ? TEX.le : TEX.ge} ${b.value.toLatex()}`;
+}
+
+function pointTex(x: Rational[], vars: string[]): string {
+  return x.map((v, j) => `${vars[j]} = ${v.toLatex()}`).join(String.raw`,\ `);
+}
+
+/** «Nodo 2: x1 ≤ 3, x2 ≥ 1» o «Nodo 0 (relajación lineal)». */
+function nodeTitle(id: number, bounds: Bound[], variables: string[]): string {
+  if (bounds.length === 0) return `Nodo ${id} (relajación lineal)`;
+  const list = bounds
+    .map((b) => `${variables[b.variable]} ${b.relation === '<=' ? '≤' : '≥'} ${b.value.toText()}`)
+    .join(', ');
+  return `Nodo ${id}: ${list}`;
+}
+
+/** ¿z mejora la cota de la mejor solución entera? */
+function improves(z: Rational, bound: Rational, max: boolean): boolean {
+  return max ? z.cmp(bound) > 0 : z.cmp(bound) < 0;
+}
+
+/**
+ * Resuelve la relajación del siguiente nodo de la pila y lo poda, lo acepta como candidato o
+ * ramifica. Devuelve el título del nodo si la relajación inicial es no acotada.
+ */
+function visitNode(s: Search): string | null {
+  const { lp, vars } = s;
+  const { bounds, parent } = s.stack.pop()!;
+  const id = s.nodes.length;
+  const solved = solveLpSilently(withBounds(lp, bounds));
+  const title = nodeTitle(id, bounds, lp.variables);
+  const boundsText = bounds.map((b) => boundTex(b, vars));
+
+  if (solved.status === 'unbounded' && id === 0) return title;
+  if (solved.status !== 'optimal') {
+    s.nodes.push({ id, parent, bounds: boundsText, outcome: 'infactible', z: null, x: null });
+    s.exact.push({ x: null, z: null });
+    s.nodeSteps.push({
+      title,
+      explanation: 'La relajación con estas cotas no tiene solución: el nodo se poda.',
+    });
+    return null;
+  }
+  if (id === 0) s.relaxation = solved.z;
+  s.exact.push({ x: solved.x, z: solved.z });
+  const fractional = s.integer.find((j) => !solved.x[j]!.isInteger());
+  const base = {
+    id,
+    parent,
+    bounds: boundsText,
+    z: solved.z.toNumber(),
+    x: solved.x.map((v) => v.toNumber()),
+  };
+  const solution = String.raw`${pointTex(solved.x, vars)},\quad z = ${solved.z.toLatex()}`;
+
+  const current = s.incumbent;
+  if (current !== null && !improves(solved.z, current.z, s.max)) {
+    s.nodes.push({ ...base, outcome: 'podado' });
+    s.nodeSteps.push({
+      title,
+      substitution: solution,
+      explanation: `z = ${solved.z.toText()} no es mejor que la cota z = ${current.z.toText()} de la mejor solución entera: el nodo se poda (ninguna rama suya puede mejorarla).`,
+    });
+    return null;
+  }
+  if (fractional === undefined) {
+    s.incumbent = { z: solved.z, x: solved.x };
+    s.nodes.push({ ...base, outcome: 'entera' });
+    s.nodeSteps.push({
+      title,
+      substitution: solution,
+      explanation: `Todas las variables enteras tienen valor entero: es una solución candidata y la nueva cota es z = ${solved.z.toText()}.`,
+    });
+    return null;
+  }
+  const value = solved.x[fractional]!;
+  const floor = value.floor();
+  const ceil = floor.add(Rational.ONE);
+  const name = lp.variables[fractional];
+  s.nodes.push({ ...base, outcome: 'ramificado' });
+  s.nodeSteps.push({
+    title,
+    substitution: solution,
+    explanation: `${name} = ${value.toText()} no es entera: se ramifica con ${name} ≤ ${floor.toText()} y ${name} ≥ ${ceil.toText()}.`,
+    result: String.raw`${vars[fractional]} \le ${floor.toLatex()} \quad \text{o} \quad ${vars[fractional]} \ge ${ceil.toLatex()}`,
+  });
+  s.stack.push(
+    { bounds: [...bounds, { variable: fractional, relation: '>=', value: ceil }], parent: id },
+    { bounds: [...bounds, { variable: fractional, relation: '<=', value: floor }], parent: id },
+  );
+  return null;
+}
+
+function nodesTable(s: Search) {
+  return {
+    id: 'nodos',
+    title: 'Nodos explorados',
+    columns: [
+      { key: 'node', header: String.raw`\text{Nodo}` },
+      { key: 'parent', header: String.raw`\text{Padre}` },
+      { key: 'bounds', header: String.raw`\text{Cotas}`, format: 'latex' as const },
+      { key: 'solution', header: String.raw`\text{Solución}`, format: 'latex' as const },
+      { key: 'z', header: 'z', format: 'latex' as const },
+      { key: 'outcome', header: String.raw`\text{Resultado}`, format: 'text' as const },
+    ],
+    rows: s.nodes.map((n) => {
+      const { x, z } = s.exact[n.id]!;
+      return {
+        node: n.id,
+        parent: n.parent,
+        bounds: n.bounds.length > 0 ? n.bounds.join(String.raw`,\ `) : String.raw`\text{—}`,
+        solution: x ? pointTex(x, s.vars) : String.raw`\text{—}`,
+        z: z?.toLatex() ?? String.raw`\text{—}`,
+        outcome: OUTCOME_TEXT[n.outcome],
+      };
+    }),
+  };
+}
+
 export function solveBranchAndBound(input: BranchAndBoundInput): Result {
   const parsed = parseForSolve(input);
   if (!parsed.ok) {
-    const failure = parsed.result;
     return {
       ok: false,
-      error: { code: 'invalid-model', message: failure.ok ? '' : failure.error.message },
+      error: { code: 'invalid-model', message: invalidModelMessage(parsed.result) },
       ...emptyTrace(),
     };
   }
@@ -107,7 +248,6 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
   const integer =
     names.length === 0 ? lp.variables.map((_, j) => j) : names.map((n) => lp.variables.indexOf(n));
   const vars = lp.variables.map(variableLatex);
-  const max = lp.sense === 'max';
   trace.steps.push({
     title: 'Variables enteras',
     explanation:
@@ -117,22 +257,22 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
     result: integer.map((j) => vars[j]).join(String.raw`,\ `) + String.raw`\ \in \mathbb{Z}`,
   });
 
-  const boundLatex = (b: Bound) =>
-    `${vars[b.variable]} ${b.relation === '<=' ? TEX.le : TEX.ge} ${b.value.toLatex()}`;
-  const pointLatex = (x: Rational[]) =>
-    x.map((v, j) => `${vars[j]} = ${v.toLatex()}`).join(String.raw`,\ `);
+  const search: Search = {
+    lp,
+    integer,
+    vars,
+    max: lp.sense === 'max',
+    nodes: [],
+    exact: [],
+    nodeSteps: [],
+    incumbent: null,
+    relaxation: null,
+    stack: [{ bounds: [], parent: null }],
+  };
 
-  const nodes: BranchNode[] = [];
-  /** Solución exacta de cada nodo, para la tabla. */
-  const exact: { x: Rational[] | null; z: Rational | null }[] = [];
-  const nodeSteps: Step[] = [];
-  let incumbent: { z: Rational; x: Rational[] } | null = null;
-  let relaxation: Rational | null = null;
-  const stack: { bounds: Bound[]; parent: number | null }[] = [{ bounds: [], parent: null }];
-
-  while (stack.length > 0) {
-    if (nodes.length >= MAX_NODES) {
-      trace.steps.push(...nodeSteps);
+  while (search.stack.length > 0) {
+    if (search.nodes.length >= MAX_NODES) {
+      trace.steps.push(...search.nodeSteps);
       return {
         ok: false,
         error: {
@@ -143,14 +283,12 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
         ...trace,
       };
     }
-    const { bounds, parent } = stack.pop()!;
-    const id = nodes.length;
-    const solved = solveLpSilently(withBounds(lp, bounds));
-    const title = `Nodo ${id}${bounds.length > 0 ? `: ${bounds.map((b) => `${lp.variables[b.variable]} ${b.relation === '<=' ? '≤' : '≥'} ${b.value.toText()}`).join(', ')}` : ' (relajación lineal)'}`;
-    const boundsText = bounds.map(boundLatex);
-
-    if (solved.status === 'unbounded' && id === 0) {
-      trace.steps.push({ title, explanation: 'La relajación lineal es no acotada.' });
+    const unboundedTitle = visitNode(search);
+    if (unboundedTitle !== null) {
+      trace.steps.push({
+        title: unboundedTitle,
+        explanation: 'La relajación lineal es no acotada.',
+      });
       return {
         ok: false,
         error: {
@@ -162,107 +300,19 @@ export function solveBranchAndBound(input: BranchAndBoundInput): Result {
         ...trace,
       };
     }
-    if (solved.status !== 'optimal') {
-      nodes.push({ id, parent, bounds: boundsText, outcome: 'infactible', z: null, x: null });
-      exact.push({ x: null, z: null });
-      nodeSteps.push({
-        title,
-        explanation: 'La relajación con estas cotas no tiene solución: el nodo se poda.',
-      });
-      continue;
-    }
-    if (id === 0) relaxation = solved.z;
-    exact.push({ x: solved.x, z: solved.z });
-    const fractional = integer.find((j) => !solved.x[j]!.isInteger());
-    const base = {
-      id,
-      parent,
-      bounds: boundsText,
-      z: solved.z.toNumber(),
-      x: solved.x.map((v) => v.toNumber()),
-    };
-    const solution = String.raw`${pointLatex(solved.x)},\quad z = ${solved.z.toLatex()}`;
-
-    const current = incumbent as { z: Rational; x: Rational[] } | null;
-    const noBetter =
-      current !== null && (max ? solved.z.cmp(current.z) <= 0 : solved.z.cmp(current.z) >= 0);
-    if (noBetter) {
-      nodes.push({ ...base, outcome: 'podado' });
-      nodeSteps.push({
-        title,
-        substitution: solution,
-        explanation: `z = ${solved.z.toText()} no es mejor que la cota z = ${current!.z.toText()} de la mejor solución entera: el nodo se poda (ninguna rama suya puede mejorarla).`,
-      });
-      continue;
-    }
-    if (fractional === undefined) {
-      incumbent = { z: solved.z, x: solved.x };
-      nodes.push({ ...base, outcome: 'entera' });
-      nodeSteps.push({
-        title,
-        substitution: solution,
-        explanation: `Todas las variables enteras tienen valor entero: es una solución candidata y la nueva cota es z = ${solved.z.toText()}.`,
-      });
-      continue;
-    }
-    const value = solved.x[fractional]!;
-    const floor = value.floor();
-    nodes.push({ ...base, outcome: 'ramificado' });
-    nodeSteps.push({
-      title,
-      substitution: solution,
-      explanation: `${lp.variables[fractional]} = ${value.toText()} no es entera: se ramifica con ${lp.variables[fractional]} ≤ ${floor.toText()} y ${lp.variables[fractional]} ≥ ${floor.add(Rational.ONE).toText()}.`,
-      result: String.raw`${vars[fractional]} \le ${floor.toLatex()} \quad \text{o} \quad ${vars[fractional]} \ge ${floor.add(Rational.ONE).toLatex()}`,
-    });
-    stack.push(
-      {
-        bounds: [
-          ...bounds,
-          { variable: fractional, relation: '>=', value: floor.add(Rational.ONE) },
-        ],
-        parent: id,
-      },
-      { bounds: [...bounds, { variable: fractional, relation: '<=', value: floor }], parent: id },
-    );
   }
 
+  const { nodes, nodeSteps, relaxation } = search;
   trace.steps.push({
     title: 'Árbol de ramificación',
     explanation:
       'Cada nodo resuelve la relajación lineal (sin exigir enteros) con las cotas de su rama. Se exploran en profundidad, primero la rama ≤.',
     children: nodeSteps,
   });
-  const tables = [
-    {
-      id: 'nodos',
-      title: 'Nodos explorados',
-      columns: [
-        { key: 'node', header: String.raw`\text{Nodo}` },
-        { key: 'parent', header: String.raw`\text{Padre}` },
-        { key: 'bounds', header: String.raw`\text{Cotas}`, format: 'latex' as const },
-        { key: 'solution', header: String.raw`\text{Solución}`, format: 'latex' as const },
-        { key: 'z', header: 'z', format: 'latex' as const },
-        { key: 'outcome', header: String.raw`\text{Resultado}`, format: 'text' as const },
-      ],
-      rows: nodes.map((n) => ({
-        node: n.id,
-        parent: n.parent,
-        bounds: n.bounds.length > 0 ? n.bounds.join(String.raw`,\ `) : String.raw`\text{—}`,
-        solution: exact[n.id]!.x ? pointLatex(exact[n.id]!.x!) : String.raw`\text{—}`,
-        z: exact[n.id]!.z?.toLatex() ?? String.raw`\text{—}`,
-        outcome:
-          n.outcome === 'entera'
-            ? 'Entera (candidata)'
-            : n.outcome === 'podado'
-              ? 'Podado por la cota'
-              : n.outcome === 'infactible'
-                ? 'Infactible'
-                : 'Se ramifica',
-      })),
-    },
-  ];
+  const tables = [nodesTable(search)];
+  const pointLatex = (x: Rational[]) => pointTex(x, vars);
 
-  const best = incumbent as { z: Rational; x: Rational[] } | null;
+  const best = search.incumbent;
   if (best === null) {
     return {
       ok: false,

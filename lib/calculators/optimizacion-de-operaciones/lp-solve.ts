@@ -71,6 +71,11 @@ export interface LpTrace {
 }
 type Trace = LpTrace;
 
+/** El mensaje de error de un modelo que no se pudo leer (vacío si no hubo error). */
+export function invalidModelMessage(result: LpResult): string {
+  return result.ok ? '' : result.error.message;
+}
+
 export function fail(code: LpErrorCode, message: string, trace: Trace): LpResult {
   return { ok: false, error: { code, message }, ...emptyTrace(), ...trace };
 }
@@ -177,8 +182,10 @@ function iterationsTrace(run: RunResult, trace: Trace, prefix: string) {
   }
 }
 
+const PHASE_LABEL: Record<string, string> = { 'fase-1': 'Fase I — ', 'fase-2': 'Fase II — ' };
+
 function label(prefix: string): string {
-  return prefix === 'fase-1' ? 'Fase I — ' : prefix === 'fase-2' ? 'Fase II — ' : '';
+  return PHASE_LABEL[prefix] ?? '';
 }
 
 function optimalityStep(t: Tableau): Step {

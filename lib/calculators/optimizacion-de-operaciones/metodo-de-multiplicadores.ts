@@ -39,6 +39,17 @@ import { sunRay, type TransportValue } from './transport-initial';
 
 export const initialMethods = ['esquina-noroeste', 'costo-minimo', 'vogel'] as const;
 
+const INITIAL_METHOD_NAME: Record<(typeof initialMethods)[number], string> = {
+  'esquina-noroeste': 'de la esquina noroeste',
+  'costo-minimo': 'del costo mínimo',
+  vogel: 'de aproximación de Vogel',
+};
+
+/** `u_{1} = 0,\ u_{2} = 3`: cada multiplicador con su valor. */
+function indexedList(symbol: string, values: Rational[]): string {
+  return values.map((x, i) => `${symbol}_{${i + 1}} = ${x.toLatex()}`).join(TEX.listSep);
+}
+
 export const modiInputSchema = z
   .object({
     ...transportShape,
@@ -132,7 +143,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
     balanceStep(b),
     {
       title: 'Solución inicial',
-      explanation: `Se parte de la solución por el método ${input.initial === 'esquina-noroeste' ? 'de la esquina noroeste' : input.initial === 'costo-minimo' ? 'del costo mínimo' : 'de aproximación de Vogel'}.`,
+      explanation: `Se parte de la solución por el método ${INITIAL_METHOD_NAME[input.initial]}.`,
       substitution: costLatex(b, allocation),
       result: `Z_0 = ${initialCost.toLatex()}`,
       children: initial.steps,
@@ -159,7 +170,7 @@ export function solveModi(input: ModiInput): CalculatorResult<ModiValue, ModiErr
         title: 'Multiplicadores',
         explanation: 'En cada celda básica uᵢ + vⱼ = cᵢⱼ; se fija u₁ = 0 y se despejan los demás.',
         substitution: latexLines(equations),
-        result: String.raw`${u.map((x, i) => `u_{${i + 1}} = ${x.toLatex()}`).join(TEX.listSep)};\quad ${v.map((x, j) => `v_{${j + 1}} = ${x.toLatex()}`).join(TEX.listSep)}`,
+        result: String.raw`${indexedList('u', u)};\quad ${indexedList('v', v)}`,
       },
       {
         title: 'Evaluar las celdas no básicas',

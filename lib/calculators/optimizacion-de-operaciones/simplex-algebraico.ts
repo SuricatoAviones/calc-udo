@@ -12,7 +12,7 @@
  * Usa el motor de `tableau.ts` (las mismas reglas que la tabla); aquí solo cambia la presentación.
  */
 import { z } from 'zod';
-import { latexLines, TEX } from '@/lib/math/format';
+import { joinSignedTerms, latexLines, TEX } from '@/lib/math/format';
 import { Rational } from '@/lib/math/rational';
 import type { Calculator, ResultTable, Step } from '../types';
 import { lpInputShape, objectiveValue, refineLp, type LinearProgram } from './lp-model';
@@ -110,6 +110,17 @@ const sameBasis = (a: number[], b: number[]) =>
   a.length === b.length &&
   [...a].sort((x, y) => x - y).every((v, i) => v === [...b].sort((x, y) => x - y)[i]);
 
+function feasibleText(s: BasicSolution): string {
+  if (s.values === null) return '—';
+  return s.feasible ? 'Sí' : 'No';
+}
+
+/** En qué paso del simplex se visita la solución, si se visita. */
+function visitText(visit: number): string {
+  if (visit < 0) return '';
+  return visit === 0 ? 'Inicio' : `Iteración ${visit}`;
+}
+
 function basicSolutionsTable(
   sf: StandardForm,
   solutions: BasicSolution[],
@@ -138,9 +149,9 @@ function basicSolutionsTable(
           s.values === null
             ? String.raw`${s.basis.map((j) => names[j]).join(', ')}:\ \text{sin solución única}`
             : s.basis.map((j) => `${names[j]} = ${s.values![j]!.toLatex()}`).join(String.raw`,\ `),
-        feasible: s.values === null ? '—' : s.feasible ? 'Sí' : 'No',
+        feasible: feasibleText(s),
         z: s.feasible && s.z !== null ? s.z.toLatex() : String.raw`\text{—}`,
-        simplex: visit < 0 ? '' : visit === 0 ? 'Inicio' : `Iteración ${visit}`,
+        simplex: visitText(visit),
       };
     }),
   };
@@ -150,15 +161,15 @@ function basicSolutionsTable(
 
 /** «c + a·x + b·y» con signos, omitiendo ceros y coeficientes 1. */
 function affine(constant: Rational, terms: { coefficient: Rational; latex: string }[]): string {
-  let text = constant.isZero() ? '' : constant.toLatex();
+  // La constante va primero y con su propio signo.
+  const parts = constant.isZero() ? [] : [{ negative: false, text: constant.toLatex() }];
   for (const { coefficient, latex } of terms) {
     if (coefficient.isZero()) continue;
     const abs = coefficient.abs();
-    const term = `${abs.eq(Rational.ONE) ? '' : abs.toLatex()}${latex}`;
-    const negative = coefficient.sign() < 0;
-    text += text === '' ? `${negative ? '-' : ''}${term}` : ` ${negative ? '-' : '+'} ${term}`;
+    const text = `${abs.eq(Rational.ONE) ? '' : abs.toLatex()}${latex}`;
+    parts.push({ negative: coefficient.sign() < 0, text });
   }
-  return text === '' ? '0' : text;
+  return joinSignedTerms(parts) || '0';
 }
 
 function nonBasic(t: Tableau): number[] {
@@ -185,9 +196,12 @@ function dictionary(t: Tableau): string[] {
 function currentSolution(t: Tableau): string {
   const values = basicSolution(t);
   const free = nonBasic(t);
+  const basics = t.basis
+    .map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`)
+    .join(TEX.listSep);
   return latexLines([
     String.raw`${free.map((j) => t.columns[j]!.latex).join(' = ')} = 0 \ (\text{no básicas})`,
-    String.raw`${t.basis.map((b) => `${t.columns[b]!.latex} = ${values[b]!.toLatex()}`).join(TEX.listSep)}, \qquad z = ${t.zRhs.a.toLatex()}`,
+    String.raw`${basics}, \qquad z = ${t.zRhs.a.toLatex()}`,
   ]);
 }
 

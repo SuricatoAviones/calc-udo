@@ -149,6 +149,107 @@ export interface InitialSolution {
   steps: Step[];
 }
 
+type Cell = [number, number];
+
+/** La celda de menor costo entre las candidatas (la primera, si hay empate). */
+function cheapestCell(b: Balanced, candidates: Cell[]): Cell {
+  const cost = (cell: Cell) => b.costs[cell[0]]![cell[1]]!;
+  return candidates.reduce(
+    (best, cell) => (cost(cell).lt(cost(best)) ? cell : best),
+    candidates[0]!,
+  );
+}
+
+/** Vogel: penalización = diferencia entre los dos menores costos de cada fila y columna. */
+function vogelCell(b: Balanced, rows: Set<number>, cols: Set<number>): { cell: Cell; why: string } {
+  const c = (i: number, j: number) => b.costs[i]![j]!;
+  const penalty = (costs: Rational[]) => {
+    const sorted = [...costs].sort((x, y) => x.cmp(y));
+    return sorted.length > 1 ? sorted[1]!.sub(sorted[0]!) : sorted[0]!;
+  };
+  const rowPen = [...rows].map((i) => ({ i, p: penalty([...cols].map((j) => c(i, j))) }));
+  const colPen = [...cols].map((j) => ({ j, p: penalty([...rows].map((i) => c(i, j))) }));
+  const bestRow = rowPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), rowPen[0]!);
+  const bestCol = colPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), colPen[0]!);
+  const useRow = !bestCol.p.gt(bestRow.p);
+  const cell = useRow
+    ? cheapestCell(
+        b,
+        [...cols].map((j) => [bestRow.i, j] as Cell),
+      )
+    : cheapestCell(
+        b,
+        [...rows].map((i) => [i, bestCol.j] as Cell),
+      );
+  const rowList = rowPen.map((r) => `${b.rowNames[r.i]} = ${r.p.toText()}`).join(', ');
+  const colList = colPen.map((q) => `${b.colNames[q.j]} = ${q.p.toText()}`).join(', ');
+  const chosen = useRow ? b.rowNames[bestRow.i] : b.colNames[bestCol.j];
+  const largest = (useRow ? bestRow.p : bestCol.p).toText();
+  return {
+    cell,
+    why: `Penalizaciones de fila: ${rowList}. De columna: ${colList}. La mayor es la de ${chosen} (${largest}); ahí se asigna a la celda de menor costo (c = ${c(cell[0], cell[1]).toText()}).`,
+  };
+}
+
+/** La celda que asigna el método y por qué. */
+function chooseCell(
+  b: Balanced,
+  method: InitialMethod,
+  rows: Set<number>,
+  cols: Set<number>,
+): { cell: Cell; why: string } {
+  if (method === 'esquina-noroeste') {
+    return {
+      cell: [Math.min(...rows), Math.min(...cols)],
+      why: 'Se toma la celda de la esquina superior izquierda (noroeste) de lo que no está tachado.',
+    };
+  }
+  if (method === 'vogel' && rows.size > 1 && cols.size > 1) return vogelCell(b, rows, cols);
+  const uncrossed = [...rows].flatMap((i) => [...cols].map((j) => [i, j] as Cell));
+  const cell = cheapestCell(b, uncrossed);
+  const cost = b.costs[cell[0]]![cell[1]]!.toText();
+  if (method === 'costo-minimo') {
+    return { cell, why: `Se toma la celda de menor costo no tachada (c = ${cost}).` };
+  }
+  const line = rows.size === 1 ? 'fila' : 'columna';
+  return {
+    cell,
+    why: `Queda una sola ${line}: sus celdas se asignan por costo mínimo (c = ${cost}).`,
+  };
+}
+
+/**
+ * Tacha la fila o la columna que se agotó (solo una si se agotan las dos, salvo al final) y
+ * devuelve la explicación.
+ */
+function crossOut(
+  b: Balanced,
+  lines: { rows: Set<number>; cols: Set<number> },
+  [i, j]: Cell,
+  done: { row: boolean; col: boolean },
+): string {
+  const { rows, cols } = lines;
+  if (rows.size === 1 && cols.size === 1) {
+    rows.delete(i);
+    cols.delete(j);
+    return 'Se tachan la última fila y la última columna.';
+  }
+  if (done.row && done.col && cols.size > 1) {
+    cols.delete(j);
+    return `Se satisfacen la fila y la columna a la vez: se tacha solo la columna ${b.colNames[j]}; ${b.rowNames[i]} queda con oferta 0.`;
+  }
+  if (done.row && done.col) {
+    rows.delete(i);
+    return `Se satisfacen la fila y la columna a la vez: se tacha solo la fila ${b.rowNames[i]}; ${b.colNames[j]} queda con demanda 0.`;
+  }
+  if (done.row) {
+    rows.delete(i);
+    return `Se tacha la fila ${b.rowNames[i]} (oferta agotada).`;
+  }
+  cols.delete(j);
+  return `Se tacha la columna ${b.colNames[j]} (demanda satisfecha).`;
+}
+
 /** Soluciones iniciales. Cada iteración asigna una celda y tacha una fila o columna. */
 export function initialSolution(b: Balanced, method: InitialMethod): InitialSolution {
   const m = b.supply.length;
@@ -159,71 +260,15 @@ export function initialSolution(b: Balanced, method: InitialMethod): InitialSolu
   const cols = new Set(Array.from({ length: n }, (_, j) => j));
   const allocation: Allocation = new Map();
   const steps: Step[] = [];
-  const c = (i: number, j: number) => b.costs[i]![j]!;
-
-  const cheapest = (candidates: [number, number][]) =>
-    candidates.reduce(
-      (best, cell) => (c(cell[0], cell[1]).lt(c(best[0], best[1])) ? cell : best),
-      candidates[0]!,
-    );
-  const uncrossed = () =>
-    [...rows].flatMap((i) => [...cols].map((j) => [i, j] as [number, number]));
 
   while (rows.size > 0 && cols.size > 0) {
-    let cell: [number, number];
-    let why: string;
-    if (method === 'esquina-noroeste') {
-      cell = [Math.min(...rows), Math.min(...cols)];
-      why =
-        'Se toma la celda de la esquina superior izquierda (noroeste) de lo que no está tachado.';
-    } else if (method === 'costo-minimo' || rows.size === 1 || cols.size === 1) {
-      cell = cheapest(uncrossed());
-      why =
-        method === 'costo-minimo'
-          ? `Se toma la celda de menor costo no tachada (c = ${c(cell[0], cell[1]).toText()}).`
-          : `Queda una sola ${rows.size === 1 ? 'fila' : 'columna'}: sus celdas se asignan por costo mínimo (c = ${c(cell[0], cell[1]).toText()}).`;
-    } else {
-      // Vogel: penalización = diferencia entre los dos menores costos de cada fila y columna.
-      const penalty = (costs: Rational[]) => {
-        const sorted = [...costs].sort((x, y) => x.cmp(y));
-        return sorted.length > 1 ? sorted[1]!.sub(sorted[0]!) : sorted[0]!;
-      };
-      const rowPen = [...rows].map((i) => ({ i, p: penalty([...cols].map((j) => c(i, j))) }));
-      const colPen = [...cols].map((j) => ({ j, p: penalty([...rows].map((i) => c(i, j))) }));
-      const bestRow = rowPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), rowPen[0]!);
-      const bestCol = colPen.reduce((x, y) => (y.p.gt(x.p) ? y : x), colPen[0]!);
-      const useRow = !bestCol.p.gt(bestRow.p);
-      cell = useRow
-        ? cheapest([...cols].map((j) => [bestRow.i, j] as [number, number]))
-        : cheapest([...rows].map((i) => [i, bestCol.j] as [number, number]));
-      const penalties = `Penalizaciones de fila: ${rowPen.map((r) => `${b.rowNames[r.i]} = ${r.p.toText()}`).join(', ')}. De columna: ${colPen.map((q) => `${b.colNames[q.j]} = ${q.p.toText()}`).join(', ')}.`;
-      why = `${penalties} La mayor es ${useRow ? `la de ${b.rowNames[bestRow.i]}` : `la de ${b.colNames[bestCol.j]}`} (${(useRow ? bestRow.p : bestCol.p).toText()}); ahí se asigna a la celda de menor costo (c = ${c(cell[0], cell[1]).toText()}).`;
-    }
+    const { cell, why } = chooseCell(b, method, rows, cols);
     const [i, j] = cell;
     const q = s[i]!.lt(d[j]!) ? s[i]! : d[j]!;
     allocation.set(cellKey(i, j), q);
     s[i] = s[i]!.sub(q);
     d[j] = d[j]!.sub(q);
-    let crossed: string;
-    if (rows.size === 1 && cols.size === 1) {
-      rows.delete(i);
-      cols.delete(j);
-      crossed = 'Se tachan la última fila y la última columna.';
-    } else if (s[i]!.isZero() && d[j]!.isZero()) {
-      if (cols.size > 1) {
-        cols.delete(j);
-        crossed = `Se satisfacen la fila y la columna a la vez: se tacha solo la columna ${b.colNames[j]}; ${b.rowNames[i]} queda con oferta 0.`;
-      } else {
-        rows.delete(i);
-        crossed = `Se satisfacen la fila y la columna a la vez: se tacha solo la fila ${b.rowNames[i]}; ${b.colNames[j]} queda con demanda 0.`;
-      }
-    } else if (s[i]!.isZero()) {
-      rows.delete(i);
-      crossed = `Se tacha la fila ${b.rowNames[i]} (oferta agotada).`;
-    } else {
-      cols.delete(j);
-      crossed = `Se tacha la columna ${b.colNames[j]} (demanda satisfecha).`;
-    }
+    const crossed = crossOut(b, { rows, cols }, cell, { row: s[i]!.isZero(), col: d[j]!.isZero() });
     steps.push({
       title: `Asignar a (${b.rowNames[i]}, ${b.colNames[j]})`,
       explanation: `${why} ${crossed}`,
@@ -266,10 +311,12 @@ export function allocationTable(
       const q = allocation.get(cellKey(i, j));
       const sign = extra?.loop?.get(cellKey(i, j));
       const mark = sign ? String.raw`\ {\scriptstyle(${sign})}` : '';
-      const entering = extra?.entering && extra.entering[0] === i && extra.entering[1] === j;
+      const enteringCell = extra?.entering;
+      const entering = enteringCell?.[0] === i && enteringCell[1] === j;
+      const theta = entering ? String.raw`\ \boxed{\theta}` : '';
       cells[`d${j}`] =
         q === undefined
-          ? String.raw`{\scriptstyle ${cost.toLatex()}}${entering ? String.raw`\ \boxed{\theta}` : ''}${mark}`
+          ? String.raw`{\scriptstyle ${cost.toLatex()}}${theta}${mark}`
           : String.raw`\mathbf{${q.toLatex()}}\ {\scriptstyle(${cost.toLatex()})}${mark}`;
     });
     if (extra?.u) cells.u = extra.u[i]!.toLatex();

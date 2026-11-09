@@ -102,6 +102,34 @@ function minimumCover(zero: (i: number, j: number) => boolean, n: number, matchC
   };
 }
 
+/** Filas o columnas ficticias de costo 0 para que la matriz sea cuadrada. */
+function paddingStep(m: number, k: number): Step {
+  const missing = Math.abs(m - k);
+  const many = missing > 1;
+  const what = m < k ? 'fila' : 'columna';
+  return {
+    title: 'Completar la matriz',
+    explanation: `La matriz es ${m} × ${k}: se agrega${many ? 'n' : ''} ${missing} ${what}${many ? 's' : ''} ficticia${many ? 's' : ''} (marcada${many ? 's' : ''} con *) de costo 0 para que sea cuadrada.`,
+  };
+}
+
+/** Cuántas líneas (0, 1 o 2) cubren la celda (i, j). */
+function coveredBy(cover: { rows: boolean[]; cols: boolean[] }, i: number, j: number): number {
+  return (cover.rows[i] ? 1 : 0) + (cover.cols[j] ? 1 : 0);
+}
+
+/** Celda cubierta por una línea (raya encima) o por dos (raya encima y debajo). */
+function coverMark(v: string, covered: number): string {
+  if (covered === 0) return v;
+  return covered === 2 ? String.raw`\underline{\overline{${v}}}` : String.raw`\overline{${v}}`;
+}
+
+/** Ajuste de la celda: −θ si está descubierta, +θ en la intersección de dos líneas. */
+function adjusted(v: Rational, covered: number, theta: Rational): Rational {
+  if (covered === 0) return v.sub(theta);
+  return covered === 2 ? v.add(theta) : v;
+}
+
 export function solveAssignment(
   input: AssignmentInput,
 ): CalculatorResult<AssignmentValue, AssignmentErrorCode> {
@@ -134,12 +162,7 @@ export function solveAssignment(
     })),
   });
 
-  if (m !== k) {
-    steps.push({
-      title: 'Completar la matriz',
-      explanation: `La matriz es ${m} × ${k}: se agrega${Math.abs(m - k) > 1 ? 'n' : ''} ${Math.abs(m - k)} ${m < k ? 'fila' : 'columna'}${Math.abs(m - k) > 1 ? 's' : ''} ficticia${Math.abs(m - k) > 1 ? 's' : ''} (marcada${Math.abs(m - k) > 1 ? 's' : ''} con *) de costo 0 para que sea cuadrada.`,
-    });
-  }
+  if (m !== k) steps.push(paddingStep(m, k));
   if (input.sense === 'max') {
     const entries = c.flat();
     const top = entries.reduce((a, b) => (b.gt(a) ? b : a), entries[0]!);
@@ -204,23 +227,10 @@ export function solveAssignment(
       matrixTable(
         `cubierta-${iterations}`,
         `Ceros cubiertos con ${size} líneas (${lines.join(', ')})`,
-        (i, j) => {
-          const v = c[i]![j]!.toLatex();
-          const covered = (cover.rows[i] ? 1 : 0) + (cover.cols[j] ? 1 : 0);
-          return covered === 0
-            ? v
-            : covered === 2
-              ? String.raw`\underline{\overline{${v}}}`
-              : String.raw`\overline{${v}}`;
-        },
+        (i, j) => coverMark(c[i]![j]!.toLatex(), coveredBy(cover, i, j)),
       ),
     );
-    c = c.map((row, i) =>
-      row.map((v, j) => {
-        const covered = (cover.rows[i] ? 1 : 0) + (cover.cols[j] ? 1 : 0);
-        return covered === 0 ? v.sub(theta) : covered === 2 ? v.add(theta) : v;
-      }),
-    );
+    c = c.map((row, i) => row.map((v, j) => adjusted(v, coveredBy(cover, i, j), theta)));
     steps.push({
       title: `Ajuste ${iterations + 1}`,
       explanation: `Bastan ${size} líneas (${lines.join(', ')}) para cubrir todos los ceros, menos que ${n}: todavía no hay asignación completa. Se resta el menor valor descubierto θ de las celdas descubiertas y se suma en las intersecciones de dos líneas.`,

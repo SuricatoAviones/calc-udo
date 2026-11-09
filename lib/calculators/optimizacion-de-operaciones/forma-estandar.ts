@@ -13,13 +13,14 @@ import {
   linearLatex,
   relationLatex,
   variableLatex,
+  FLIPPED,
   type LinearProgram,
   type LpConstraint,
 } from './lp-model';
-import { parseForSolve, type LpInput } from './lp-solve';
+import { invalidModelMessage, parseForSolve, type LpInput } from './lp-solve';
 import { lpInputSchema } from './simplex';
 import { toStandardForm } from './tableau';
-import { TEX } from '@/lib/math/format';
+import { plural, TEX } from '@/lib/math/format';
 
 export interface StandardFormValue {
   canonical: string;
@@ -37,7 +38,7 @@ function canonicalConstraints(lp: LinearProgram): { constraint: LpConstraint; no
   const target = lp.sense === 'max' ? '<=' : '>=';
   const negate = (c: LpConstraint): LpConstraint => ({
     coefficients: c.coefficients.map((a) => a.neg()),
-    relation: c.relation === '<=' ? '>=' : c.relation === '>=' ? '<=' : '=',
+    relation: FLIPPED[c.relation],
     rhs: c.rhs.neg(),
   });
   return lp.constraints.flatMap((c, i) => {
@@ -64,7 +65,7 @@ export function solveStandardForm(
     const failure = parsed.result;
     return {
       ok: false,
-      error: { code: 'invalid-model', message: failure.ok ? '' : failure.error.message },
+      error: { code: 'invalid-model', message: invalidModelMessage(failure) },
       ...emptyTrace(),
     };
   }
@@ -119,7 +120,7 @@ export function solveStandardForm(
       explanation:
         needArtificial === 0
           ? 'Todas las restricciones tienen holgura: con las variables de decisión en 0, las holguras forman la base inicial y se puede aplicar el simplex directamente.'
-          : `${needArtificial} ${needArtificial === 1 ? 'restricción no tiene' : 'restricciones no tienen'} una holgura con coeficiente +1 que sirva de variable básica inicial (las ≥ y las =). Para ellas se agregan variables artificiales y se usa el método de la M grande o el de las dos fases.`,
+          : `${needArtificial} ${plural(needArtificial, 'restricción no tiene', 'restricciones no tienen')} una holgura con coeficiente +1 que sirva de variable básica inicial (las ≥ y las =). Para ellas se agregan variables artificiales y se usa el método de la M grande o el de las dos fases.`,
       result:
         needArtificial === 0
           ? sf.basis

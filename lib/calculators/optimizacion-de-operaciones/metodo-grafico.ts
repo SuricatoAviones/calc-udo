@@ -11,15 +11,23 @@
  * Si la región es no acotada, el solucionador simplex decide si z mejora sin límite.
  */
 import { Rational } from '@/lib/math/rational';
-import { emptyTrace, type Calculator, type CalculatorResult, type Series } from '../types';
+import {
+  emptyTrace,
+  type Calculator,
+  type CalculatorResult,
+  type Series,
+  type Step,
+} from '../types';
 import {
   linearLatex,
   relationLatex,
+  RELATION_TEXT,
   variableLatex,
   type LinearProgram,
+  type LpConstraint,
   type Relation,
 } from './lp-model';
-import { parseForSolve, solveLpSilently, type LpInput } from './lp-solve';
+import { invalidModelMessage, parseForSolve, solveLpSilently, type LpInput } from './lp-solve';
 import { lpInputSchema } from './simplex';
 import { TEX } from '@/lib/math/format';
 
@@ -74,8 +82,34 @@ function intersect(l1: Line, l2: Line): Point | null {
 
 function satisfies(lhs: Rational, relation: Relation, rhs: Rational): boolean {
   const c = lhs.cmp(rhs);
-  return relation === '<=' ? c <= 0 : relation === '>=' ? c >= 0 : c === 0;
+  if (relation === '<=') return c <= 0;
+  return relation === '>=' ? c >= 0 : c === 0;
 }
+
+/** Cómo se grafica una restricción: dónde corta los ejes y qué lado conserva. */
+function constraintPlotStep(k: LpConstraint, line: Line, i: number): Step {
+  const zero = Rational.ZERO;
+  const one = Rational.ONE;
+  const cuts: string[] = [];
+  if (!line.a.isZero()) cuts.push(String.raw`(${line.c.div(line.a).toLatex()},\ 0)`);
+  if (!line.b.isZero()) cuts.push(String.raw`(0,\ ${line.c.div(line.b).toLatex()})`);
+  const test: Point = line.c.isZero() ? { x: one, y: one } : { x: zero, y: zero };
+  const lhs = line.a.mul(test.x).add(line.b.mul(test.y));
+  const holds = satisfies(lhs, k.relation, k.rhs);
+  const kind = k.relation === '=' ? 'recta' : `semiplano ${RELATION_TEXT[k.relation]}`;
+  const verdict = holds ? 'verdadero' : 'falso';
+  const contains = holds ? 'contiene' : 'no contiene';
+  return {
+    title: `R${i + 1}: ${kind}`,
+    substitution: String.raw`${line.latex} \quad \text{corta los ejes en } ${cuts.join(AND_TEX)}`,
+    result:
+      k.relation === '='
+        ? String.raw`\text{La región factible está sobre la recta.}`
+        : String.raw`${pointLatex(test)}:\ ${lhs.toLatex()} ${relationLatex[k.relation]} ${k.rhs.toLatex()} \ \text{es ${verdict}: la región ${contains} ese punto}`,
+  };
+}
+
+const AND_TEX = String.raw` \text{ y } `;
 
 function feasible(
   lp: LinearProgram,
@@ -154,7 +188,7 @@ export function solveGraphical(input: LpInput): Result {
     const failure = parsed.result;
     return {
       ok: false,
-      error: { code: 'invalid-model', message: failure.ok ? '' : failure.error.message },
+      error: { code: 'invalid-model', message: invalidModelMessage(failure) },
       ...emptyTrace(),
     };
   }
@@ -192,23 +226,7 @@ export function solveGraphical(input: LpInput): Result {
     title: 'Graficar las restricciones',
     explanation:
       'Cada restricción se dibuja como una recta (con signo =) y se conserva el semiplano que la cumple. Para saber cuál, se prueba un punto que no esté sobre la recta.',
-    children: lp.constraints.map((k, i) => {
-      const line = constraintLines[i]!;
-      const cuts: string[] = [];
-      if (!line.a.isZero()) cuts.push(String.raw`(${line.c.div(line.a).toLatex()},\ 0)`);
-      if (!line.b.isZero()) cuts.push(String.raw`(0,\ ${line.c.div(line.b).toLatex()})`);
-      const test: Point = line.c.isZero() ? { x: one, y: one } : { x: zero, y: zero };
-      const lhs = line.a.mul(test.x).add(line.b.mul(test.y));
-      const holds = satisfies(lhs, k.relation, k.rhs);
-      return {
-        title: `R${i + 1}: ${k.relation === '=' ? 'recta' : `semiplano ${k.relation === '<=' ? '≤' : '≥'}`}`,
-        substitution: String.raw`${line.latex} \quad \text{corta los ejes en } ${cuts.join(String.raw` \text{ y } `)}`,
-        result:
-          k.relation === '='
-            ? String.raw`\text{La región factible está sobre la recta.}`
-            : String.raw`${pointLatex(test)}:\ ${lhs.toLatex()} ${relationLatex[k.relation]} ${k.rhs.toLatex()} \ \text{es ${holds ? 'verdadero' : 'falso'}: la región ${holds ? 'contiene' : 'no contiene'} ese punto}`,
-      };
-    }),
+    children: lp.constraints.map((k, i) => constraintPlotStep(k, constraintLines[i]!, i)),
   });
 
   // ── Vértices ────────────────────────────────────────────────────────────
@@ -364,13 +382,16 @@ export function solveGraphical(input: LpInput): Result {
 
   const multiple = optimal.length > 1;
   const point = optimal[0]!.point;
+  const segment = optimal
+    .map((v) => `${v.label} = ${pointLatex(v.point)}`)
+    .join(String.raw` \text{ a } `);
   trace.steps.push({
     title: multiple ? 'Tipo de solución: óptimos múltiples' : 'Tipo de solución: óptimo único',
     explanation: multiple
       ? `La recta de z es paralela al lado ${optimal.map((v) => v.label).join('')} de la región: todos los puntos de ese lado dan z = ${best.toText()}.`
       : 'La recta de z toca la región en un solo vértice.',
     result: multiple
-      ? String.raw`z^* = ${best.toLatex()} \ \text{en todo el segmento } ${optimal.map((v) => `${v.label} = ${pointLatex(v.point)}`).join(String.raw` \text{ a } `)}`
+      ? String.raw`z^* = ${best.toLatex()} \ \text{en todo el segmento } ${segment}`
       : String.raw`${vx} = ${point.x.toLatex()},\ ${vy} = ${point.y.toLatex()},\quad z^* = ${best.toLatex()}`,
   });
 

@@ -35,11 +35,13 @@ import {
   refineLp,
   relationLatex,
   variableLatex,
+  VIOLATED_LATEX,
   type LinearProgram,
 } from './lp-model';
-import { runSimplexTabular, type LpErrorCode } from './lp-solve';
+import { runSimplexTabular, type LpErrorCode, type LpResult } from './lp-solve';
 import {
   basicSolution,
+  rowOperationTex,
   dualIterationStep,
   dualTableauTable,
   initialTableau,
@@ -79,6 +81,28 @@ function parseCost(text: string | undefined): Rational | null | string {
   return Number.isFinite(value) ? Rational.fromNumber(value) : 'El costo debe ser un número.';
 }
 
+/** Columna con un coeficiente por restricción y costo en z (obligatorio para una variable nueva). */
+function refineColumnAndCost(
+  v: { column?: string; cost?: string },
+  m: number,
+  issue: (path: string, message: string) => void,
+  costRequired: boolean,
+): void {
+  const column = parseNumbers(v.column, m, 'la columna');
+  if (typeof column === 'string') issue('column', column);
+  const cost = parseCost(v.cost);
+  if (typeof cost === 'string') issue('cost', cost);
+  else if (costRequired && cost === null) {
+    issue('cost', 'Escribe el coeficiente de la nueva variable en z.');
+  }
+}
+
+const STATUS_TEXT: Record<ModelChangeValue['status'], string> = {
+  'sin-cambios': 'La solución no cambia',
+  'nuevos-valores': 'Misma base, nuevos valores',
+  'nueva-base': 'Cambia la solución óptima',
+};
+
 export const modelChangeInputSchema = z
   .object({
     ...lpInputShape,
@@ -114,20 +138,12 @@ export const modelChangeInputSchema = z
         if (!variables.includes(name)) {
           issue('variable', `Escribe una variable del modelo: ${variables.join(', ')}.`);
         }
-        const column = parseNumbers(v.column, m, 'la columna');
-        if (typeof column === 'string') issue('column', column);
-        const cost = parseCost(v.cost);
-        if (typeof cost === 'string') issue('cost', cost);
+        refineColumnAndCost(v, m, issue, false);
         break;
       }
-      case 'nueva-variable': {
-        const column = parseNumbers(v.column, m, 'la columna');
-        if (typeof column === 'string') issue('column', column);
-        const cost = parseCost(v.cost);
-        if (typeof cost === 'string') issue('cost', cost);
-        else if (cost === null) issue('cost', 'Escribe el coeficiente de la nueva variable en z.');
+      case 'nueva-variable':
+        refineColumnAndCost(v, m, issue, true);
         break;
-      }
       case 'nueva-restriccion': {
         const c = parseConstraintLine(v.constraint ?? '', variables);
         if (typeof c === 'string') issue('constraint', `Restricción: ${c}.`);
@@ -243,7 +259,7 @@ function success(
     summary: [
       {
         label: 'Resultado',
-        value: String.raw`\text{${status === 'sin-cambios' ? 'La solución no cambia' : status === 'nuevos-valores' ? 'Misma base, nuevos valores' : 'Cambia la solución óptima'}}`,
+        value: String.raw`\text{${STATUS_TEXT[status]}}`,
         emphasis: true,
       },
       { label: 'Valor óptimo', value: `z^* = ${zNew.toLatex()}` },
@@ -520,7 +536,7 @@ function addConstraint(o: Optimum, text: string, trace: Continuation): Result {
       'Agregar una restricción nunca mejora z. Si la solución óptima ya la cumple, es redundante.',
     formula: `${linearLatex(parsed.coefficients, names)} ${relationLatex[parsed.relation]} ${parsed.rhs.toLatex()}`,
     substitution: `${linearLatex(parsed.coefficients, names)} = ${lhs.toLatex()}`,
-    result: String.raw`${lhs.toLatex()} ${satisfied ? relationLatex[parsed.relation] : parsed.relation === '<=' ? '>' : '<'} ${parsed.rhs.toLatex()} \ \Rightarrow\ \text{${satisfied ? 'la cumple' : 'no la cumple'}}`,
+    result: String.raw`${lhs.toLatex()} ${(satisfied ? relationLatex : VIOLATED_LATEX)[parsed.relation]} ${parsed.rhs.toLatex()} \ \Rightarrow\ \text{${satisfied ? 'la cumple' : 'no la cumple'}}`,
   });
   if (satisfied) {
     return success(
@@ -551,8 +567,9 @@ function addConstraint(o: Optimum, text: string, trace: Continuation): Result {
       v.sub(factor.mul(j < t.columns.length ? t.rows[i]![j]! : Rational.ZERO)),
     );
     rhs = rhs.sub(factor.mul(t.rhs[i]!));
+    const magnitude = factor.abs().eq(Rational.ONE) ? '1' : factor.abs().toLatex();
     operations.push(
-      String.raw`\text{Fila } ${slack.latex} \leftarrow \text{fila } ${slack.latex} ${factor.sign() < 0 ? '+' : '-'} ${factor.abs().eq(Rational.ONE) ? '' : String.raw`${factor.abs().toLatex()}\,`}\text{fila } ${t.columns[b]!.latex}`,
+      rowOperationTex(slack.latex, factor.sign() < 0, magnitude, t.columns[b]!.latex),
     );
   });
   const modified: Tableau = {
@@ -646,54 +663,52 @@ function changeTechnology(
 
 // ─── Punto de entrada ───────────────────────────────────────────────────────
 
-export function solveModelChange(input: ModelChangeInput): Result {
-  const base = runSimplexTabular(input);
-  if (!base.result.ok || !base.lp || !base.final) {
-    const result = base.result;
-    if (result.ok) {
-      return failure('max-iterations', 'No se obtuvo la tabla óptima.', {
-        steps: [],
-        tables: [],
-        notices: [],
-      });
-    }
-    return {
-      ...result,
-      error:
-        result.error.code === 'needs-artificial'
-          ? {
-              code: 'needs-artificial',
-              message:
-                'El análisis post-óptimo usa la tabla óptima con holguras: el modelo original debe tener solo restricciones ≤ con lado derecho no negativo.',
-            }
-          : result.error,
-    };
+/** El modelo original no se pudo resolver: el error del simplex, con un mensaje propio si hace falta. */
+function baseFailure(result: LpResult): Result {
+  if (result.ok) {
+    return failure('max-iterations', 'No se obtuvo la tabla óptima.', {
+      steps: [],
+      tables: [],
+      notices: [],
+    });
   }
-  const { lp, final: t } = base;
-  const o = optimumOf(lp, t);
-  const trace: Continuation = {
-    steps: [
-      {
-        title: 'Solución óptima del modelo original',
-        explanation: `Se resuelve el modelo con el simplex. La tabla óptima es el punto de partida: z* = ${t.zRhs.a.toText()}.`,
-        children: base.result.steps,
-      },
-      {
-        title: 'Inversa de la base y precios duales',
-        explanation:
-          'En la tabla óptima, las columnas de las holguras forman B⁻¹ (en el orden de las variables básicas) y sus coeficientes en la fila z son los precios duales y = c_B B⁻¹.',
-        result: latexLines([
-          String.raw`\text{Básicas: } ${t.basis.map((b) => t.columns[b]!.latex).join(String.raw`,\ `)}`,
-          String.raw`B^{-1} = ${bmatrix(o.inverse)}, \qquad y = ${row(o.duals)}`,
-        ]),
-      },
-    ],
-    tables: [tableauTable(t, 'original', 'Tabla óptima del modelo original')],
-    notices: base.result.notices,
+  if (result.error.code !== 'needs-artificial') return result;
+  return {
+    ...result,
+    error: {
+      code: 'needs-artificial',
+      message:
+        'El análisis post-óptimo usa la tabla óptima con holguras: el modelo original debe tener solo restricciones ≤ con lado derecho no negativo.',
+    },
   };
+}
+
+/** Una variable nueva entra con su columna y su costo; se llama x(n + 1) si las demás son xᵢ. */
+function newVariable(
+  input: ModelChangeInput,
+  lp: LinearProgram,
+  o: ReturnType<typeof optimumOf>,
+  trace: Continuation,
+): Result {
+  const a = parseNumbers(input.column, lp.constraints.length, 'la columna');
+  const cost = parseCost(input.cost);
+  if (typeof a === 'string') return failure('invalid-change', a, trace);
+  if (cost === null || typeof cost === 'string') {
+    return failure('invalid-change', 'Falta el costo de la variable.', trace);
+  }
+  const numbers = lp.variables.map((v) => /^x(\d+)$/.exec(v)?.[1]).map(Number);
+  const name = numbers.every(Number.isFinite) ? `x${Math.max(...numbers) + 1}` : 'xnueva';
+  return enterColumn(o, name, a, cost, null, trace);
+}
+
+function applyChange(
+  input: ModelChangeInput,
+  lp: LinearProgram,
+  o: ReturnType<typeof optimumOf>,
+  trace: Continuation,
+): Result {
   const m = lp.constraints.length;
   const invalid = (message: string) => failure('invalid-change', message, trace);
-
   switch (input.change) {
     case 'lado-derecho': {
       const rhs = parseNumbers(input.rhs, m, 'el lado derecho');
@@ -703,16 +718,8 @@ export function solveModelChange(input: ModelChangeInput): Result {
       const c = parseLinearCoefficients(input.newObjective ?? '', lp.variables);
       return typeof c === 'string' ? invalid(c) : changeObjective(o, c, trace);
     }
-    case 'nueva-variable': {
-      const a = parseNumbers(input.column, m, 'la columna');
-      const cost = parseCost(input.cost);
-      if (typeof a === 'string') return invalid(a);
-      if (cost === null || typeof cost === 'string')
-        return invalid('Falta el costo de la variable.');
-      const numbers = lp.variables.map((v) => /^x(\d+)$/.exec(v)?.[1]).map(Number);
-      const name = numbers.every(Number.isFinite) ? `x${Math.max(...numbers) + 1}` : 'xnueva';
-      return enterColumn(o, name, a, cost, null, trace);
-    }
+    case 'nueva-variable':
+      return newVariable(input, lp, o, trace);
     case 'coeficientes-tecnologicos': {
       const name = (input.variable ?? '').trim().replaceAll('_', '');
       const a = parseNumbers(input.column, m, 'la columna');
@@ -725,6 +732,35 @@ export function solveModelChange(input: ModelChangeInput): Result {
     case 'nueva-restriccion':
       return addConstraint(o, input.constraint ?? '', trace);
   }
+}
+
+export function solveModelChange(input: ModelChangeInput): Result {
+  const base = runSimplexTabular(input);
+  if (!base.result.ok || !base.lp || !base.final) return baseFailure(base.result);
+  const { lp, final: t } = base;
+  const o = optimumOf(lp, t);
+  const basics = t.basis.map((b) => t.columns[b]!.latex).join(String.raw`,\ `);
+  const trace: Continuation = {
+    steps: [
+      {
+        title: 'Solución óptima del modelo original',
+        explanation: `Se resuelve el modelo con el simplex. La tabla óptima es el punto de partida: z* = ${t.zRhs.a.toText()}.`,
+        children: base.result.steps,
+      },
+      {
+        title: 'Inversa de la base y precios duales',
+        explanation:
+          'En la tabla óptima, las columnas de las holguras forman B⁻¹ (en el orden de las variables básicas) y sus coeficientes en la fila z son los precios duales y = c_B B⁻¹.',
+        result: latexLines([
+          String.raw`\text{Básicas: } ${basics}`,
+          String.raw`B^{-1} = ${bmatrix(o.inverse)}, \qquad y = ${row(o.duals)}`,
+        ]),
+      },
+    ],
+    tables: [tableauTable(t, 'original', 'Tabla óptima del modelo original')],
+    notices: base.result.notices,
+  };
+  return applyChange(input, lp, o, trace);
 }
 
 export const modelChange: Calculator<ModelChangeInput, ModelChangeValue, ModelChangeErrorCode> = {

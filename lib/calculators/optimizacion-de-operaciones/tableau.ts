@@ -211,12 +211,32 @@ export function priceOut(t: Tableau): { tableau: Tableau; operations: string[] }
   return { tableau: { ...t, z, zRhs }, operations };
 }
 
+/** Marcas de la razón que decide la variable que sale (←) y la que entra (↑). */
+const LEAVING_MARK = String.raw`\ \leftarrow`;
+const ENTERING_MARK = String.raw`\ \uparrow`;
+
+/** La razón, con su marca si es la que decide la variable que sale o la que entra. */
+function markedRatio(ratio: { toLatex(): string }, marked: boolean, mark: string): string {
+  return marked ? ratio.toLatex() + mark : ratio.toLatex();
+}
+
 /** «z: F_z − (c)·F_{x}» en LaTeX, con el signo simplificado. */
 function rowOperation(target: string, coefficient: MValue, pivotRow: string): string {
   const negative = coefficient.sign() < 0;
   const abs = negative ? coefficient.scale(Rational.of(-1)) : coefficient;
   const factor = abs.hasM() && !abs.a.isZero() ? `(${abs.toLatex()})` : abs.toLatex();
-  return String.raw`\text{Fila } ${target} \leftarrow \text{fila } ${target} ${negative ? '+' : '-'} ${factor === '1' ? '' : String.raw`${factor}\,`}\text{fila } ${pivotRow}`;
+  return rowOperationTex(target, negative, factor, pivotRow);
+}
+
+/** «Fila a ← fila a − c fila b»: `negative` cambia el signo y el factor 1 no se escribe. */
+export function rowOperationTex(
+  target: string,
+  negative: boolean,
+  factor: string,
+  pivotRow: string,
+): string {
+  const scaled = factor === '1' ? '' : String.raw`${factor}\,`;
+  return String.raw`\text{Fila } ${target} \leftarrow \text{fila } ${target} ${negative ? '+' : '-'} ${scaled}\text{fila } ${pivotRow}`;
 }
 
 export interface IterationInfo {
@@ -387,7 +407,7 @@ export function tableauTable(
       cells.ratio =
         ratio === null || ratio === undefined
           ? String.raw`\text{—}`
-          : `${ratio.toLatex()}${i === info.leaving ? String.raw`\ \leftarrow` : ''}`;
+          : markedRatio(ratio, i === info.leaving, LEAVING_MARK);
     }
     return cells;
   });
@@ -537,9 +557,7 @@ export function dualTableauTable(
     const ratioRow: Record<string, string | null> = { basic: String.raw`\text{Razón}`, rhs: null };
     info.ratios.forEach((ratio, j) => {
       ratioRow[`c${j}`] =
-        ratio === null
-          ? null
-          : `${ratio.toLatex()}${j === info.entering ? String.raw`\ \uparrow` : ''}`;
+        ratio === null ? null : markedRatio(ratio, j === info.entering, ENTERING_MARK);
     });
     table.rows.push(ratioRow);
   }
