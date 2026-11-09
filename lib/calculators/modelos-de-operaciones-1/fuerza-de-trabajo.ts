@@ -185,8 +185,10 @@ export function solveWorkforce(
     previous = x;
   }
   const totalCost = f[0]!.get(x0)!;
-  const decision = (p: WorkforcePeriod) =>
-    p.change > 0 ? `Contratar ${p.change}` : p.change < 0 ? `Despedir ${-p.change}` : 'Sin cambios';
+  const decision = (p: WorkforcePeriod) => {
+    if (p.change > 0) return `Contratar ${p.change}`;
+    return p.change < 0 ? `Despedir ${-p.change}` : 'Sin cambios';
+  };
 
   steps.push({
     title: 'Plan óptimo',

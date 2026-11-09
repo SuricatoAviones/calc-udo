@@ -83,8 +83,16 @@ interface Arc {
   distance: number;
 }
 
-export function solveShortestRoute(input: ShortestRouteInput): Result {
-  // ── Red: nombres de nodos sin distinguir mayúsculas ────────────────────────
+/** Arcos con los nombres de nodo unificados, y el origen y el destino de la red. */
+interface RouteNetwork {
+  display: Map<string, string>;
+  arcs: Arc[];
+  origin: string;
+  destination: string;
+}
+
+/** Lee los arcos (sin lazos ni repetidos) y comprueba que el origen y el destino existan. */
+function buildNetwork(input: ShortestRouteInput): RouteNetwork | Result {
   const display = new Map<string, string>();
   const nodeName = (raw: string) => {
     if (!display.has(key(raw))) display.set(key(raw), raw);
@@ -124,41 +132,45 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
   if (key(origin) === key(destination)) {
     return fail('same-node', 'El origen y el destino son el mismo nodo.');
   }
+  return { display, arcs, origin, destination };
+}
 
-  const out = new Map<string, Arc[]>();
-  const into = new Map<string, Arc[]>();
-  for (const arc of arcs) {
-    out.set(key(arc.from), [...(out.get(key(arc.from)) ?? []), arc]);
-    into.set(key(arc.to), [...(into.get(key(arc.to)) ?? []), arc]);
-  }
-  const reach = (start: string, next: (k: string) => string[]) => {
-    const found = new Set([key(start)]);
-    const stack = [key(start)];
-    while (stack.length > 0) {
-      for (const k of next(stack.pop()!)) {
-        if (!found.has(k)) {
-          found.add(k);
-          stack.push(k);
-        }
+/** La red por etapas: nodos relevantes en orden topológico y el nivel de cada uno. */
+interface StagedNetwork {
+  origin: string;
+  destination: string;
+  order: string[];
+  level: Map<string, number>;
+  stages: number;
+  ignored: string[];
+  outR: (k: string) => Arc[];
+  inR: (k: string) => Arc[];
+  name: (k: string) => string;
+  nodesAt: (l: number) => string[];
+}
+
+/** Nodos alcanzables desde `start` siguiendo `next`. */
+function reachFrom(start: string, next: (k: string) => string[]): Set<string> {
+  const found = new Set([key(start)]);
+  const stack = [key(start)];
+  while (stack.length > 0) {
+    for (const k of next(stack.pop()!)) {
+      if (!found.has(k)) {
+        found.add(k);
+        stack.push(k);
       }
     }
-    return found;
-  };
-  const fromOrigin = reach(origin, (k) => (out.get(k) ?? []).map((a) => key(a.to)));
-  const toDestination = reach(destination, (k) => (into.get(k) ?? []).map((a) => key(a.from)));
-  if (!fromOrigin.has(key(destination))) {
-    return fail(
-      'no-route',
-      `No hay ninguna ruta de ${origin} a ${destination}: revisa el sentido de los arcos.`,
-    );
   }
-  // Solo cuentan los nodos que están en alguna ruta del origen al destino.
-  const relevant = new Set([...fromOrigin].filter((k) => toDestination.has(k)));
-  const ignored = [...display.keys()].filter((k) => !relevant.has(k)).map((k) => display.get(k)!);
-  const outR = (k: string) => (out.get(k) ?? []).filter((a) => relevant.has(key(a.to)));
-  const inR = (k: string) => (into.get(k) ?? []).filter((a) => relevant.has(key(a.from)));
+  return found;
+}
 
-  // Orden topológico (Kahn) y nivel de cada nodo = arcos del camino más largo desde el origen.
+/** Orden topológico (Kahn) desde el origen sobre los arcos relevantes. */
+function kahnOrder(
+  origin: string,
+  relevant: Set<string>,
+  outR: (k: string) => Arc[],
+  inR: (k: string) => Arc[],
+): string[] {
   const indegree = new Map([...relevant].map((k) => [k, inR(k).length]));
   const queue = [key(origin)];
   const order: string[] = [];
@@ -171,6 +183,35 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
       if (indegree.get(next) === 0) queue.push(next);
     }
   }
+  return order;
+}
+
+/**
+ * Solo cuentan los nodos que están en alguna ruta del origen al destino. Se ordenan
+ * topológicamente y el nivel de cada nodo es el número de arcos del camino más largo desde el
+ * origen.
+ */
+function stageNetwork(network: RouteNetwork): StagedNetwork | Result {
+  const { display, arcs, origin, destination } = network;
+  const out = new Map<string, Arc[]>();
+  const into = new Map<string, Arc[]>();
+  for (const arc of arcs) {
+    out.set(key(arc.from), [...(out.get(key(arc.from)) ?? []), arc]);
+    into.set(key(arc.to), [...(into.get(key(arc.to)) ?? []), arc]);
+  }
+  const fromOrigin = reachFrom(origin, (k) => (out.get(k) ?? []).map((a) => key(a.to)));
+  const toDestination = reachFrom(destination, (k) => (into.get(k) ?? []).map((a) => key(a.from)));
+  if (!fromOrigin.has(key(destination))) {
+    return fail(
+      'no-route',
+      `No hay ninguna ruta de ${origin} a ${destination}: revisa el sentido de los arcos.`,
+    );
+  }
+  const relevant = new Set([...fromOrigin].filter((k) => toDestination.has(k)));
+  const ignored = [...display.keys()].filter((k) => !relevant.has(k)).map((k) => display.get(k)!);
+  const outR = (k: string) => (out.get(k) ?? []).filter((a) => relevant.has(key(a.to)));
+  const inR = (k: string) => (into.get(k) ?? []).filter((a) => relevant.has(key(a.from)));
+  const order = kahnOrder(origin, relevant, outR, inR);
   if (order.length < relevant.size) {
     const stuck = [...relevant].filter((k) => !order.includes(k)).map((k) => display.get(k)!);
     return fail(
@@ -185,185 +226,243 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
       level.set(next, Math.max(level.get(next) ?? 0, level.get(k)! + 1));
     }
   }
-  const stages = level.get(key(destination))!;
-  const nodesAt = (l: number) => order.filter((k) => level.get(k) === l);
-  const name = (k: string) => display.get(k)!;
+  return {
+    origin,
+    destination,
+    order,
+    level,
+    stages: level.get(key(destination))!,
+    ignored,
+    outR,
+    inR,
+    name: (k) => display.get(k)!,
+    nodesAt: (l) => order.filter((k) => level.get(k) === l),
+  };
+}
 
-  const backward = input.recursion === 'reversa';
-  const notices: Notice[] = [];
-  if (ignored.length > 0) {
-    notices.push({
-      level: 'info',
-      message: `${ignored.length === 1 ? 'Se ignora el nodo' : 'Se ignoran los nodos'} ${ignored.join(', ')}: no ${ignored.length === 1 ? 'está' : 'están'} en ninguna ruta de ${origin} a ${destination}.`,
+/** `a` si hay una sola opción y `\min\{a, b, …\}` si hay varias. */
+function minTex(terms: string[]): string {
+  if (terms.length === 1) return terms[0]!;
+  return String.raw`\min\{${terms.join(TEX.listSep)}\}`;
+}
+
+/** Valores f de cada nodo, decisiones óptimas, pasos y tablas de la recursión. */
+interface Recursion {
+  f: Map<string, number>;
+  choice: Map<string, string[]>;
+  steps: Step[];
+  tables: ResultTable[];
+}
+
+/** Para un nodo: las opciones (arcos), su valor y las mejores. */
+function bestOptions(
+  options: Arc[],
+  end: (a: Arc) => string,
+  f: Map<string, number>,
+): { values: number[]; best: number[]; bestValue: number } {
+  const values = options.map((a) => a.distance + f.get(key(end(a)))!);
+  const best = argOptimum('min', values);
+  return { values, best, bestValue: values[best[0]!]! };
+}
+
+/** Recursión en reversa: f*ₙ(s) = mín { c(s, x) + f*ₙ₊₁(x) }, desde la última etapa. */
+function backwardRecursion(net: StagedNetwork): Recursion {
+  const { order, level, stages, outR, name, nodesAt } = net;
+  const rec: Recursion = { f: new Map(), choice: new Map(), steps: [], tables: [] };
+  const { f } = rec;
+  // f*_{n}(s) con n = nivel + 1; el destino está en la etapa N + 1.
+  f.set(key(net.destination), 0);
+  for (let l = stages - 1; l >= 0; l--) {
+    const stage = l + 1;
+    const states = nodesAt(l);
+    const decisionKeys = new Set(states.flatMap((s) => outR(s).map((a) => key(a.to))));
+    const decisions = order.filter((k) => decisionKeys.has(k));
+    const rows: StageRow[] = [];
+    const children: Step[] = [];
+    for (const s of states) {
+      const options = outR(s).sort((a, b) => order.indexOf(key(a.to)) - order.indexOf(key(b.to)));
+      const { values, best, bestValue } = bestOptions(options, (a) => a.to, f);
+      f.set(s, bestValue);
+      rec.choice.set(
+        s,
+        best.map((k) => key(options[k]!.to)),
+      );
+      rows.push({
+        state: name(s),
+        values: new Map(options.map((a, k) => [key(a.to), values[k]!])),
+        best: bestValue,
+        argBest: best.map((k) => name(key(options[k]!.to))),
+      });
+      const fs = `f_{${stage}}^*(${t(name(s))})`;
+      const formulaTerms = options.map(
+        (a) => `c_{${t(name(s))},${t(a.to)}} + f_{${level.get(key(a.to))! + 1}}^*(${t(a.to)})`,
+      );
+      const valueTerms = options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`);
+      const minimum = options.length === 1 ? '' : ` = ${optimumLatex('min', values)}`;
+      children.push({
+        title: `Estado ${name(s)}`,
+        formula: `${fs} = ${minTex(formulaTerms)}`,
+        substitution: `${fs} = ${minTex(valueTerms)}${minimum}`,
+        result: String.raw`${fs} = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join(TEX.or)}`,
+      });
+    }
+    rec.steps.push({
+      title: `Etapa ${stage}`,
+      explanation:
+        l === stages - 1
+          ? 'Desde cada estado de la última etapa se llega al destino; f* es la distancia de ese tramo.'
+          : 'Para cada estado se suma la distancia del tramo y la distancia mínima que ya se conoce desde el nodo siguiente hasta el destino, y se toma la menor.',
+      children,
     });
+    rec.tables.push(
+      stageTable({
+        id: `etapa-${stage}`,
+        title: `Etapa ${stage}: costo de cada alternativa desde cada estado`,
+        stateHeader: 's',
+        decisions: decisions.map((k) => ({ key: k, header: `x = ${t(name(k))}` })),
+        rows,
+        bestHeader: `f_{${stage}}^*(s)`,
+        argHeader: `x_{${stage}}^*`,
+      }),
+    );
   }
+  return rec;
+}
 
-  const steps: Step[] = [
-    {
-      title: 'Etapas, estados y alternativas',
-      explanation: backward
-        ? `La red se divide en ${stages} etapas. En la etapa n, el estado s es el nodo donde se está y la alternativa x es el siguiente nodo. Se empieza por la última etapa y se retrocede hasta el origen (recursión en reversa).`
-        : `La red se divide en ${stages} etapas. En la etapa i, el estado es el nodo al que se llega y la alternativa, el nodo desde el que se llega. Se empieza desde el origen y se avanza hasta el destino (recursión en avance).`,
-      formula: backward
-        ? String.raw`f_n^*(s) = \min_{x_n} \left\{ c_{s,x_n} + f_{n+1}^*(x_n) \right\}, \qquad f^*(\text{destino}) = 0`
-        : String.raw`f_i(x_i) = \min_{x_{i-1}} \left\{ d(x_{i-1}, x_i) + f_{i-1}(x_{i-1}) \right\}, \qquad f_0(\text{origen}) = 0`,
-      result: latexLines(
-        Array.from({ length: stages + 1 }, (_, l) => {
-          const label = backward
-            ? String.raw`\text{Etapa } ${l + 1}`
-            : String.raw`\text{Nivel } ${l}`;
-          return String.raw`${label}:\ ${nodesAt(l)
-            .map((k) => t(name(k)))
-            .join(TEX.listSep)}`;
-        }),
-      ),
-    },
-  ];
-
-  const f = new Map<string, number>();
-  const choice = new Map<string, string[]>();
-  const tables: ResultTable[] = [];
-
-  if (backward) {
-    // f*_{n}(s) con n = nivel + 1; el destino está en la etapa N + 1.
-    f.set(key(destination), 0);
-    for (let l = stages - 1; l >= 0; l--) {
-      const stage = l + 1;
-      const states = nodesAt(l);
-      const decisionKeys = [...new Set(states.flatMap((s) => outR(s).map((a) => key(a.to))))];
-      const decisions = order.filter((k) => decisionKeys.includes(k));
-      const rows: StageRow[] = [];
-      const children: Step[] = [];
-      for (const s of states) {
-        const options = outR(s).sort((a, b) => order.indexOf(key(a.to)) - order.indexOf(key(b.to)));
-        const values = options.map((a) => a.distance + f.get(key(a.to))!);
-        const best = argOptimum('min', values);
-        const bestValue = values[best[0]!]!;
-        f.set(s, bestValue);
-        choice.set(
-          s,
-          best.map((k) => key(options[k]!.to)),
-        );
-        rows.push({
-          state: name(s),
-          values: new Map(options.map((a, k) => [key(a.to), values[k]!])),
-          best: bestValue,
-          argBest: best.map((k) => name(key(options[k]!.to))),
-        });
-        const next = (a: Arc) => `f_{${level.get(key(a.to))! + 1}}^*(${t(a.to)})`;
-        children.push({
-          title: `Estado ${name(s)}`,
-          formula: `f_{${stage}}^*(${t(name(s))}) = ${
-            options.length === 1
-              ? `c_{${t(name(s))},${t(options[0]!.to)}} + ${next(options[0]!)}`
-              : String.raw`\min\{${options.map((a) => `c_{${t(name(s))},${t(a.to)}} + ${next(a)}`).join(TEX.listSep)}\}`
-          }`,
-          substitution: `f_{${stage}}^*(${t(name(s))}) = ${
-            options.length === 1
-              ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.to))!)}`
-              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.to))!)}`).join(TEX.listSep)}\} = ${optimumLatex('min', values)}`
-          }`,
-          result: String.raw`f_{${stage}}^*(${t(name(s))}) = ${n(bestValue)}, \qquad x_{${stage}}^* = ${best.map((k) => t(options[k]!.to)).join(TEX.or)}`,
-        });
-      }
-      steps.push({
-        title: `Etapa ${stage}`,
-        explanation:
-          l === stages - 1
-            ? 'Desde cada estado de la última etapa se llega al destino; f* es la distancia de ese tramo.'
-            : 'Para cada estado se suma la distancia del tramo y la distancia mínima que ya se conoce desde el nodo siguiente hasta el destino, y se toma la menor.',
-        children,
-      });
-      tables.push(
-        stageTable({
-          id: `etapa-${stage}`,
-          title: `Etapa ${stage}: costo de cada alternativa desde cada estado`,
-          stateHeader: 's',
-          decisions: decisions.map((k) => ({ key: k, header: `x = ${t(name(k))}` })),
-          rows,
-          bestHeader: `f_{${stage}}^*(s)`,
-          argHeader: `x_{${stage}}^*`,
-        }),
+/** Recursión en avance: fᵢ(x) = mín { d(s, x) + fᵢ₋₁(s) }, desde el origen. */
+function forwardRecursion(net: StagedNetwork): Recursion {
+  const { order, level, stages, inR, name, nodesAt } = net;
+  const rec: Recursion = { f: new Map(), choice: new Map(), steps: [], tables: [] };
+  const { f } = rec;
+  f.set(key(net.origin), 0);
+  for (let l = 1; l <= stages; l++) {
+    const states = nodesAt(l);
+    const decisionKeys = new Set(states.flatMap((x) => inR(x).map((a) => key(a.from))));
+    const decisions = order.filter((k) => decisionKeys.has(k));
+    const rows: StageRow[] = [];
+    const children: Step[] = [];
+    for (const x of states) {
+      const options = inR(x).sort(
+        (a, b) => order.indexOf(key(a.from)) - order.indexOf(key(b.from)),
       );
-    }
-  } else {
-    f.set(key(origin), 0);
-    for (let l = 1; l <= stages; l++) {
-      const states = nodesAt(l);
-      const decisionKeys = [...new Set(states.flatMap((x) => inR(x).map((a) => key(a.from))))];
-      const decisions = order.filter((k) => decisionKeys.includes(k));
-      const rows: StageRow[] = [];
-      const children: Step[] = [];
-      for (const x of states) {
-        const options = inR(x).sort(
-          (a, b) => order.indexOf(key(a.from)) - order.indexOf(key(b.from)),
-        );
-        const values = options.map((a) => a.distance + f.get(key(a.from))!);
-        const best = argOptimum('min', values);
-        const bestValue = values[best[0]!]!;
-        f.set(x, bestValue);
-        choice.set(
-          x,
-          best.map((k) => key(options[k]!.from)),
-        );
-        rows.push({
-          state: name(x),
-          values: new Map(options.map((a, k) => [key(a.from), values[k]!])),
-          best: bestValue,
-          argBest: best.map((k) => name(key(options[k]!.from))),
-        });
-        const previous = (a: Arc) => `f_{${level.get(key(a.from))!}}(${t(a.from)})`;
-        children.push({
-          title: `Nodo ${name(x)}`,
-          formula: `f_{${l}}(${t(name(x))}) = ${
-            options.length === 1
-              ? `d(${t(options[0]!.from)}, ${t(name(x))}) + ${previous(options[0]!)}`
-              : String.raw`\min\{${options.map((a) => `d(${t(a.from)}, ${t(name(x))}) + ${previous(a)}`).join(TEX.listSep)}\}`
-          }`,
-          substitution: `f_{${l}}(${t(name(x))}) = ${
-            options.length === 1
-              ? `${n(options[0]!.distance)} + ${n(f.get(key(options[0]!.from))!)}`
-              : String.raw`\min\{${options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`).join(TEX.listSep)}\} = ${optimumLatex('min', values)}`
-          }`,
-          result: String.raw`f_{${l}}(${t(name(x))}) = ${n(bestValue)} \quad (\text{desde } ${best.map((k) => t(options[k]!.from)).join(TEX.or)})`,
-        });
-      }
-      steps.push({
-        title: `Etapa ${l}`,
-        explanation:
-          l === 1
-            ? 'Distancia más corta desde el origen a cada nodo de la primera etapa.'
-            : 'Para cada nodo se suma la distancia más corta ya conocida hasta el nodo anterior y la del tramo que falta, y se toma la menor.',
-        children,
-      });
-      tables.push(
-        stageTable({
-          id: `etapa-${l}`,
-          title: `Etapa ${l}: distancia desde el origen por cada nodo anterior`,
-          stateHeader: `x_{${l}}`,
-          decisions: decisions.map((k) => ({ key: k, header: `s = ${t(name(k))}` })),
-          rows,
-          bestHeader: `f_{${l}}(x_{${l}})`,
-          argHeader: `x_{${l - 1}}^*`,
-        }),
+      const { values, best, bestValue } = bestOptions(options, (a) => a.from, f);
+      f.set(x, bestValue);
+      rec.choice.set(
+        x,
+        best.map((k) => key(options[k]!.from)),
       );
+      rows.push({
+        state: name(x),
+        values: new Map(options.map((a, k) => [key(a.from), values[k]!])),
+        best: bestValue,
+        argBest: best.map((k) => name(key(options[k]!.from))),
+      });
+      const fx = `f_{${l}}(${t(name(x))})`;
+      const formulaTerms = options.map(
+        (a) => `d(${t(a.from)}, ${t(name(x))}) + f_{${level.get(key(a.from))!}}(${t(a.from)})`,
+      );
+      const valueTerms = options.map((a) => `${n(a.distance)} + ${n(f.get(key(a.from))!)}`);
+      const minimum = options.length === 1 ? '' : ` = ${optimumLatex('min', values)}`;
+      children.push({
+        title: `Nodo ${name(x)}`,
+        formula: `${fx} = ${minTex(formulaTerms)}`,
+        substitution: `${fx} = ${minTex(valueTerms)}${minimum}`,
+        result: String.raw`${fx} = ${n(bestValue)} \quad (\text{desde } ${best.map((k) => t(options[k]!.from)).join(TEX.or)})`,
+      });
     }
+    rec.steps.push({
+      title: `Etapa ${l}`,
+      explanation:
+        l === 1
+          ? 'Distancia más corta desde el origen a cada nodo de la primera etapa.'
+          : 'Para cada nodo se suma la distancia más corta ya conocida hasta el nodo anterior y la del tramo que falta, y se toma la menor.',
+      children,
+    });
+    rec.tables.push(
+      stageTable({
+        id: `etapa-${l}`,
+        title: `Etapa ${l}: distancia desde el origen por cada nodo anterior`,
+        stateHeader: `x_{${l}}`,
+        decisions: decisions.map((k) => ({ key: k, header: `s = ${t(name(k))}` })),
+        rows,
+        bestHeader: `f_{${l}}(x_{${l}})`,
+        argHeader: `x_{${l - 1}}^*`,
+      }),
+    );
   }
+  return rec;
+}
 
-  // ── Rutas óptimas: se siguen las decisiones óptimas (todas, si hay empates) ──
+/** Rutas óptimas: se siguen las decisiones óptimas (todas, si hay empates). */
+function optimalRoutes(
+  net: StagedNetwork,
+  choice: Map<string, string[]>,
+  backward: boolean,
+): string[][] {
   const routes: string[][] = [];
+  const end = backward ? key(net.destination) : key(net.origin);
   const walk = (path: string[]) => {
     if (routes.length >= MAX_ROUTES) return;
     const last = path.at(-1)!;
-    const end = backward ? key(destination) : key(origin);
     if (last === end) {
-      routes.push((backward ? path : [...path].reverse()).map(name));
+      routes.push((backward ? path : [...path].reverse()).map(net.name));
       return;
     }
     for (const next of choice.get(last) ?? []) walk([...path, next]);
   };
-  walk([backward ? key(origin) : key(destination)]);
+  walk([backward ? key(net.origin) : key(net.destination)]);
+  return routes;
+}
+
+/** Etapas, estados y alternativas de la recursión elegida, con los nodos de cada etapa. */
+function stagesStep(net: StagedNetwork, backward: boolean): Step {
+  const { stages, name, nodesAt } = net;
+  return {
+    title: 'Etapas, estados y alternativas',
+    explanation: backward
+      ? `La red se divide en ${stages} etapas. En la etapa n, el estado s es el nodo donde se está y la alternativa x es el siguiente nodo. Se empieza por la última etapa y se retrocede hasta el origen (recursión en reversa).`
+      : `La red se divide en ${stages} etapas. En la etapa i, el estado es el nodo al que se llega y la alternativa, el nodo desde el que se llega. Se empieza desde el origen y se avanza hasta el destino (recursión en avance).`,
+    formula: backward
+      ? String.raw`f_n^*(s) = \min_{x_n} \left\{ c_{s,x_n} + f_{n+1}^*(x_n) \right\}, \qquad f^*(\text{destino}) = 0`
+      : String.raw`f_i(x_i) = \min_{x_{i-1}} \left\{ d(x_{i-1}, x_i) + f_{i-1}(x_{i-1}) \right\}, \qquad f_0(\text{origen}) = 0`,
+    result: latexLines(
+      Array.from({ length: stages + 1 }, (_, l) => {
+        const label = backward
+          ? String.raw`\text{Etapa } ${l + 1}`
+          : String.raw`\text{Nivel } ${l}`;
+        return String.raw`${label}:\ ${nodesAt(l)
+          .map((k) => t(name(k)))
+          .join(TEX.listSep)}`;
+      }),
+    ),
+  };
+}
+
+export function solveShortestRoute(input: ShortestRouteInput): Result {
+  const network = buildNetwork(input);
+  if ('ok' in network) return network;
+  const net = stageNetwork(network);
+  if ('ok' in net) return net;
+  const { origin, destination, stages, ignored, name } = net;
+
+  const backward = input.recursion === 'reversa';
+  const notices: Notice[] = [];
+  if (ignored.length > 0) {
+    const one = ignored.length === 1;
+    notices.push({
+      level: 'info',
+      message: `${one ? 'Se ignora el nodo' : 'Se ignoran los nodos'} ${ignored.join(', ')}: no ${one ? 'está' : 'están'} en ninguna ruta de ${origin} a ${destination}.`,
+    });
+  }
+
+  const steps: Step[] = [stagesStep(net, backward)];
+
+  const rec = backward ? backwardRecursion(net) : forwardRecursion(net);
+  steps.push(...rec.steps);
+  const { f, tables } = rec;
+  const routes = optimalRoutes(net, rec.choice, backward);
   const distance = backward ? f.get(key(origin))! : f.get(key(destination))!;
+  const arrow = String.raw` \to `;
 
   steps.push({
     title: routes.length > 1 ? 'Rutas óptimas' : 'Ruta óptima',
@@ -371,13 +470,14 @@ export function solveShortestRoute(input: ShortestRouteInput): Result {
       ? 'Se parte del origen y se sigue en cada etapa la decisión óptima x* del estado en que se está.'
       : 'Se parte del destino y se retrocede por el nodo desde el que se llegó con la distancia mínima.',
     result: latexLines(
-      routes.map((r) => String.raw`${r.map(t).join(String.raw` \to `)} \quad (${n(distance)})`),
+      routes.map((r) => String.raw`${r.map(t).join(arrow)} \quad (${n(distance)})`),
     ),
   });
   if (routes.length > 1) {
+    const shown = routes.length >= MAX_ROUTES ? ` (se muestran las primeras ${MAX_ROUTES})` : '';
     notices.push({
       level: 'info',
-      message: `Hay ${routes.length} rutas óptimas${routes.length >= MAX_ROUTES ? ` (se muestran las primeras ${MAX_ROUTES})` : ''}, todas con distancia ${distance}: ${routes.map((r) => r.join(' → ')).join('; ')}.`,
+      message: `Hay ${routes.length} rutas óptimas${shown}, todas con distancia ${distance}: ${routes.map((r) => r.join(' → ')).join('; ')}.`,
     });
   }
 

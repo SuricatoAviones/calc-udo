@@ -44,6 +44,11 @@ export interface PureStrategiesValue {
 
 const n = toLatexNumber;
 
+/** `A_1 \to 3,\ A_2 \to -1`: cada estrategia con su mínimo (o máximo). */
+function arrows(values: number[], nameOf: (k: number) => string): string {
+  return values.map((v, k) => String.raw`${nameOf(k)} \to ${n(v)}`).join(TEX.listSep);
+}
+
 export function solvePureStrategies({
   payoff,
 }: PureStrategiesInput): CalculatorResult<PureStrategiesValue, never> {
@@ -52,6 +57,7 @@ export function solvePureStrategies({
   const analysis = analyzeMinimax(payoff);
   const { rowMins, colMaxs, maximin, minimax, maximinRows, minimaxCols, saddlePoints } = analysis;
   const hasSaddle = saddlePoints.length > 0;
+  const saddleList = saddlePoints.map(([i, j]) => `a_{${i + 1}${j + 1}}`).join(TEX.listSep);
 
   const steps: Step[] = [
     {
@@ -65,7 +71,7 @@ export function solvePureStrategies({
       explanation:
         'A supone que B responderá de la peor manera para él: para cada estrategia toma el pago mínimo de su fila y elige la que tenga el mayor de esos mínimos.',
       formula: String.raw`\underline{v} = \max_i \min_j a_{ij}`,
-      substitution: String.raw`\min_j a_{ij}:\ ${rowMins.map((v, i) => String.raw`${rowName(i)} \to ${n(v)}`).join(TEX.listSep)}`,
+      substitution: String.raw`\min_j a_{ij}:\ ${arrows(rowMins, rowName)}`,
       result: String.raw`\underline{v} = \max\{${rowMins.map((v) => n(v)).join(TEX.listSep)}\} = ${n(maximin)} \quad (${strategyList(maximinRows, rowName)})`,
     },
     {
@@ -73,7 +79,7 @@ export function solvePureStrategies({
       explanation:
         'B hace el razonamiento simétrico: para cada estrategia toma el pago máximo de su columna (su peor pérdida) y elige la que tenga el menor de esos máximos.',
       formula: String.raw`\overline{v} = \min_j \max_i a_{ij}`,
-      substitution: String.raw`\max_i a_{ij}:\ ${colMaxs.map((v, j) => String.raw`${colName(j)} \to ${n(v)}`).join(TEX.listSep)}`,
+      substitution: String.raw`\max_i a_{ij}:\ ${arrows(colMaxs, colName)}`,
       result: String.raw`\overline{v} = \min\{${colMaxs.map((v) => n(v)).join(TEX.listSep)}\} = ${n(minimax)} \quad (${strategyList(minimaxCols, colName)})`,
     },
     hasSaddle
@@ -82,7 +88,7 @@ export function solvePureStrategies({
           explanation:
             'El valor maximin coincide con el minimax: la entrada es a la vez el mínimo de su fila y el máximo de su columna. Ningún jugador gana cambiando de estrategia por su cuenta, así que la solución es estable y ese es el valor del juego.',
           formula: String.raw`\underline{v} = \overline{v} = v`,
-          result: String.raw`${saddlePoints.map(([i, j]) => `a_{${i + 1}${j + 1}}`).join(TEX.listSep)} = ${n(maximin)} \quad \Rightarrow \quad v = ${n(maximin)}`,
+          result: String.raw`${saddleList} = ${n(maximin)} \quad \Rightarrow \quad v = ${n(maximin)}`,
         }
       : {
           title: 'Sin punto de silla',

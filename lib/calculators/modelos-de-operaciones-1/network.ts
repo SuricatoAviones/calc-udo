@@ -11,7 +11,7 @@
  * actividades críticas desde el inicio hasta el fin del proyecto.
  */
 import { z } from 'zod';
-import { latexLines, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
+import { latexLines, plural, toLatexNumber, toLatexText, TEX } from '@/lib/math/format';
 import type { CalculatorError, ResultTable, Step } from '../types';
 
 export const MAX_ACTIVITIES = 60;
@@ -122,13 +122,10 @@ function topologicalOrder(
   return { order };
 }
 
-export function analyzeNetwork(
+/** Nombres únicos y predecesoras que existen y no son la propia actividad. */
+function validateNetwork(
   input: NetworkActivity[],
-  { durationSymbol }: NetworkOptions,
-): NetworkAnalysis {
-  const t = (activity: string) => `${durationSymbol}_{${name(activity)}}`;
-
-  // ── Validación de la red ────────────────────────────────────────────────
+): { predecessorsOf: Map<string, string[]> } | Extract<NetworkAnalysis, { ok: false }> {
   const byKey = new Map<string, NetworkActivity>();
   for (const activity of input) {
     if (byKey.has(key(activity.name))) {
@@ -160,12 +157,160 @@ export function analyzeNetwork(
     }
     predecessorsOf.set(key(activity.name), names);
   }
+  return { predecessorsOf };
+}
+
+/** «A (sin predecesoras)», «B (predecesora: A)», «C (predecesoras: A, B)». */
+function relationTitle(a: string, list: string[], one: string, many: string): string {
+  if (list.length === 0) return `${a} (sin ${many})`;
+  return `${a} (${plural(list.length, one, many)}: ${list.join(', ')})`;
+}
+
+/**
+ * `ES_a = 0`, `ES_a = EF_p` o `ES_a = max{…}` (en la forma general y con números); igual para
+ * `LF_a` con mín y las sucesoras.
+ */
+function boundTex(
+  target: string,
+  related: string[],
+  edge: { none: string; one: string; many: () => string },
+): string {
+  if (related.length === 0) return `${target} = ${edge.none}`;
+  if (related.length === 1) return `${target} = ${edge.one}`;
+  return `${target} = ${edge.many()}`;
+}
+
+/** Recorrido hacia adelante: ES = máx EF de las predecesoras y EF = ES + t. */
+function forwardPass(
+  order: NetworkActivity[],
+  preds: (a: NetworkActivity) => string[],
+  t: (activity: string) => string,
+): { es: Map<string, number>; ef: Map<string, number>; steps: Step[] } {
+  const es = new Map<string, number>();
+  const ef = new Map<string, number>();
+  const steps: Step[] = [];
+  for (const activity of order) {
+    const a = activity.name;
+    const p = preds(activity);
+    const start = p.length === 0 ? 0 : Math.max(...p.map((x) => ef.get(key(x))!));
+    const finish = start + activity.duration;
+    es.set(key(a), start);
+    ef.set(key(a), finish);
+    const esFormula = boundTex(at('ES', a), p, {
+      none: '0',
+      one: at('EF', p[0] ?? ''),
+      many: () => String.raw`\max\{${p.map((x) => at('EF', x)).join(TEX.listSep)}\}`,
+    });
+    const esSubstitution = boundTex(at('ES', a), p, {
+      none: '0',
+      one: n(start),
+      many: () =>
+        String.raw`\max\{${p.map((x) => n(ef.get(key(x))!)).join(TEX.listSep)}\} = ${n(start)}`,
+    });
+    steps.push({
+      title: relationTitle(a, p, 'predecesora', 'predecesoras'),
+      formula: String.raw`${esFormula}, \qquad ${at('EF', a)} = ${at('ES', a)} + ${t(a)}`,
+      substitution: String.raw`${esSubstitution}, \qquad ${at('EF', a)} = ${n(start)} + ${n(activity.duration)}`,
+      result: String.raw`${at('ES', a)} = ${n(start)}, \qquad ${at('EF', a)} = ${n(finish)}`,
+    });
+  }
+  return { es, ef, steps };
+}
+
+/** Recorrido hacia atrás: LF = mín LS de las sucesoras (T para las finales) y LS = LF − t. */
+function backwardPass(
+  order: NetworkActivity[],
+  succs: (a: NetworkActivity) => string[],
+  duration: number,
+  t: (activity: string) => string,
+): { ls: Map<string, number>; lf: Map<string, number>; steps: Step[] } {
+  const ls = new Map<string, number>();
+  const lf = new Map<string, number>();
+  const steps: Step[] = [];
+  for (const activity of [...order].reverse()) {
+    const a = activity.name;
+    const s = succs(activity);
+    const finish = s.length === 0 ? duration : Math.min(...s.map((x) => ls.get(key(x))!));
+    const start = finish - activity.duration;
+    lf.set(key(a), finish);
+    ls.set(key(a), start);
+    const lfFormula = boundTex(at('LF', a), s, {
+      none: 'T',
+      one: at('LS', s[0] ?? ''),
+      many: () => String.raw`\min\{${s.map((x) => at('LS', x)).join(TEX.listSep)}\}`,
+    });
+    const lfSubstitution = boundTex(at('LF', a), s, {
+      none: n(finish),
+      one: n(finish),
+      many: () =>
+        String.raw`\min\{${s.map((x) => n(ls.get(key(x))!)).join(TEX.listSep)}\} = ${n(finish)}`,
+    });
+    steps.push({
+      title: relationTitle(a, s, 'sucesora', 'sucesoras'),
+      formula: String.raw`${lfFormula}, \qquad ${at('LS', a)} = ${at('LF', a)} - ${t(a)}`,
+      substitution: String.raw`${lfSubstitution}, \qquad ${at('LS', a)} = ${n(finish)} - ${n(activity.duration)}`,
+      result: String.raw`${at('LS', a)} = ${n(start)}, \qquad ${at('LF', a)} = ${n(finish)}`,
+    });
+  }
+  return { ls, lf, steps };
+}
+
+/** HL = mín ES de las sucesoras − EF (T − EF para las finales), con los números. */
+function freeSlackTex(a: ScheduledActivity, es: Map<string, number>, duration: number): string {
+  const nextStarts = a.successors.map((s) => n(es.get(key(s))!));
+  if (a.successors.length === 0) return `T - ${at('EF', a.name)} = ${n(duration)} - ${n(a.ef)}`;
+  if (a.successors.length === 1) return `${nextStarts[0]} - ${n(a.ef)}`;
+  return String.raw`\min\{${nextStarts.join(TEX.listSep)}\} - ${n(a.ef)}`;
+}
+
+/** Rutas de actividades críticas encadenadas sin holgura desde el inicio (en 0) hasta T. */
+function findCriticalPaths(
+  scheduled: ScheduledActivity[],
+  duration: number,
+  tolerance: number,
+): string[][] {
+  const scheduledByKey = new Map(scheduled.map((a) => [key(a.name), a]));
+  const tight = (from: ScheduledActivity, to: ScheduledActivity) =>
+    to.critical && Math.abs(to.es - from.ef) <= tolerance;
+  const criticalPaths: string[][] = [];
+  const extend = (path: ScheduledActivity[]) => {
+    if (criticalPaths.length >= MAX_PATHS) return;
+    const last = path.at(-1)!;
+    const next = last.successors
+      .map((s) => scheduledByKey.get(key(s))!)
+      .filter((s) => tight(last, s));
+    if (next.length === 0) {
+      if (Math.abs(last.ef - duration) <= tolerance) criticalPaths.push(path.map((a) => a.name));
+      return;
+    }
+    for (const s of next) extend([...path, s]);
+  };
+  for (const start of scheduled) {
+    const hasTightPredecessor = start.predecessors.some((p) =>
+      tight(scheduledByKey.get(key(p))!, start),
+    );
+    if (start.critical && !hasTightPredecessor && start.es <= tolerance) extend([start]);
+  }
+  return criticalPaths;
+}
+
+export function analyzeNetwork(
+  input: NetworkActivity[],
+  { durationSymbol }: NetworkOptions,
+): NetworkAnalysis {
+  const t = (activity: string) => `${durationSymbol}_{${name(activity)}}`;
+
+  // ── Validación de la red ────────────────────────────────────────────────
+  const validated = validateNetwork(input);
+  if ('ok' in validated) return validated;
+  const { predecessorsOf } = validated;
 
   const sorted = topologicalOrder(input, predecessorsOf);
   if ('cycle' in sorted) {
+    const cycle = sorted.cycle.map((a) => `«${a}»`).join(', ');
     return fail(
       'cycle',
-      `Las relaciones de precedencia forman un ciclo entre ${sorted.cycle.map((a) => `«${a}»`).join(', ')}: ninguna de esas actividades podría empezar nunca. Revisa las predecesoras.`,
+      `Las relaciones de precedencia forman un ciclo entre ${cycle}: ninguna de esas actividades podría empezar nunca. Revisa las predecesoras.`,
     );
   }
   const order = sorted.order;
@@ -190,38 +335,7 @@ export function analyzeNetwork(
   ];
 
   // ── Recorrido hacia adelante ────────────────────────────────────────────
-  const es = new Map<string, number>();
-  const ef = new Map<string, number>();
-  const forward: Step[] = [];
-  for (const activity of order) {
-    const a = activity.name;
-    const p = preds(activity);
-    const start = p.length === 0 ? 0 : Math.max(...p.map((x) => ef.get(key(x))!));
-    const finish = start + activity.duration;
-    es.set(key(a), start);
-    ef.set(key(a), finish);
-    const esFormula =
-      p.length === 0
-        ? `${at('ES', a)} = 0`
-        : p.length === 1
-          ? `${at('ES', a)} = ${at('EF', p[0]!)}`
-          : String.raw`${at('ES', a)} = \max\{${p.map((x) => at('EF', x)).join(TEX.listSep)}\}`;
-    const esSubstitution =
-      p.length === 0
-        ? `${at('ES', a)} = 0`
-        : p.length === 1
-          ? `${at('ES', a)} = ${n(start)}`
-          : String.raw`${at('ES', a)} = \max\{${p.map((x) => n(ef.get(key(x))!)).join(TEX.listSep)}\} = ${n(start)}`;
-    forward.push({
-      title:
-        p.length === 0
-          ? `${a} (sin predecesoras)`
-          : `${a} (${p.length === 1 ? 'predecesora' : 'predecesoras'}: ${p.join(', ')})`,
-      formula: String.raw`${esFormula}, \qquad ${at('EF', a)} = ${at('ES', a)} + ${t(a)}`,
-      substitution: String.raw`${esSubstitution}, \qquad ${at('EF', a)} = ${n(start)} + ${n(activity.duration)}`,
-      result: String.raw`${at('ES', a)} = ${n(start)}, \qquad ${at('EF', a)} = ${n(finish)}`,
-    });
-  }
+  const { es, ef, steps: forward } = forwardPass(order, preds, t);
   steps.push({
     title: 'Recorrido hacia adelante (tiempos más próximos)',
     explanation:
@@ -243,36 +357,7 @@ export function analyzeNetwork(
   });
 
   // ── Recorrido hacia atrás ───────────────────────────────────────────────
-  const ls = new Map<string, number>();
-  const lf = new Map<string, number>();
-  const backward: Step[] = [];
-  for (const activity of [...order].reverse()) {
-    const a = activity.name;
-    const s = succs(activity);
-    const finish = s.length === 0 ? duration : Math.min(...s.map((x) => ls.get(key(x))!));
-    const start = finish - activity.duration;
-    lf.set(key(a), finish);
-    ls.set(key(a), start);
-    const lfFormula =
-      s.length === 0
-        ? `${at('LF', a)} = T`
-        : s.length === 1
-          ? `${at('LF', a)} = ${at('LS', s[0]!)}`
-          : String.raw`${at('LF', a)} = \min\{${s.map((x) => at('LS', x)).join(TEX.listSep)}\}`;
-    const lfSubstitution =
-      s.length === 0 || s.length === 1
-        ? `${at('LF', a)} = ${n(finish)}`
-        : String.raw`${at('LF', a)} = \min\{${s.map((x) => n(ls.get(key(x))!)).join(TEX.listSep)}\} = ${n(finish)}`;
-    backward.push({
-      title:
-        s.length === 0
-          ? `${a} (sin sucesoras)`
-          : `${a} (${s.length === 1 ? 'sucesora' : 'sucesoras'}: ${s.join(', ')})`,
-      formula: String.raw`${lfFormula}, \qquad ${at('LS', a)} = ${at('LF', a)} - ${t(a)}`,
-      substitution: String.raw`${lfSubstitution}, \qquad ${at('LS', a)} = ${n(finish)} - ${n(activity.duration)}`,
-      result: String.raw`${at('LS', a)} = ${n(start)}, \qquad ${at('LF', a)} = ${n(finish)}`,
-    });
-  }
+  const { ls, lf, steps: backward } = backwardPass(order, succs, duration, t);
   steps.push({
     title: 'Recorrido hacia atrás (tiempos más lejanos)',
     explanation:
@@ -307,46 +392,15 @@ export function analyzeNetwork(
     explanation:
       'La holgura total es cuánto puede retrasarse una actividad sin retrasar el proyecto; la holgura libre, cuánto puede retrasarse sin retrasar el inicio más próximo de ninguna sucesora. Las actividades con holgura total 0 son críticas.',
     formula: String.raw`\mathrm{HT} = \mathrm{LS} - \mathrm{ES} = \mathrm{LF} - \mathrm{EF}, \qquad \mathrm{HL} = \min\{\mathrm{ES}\ \text{de las sucesoras}\} - \mathrm{EF}`,
-    children: scheduled.map((a) => {
-      const nextStarts = a.successors.map((s) => n(es.get(key(s))!));
-      const free =
-        a.successors.length === 0
-          ? `T - ${at('EF', a.name)} = ${n(duration)} - ${n(a.ef)}`
-          : a.successors.length === 1
-            ? `${nextStarts[0]} - ${n(a.ef)}`
-            : String.raw`\min\{${nextStarts.join(TEX.listSep)}\} - ${n(a.ef)}`;
-      return {
-        title: `${a.name}${a.critical ? ' (crítica)' : ''}`,
-        substitution: String.raw`${at('HT', a.name)} = ${n(a.ls)} - ${n(a.es)}, \qquad ${at('HL', a.name)} = ${free}`,
-        result: String.raw`${at('HT', a.name)} = ${n(a.totalSlack)}, \qquad ${at('HL', a.name)} = ${n(a.freeSlack)}`,
-      };
-    }),
+    children: scheduled.map((a) => ({
+      title: `${a.name}${a.critical ? ' (crítica)' : ''}`,
+      substitution: String.raw`${at('HT', a.name)} = ${n(a.ls)} - ${n(a.es)}, \qquad ${at('HL', a.name)} = ${freeSlackTex(a, es, duration)}`,
+      result: String.raw`${at('HT', a.name)} = ${n(a.totalSlack)}, \qquad ${at('HL', a.name)} = ${n(a.freeSlack)}`,
+    })),
   });
 
   // ── Rutas críticas ──────────────────────────────────────────────────────
-  const scheduledByKey = new Map(scheduled.map((a) => [key(a.name), a]));
-  const tight = (from: ScheduledActivity, to: ScheduledActivity) =>
-    to.critical && Math.abs(to.es - from.ef) <= tolerance;
-  const criticalPaths: string[][] = [];
-  const extend = (path: ScheduledActivity[]) => {
-    if (criticalPaths.length >= MAX_PATHS) return;
-    const last = path.at(-1)!;
-    const next = last.successors
-      .map((s) => scheduledByKey.get(key(s))!)
-      .filter((s) => tight(last, s));
-    if (next.length === 0) {
-      if (Math.abs(last.ef - duration) <= tolerance) criticalPaths.push(path.map((a) => a.name));
-      return;
-    }
-    for (const s of next) extend([...path, s]);
-  };
-  for (const start of scheduled) {
-    const hasTightPredecessor = start.predecessors.some((p) =>
-      tight(scheduledByKey.get(key(p))!, start),
-    );
-    if (start.critical && !hasTightPredecessor && start.es <= tolerance) extend([start]);
-  }
-
+  const criticalPaths = findCriticalPaths(scheduled, duration, tolerance);
   steps.push({
     title: criticalPaths.length > 1 ? 'Rutas críticas' : 'Ruta crítica',
     explanation:
@@ -398,5 +452,6 @@ export function scheduleRow(a: ScheduledActivity) {
 
 /** Aviso cuando hay varias rutas críticas. */
 export function multiplePathsMessage(paths: string[][]): string {
-  return `Hay ${paths.length} rutas críticas${paths.length >= MAX_PATHS ? ` (se muestran las primeras ${MAX_PATHS})` : ''}: ${paths.map(criticalPathText).join('; ')}. Todas duran lo mismo; un retraso en cualquiera de ellas retrasa el proyecto.`;
+  const shown = paths.length >= MAX_PATHS ? ` (se muestran las primeras ${MAX_PATHS})` : '';
+  return `Hay ${paths.length} rutas críticas${shown}: ${paths.map(criticalPathText).join('; ')}. Todas duran lo mismo; un retraso en cualquiera de ellas retrasa el proyecto.`;
 }

@@ -89,12 +89,60 @@ type Result = CalculatorResult<ReplacementValue, never>;
 const n = toLatexNumber;
 const MAX_POLICIES = 10;
 
-export function solveReplacement(input: ReplacementInput): Result {
-  const { years, initialAge, newCost: I, data } = input;
+type Decision = 'K' | 'R';
+type StageValues = Map<number, { value: number; decisions: Decision[] }>;
+
+/**
+ * Valor de conservar (K) y de reemplazar (R) una máquina de edad t al inicio del año i, el mejor
+ * y la línea de la sustitución. En el último año la máquina se vende al final.
+ */
+function evaluateState(
+  input: ReplacementInput,
+  f: StageValues[],
+  i: number,
+  t: number,
+): { values: Map<string, number>; best: number; arg: Decision[]; line: string } {
+  const { years, newCost: I, data } = input;
   const maxAge = data.length - 1;
-  const r = (t: number) => data[t]!.revenue;
-  const c = (t: number) => data[t]!.cost;
-  const s = (t: number) => data[t]?.salvage;
+  const r = (age: number) => data[age]!.revenue;
+  const c = (age: number) => data[age]!.cost;
+  const s = (age: number) => data[age]?.salvage;
+  const last = i === years;
+  const values = new Map<string, number>();
+  const parts: string[] = [];
+  const canKeep = t < maxAge && (!last || s(t + 1) !== undefined);
+  if (canKeep) {
+    const future = last ? s(t + 1)! : f[i + 1]!.get(t + 1)!.value;
+    const keep = r(t) - c(t) + future;
+    values.set('K', keep);
+    parts.push(`K: ${n(r(t))} - ${n(c(t))} + ${n(future)} = ${n(keep)}`);
+  }
+  const salvageNow = t === 0 ? 0 : s(t)!;
+  const replace = last
+    ? r(0) + salvageNow + s(1)! - c(0) - I
+    : r(0) + salvageNow - c(0) - I + f[i + 1]!.get(1)!.value;
+  values.set('R', replace);
+  parts.push(
+    last
+      ? `R: ${n(r(0))} + ${n(salvageNow)} + ${n(s(1)!)} - ${n(c(0))} - ${n(I)} = ${n(replace)}`
+      : `R: ${n(r(0))} + ${n(salvageNow)} - ${n(c(0))} - ${n(I)} + ${n(f[i + 1]!.get(1)!.value)} = ${n(replace)}`,
+  );
+  const keys = [...values.keys()];
+  const list = keys.map((k) => values.get(k)!);
+  const best = Math.max(...list);
+  const arg = argOptimum('max', list).map((k) => keys[k] as Decision);
+  const forced = !canKeep && t >= maxAge ? String.raw`\ \text{(debe reemplazarse)}` : '';
+  return {
+    values,
+    best,
+    arg,
+    line: String.raw`t = ${t}:\ ${parts.join(TEX.listSep)} \ \Rightarrow\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${forced}`,
+  };
+}
+
+export function solveReplacement(input: ReplacementInput): Result {
+  const { years, initialAge, data } = input;
+  const maxAge = data.length - 1;
 
   // Edades alcanzables al inicio de cada año.
   const ages: number[][] = [[initialAge]];
@@ -125,37 +173,10 @@ export function solveReplacement(input: ReplacementInput): Result {
     const rows: StageRow[] = [];
     const lines: string[] = [];
     for (const t of ages[i - 1]!) {
-      const values = new Map<string, number>();
-      const parts: string[] = [];
-      const canKeep = t < maxAge && (!last || s(t + 1) !== undefined);
-      if (canKeep) {
-        const keep = last ? r(t) - c(t) + s(t + 1)! : r(t) - c(t) + f[i + 1]!.get(t + 1)!.value;
-        values.set('K', keep);
-        parts.push(
-          last
-            ? `K: ${n(r(t))} - ${n(c(t))} + ${n(s(t + 1)!)} = ${n(keep)}`
-            : `K: ${n(r(t))} - ${n(c(t))} + ${n(f[i + 1]!.get(t + 1)!.value)} = ${n(keep)}`,
-        );
-      }
-      const salvageNow = t === 0 ? 0 : s(t)!;
-      const replace = last
-        ? r(0) + salvageNow + s(1)! - c(0) - I
-        : r(0) + salvageNow - c(0) - I + f[i + 1]!.get(1)!.value;
-      values.set('R', replace);
-      parts.push(
-        last
-          ? `R: ${n(r(0))} + ${n(salvageNow)} + ${n(s(1)!)} - ${n(c(0))} - ${n(I)} = ${n(replace)}`
-          : `R: ${n(r(0))} + ${n(salvageNow)} - ${n(c(0))} - ${n(I)} + ${n(f[i + 1]!.get(1)!.value)} = ${n(replace)}`,
-      );
-      const keys = [...values.keys()];
-      const list = keys.map((k) => values.get(k)!);
-      const best = Math.max(...list);
-      const arg = argOptimum('max', list).map((k) => keys[k] as 'K' | 'R');
-      f[i]!.set(t, { value: best, decisions: arg });
-      rows.push({ state: String(t), values, best, argBest: arg });
-      lines.push(
-        String.raw`t = ${t}:\ ${parts.join(TEX.listSep)} \ \Rightarrow\ f_{${i}}(${t}) = ${optimumLatex('max', list)} = ${n(best)}${canKeep ? '' : t >= maxAge ? String.raw`\ \text{(debe reemplazarse)}` : ''}`,
-      );
+      const state = evaluateState(input, f, i, t);
+      f[i]!.set(t, { value: state.best, decisions: state.arg });
+      rows.push({ state: String(t), values: state.values, best: state.best, argBest: state.arg });
+      lines.push(state.line);
     }
     stageSteps.push({
       title: `Etapa ${i} (año ${i})`,
@@ -198,13 +219,14 @@ export function solveReplacement(input: ReplacementInput): Result {
   };
   walk(1, initialAge, []);
   const total = f[1]!.get(initialAge)!.value;
+  const policyList = policies.map((p) => '(' + p.join(', ') + ')').join(String.raw` \ \text{o} \ `);
   steps.push({
     title: 'Política óptima',
     explanation:
       policies.length > 1
         ? 'Hay empates entre conservar y reemplazar, así que existen varias políticas con el mismo ingreso neto.'
         : 'Se recorren las decisiones óptimas desde el año 1.',
-    result: String.raw`${policies.map((p) => `(${p.join(', ')})`).join(String.raw` \ \text{o} \ `)}, \qquad f_1(${initialAge}) = ${n(total)}`,
+    result: String.raw`${policyList}, \qquad f_1(${initialAge}) = ${n(total)}`,
   });
 
   return {
@@ -223,7 +245,7 @@ export function solveReplacement(input: ReplacementInput): Result {
     ],
     ...emptyTrace(),
     steps,
-    tables: tables.reverse(),
+    tables: [...tables].reverse(),
     notices: [
       {
         level: 'info',

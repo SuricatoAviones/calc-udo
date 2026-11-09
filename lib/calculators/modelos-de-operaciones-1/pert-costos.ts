@@ -32,6 +32,7 @@ import {
   parsePredecessors,
   predecessorsField,
   timeField,
+  type NetworkAnalysis,
   type NetworkErrorCode,
 } from './network';
 
@@ -132,18 +133,7 @@ function minCut(
   for (const e of edges) capacity[e.from]![e.to]! += e.capacity;
   let value = 0;
   for (;;) {
-    const parent = new Array<number>(nodes).fill(-1);
-    parent[source] = source;
-    const queue = [source];
-    while (queue.length > 0 && parent[sink] === -1) {
-      const u = queue.shift()!;
-      for (let v = 0; v < nodes; v++) {
-        if (parent[v] === -1 && capacity[u]![v]! > 1e-12) {
-          parent[v] = u;
-          queue.push(v);
-        }
-      }
-    }
+    const parent = searchResidual(capacity, source, sink);
     if (parent[sink] === -1) break;
     let bottleneck = Infinity;
     for (let v = sink; v !== source; v = parent[v]!) {
@@ -156,19 +146,135 @@ function minCut(
     }
     value += bottleneck;
   }
-  const reachable = new Array<boolean>(nodes).fill(false);
-  reachable[source] = true;
+  const parent = searchResidual(capacity, source, -1);
+  return { value, reachable: parent.map((p) => p !== -1) };
+}
+
+/**
+ * Búsqueda en anchura en la red residual desde `source`: el padre de cada nodo alcanzado (−1 si
+ * no se alcanza). Se detiene al llegar a `sink` (con `sink = −1`, recorre todo).
+ */
+function searchResidual(capacity: number[][], source: number, sink: number): number[] {
+  const nodes = capacity.length;
+  const parent = new Array<number>(nodes).fill(-1);
+  parent[source] = source;
   const queue = [source];
-  while (queue.length > 0) {
+  while (queue.length > 0 && (sink === -1 || parent[sink] === -1)) {
     const u = queue.shift()!;
     for (let v = 0; v < nodes; v++) {
-      if (!reachable[v] && capacity[u]![v]! > 1e-12) {
-        reachable[v] = true;
+      if (parent[v] === -1 && capacity[u]![v]! > 1e-12) {
+        parent[v] = u;
         queue.push(v);
       }
     }
   }
-  return { value, reachable };
+  return parent;
+}
+
+/**
+ * Corte mínimo de la subred crítica (actividades con holgura total 0 y arcos entre ellas). Cada
+ * actividad es un nodo dividido, entrada 2i → salida 2i+1, con capacidad igual a su costo por
+ * unidad (infinita si ya no se puede comprimir). Las actividades cortadas son las que se acortan.
+ */
+function criticalCut(
+  current: Extract<NetworkAnalysis, { ok: true }>,
+  data: {
+    names: string[];
+    durations: number[];
+    activities: CrashingInput['activities'];
+    slope: number[];
+    predecessors: string[][];
+  },
+): { critical: string[]; cut: { value: number; reachable: boolean[] } } {
+  const { names, durations, activities, slope, predecessors } = data;
+  const critical = current.activities.filter((a) => a.critical).map((a) => a.name);
+  const index = new Map(critical.map((a, i) => [a, i]));
+  const source = 2 * critical.length;
+  const sink = source + 1;
+  const scheduledOf = (name: string) => current.activities.find((s) => s.name === name)!;
+  const edges: { from: number; to: number; capacity: number }[] = [];
+  critical.forEach((a, i) => {
+    const k = names.indexOf(a);
+    const canCrash = durations[k]! > activities[k]!.crashTime;
+    edges.push({ from: 2 * i, to: 2 * i + 1, capacity: canCrash ? slope[k]! || 1e-9 : Infinity });
+    const scheduled = scheduledOf(a);
+    const criticalPreds = predecessors[k]!.filter(
+      (p) => index.has(p) && Math.abs(scheduledOf(p).ef - scheduled.es) < 1e-9,
+    );
+    if (criticalPreds.length === 0 && Math.abs(scheduled.es) < 1e-9) {
+      edges.push({ from: source, to: 2 * i, capacity: Infinity });
+    }
+    for (const p of criticalPreds) {
+      edges.push({ from: 2 * index.get(p)! + 1, to: 2 * i, capacity: Infinity });
+    }
+    if (Math.abs(scheduled.ef - current.duration) < 1e-9) {
+      edges.push({ from: 2 * i + 1, to: sink, capacity: Infinity });
+    }
+  });
+  return { critical, cut: minCut(sink + 1, edges, source, sink) };
+}
+
+/** Costo total = directo + indirecto por la duración: su mínimo y la gráfica de los tres costos. */
+function totalCostCurve(
+  curve: { duration: number; direct: number }[],
+  indirect: number,
+): { optimalDuration: number; step: Step; series: Series } {
+  const totals = curve.map((c) => ({ ...c, total: c.direct + indirect * c.duration }));
+  const best = totals.reduce((a, b) => (b.total < a.total - 1e-9 ? b : a), totals[0]!);
+  return {
+    optimalDuration: best.duration,
+    step: {
+      title: 'Duración de costo total mínimo',
+      explanation:
+        'El costo total es el costo directo (normal más compresión) más el costo indirecto, proporcional a la duración. Al comprimir, el costo directo sube y el indirecto baja.',
+      formula: String.raw`\text{CT}(T) = \text{costo directo}(T) + c_{\text{ind}}\,T`,
+      substitution: totals
+        .slice(0, 10)
+        .map(
+          (t) =>
+            String.raw`\text{CT}(${n(t.duration)}) = ${n(t.direct)} + ${n(indirect)}(${n(t.duration)}) = ${n(t.total)}`,
+        )
+        .join(String.raw` \\ `),
+      result: String.raw`T^* = ${n(best.duration)}, \qquad \text{CT}(T^*) = ${n(best.total)}`,
+    },
+    series: {
+      id: 'costos',
+      title: 'Costos según la duración del proyecto',
+      xLabel: 'Duración T',
+      yLabel: 'Costo',
+      label: 'Costo total',
+      points: totals.map((t) => ({ x: t.duration, y: t.total })),
+      others: [
+        { label: 'Costo directo', points: totals.map((t) => ({ x: t.duration, y: t.direct })) },
+        {
+          label: 'Costo indirecto',
+          points: totals.map((t) => ({ x: t.duration, y: indirect * t.duration })),
+        },
+      ],
+    },
+  };
+}
+
+/** Avisos finales: duración pedida inalcanzable y varias rutas críticas al terminar. */
+function crashingNotices(
+  target: number | undefined,
+  reachedTarget: boolean,
+  finalAnalysis: Extract<NetworkAnalysis, { ok: true }>,
+): Result['notices'] {
+  const notices: Result['notices'] = [];
+  if (target !== undefined && !reachedTarget) {
+    notices.push({
+      level: 'warning',
+      message: `No se puede llegar a ${formatNumber(target)}: la duración mínima alcanzable es ${formatNumber(finalAnalysis.duration)}.`,
+    });
+  }
+  if (finalAnalysis.criticalPaths.length > 1) {
+    notices.push({
+      level: 'info',
+      message: `Al final hay ${finalAnalysis.criticalPaths.length} rutas críticas: ${finalAnalysis.criticalPaths.slice(0, 4).map(criticalPathText).join('; ')}.`,
+    });
+  }
+  return notices;
 }
 
 /** Todas las rutas de inicio a fin (para la tabla de longitudes), o `null` si son muchas. */
@@ -259,34 +365,13 @@ export function solveCrashing(input: CrashingInput): Result {
   const crashSteps: Step[] = [];
 
   while (current.ok && current.duration > target + 1e-9) {
-    // Subred crítica: actividades con holgura total 0 y arcos entre ellas.
-    const critical = current.activities.filter((a) => a.critical).map((a) => a.name);
-    const index = new Map(critical.map((a, i) => [a, i]));
-    const source = 2 * critical.length;
-    const sink = source + 1;
-    const edges: { from: number; to: number; capacity: number }[] = [];
-    critical.forEach((a, i) => {
-      const k = names.indexOf(a);
-      const canCrash = durations[k]! > activities[k]!.crashTime;
-      // Nodo dividido: entrada 2i → salida 2i+1 con capacidad = costo por unidad.
-      edges.push({ from: 2 * i, to: 2 * i + 1, capacity: canCrash ? slope[k]! || 1e-9 : Infinity });
-      const preds = predecessors[k]!.filter((p) => index.has(p));
-      const scheduled = current.ok ? current.activities.find((s) => s.name === a)! : null;
-      const criticalPreds = preds.filter((p) => {
-        const ps = current.ok ? current.activities.find((s) => s.name === p)! : null;
-        return ps !== null && scheduled !== null && Math.abs(ps.ef - scheduled.es) < 1e-9;
-      });
-      if (criticalPreds.length === 0 && scheduled && Math.abs(scheduled.es) < 1e-9) {
-        edges.push({ from: source, to: 2 * i, capacity: Infinity });
-      }
-      for (const p of criticalPreds) {
-        edges.push({ from: 2 * index.get(p)! + 1, to: 2 * i, capacity: Infinity });
-      }
-      if (scheduled && Math.abs(scheduled.ef - current.duration) < 1e-9) {
-        edges.push({ from: 2 * i + 1, to: sink, capacity: Infinity });
-      }
+    const { critical, cut } = criticalCut(current, {
+      names,
+      durations,
+      activities,
+      slope,
+      predecessors,
     });
-    const cut = minCut(sink + 1, edges, source, sink);
     if (!Number.isFinite(cut.value)) {
       crashSteps.push({
         title: `No se puede bajar de T = ${formatNumber(current.duration)}`,
@@ -344,40 +429,7 @@ export function solveCrashing(input: CrashingInput): Result {
     { duration: first.duration, direct: normalCost },
     ...history.map((h) => ({ duration: h.duration, direct: h.directCost })),
   ];
-  if (input.indirectCost !== undefined) {
-    const totals = curve.map((c) => ({ ...c, total: c.direct + input.indirectCost! * c.duration }));
-    const best = totals.reduce((a, b) => (b.total < a.total - 1e-9 ? b : a), totals[0]!);
-    optimalDuration = best.duration;
-    steps.push({
-      title: 'Duración de costo total mínimo',
-      explanation:
-        'El costo total es el costo directo (normal más compresión) más el costo indirecto, proporcional a la duración. Al comprimir, el costo directo sube y el indirecto baja.',
-      formula: String.raw`\text{CT}(T) = \text{costo directo}(T) + c_{\text{ind}}\,T`,
-      substitution: totals
-        .slice(0, 10)
-        .map(
-          (t) =>
-            String.raw`\text{CT}(${n(t.duration)}) = ${n(t.direct)} + ${n(input.indirectCost!)}(${n(t.duration)}) = ${n(t.total)}`,
-        )
-        .join(String.raw` \\ `),
-      result: String.raw`T^* = ${n(best.duration)}, \qquad \text{CT}(T^*) = ${n(best.total)}`,
-    });
-    series.push({
-      id: 'costos',
-      title: 'Costos según la duración del proyecto',
-      xLabel: 'Duración T',
-      yLabel: 'Costo',
-      label: 'Costo total',
-      points: totals.map((t) => ({ x: t.duration, y: t.total })),
-      others: [
-        { label: 'Costo directo', points: totals.map((t) => ({ x: t.duration, y: t.direct })) },
-        {
-          label: 'Costo indirecto',
-          points: totals.map((t) => ({ x: t.duration, y: input.indirectCost! * t.duration })),
-        },
-      ],
-    });
-  } else {
+  if (input.indirectCost === undefined) {
     series.push({
       id: 'costos',
       title: 'Costo directo según la duración del proyecto',
@@ -385,6 +437,11 @@ export function solveCrashing(input: CrashingInput): Result {
       yLabel: 'Costo directo',
       points: curve.map((c) => ({ x: c.duration, y: c.direct })),
     });
+  } else {
+    const total = totalCostCurve(curve, input.indirectCost);
+    optimalDuration = total.optimalDuration;
+    steps.push(total.step);
+    series.push(total.series);
   }
 
   if (paths && pathRows.length > 1) {
@@ -423,19 +480,7 @@ export function solveCrashing(input: CrashingInput): Result {
     })),
   });
 
-  const notices: Result['notices'] = [];
-  if (input.target !== undefined && !reachedTarget) {
-    notices.push({
-      level: 'warning',
-      message: `No se puede llegar a ${formatNumber(input.target)}: la duración mínima alcanzable es ${formatNumber(finalAnalysis.duration)}.`,
-    });
-  }
-  if (finalAnalysis.criticalPaths.length > 1) {
-    notices.push({
-      level: 'info',
-      message: `Al final hay ${finalAnalysis.criticalPaths.length} rutas críticas: ${finalAnalysis.criticalPaths.slice(0, 4).map(criticalPathText).join('; ')}.`,
-    });
-  }
+  const notices = crashingNotices(input.target, reachedTarget, finalAnalysis);
 
   return {
     ok: true,

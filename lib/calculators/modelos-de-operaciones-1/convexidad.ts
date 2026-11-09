@@ -111,6 +111,163 @@ function combine(classes: Definiteness[]): ConvexityClass {
   return 'ni convexa ni cóncava';
 }
 
+/** Región [lower, upper]^size donde se verifica la curvatura. */
+interface Region {
+  lower: number;
+  upper: number;
+  size: number;
+  single: boolean;
+}
+
+/** «[0, 2]» o «[0, 2]^3». */
+function regionText({ lower, upper, size }: Region): string {
+  const power = size > 1 ? `^${size}` : '';
+  return `[${formatNumber(lower)}, ${formatNumber(upper)}]${power}`;
+}
+
+function regionTex({ lower, upper, size }: Region): string {
+  const power = size > 1 ? `^{${size}}` : '';
+  return String.raw`\text{en } [${n(lower)}, ${n(upper)}]${power}`;
+}
+
+/** Puntos por eje de la malla: más finos con menos variables. */
+function pointsPerAxis(size: number): number {
+  if (size === 1) return 401;
+  if (size === 2) return 41;
+  return size === 3 ? 15 : 9;
+}
+
+/** Hessiana constante: se clasifica una sola vez y vale en todo el dominio. */
+function constantCase(
+  H: number[][],
+  single: boolean,
+): { classification: ConvexityClass; step: Step } {
+  const definiteness = classifyMatrix(H);
+  const classification = combine([definiteness]);
+  const minors = leadingMinors(H)
+    .map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d)}`)
+    .join(TEX.listSep);
+  return {
+    classification,
+    step: {
+      title: 'La hessiana es constante',
+      explanation:
+        'La función es cuadrática (o lineal): la hessiana es la misma en todo punto, así que basta clasificarla una vez y el resultado vale en todo el dominio.',
+      substitution: single
+        ? `f''(x) = ${n(H[0]![0]!)}`
+        : String.raw`H = ${toLatexMatrix(H)}, \quad ${minors}`,
+      result: String.raw`H \text{ es ${definiteness}} \ \Rightarrow\ f \text{ es ${classification}}`,
+    },
+  };
+}
+
+interface GridScan {
+  classes: Definiteness[];
+  /** Primer punto con curvatura positiva (o indefinida) y primero con negativa. */
+  positiveWitness: number[] | null;
+  negativeWitness: number[] | null;
+}
+
+/** Clasifica la hessiana en cada punto de la malla de la región. */
+function scanGrid(hessian: ParsedExpression[][], region: Region): GridScan {
+  const { lower, upper, size } = region;
+  const perAxis = pointsPerAxis(size);
+  const axis = Array.from(
+    { length: perAxis },
+    (_, k) => lower + ((upper - lower) * k) / (perAxis - 1),
+  );
+  const scan: GridScan = { classes: [], positiveWitness: null, negativeWitness: null };
+  const visit = (point: number[]) => {
+    const H = evaluateMatrix(hessian, point);
+    if (!H.flat().every(Number.isFinite)) return;
+    const definiteness = classifyMatrix(H);
+    scan.classes.push(definiteness);
+    const indefinite = definiteness === 'indefinida';
+    if (indefinite || definiteness.includes('positiva')) scan.positiveWitness ??= point;
+    if (indefinite || definiteness.includes('negativa')) scan.negativeWitness ??= point;
+  };
+  const recurse = (prefix: number[]) => {
+    if (prefix.length === size) {
+      visit(prefix);
+      return;
+    }
+    for (const v of axis) recurse([...prefix, v]);
+  };
+  recurse([]);
+  return scan;
+}
+
+/** La curvatura cambia de signo: se muestran un punto de cada signo. */
+function signChangeStep(hessian: ParsedExpression[][], region: Region, scan: GridScan): Step {
+  const { single } = region;
+  return {
+    title: 'Curvatura en la región',
+    explanation: `Se evaluó la ${single ? 'segunda derivada' : 'hessiana'} en ${scan.classes.length} puntos de ${regionText(region)}: cambia de signo, así que la función no es convexa ni cóncava en la región.`,
+    substitution: [scan.positiveWitness, scan.negativeWitness]
+      .filter((p): p is number[] => p !== null)
+      .map((p) => {
+        const H = evaluateMatrix(hessian, p);
+        return single
+          ? `f''(${n(p[0]!, 6)}) = ${n(H[0]![0]!, 6)}`
+          : String.raw`H${pointTex(p, 4)} = ${toLatexMatrix(H, 4)} \ (\text{${classifyMatrix(H)}})`;
+      })
+      .join(String.raw` \\ `),
+  };
+}
+
+/** La hessiana en los extremos y el centro de la región, para la tabla. */
+function sampleRows(hessian: ParsedExpression[][], region: Region): Record<string, CellValue>[] {
+  const { lower, upper, size } = region;
+  const sample = [
+    Array.from({ length: size }, () => lower),
+    Array.from({ length: size }, () => (lower + upper) / 2),
+    Array.from({ length: size }, () => upper),
+  ];
+  const rows: Record<string, CellValue>[] = [];
+  for (const p of sample) {
+    const H = evaluateMatrix(hessian, p);
+    if (!H.flat().every(Number.isFinite)) continue;
+    rows.push({
+      point: p.map((v) => formatNumber(v, 6)).join(', '),
+      minors: leadingMinors(H)
+        .map((d) => formatNumber(d, 6))
+        .join('; '),
+      definiteness: classifyMatrix(H),
+    });
+  }
+  return rows;
+}
+
+/** f″(x) con una variable o la hessiana con varias, y el criterio de convexidad. */
+function hessianStep(hessian: ParsedExpression[][], single: boolean): Step {
+  if (single) {
+    return {
+      title: 'Segunda derivada',
+      explanation: 'f es convexa si f″(x) ≥ 0 en todo punto y cóncava si f″(x) ≤ 0.',
+      formula: String.raw`f''(x) = \frac{d^2 f}{dx^2}`,
+      result: `f''(x) = ${hessian[0]![0]!.tex}`.replaceAll('x_{1}', 'x'),
+    };
+  }
+  return {
+    title: 'Matriz hessiana',
+    explanation:
+      'f es convexa si la hessiana es semidefinida positiva en todo punto y cóncava si es semidefinida negativa.',
+    formula: String.raw`H = \left[\frac{\partial^2 f}{\partial x_{1}\,\partial x_{2}}\right]`,
+    result: `H = ${expressionMatrixTex(hessian)}`,
+  };
+}
+
+/** Las matrices son finitas e iguales entre sí (hasta 1e-9). */
+function isConstantMatrix(matrices: number[][][]): boolean {
+  const first = matrices[0]!;
+  return (
+    matrices.every((H) => H.flat().every(Number.isFinite)) &&
+    matrices.every((H) =>
+      H.every((row, i) => row.every((v, j) => Math.abs(v - first[i]![j]!) < 1e-9)),
+    )
+  );
+}
+
 export function solveConvexity({ expression, lower, upper }: ConvexityInput): Result {
   const parsed = readFunction(expression);
   if (typeof parsed === 'string') {
@@ -125,87 +282,29 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
       ...emptyTrace(),
     };
   }
-  const variable = (j: number) => (single ? 'x' : `x_{${j + 1}}`);
-  const hessianTex = single
-    ? `f''(x) = ${hessian[0]![0]!.tex}`
-    : `H = ${expressionMatrixTex(hessian)}`;
-  const steps: Step[] = [
-    {
-      title: single ? 'Segunda derivada' : 'Matriz hessiana',
-      explanation: single
-        ? 'f es convexa si f″(x) ≥ 0 en todo punto y cóncava si f″(x) ≤ 0.'
-        : 'f es convexa si la hessiana es semidefinida positiva en todo punto y cóncava si es semidefinida negativa.',
-      formula: single
-        ? String.raw`f''(x) = \frac{d^2 f}{dx^2}`
-        : String.raw`H = \left[\frac{\partial^2 f}{\partial ${variable(0)}\,\partial ${variable(1)}}\right]`,
-      result: hessianTex.replaceAll('x_{1}', single ? 'x' : 'x_{1}'),
-    },
-  ];
+  const steps: Step[] = [hessianStep(hessian, single)];
 
   // ¿Hessiana constante? Se compara en varios puntos.
   const probes = [0, 0.37, -1.3, 2.9].map((v) =>
     Array.from({ length: size }, (_, j) => v + 0.41 * j),
   );
   const evaluated = probes.map((p) => evaluateMatrix(hessian, p));
-  const constant =
-    evaluated.every((H) => H.flat().every(Number.isFinite)) &&
-    evaluated.every((H) =>
-      H.every((row, i) => row.every((v, j) => Math.abs(v - evaluated[0]![i]![j]!) < 1e-9)),
-    );
+  const constant = isConstantMatrix(evaluated);
 
   let classification: ConvexityClass;
   let counterexample: number[] | null = null;
   let pointsChecked = 1;
-  const rows: Record<string, CellValue>[] = [];
+  let rows: Record<string, CellValue>[] = [];
 
   if (constant) {
-    const H = evaluated[0]!;
-    const definiteness = classifyMatrix(H);
-    classification = combine([definiteness]);
-    const minors = leadingMinors(H);
-    steps.push({
-      title: 'La hessiana es constante',
-      explanation:
-        'La función es cuadrática (o lineal): la hessiana es la misma en todo punto, así que basta clasificarla una vez y el resultado vale en todo el dominio.',
-      substitution: single
-        ? `f''(x) = ${n(H[0]![0]!)}`
-        : String.raw`H = ${toLatexMatrix(H)}, \quad ${minors.map((d, k) => String.raw`\Delta_{${k + 1}} = ${n(d)}`).join(TEX.listSep)}`,
-      result: String.raw`H \text{ es ${definiteness}} \ \Rightarrow\ f \text{ es ${classification}}`,
-    });
+    const fixed = constantCase(evaluated[0]!, single);
+    classification = fixed.classification;
+    steps.push(fixed.step);
   } else {
-    // Malla en [lower, upper]^size.
-    const perAxis = size === 1 ? 401 : size === 2 ? 41 : size === 3 ? 15 : 9;
-    const axis = Array.from(
-      { length: perAxis },
-      (_, k) => lower + ((upper - lower) * k) / (perAxis - 1),
-    );
-    const classes: Definiteness[] = [];
-    let positiveWitness: number[] | null = null;
-    let negativeWitness: number[] | null = null;
-    const visit = (point: number[]) => {
-      const H = evaluateMatrix(hessian, point);
-      if (!H.flat().every(Number.isFinite)) return;
-      const definiteness = classifyMatrix(H);
-      classes.push(definiteness);
-      if (definiteness === 'indefinida') {
-        positiveWitness ??= point;
-        negativeWitness ??= point;
-      } else if (definiteness.includes('positiva')) {
-        positiveWitness ??= point;
-      } else if (definiteness.includes('negativa')) {
-        negativeWitness ??= point;
-      }
-    };
-    const recurse = (prefix: number[]) => {
-      if (prefix.length === size) {
-        visit(prefix);
-        return;
-      }
-      for (const v of axis) recurse([...prefix, v]);
-    };
-    recurse([]);
-    pointsChecked = classes.length;
-    if (classes.length === 0) {
+    const region = { lower, upper, size, single };
+    const scan = scanGrid(hessian, region);
+    pointsChecked = scan.classes.length;
+    if (scan.classes.length === 0) {
       return {
         ok: false,
         error: {
@@ -216,48 +315,19 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
         steps,
       };
     }
-    classification = combine(classes);
+    classification = combine(scan.classes);
     if (classification === 'ni convexa ni cóncava') {
       // Un punto donde la curvatura es positiva y otro donde es negativa (o uno indefinido).
-      counterexample = positiveWitness;
-      const negative = negativeWitness as number[] | null;
-      const positive = positiveWitness as number[] | null;
-      steps.push({
-        title: 'Curvatura en la región',
-        explanation: `Se evaluó la ${single ? 'segunda derivada' : 'hessiana'} en ${classes.length} puntos de [${formatNumber(lower)}, ${formatNumber(upper)}]${size > 1 ? `^${size}` : ''}: cambia de signo, así que la función no es convexa ni cóncava en la región.`,
-        substitution: [positive, negative]
-          .filter((p): p is number[] => p !== null)
-          .map((p) => {
-            const H = evaluateMatrix(hessian, p);
-            return single
-              ? `f''(${n(p[0]!, 6)}) = ${n(H[0]![0]!, 6)}`
-              : String.raw`H${pointTex(p, 4)} = ${toLatexMatrix(H, 4)} \ (\text{${classifyMatrix(H)}})`;
-          })
-          .join(String.raw` \\ `),
-      });
+      counterexample = scan.positiveWitness;
+      steps.push(signChangeStep(hessian, region, scan));
     } else {
       steps.push({
         title: 'Curvatura en la región',
-        explanation: `La ${single ? 'segunda derivada' : 'hessiana'} no es constante. Se evaluó en una malla de ${classes.length} puntos de [${formatNumber(lower)}, ${formatNumber(upper)}]${size > 1 ? `^${size}` : ''} y en todos tiene el mismo signo: la función es ${classification} en esa región (verificación numérica).`,
+        explanation: `La ${single ? 'segunda derivada' : 'hessiana'} no es constante. Se evaluó en una malla de ${scan.classes.length} puntos de ${regionText(region)} y en todos tiene el mismo signo: la función es ${classification} en esa región (verificación numérica).`,
         result: String.raw`f \text{ es ${classification} en la región}`,
       });
     }
-    const sample = [
-      Array.from({ length: size }, () => lower),
-      Array.from({ length: size }, () => (lower + upper) / 2),
-      Array.from({ length: size }, () => upper),
-    ];
-    for (const p of sample) {
-      const H = evaluateMatrix(hessian, p);
-      if (!H.flat().every(Number.isFinite)) continue;
-      rows.push({
-        point: p.map((v) => formatNumber(v, 6)).join(', '),
-        minors: leadingMinors(H)
-          .map((d) => formatNumber(d, 6))
-          .join('; '),
-        definiteness: classifyMatrix(H),
-      });
-    }
+    rows = sampleRows(hessian, region);
   }
 
   return {
@@ -273,7 +343,7 @@ export function solveConvexity({ expression, lower, upper }: ConvexityInput): Re
         label: 'Alcance',
         value: constant
           ? String.raw`\text{en todo el dominio (hessiana constante)}`
-          : String.raw`\text{en } [${n(lower)}, ${n(upper)}]${size > 1 ? `^{${size}}` : ''}`,
+          : regionTex({ lower, upper, size, single }),
       },
     ],
     ...emptyTrace(),

@@ -86,10 +86,11 @@ export function solveKnapsack({
       explanation: `Etapa i = artículo i (${count} etapas). La alternativa m_i es cuántas unidades del artículo i se cargan y el estado x_i es la capacidad que queda para los artículos i, …, ${count}. Se resuelve en reversa, desde el último artículo.`,
       formula: String.raw`f_i(x_i) = \max_{m_i = 0, 1, \ldots, \lfloor x_i / w_i \rfloor} \left\{ r_i m_i + f_{i+1}(x_i - w_i m_i) \right\}, \qquad f_{n+1} = 0`,
       result: latexLines(
-        items.map(
-          (item, i) =>
-            String.raw`${t(item.name)}:\ w_{${i + 1}} = ${item.weight},\ r_{${i + 1}} = ${n(item.value)}${item.maxUnits === undefined ? '' : String.raw`,\ m_{${i + 1}} \le ${item.maxUnits}`}`,
-        ),
+        items.map((item, i) => {
+          const limit =
+            item.maxUnits === undefined ? '' : String.raw`,\ m_{${i + 1}} \le ${item.maxUnits}`;
+          return String.raw`${t(item.name)}:\ w_{${i + 1}} = ${item.weight},\ r_{${i + 1}} = ${n(item.value)}${limit}`;
+        }),
       ),
     },
   ];
@@ -127,9 +128,15 @@ export function solveKnapsack({
         result: String.raw`f_{${stage}}(${x}) = ${n(f[i]![x]!)}, \qquad m_{${stage}}^* = ${best.map((k) => options[k]!).join(TEX.or)}`,
       });
     }
+    const cap = items[i]!.maxUnits;
+    const limit = cap === undefined ? '' : ` (y no más de ${cap})`;
+    const future =
+      i === count - 1
+        ? 'Es el último artículo, así que no hay rendimiento futuro.'
+        : `Lo que sobra de la capacidad se aprovecha como indica f${stage + 1}.`;
     steps.push({
       title: `Etapa ${stage}: ${name}`,
-      explanation: `Cada unidad pesa ${w} y rinde ${r}; con capacidad x caben a lo sumo ⌊x/${w}⌋ unidades${items[i]!.maxUnits === undefined ? '' : ` (y no más de ${items[i]!.maxUnits})`}. ${i === count - 1 ? 'Es el último artículo, así que no hay rendimiento futuro.' : `Lo que sobra de la capacidad se aprovecha como indica f${stage + 1}.`}`,
+      explanation: `Cada unidad pesa ${w} y rinde ${r}; con capacidad x caben a lo sumo ⌊x/${w}⌋ unidades${limit}. ${future}`,
       children,
     });
     tables.push(

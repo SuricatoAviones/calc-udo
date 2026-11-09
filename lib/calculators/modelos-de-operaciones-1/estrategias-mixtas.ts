@@ -102,57 +102,58 @@ function eliminateDominated(a: PayoffMatrix): Reduction {
     high.every((v, k) => v >= low[k]! - tol) && (tie || high.some((v, k) => v > low[k]! + tol));
 
   for (;;) {
-    let removed = false;
-    if (rows.length > 1) {
-      for (const r of rows) {
-        const dominated = cols.map((j) => a[r]![j]!);
-        const k = rows.find(
-          (k) =>
-            k !== r &&
+    const row =
+      rows.length > 1
+        ? firstDominated(rows, (r, k) =>
             atLeast(
               cols.map((j) => a[k]![j]!),
-              dominated,
+              cols.map((j) => a[r]![j]!),
               k < r,
             ),
-        );
-        if (k === undefined) continue;
-        steps.push({
-          title: `A${r + 1} está dominada por A${k + 1}`,
-          explanation: `Contra cualquier estrategia de B, A${k + 1} le paga a A al menos lo mismo que A${r + 1}, así que A nunca usaría A${r + 1}.`,
-          substitution: String.raw`${rowName(k)} = ${rowVector(k)} \ \ge\ ${rowName(r)} = ${rowVector(r)}`,
-        });
-        rows = rows.filter((i) => i !== r);
-        removed = true;
-        break;
-      }
+          )
+        : null;
+    if (row) {
+      const { dominated: r, by: k } = row;
+      steps.push({
+        title: `A${r + 1} está dominada por A${k + 1}`,
+        explanation: `Contra cualquier estrategia de B, A${k + 1} le paga a A al menos lo mismo que A${r + 1}, así que A nunca usaría A${r + 1}.`,
+        substitution: String.raw`${rowName(k)} = ${rowVector(k)} \ \ge\ ${rowName(r)} = ${rowVector(r)}`,
+      });
+      rows = rows.filter((i) => i !== r);
+      continue;
     }
-    if (removed) continue;
-    if (cols.length > 1) {
-      for (const c of cols) {
-        const dominated = rows.map((i) => a[i]![c]!);
-        const l = cols.find(
-          (l) =>
-            l !== c &&
+    const col =
+      cols.length > 1
+        ? firstDominated(cols, (c, l) =>
             atLeast(
-              dominated,
+              rows.map((i) => a[i]![c]!),
               rows.map((i) => a[i]![l]!),
               l < c,
             ),
-        );
-        if (l === undefined) continue;
-        steps.push({
-          title: `B${c + 1} está dominada por B${l + 1}`,
-          explanation: `B quiere pagar lo menos posible: contra cualquier estrategia de A, con B${l + 1} paga a lo sumo lo mismo que con B${c + 1}, así que B nunca usaría B${c + 1}.`,
-          substitution: String.raw`${colName(l)} = ${colVector(l)} \ \le\ ${colName(c)} = ${colVector(c)}`,
-        });
-        cols = cols.filter((j) => j !== c);
-        removed = true;
-        break;
-      }
-    }
-    if (!removed) break;
+          )
+        : null;
+    if (!col) break;
+    const { dominated: c, by: l } = col;
+    steps.push({
+      title: `B${c + 1} está dominada por B${l + 1}`,
+      explanation: `B quiere pagar lo menos posible: contra cualquier estrategia de A, con B${l + 1} paga a lo sumo lo mismo que con B${c + 1}, así que B nunca usaría B${c + 1}.`,
+      substitution: String.raw`${colName(l)} = ${colVector(l)} \ \le\ ${colName(c)} = ${colVector(c)}`,
+    });
+    cols = cols.filter((j) => j !== c);
   }
   return { rows, cols, steps };
+}
+
+/** La primera estrategia de `list` dominada por otra de la lista, y la que la domina. */
+function firstDominated(
+  list: number[],
+  dominates: (dominated: number, by: number) => boolean,
+): { dominated: number; by: number } | null {
+  for (const dominated of list) {
+    const by = list.find((k) => k !== dominated && dominates(dominated, k));
+    if (by !== undefined) return { dominated, by };
+  }
+  return null;
 }
 
 // ─── Método gráfico ─────────────────────────────────────────────────────────
@@ -169,9 +170,15 @@ const evaluate = (line: Line, x: number) => line.slope * x + line.intercept;
 function lineLatex(line: Line, variable: string): string {
   const { slope, intercept } = line;
   if (slope === 0) return n(intercept, 6);
-  const term = slope === 1 ? variable : slope === -1 ? `-${variable}` : `${n(slope, 6)}${variable}`;
-  if (intercept === 0) return term;
-  return `${n(intercept, 6)} ${slope < 0 ? '-' : '+'} ${slope === 1 || slope === -1 ? variable : `${n(Math.abs(slope), 6)}${variable}`}`;
+  if (intercept === 0) return slopeTerm(slope, variable);
+  const magnitude = Math.abs(slope) === 1 ? variable : n(Math.abs(slope), 6) + variable;
+  return `${n(intercept, 6)} ${slope < 0 ? '-' : '+'} ${magnitude}`;
+}
+
+/** `x`, `-x` o `2.5x`: el coeficiente 1 no se escribe. */
+function slopeTerm(slope: number, variable: string): string {
+  if (slope === 1) return variable;
+  return slope === -1 ? `-${variable}` : `${n(slope, 6)}${variable}`;
 }
 
 /** Puntos candidatos: los extremos y las intersecciones de cada par de rectas en [0, 1]. */
@@ -201,6 +208,84 @@ interface GraphicalSolution {
   series: Series;
 }
 
+/** Varias rectas pasan por el óptimo: el oponente tiene estrategias óptimas alternativas. */
+function alternativesMessage(point: string, player: 'A' | 'B', active: Line[]): string {
+  const lines = active.map((l) => player + (l.index + 1)).join(', ');
+  return `Por el punto ${point} pasan ${active.length} rectas (${lines}): ${player} tiene estrategias óptimas alternativas. Se muestra la que combina las dos rectas que forman la envolvente.`;
+}
+
+interface PlayerNames {
+  variable: string;
+  own: [string, string];
+  opponent: (k: number) => string;
+  opponentPlain: (k: number) => string;
+}
+
+/**
+ * Punto maximin (A) o minimax (B) y la mezcla del oponente: sobre una recta horizontal, en el
+ * corte de la recta creciente con la decreciente, o en un extremo del intervalo.
+ */
+function optimumStep(
+  lines: { horizontal?: Line; rising?: Line; falling?: Line; active: Line[] },
+  { maximize, p, best }: { maximize: boolean; p: number; best: number },
+  names: PlayerNames,
+): { step: Step; opponent: Map<number, number> } {
+  const { horizontal, rising, falling, active } = lines;
+  const { variable } = names;
+  const opponent = new Map<number, number>();
+  const envelopeName = maximize ? 'inferior' : 'superior';
+  const extreme = maximize ? 'máximo' : 'mínimo';
+  const title = `Punto ${maximize ? 'maximin' : 'minimax'}`;
+  const formula = maximize
+    ? String.raw`v = \max_{0 \le ${variable} \le 1} \min_j E_j(${variable})`
+    : String.raw`v = \min_{0 \le ${variable} \le 1} \max_i E_i(${variable})`;
+  const result = String.raw`${variable}^* = ${exact(p)}, \qquad v = ${exact(best)}`;
+  if (horizontal) {
+    opponent.set(horizontal.index, 1);
+    return {
+      opponent,
+      step: {
+        title,
+        explanation: `La envolvente ${envelopeName} alcanza su ${extreme} sobre la recta horizontal de ${names.opponentPlain(horizontal.index)}.`,
+        formula,
+        result,
+      },
+    };
+  }
+  if (!rising || !falling) {
+    // Óptimo en un extremo: una sola recta activa basta (el juego tenía punto de silla).
+    const line = rising ?? falling ?? active[0]!;
+    opponent.set(line.index, 1);
+    return {
+      opponent,
+      step: {
+        title,
+        explanation: `La envolvente ${envelopeName} alcanza su ${extreme} en un extremo del intervalo.`,
+        result,
+      },
+    };
+  }
+  const x = (falling.intercept - rising.intercept) / (rising.slope - falling.slope);
+  const [left, right] = maximize ? [rising, falling] : [falling, rising];
+  const worst = maximize
+    ? 'máximo de la envolvente inferior (el peor caso de A)'
+    : 'mínimo de la envolvente superior (el peor caso de B)';
+  const atOptimum = `(${exact(p)})`;
+  const wRising = -falling.slope / (rising.slope - falling.slope);
+  opponent.set(rising.index, wRising);
+  opponent.set(falling.index, 1 - wRising);
+  return {
+    opponent,
+    step: {
+      title,
+      explanation: `El ${worst} está donde se cortan las rectas de ${names.opponentPlain(left.index)} y ${names.opponentPlain(right.index)}.`,
+      formula,
+      substitution: String.raw`${lineLatex(left, variable)} = ${lineLatex(right, variable)} \ \Rightarrow\ ${variable} = ${exact(x)}`,
+      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${lineLatex(left, atOptimum)} = ${exact(best)}`,
+    },
+  };
+}
+
 /**
  * Método gráfico para el jugador que tiene dos estrategias. `maximize`: A (envolvente inferior,
  * se maximiza); si no, B (envolvente superior, se minimiza).
@@ -209,12 +294,7 @@ function graphical(
   lines: Line[],
   maximize: boolean,
   tol: number,
-  names: {
-    variable: string;
-    own: [string, string];
-    opponent: (k: number) => string;
-    opponentPlain: (k: number) => string;
-  },
+  names: PlayerNames,
 ): GraphicalSolution {
   const envelope = (x: number) =>
     maximize
@@ -246,51 +326,21 @@ function graphical(
   const horizontal = active.find((l) => Math.abs(l.slope) <= tol);
   const rising = active.filter((l) => l.slope > tol).sort((a, b) => b.slope - a.slope)[0];
   const falling = active.filter((l) => l.slope < -tol).sort((a, b) => a.slope - b.slope)[0];
-  const opponent = new Map<number, number>();
   const envelopeName = maximize ? 'inferior' : 'superior';
-  const criterion = maximize ? 'maximin' : 'minimax';
-
-  if (horizontal) {
-    opponent.set(horizontal.index, 1);
-    steps.push({
-      title: `Punto ${criterion}`,
-      explanation: `La envolvente ${envelopeName} alcanza su ${maximize ? 'máximo' : 'mínimo'} sobre la recta horizontal de ${names.opponentPlain(horizontal.index)}.`,
-      formula: maximize
-        ? String.raw`v = \max_{0 \le ${variable} \le 1} \min_j E_j(${variable})`
-        : String.raw`v = \min_{0 \le ${variable} \le 1} \max_i E_i(${variable})`,
-      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${exact(best)}`,
-    });
-  } else if (rising && falling) {
-    const x = (falling.intercept - rising.intercept) / (rising.slope - falling.slope);
-    const [left, right] = maximize ? [rising, falling] : [falling, rising];
-    steps.push({
-      title: `Punto ${criterion}`,
-      explanation: `El ${maximize ? 'máximo de la envolvente inferior (el peor caso de A)' : 'mínimo de la envolvente superior (el peor caso de B)'} está donde se cortan las rectas de ${names.opponentPlain(left.index)} y ${names.opponentPlain(right.index)}.`,
-      formula: maximize
-        ? String.raw`v = \max_{0 \le ${variable} \le 1} \min_j E_j(${variable})`
-        : String.raw`v = \min_{0 \le ${variable} \le 1} \max_i E_i(${variable})`,
-      substitution: String.raw`${lineLatex(left, variable)} = ${lineLatex(right, variable)} \ \Rightarrow\ ${variable} = ${exact(x)}`,
-      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${lineLatex(left, `(${exact(p)})`)} = ${exact(best)}`,
-    });
-    const wRising = -falling.slope / (rising.slope - falling.slope);
-    opponent.set(rising.index, wRising);
-    opponent.set(falling.index, 1 - wRising);
-  } else {
-    // Óptimo en un extremo: una sola recta activa basta (el juego tenía punto de silla).
-    const line = rising ?? falling ?? active[0]!;
-    opponent.set(line.index, 1);
-    steps.push({
-      title: `Punto ${criterion}`,
-      explanation: `La envolvente ${envelopeName} alcanza su ${maximize ? 'máximo' : 'mínimo'} en un extremo del intervalo.`,
-      result: String.raw`${variable}^* = ${exact(p)}, \qquad v = ${exact(best)}`,
-    });
-  }
+  const optimum = optimumStep(
+    { horizontal, rising, falling, active },
+    { maximize, p, best },
+    names,
+  );
+  const opponent = optimum.opponent;
+  steps.push(optimum.step);
 
   const xsForChart = [...new Set([...xs, 0, 1])].sort((a, b) => a - b);
+  const chartVariable = variable === 'x_1' ? 'x₁' : 'y₁';
   const series: Series = {
     id: 'metodo-grafico',
-    title: `Método gráfico: pago esperado de A según ${variable === 'x_1' ? 'x₁' : 'y₁'}`,
-    xLabel: variable === 'x_1' ? 'x₁' : 'y₁',
+    title: `Método gráfico: pago esperado de A según ${chartVariable}`,
+    xLabel: chartVariable,
     yLabel: 'pago esperado',
     label: `Envolvente ${envelopeName}`,
     points: xsForChart.map((x) => ({ x, y: envelope(x) })),
@@ -406,7 +456,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
     if (g.active.length > 2) {
       notices.push({
         level: 'info',
-        message: `Por el punto maximin pasan ${g.active.length} rectas (${g.active.map((l) => `B${l.index + 1}`).join(', ')}): B tiene estrategias óptimas alternativas. Se muestra la que combina las dos rectas que forman la envolvente.`,
+        message: alternativesMessage('maximin', 'B', g.active),
       });
     }
     const strategyA = full(
@@ -456,7 +506,7 @@ export function solveMixedStrategies({ payoff }: MixedStrategiesInput): Result {
     if (g.active.length > 2) {
       notices.push({
         level: 'info',
-        message: `Por el punto minimax pasan ${g.active.length} rectas (${g.active.map((l) => `A${l.index + 1}`).join(', ')}): A tiene estrategias óptimas alternativas. Se muestra la que combina las dos rectas que forman la envolvente.`,
+        message: alternativesMessage('minimax', 'A', g.active),
       });
     }
     const strategyB = full(
