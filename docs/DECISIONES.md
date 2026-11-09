@@ -968,8 +968,10 @@ Plantilla:
   - _Ternarios y plantillas anidados (S3358, S4624):_ tablas `Record`, funciones cortas con `if`
     y las piezas internas calculadas antes en constantes. Piezas compartidas: `TEX`, `powerTex`,
     `joinSignedTerms` y `plural` en `lib/math/format.ts`, `byAlternative` en
-    `estadistica-2/hypothesis.ts` y `withKeys` en `components/calculators/keys.ts` (claves de
-    React a partir del contenido, no del índice).
+    `estadistica-2/hypothesis.ts`, y `withKeys` y `gridSlots` en `components/calculators/keys.ts`.
+    `withKeys` da claves de React a partir del contenido, no del índice. `gridSlots` da claves de
+    posición (`fila-0`, `col-2`) a filas, columnas y celdas de una rejilla: ahí la celda es su
+    lugar, no su valor.
   - En `String.raw` una `\` justo antes de `${…}` escapa la interpolación, así que los operadores
     que dependen de un dato salen de `TEX` (`TEX[lp.sense]` da `\max` o `\min`).
   - Las comparaciones negadas (S1940) se reescriben sin cambiar el trato de `NaN`
@@ -983,8 +985,12 @@ Plantilla:
     Tailwind, que van en `@layer`.
   - Un aviso era un error real: en Relaciones v-i-p la derivada se mostraba como
     «[object Object]» (S6551); tiene test de regresión.
+  - Las funciones no reciben un booleano que elija qué hacer (S2301): reciben el dato que decide
+    (`sense: 'max' | 'min'`) o el resultado ya resuelto.
   - Verificación: las reglas se replicaron en local con `eslint-plugin-sonarjs`, `unicorn`,
     `jsx-a11y` y `react` y se contrastaron con la lista exportada de SonarCloud. Las reglas locales
     que señalan más casos que Sonar (callbacks pasados por referencia, `replace` con clases de
-    caracteres, índices como clave en rejillas) se revisaron contra esa lista en lugar de
-    aplicarse a ciegas. Esa configuración no se versiona: SonarCloud sigue siendo la referencia.
+    caracteres) se revisaron contra esa lista en lugar de aplicarse a ciegas. Esa configuración
+    no se versiona: SonarCloud sigue siendo la referencia, y su análisis de `main` encontró 13
+    avisos que la réplica no reprodujo (claves con el índice dentro de una plantilla, selectores
+    booleanos, un rol `group`, un import doble); se cerraron en el commit siguiente.
